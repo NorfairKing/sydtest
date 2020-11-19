@@ -186,11 +186,16 @@ outputFailures rf =
                 (Nothing, _) -> []
                 (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
                 (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
-            case testRunResultException of
+            map pad $ case testRunResultException of
               Nothing -> []
-              Just s ->
+              Just (Left s) ->
                 let ls = lines s
-                 in map (pad . (: []) . chunk . T.pack) ls,
+                 in map ((: []) . chunk . T.pack) ls
+              Just (Right a) -> case a of
+                Equality actual expected ->
+                  [ [chunk "Actual:   ", chunk (T.pack actual)],
+                    [chunk "Expected: ", chunk (T.pack expected)]
+                  ],
             [[chunk ""]]
           ]
 
@@ -234,7 +239,7 @@ runPureTest b = do
   let testRunResultNumTests = Nothing
   (testRunResultExecutionTime, resultBool) <- timeItT $ (Right <$> evaluate b) `catches` pureExceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
-        Left ex -> (TestFailed, Just $ displayException ex)
+        Left ex -> (TestFailed, Just ex)
         Right b -> (if b then TestPassed else TestFailed, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
@@ -251,12 +256,12 @@ runIOTest func = do
       $ do
         result <-
           (func >>= (evaluate . (`seq` Right TestPassed)))
-            `catches` ( [ Handler $ \(e :: ExitCode) -> pure (Left $ SomeException e)
+            `catches` ( [ Handler $ \(e :: ExitCode) -> pure (Left $ Left $ displayException e)
                         ]
                           ++ pureExceptionHandlers
                       )
         pure $ case result of
-          Left ex -> (TestFailed, Just $ displayException ex)
+          Left ex -> (TestFailed, Just ex)
           Right r -> (r, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
@@ -281,17 +286,22 @@ runPropertyTest p = do
           Failure {} -> Just $ fromIntegral $ numShrinks result
           _ -> Nothing
     let testRunResultException = case result of
-          Failure {} -> displayException <$> theException result
+          Failure {} -> do
+            se <- theException result
+            pure $ case fromException se of
+              Just a -> Right a
+              Nothing -> Left $ displayException se
           _ -> Nothing
     pure TestRunResult {..}
 
-pureExceptionHandlers :: [Handler (Either SomeException a)]
+pureExceptionHandlers :: [Handler (Either (Either String Assertion) a)]
 pureExceptionHandlers =
-  [ Handler $ \(e :: ErrorCall) -> pure (Left (SomeException e)),
-    Handler $ \(e :: RecConError) -> pure (Left (SomeException e)),
-    Handler $ \(e :: RecSelError) -> pure (Left (SomeException e)),
-    Handler $ \(e :: RecUpdError) -> pure (Left (SomeException e)),
-    Handler $ \(e :: PatternMatchFail) -> pure (Left (SomeException e))
+  [ Handler $ \(a :: Assertion) -> pure (Left $ Right a),
+    Handler $ \(e :: ErrorCall) -> pure (Left (Left (displayException e))),
+    Handler $ \(e :: RecConError) -> pure (Left (Left (displayException e))),
+    Handler $ \(e :: RecSelError) -> pure (Left (Left (displayException e))),
+    Handler $ \(e :: RecUpdError) -> pure (Left (Left (displayException e))),
+    Handler $ \(e :: PatternMatchFail) -> pure (Left (Left (displayException e)))
   ]
 
 type Test = IO ()
@@ -299,7 +309,7 @@ type Test = IO ()
 data TestRunResult
   = TestRunResult
       { testRunResultStatus :: !TestStatus,
-        testRunResultException :: !(Maybe String),
+        testRunResultException :: !(Maybe (Either String Assertion)),
         testRunResultNumTests :: !(Maybe Word),
         testRunResultNumShrinks :: !(Maybe Word),
         testRunResultExecutionTime :: !Double
@@ -351,7 +361,11 @@ runInSilencedNiceProcess func = do
 shouldBe :: (Show a, Eq a) => a -> a -> IO ()
 shouldBe actual expected = unless (actual == expected) $ throwIO $ Equality (show actual) (show expected)
 
-data Assertion a = Equality a a
-  deriving (Show, Eq, Typeable)
+data Assertion = Equality String String
+  deriving (Show, Eq, Typeable, Generic)
 
-instance Exception (Assertion String)
+instance Exception Assertion
+
+instance FromJSON Assertion
+
+instance ToJSON Assertion

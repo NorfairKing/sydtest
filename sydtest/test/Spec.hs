@@ -12,7 +12,7 @@ data DangerousRecord = Cons1 {field :: String} | Cons2
 main :: IO ()
 main = do
   results <- runSpecForest test
-  print results
+  printOutputSpecForest results
 
 test :: SpecForest Test
 test =

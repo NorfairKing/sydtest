@@ -30,6 +30,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , interprocess
+    , text
     , unix
   default-language: Haskell2010
 

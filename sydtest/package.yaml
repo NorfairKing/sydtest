@@ -16,6 +16,7 @@ library:
   - bytestring
   - interprocess
   - mtl
+  - rainbow
   - text
   - unix
 

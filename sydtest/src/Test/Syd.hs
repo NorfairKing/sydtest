@@ -12,13 +12,16 @@ module Test.Syd where
 import Control.Exception
 import Control.Monad.Reader
 import Data.Aeson as JSON
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
+import qualified Data.ByteString.Char8 as SB8
 import qualified Data.ByteString.Lazy as LB
 import Data.IORef
 import qualified Data.Text as T
 import Data.Text (Text)
 import Data.Text.Encoding as TE
 import GHC.Generics (Generic)
+import Rainbow
 import System.Exit
 import System.IO (hClose, hFlush)
 import System.Posix.Files
@@ -87,18 +90,36 @@ runSpecTree :: SpecTree Test -> IO (SpecTree TestRunResult)
 runSpecTree = traverse runTest
 
 printOutputSpecForest :: SpecForest TestRunResult -> IO ()
-printOutputSpecForest = SB.putStr . TE.encodeUtf8 . T.unlines . outputSpecForest
+printOutputSpecForest results = do
+  byteStringMaker <- byteStringMakerFromEnvironment
+  let bytestrings = map (chunksToByteStrings byteStringMaker) (outputSpecForest results) :: [[ByteString]]
+  forM_ bytestrings $ \bs -> do
+    mapM_ SB.putStr bs
+    SB8.putStrLn ""
 
-outputSpecForest :: SpecForest TestRunResult -> [Text]
+outputSpecForest :: SpecForest TestRunResult -> [[Chunk]]
 outputSpecForest = concatMap outputSpecTree
 
-outputSpecTree :: SpecTree TestRunResult -> [Text]
+outputSpecTree :: SpecTree TestRunResult -> [[Chunk]]
 outputSpecTree = \case
-  DescribeNode s sf -> T.pack s : map ("  " <>) (outputSpecForest sf)
-  SpecifyNode s TestRunResult {..} -> [T.pack s, "  " <> T.pack (show testRunResultStatus)]
+  DescribeNode s sf -> [fore yellow $ chunk (T.pack s)] : map (chunk "  " :) (outputSpecForest sf)
+  SpecifyNode s TestRunResult {..} ->
+    [ map
+        (fore (statusColour testRunResultStatus))
+        [ chunk (statusCheckMark testRunResultStatus),
+          chunk (T.pack s)
+        ]
+    ]
 
-outputTestRunResult :: TestRunResult -> Text
-outputTestRunResult = T.pack . show
+statusColour :: TestStatus -> Radiant
+statusColour = \case
+  TestPassed -> green
+  TestFailed -> red
+
+statusCheckMark :: TestStatus -> Text
+statusCheckMark = \case
+  TestPassed -> "\10003 "
+  TestFailed -> "\10007 "
 
 shouldExitFail :: SpecForest TestRunResult -> Bool
 shouldExitFail = any (any ((== TestFailed) . testRunResultStatus))

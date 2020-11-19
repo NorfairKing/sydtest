@@ -32,10 +32,25 @@ instance FromJSON TestStatus
 
 instance ToJSON TestStatus
 
+type SpecForest a = [SpecTree a]
+
+data SpecTree a
+  = DescribeNode String (SpecForest a) -- A description
+  | SpecifyNode String a -- A test with its description
+  deriving (Show)
+
+runSpecForest :: SpecForest Test -> IO (SpecForest TestRunResult)
+runSpecForest = mapM runSpecTree
+
+runSpecTree :: SpecTree Test -> IO (SpecTree TestRunResult)
+runSpecTree = \case
+  DescribeNode s sts -> DescribeNode s <$> mapM runSpecTree sts
+  SpecifyNode s t -> SpecifyNode s <$> runTest t
+
 runTest :: Test -> IO TestRunResult
 runTest func = do
   testRunResultStatus <-
-    runInProcess $
+    runInSilencedNiceProcess $
       (func >>= (evaluate . (`seq` TestPassed)))
         `catches` [ Handler $ \(_ :: ErrorCall) -> pure TestFailed,
                     Handler $ \(_ :: ExitCode) -> pure TestFailed,
@@ -46,8 +61,8 @@ runTest func = do
                   ]
   pure TestRunResult {..}
 
-runInProcess :: (FromJSON a, ToJSON a) => IO a -> IO a
-runInProcess func = do
+runInSilencedNiceProcess :: (FromJSON a, ToJSON a) => IO a -> IO a
+runInSilencedNiceProcess func = do
   -- FIXME: Forking a process is expensive and potentially not needed for pure code.
   (sharedMemOutsideFd, sharedMemInsideFd) <- createPipe
   sharedMemOutsideHandle <- fdToHandle sharedMemOutsideFd

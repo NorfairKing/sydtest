@@ -11,36 +11,41 @@ data DangerousRecord = Cons1 {field :: String} | Cons2
 
 main :: IO ()
 main = do
-  let success :: Test -> IO ()
-      success test = do
-        res <- runTest test
-        case testRunResultStatus res of
-          TestPassed -> pure ()
-          TestFailed -> die "failed"
-  let failed :: Test -> IO ()
-      failed test = do
-        res <- (Right <$> runTest test) `catch` (\(e :: SomeException) -> pure (Left e))
-        case testRunResultStatus <$> res of
-          Right TestPassed -> die "succeeded"
-          Right TestFailed -> pure ()
-          Left e -> die $ unlines ["Uncaught exception: ", displayException e]
-  success (pure ()) -- Something that passes
-      -- Exceptions
-  failed (error "hi") -- Something that errors in IO
-  failed (pure undefined) -- Something that errors purely
-  failed (exitWith $ ExitFailure 1) -- Exit code
-  failed (throw $ RecConError "test")
-  failed (pure (seq (let c = Cons1 {} in field c) ())) -- Record construction (1)
-  failed (seq (let c = Cons1 {} in field c) (pure ())) -- Record construction (2)
-  failed (throw $ RecSelError "test")
-  failed (pure (seq (let c = Cons2 in field c) ())) -- Record selection (1)
-  failed (seq (let c = Cons2 in field c) (pure ())) -- Record selection (2)
-  failed (throw $ RecUpdError "test")
-  failed (pure (seq (let c = Cons2 in c {field = "this will throw"}) ())) -- Record update (1)
-  failed (seq (let c = Cons2 in c {field = "this will throw"}) (pure ())) -- Record update (2)
-  failed (throw $ PatternMatchFail "test")
-  failed (pure (seq (let Cons1 s = Cons2 in s) ())) -- Pattern match (1)
-  failed (seq (let Cons1 s = Cons2 in s) (pure ())) -- Pattern match (2)
-        -- Printing
-  success (print "hi")
-  success (putStrLn "hi")
+  results <- runSpecForest test
+  print results
+
+test :: SpecForest Test
+test =
+  [ SpecifyNode "Passes" (pure ()),
+    DescribeNode
+      "error"
+      [ SpecifyNode "Pure error" (pure (error "foobar")),
+        SpecifyNode "Impure error" (error "foobar")
+      ],
+    DescribeNode
+      "undefined"
+      [ SpecifyNode "Pure undefined" (pure undefined),
+        SpecifyNode "Impure undefined" (undefined)
+      ],
+    SpecifyNode "Exit code" (exitWith $ ExitFailure 1),
+    DescribeNode
+      "Pure exceptions"
+      [ SpecifyNode "Record construction error" (throw $ RecConError "test"),
+        SpecifyNode "Record construction error" (pure (seq (let c = Cons1 {} in field c) ())),
+        SpecifyNode "Record construction error" (seq (let c = Cons1 {} in field c) (pure ())),
+        SpecifyNode "Record selection error" (throw $ RecSelError "test"),
+        SpecifyNode "Record selection error" (pure (seq (let c = Cons2 in field c) ())),
+        SpecifyNode "Record selection error" (seq (let c = Cons2 in field c) (pure ())),
+        SpecifyNode "Record update error" (throw $ RecUpdError "test"),
+        SpecifyNode "Record update error" (pure (seq (let c = Cons2 in c {field = "this will throw"}) ())),
+        SpecifyNode "Record update error" (seq (let c = Cons2 in c {field = "this will throw"}) (pure ())),
+        SpecifyNode "Pattern matching error" (throw $ PatternMatchFail "test"),
+        SpecifyNode "Pattern matching error" (pure (seq (let Cons1 s = Cons2 in s) ())),
+        SpecifyNode "Pattern matching error" (seq (let Cons1 s = Cons2 in s) (pure ()))
+      ],
+    DescribeNode
+      "Printing"
+      [ SpecifyNode "print" (print "hi"),
+        SpecifyNode "putStrLn" (putStrLn "hi")
+      ]
+  ]

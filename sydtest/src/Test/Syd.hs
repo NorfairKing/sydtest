@@ -20,6 +20,7 @@ import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.ByteString.Lazy as LB
 import Data.IORef
+import Data.Maybe
 import qualified Data.Text as T
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -33,6 +34,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Test
+import Text.Printf
 
 -- For the Testable (IO ()) instance
 
@@ -115,9 +117,13 @@ outputSpecTree = \case
   SpecifyNode s TestRunResult {..} ->
     [ map
         (fore (statusColour testRunResultStatus))
-        [ chunk (statusCheckMark testRunResultStatus),
-          chunk (T.pack s)
-        ]
+        ( concat
+            [ [ chunk (statusCheckMark testRunResultStatus),
+                chunk (T.pack s)
+              ],
+              [chunk (T.pack (printf " (%d tests passed)" w)) | w <- maybeToList testRunResultNumTests]
+            ]
+        )
     ]
 
 statusColour :: TestStatus -> Radiant
@@ -141,6 +147,7 @@ instance IsTest Bool where
 
 runPureTest :: Bool -> IO TestRunResult
 runPureTest b = do
+  let testRunResultNumTests = Nothing
   resultBool <-
     (evaluate b)
       `catches` (pureExceptionHandlers False)
@@ -152,6 +159,7 @@ instance IsTest (IO a) where
 
 runIOTest :: IO a -> IO TestRunResult
 runIOTest func = do
+  let testRunResultNumTests = Nothing
   testRunResultStatus <-
     runInSilencedNiceProcess $
       (func >>= (evaluate . (`seq` TestPassed)))
@@ -166,94 +174,18 @@ instance IsTest Property where
 
 deriving instance Generic Result
 
-instance FromJSON Result where
-  parseJSON = withObject "Result" $ \o -> do
-    t <- o .: "type"
-    case (t :: Text) of
-      "success" ->
-        Success
-          <$> o .: "num-tests"
-          <*> o .: "num-discarded"
-          <*> o .: "labels"
-          <*> o .: "classes"
-          <*> o .: "tables"
-          <*> o .: "output"
-      "gave-up" ->
-        GaveUp
-          <$> o .: "num-tests"
-          <*> o .: "num-discarded"
-          <*> o .: "labels"
-          <*> o .: "classes"
-          <*> o .: "tables"
-          <*> o .: "output"
-      "failure" ->
-        Failure
-          <$> o .: "num-tests"
-          <*> o .: "num-discarded"
-          <*> o .: "num-shrinks"
-          <*> o .: "num-shrink-tries"
-          <*> o .: "num-shrink-final"
-          <*> (pure (error "dummy seed"))
-          <*> o .: "size"
-          <*> o .: "reason"
-          <*> (pure (error "dummy exception"))
-          <*> o .: "output"
-          <*> o .: "failing-case"
-          <*> o .: "failing-labels"
-          <*> o .: "failing-classes"
-      _ -> fail "Unknown result type"
-
-instance ToJSON Result where
-  toJSON r = case r of
-    Success {..} ->
-      object
-        [ "type" .= ("success" :: Text),
-          "num-tests" .= numTests,
-          "num-discarded" .= numDiscarded,
-          "labels" .= labels,
-          "classes" .= classes,
-          "tables" .= tables,
-          "output" .= output
-        ]
-    GaveUp {..} ->
-      object
-        [ "type" .= ("gave-up" :: Text),
-          "num-tests" .= numTests,
-          "num-discarded" .= numDiscarded,
-          "labels" .= labels,
-          "classes" .= classes,
-          "tables" .= tables,
-          "output" .= output
-        ]
-    Failure {..} ->
-      object
-        [ "type" .= ("failure" :: Text),
-          "num-tests" .= numTests,
-          "num-discarded" .= numDiscarded,
-          "num-shrinks" .= numShrinks,
-          "num-shrink-tries" .= numShrinkTries,
-          "num-shrink-final" .= numShrinkFinal,
-          "seed" .= (), -- Dummy
-          "size" .= usedSize,
-          "reason" .= reason,
-          "exception" .= (), -- Dummy
-          "output" .= output,
-          "failing-case" .= failingTestCase,
-          "failing-labels" .= failingLabels,
-          "failing-classes" .= failingClasses
-        ]
-
 runPropertyTest :: Property -> IO TestRunResult
 runPropertyTest p = do
   let args = stdArgs -- Customise args
-  result <- runInSilencedNiceProcess $ quickCheckWithResult args p
-  testRunResultStatus <- pure $ case result of
-    Success {} -> TestPassed
-    GaveUp {} -> TestFailed
-    Failure {} -> TestFailed
-    NoExpectedFailure {} -> TestFailed
-  -- InsufficientCoverage {} -> TestFailed
-  pure TestRunResult {..}
+  runInSilencedNiceProcess $ do
+    result <- quickCheckWithResult args p
+    testRunResultStatus <- pure $ case result of
+      Success {} -> TestPassed
+      GaveUp {} -> TestFailed
+      Failure {} -> TestFailed
+      NoExpectedFailure {} -> TestFailed
+    let testRunResultNumTests = Just $ fromIntegral $ numTests result
+    pure TestRunResult {..}
 
 pureExceptionHandlers :: a -> [Handler a]
 pureExceptionHandlers a =
@@ -268,7 +200,8 @@ type Test = IO ()
 
 data TestRunResult
   = TestRunResult
-      { testRunResultStatus :: TestStatus
+      { testRunResultStatus :: !TestStatus,
+        testRunResultNumTests :: !(Maybe Word)
       }
   deriving (Show, Generic)
 

@@ -22,6 +22,8 @@ library
   exposed-modules:
       Test.Syd
       Test.Syd.Def
+      Test.Syd.Expectation
+      Test.Syd.Output
       Test.Syd.Run
       Test.Syd.Silence
       Test.Syd.SpecForest

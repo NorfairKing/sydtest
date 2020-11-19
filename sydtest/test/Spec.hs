@@ -5,6 +5,7 @@
 module Main where
 
 import Control.Exception
+import Data.List
 import System.Exit
 import Test.QuickCheck
 import Test.Syd
@@ -38,10 +39,16 @@ main = sydTest $ do
       it "reversing a list twice is the same as reversing it once"
         $ property
         $ \ls -> reverse (reverse ls) == (ls :: [Int])
+      it "should fail to show that sorting does nothing"
+        $ property
+        $ \ls -> sort ls == (ls :: [Int])
     describe "impure" $ do
       it "reversing a list twice is the same as reversing it once"
         $ property
         $ \ls -> reverse (reverse ls) `shouldBe` (ls :: [Int])
+      it "should fail to show that sorting does nothing"
+        $ property
+        $ \ls -> sort ls `shouldBe` (ls :: [Int])
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

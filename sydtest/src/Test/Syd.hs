@@ -13,7 +13,7 @@ module Test.Syd where
 
 import Control.Exception
 import Control.Monad.Reader
-import Data.Aeson as JSON
+import Data.Aeson as JSON (FromJSON (..), ToJSON (..), eitherDecode, encode)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
@@ -29,7 +29,10 @@ import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Process
 import Test.QuickCheck
+import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
+import Test.QuickCheck.Property
+import Test.QuickCheck.Test
 
 -- For the Testable (IO ()) instance
 
@@ -163,8 +166,16 @@ instance IsTest Property where
 
 runPropertyTest :: Property -> IO TestRunResult
 runPropertyTest p = do
-  quickCheck p
-  pure $ TestRunResult {testRunResultStatus = TestPassed}
+  let args = stdArgs -- Customise args
+  testRunResultStatus <- runInSilencedNiceProcess $ do
+    result <- quickCheckWithResult args p
+    pure $ case result of
+      Success {} -> TestPassed
+      GaveUp {} -> TestFailed
+      Failure {} -> TestFailed
+      NoExpectedFailure {} -> TestFailed
+  -- InsufficientCoverage {} -> TestFailed
+  pure TestRunResult {..}
 
 pureExceptionHandlers :: a -> [Handler a]
 pureExceptionHandlers a =

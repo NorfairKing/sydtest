@@ -13,7 +13,6 @@
 module Test.Syd.Run where
 
 import Control.Exception
-import Control.Monad.Reader
 import Data.Aeson as JSON hiding (Result, Success)
 import Data.Typeable
 import GHC.Generics (Generic)
@@ -119,9 +118,6 @@ data TestStatus = TestPassed | TestFailed
 instance FromJSON TestStatus
 
 instance ToJSON TestStatus
-
-shouldBe :: (Show a, Eq a) => a -> a -> IO ()
-shouldBe actual expected = unless (actual == expected) $ throwIO $ Equality (show actual) (show expected)
 
 data Assertion = Equality String String
   deriving (Show, Eq, Typeable, Generic)

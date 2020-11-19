@@ -21,6 +21,7 @@ source-repository head
 library
   exposed-modules:
       Test.Syd
+      Test.Syd.Def
       Test.Syd.Run
       Test.Syd.Silence
       Test.Syd.SpecForest

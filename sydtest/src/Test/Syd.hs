@@ -10,14 +10,20 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Test.Syd where
+module Test.Syd
+  ( module Test.Syd,
+    module Test.Syd.Run,
+    module Test.Syd.SpecForest,
+    module Test.Syd.Silence,
+    module Test.Syd.Def,
+  )
+where
 
 import Control.Exception
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
-import Data.IORef
 import Data.List
 import Data.Maybe
 import qualified Data.Text as T
@@ -27,7 +33,9 @@ import Rainbow
 import Safe
 import System.Exit
 import Test.QuickCheck.IO ()
+import Test.Syd.Def
 import Test.Syd.Run
+import Test.Syd.Silence
 import Test.Syd.SpecForest
 import Text.Printf
 
@@ -37,47 +45,6 @@ sydTest spec = do
   resultForest <- runSpecForest specForest
   printOutputSpecForest resultForest
   when (shouldExitFail resultForest) (exitWith (ExitFailure 1))
-
-type Spec = TestDefM ()
-
-data TestDefEnv
-  = TestDefEnv
-      { testDefEnvForest :: IORef TestForest
-      }
-
-newtype TestDefM a = TestDefM {unTestDefM :: ReaderT TestDefEnv IO a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestDefEnv)
-
-runTestDefM :: TestDefM a -> IO (a, TestForest)
-runTestDefM defFunc = do
-  forestVar <- newIORef []
-  let env = TestDefEnv {testDefEnvForest = forestVar}
-  let func = unTestDefM defFunc
-  a <- runReaderT func env
-  sf <- readIORef forestVar
-  pure (a, sf)
-
-describe :: String -> TestDefM a -> TestDefM a
-describe s func = do
-  (a, sf) <- liftIO $ runTestDefM func
-  var <- asks testDefEnvForest
-  liftIO $ modifyIORef var $ (++ [DescribeNode (T.pack s) sf]) -- FIXME this can probably be slow because of ++
-  pure a
-
-it :: (HasCallStack, IsTest test) => String -> test -> TestDefM ()
-it s t = do
-  var <- asks testDefEnvForest
-  let testDef = TestDef {testDefVal = runTest t, testDefCallStack = callStack}
-  liftIO $ modifyIORef var $ (++ [SpecifyNode (T.pack s) testDef]) -- FIXME this can probably be slow because of ++
-
-data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
-  deriving (Functor)
-
-type TestForest = SpecForest (TestDef (IO TestRunResult))
-
-type ResultForest = SpecForest (TestDef TestRunResult)
-
-type ResultTree = SpecTree (TestDef TestRunResult)
 
 runSpecForest :: TestForest -> IO ResultForest
 runSpecForest = traverse $ traverse $ \td -> do

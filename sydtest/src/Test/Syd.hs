@@ -1,11 +1,13 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Test.Syd where
 
@@ -26,6 +28,10 @@ import System.IO (hClose, hFlush)
 import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Process
+import Test.QuickCheck
+import Test.QuickCheck.IO ()
+
+-- For the Testable (IO ()) instance
 
 sydTest :: Spec -> IO ()
 sydTest spec = do
@@ -152,6 +158,14 @@ runIOTest func = do
                   )
   pure TestRunResult {..}
 
+instance IsTest Property where
+  runTest = runPropertyTest
+
+runPropertyTest :: Property -> IO TestRunResult
+runPropertyTest p = do
+  quickCheck p
+  pure $ TestRunResult {testRunResultStatus = TestPassed}
+
 pureExceptionHandlers :: a -> [Handler a]
 pureExceptionHandlers a =
   [ Handler $ \(_ :: ErrorCall) -> pure a,
@@ -204,3 +218,6 @@ runInSilencedNiceProcess func = do
   case JSON.eitherDecode statusBs of
     Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
     Right res -> pure res
+
+shouldBe :: Eq a => a -> a -> IO ()
+shouldBe actual expected = unless (actual == expected) $ error "Not equal"

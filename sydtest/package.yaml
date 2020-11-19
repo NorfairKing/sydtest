@@ -12,6 +12,8 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - QuickCheck # TODO make this optional
+  - quickcheck-io # TODO make this optional
   - aeson
   - bytestring
   - interprocess
@@ -30,3 +32,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - sydtest
+    - QuickCheck

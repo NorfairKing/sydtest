@@ -6,6 +6,7 @@ module Main where
 
 import Control.Exception
 import System.Exit
+import Test.QuickCheck
 import Test.Syd
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
@@ -32,6 +33,15 @@ main = sydTest $ do
   describe "Printing" $ do
     it "print" $ print "hi"
     it "putStrLn" $ putStrLn "hi"
+  describe "Property tests" $ do
+    describe "pure" $ do
+      it "reversing a list twice is the same as reversing it once"
+        $ property
+        $ \ls -> reverse (reverse ls) == (ls :: [Int])
+    describe "impure" $ do
+      it "reversing a list twice is the same as reversing it once"
+        $ property
+        $ \ls -> reverse (reverse ls) `shouldBe` (ls :: [Int])
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

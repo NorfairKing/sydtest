@@ -1,3 +1,6 @@
 resolver: lts-15.15
 packages:
 - sydtest
+extra-deps:
+- interprocess-0.2.0.1@sha256:f6e1a666d0d743a5d5faa302b1f38a68b5ce661de7bb3988377064f46a940d9a,3492
+

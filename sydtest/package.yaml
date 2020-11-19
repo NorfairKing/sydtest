@@ -11,6 +11,12 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+  - aeson
+  - bytestring
+  - interprocess
+  - unix
+  - uuid
 
 tests:
   sydtest-test:

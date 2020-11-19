@@ -14,12 +14,10 @@ module Test.Syd where
 
 import Control.Exception
 import Control.Monad.Reader
-import Data.Aeson as JSON ((.:), (.=), FromJSON (..), ToJSON (..), eitherDecode, encode, object, withObject)
+import Data.Aeson as JSON hiding (Result, Success)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
-import qualified Data.ByteString.Lazy as LB
-import Data.Foldable
 import Data.IORef
 import Data.List
 import Data.Maybe
@@ -31,15 +29,10 @@ import GHC.Stack
 import Rainbow
 import Safe
 import System.Exit
-import System.IO (hClose, hFlush)
-import System.Posix.Files
-import System.Posix.IO
-import System.Posix.Process
 import System.TimeIt
 import Test.QuickCheck
-import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
-import Test.QuickCheck.Test
+import Test.Syd.Silence
 import Text.Printf
 
 -- For the Testable (IO ()) instance
@@ -111,8 +104,8 @@ type ResultTree = SpecTree (TestDef TestRunResult)
 
 runSpecForest :: TestForest -> IO ResultForest
 runSpecForest = traverse $ traverse $ \td -> do
-  let runTest = testDefVal td
-  result <- runTest
+  let runFunc = testDefVal td
+  result <- runFunc
   pure $ td {testDefVal = result}
 
 printOutputSpecForest :: ResultForest -> IO ()
@@ -160,7 +153,8 @@ outputSpecTree = \case
 outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =
   let failures = filter ((== TestFailed) . testRunResultStatus . testDefVal . snd) $ flattenSpecForest rf
-      nbDigitsInFailureCount = ceiling $ logBase 10 $ genericLength failures :: Int
+      nbDigitsInFailureCount :: Int
+      nbDigitsInFailureCount = ceiling (logBase 10 (genericLength failures) :: Double)
       pad = (chunk (T.replicate (nbDigitsInFailureCount + 3) " ") :)
    in map (chunk "  " :) $ filter (not . null) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
         concat
@@ -193,7 +187,8 @@ outputFailures rf =
                  in map ((: []) . chunk . T.pack) ls
               Just (Right a) -> case a of
                 Equality actual expected ->
-                  [ [chunk "Actual:   ", chunk (T.pack actual)],
+                  [ [chunk "Expected these values to be equal: "],
+                    [chunk "Actual:   ", chunk (T.pack actual)],
                     [chunk "Expected: ", chunk (T.pack expected)]
                   ],
             [[chunk ""]]
@@ -240,7 +235,7 @@ runPureTest b = do
   (testRunResultExecutionTime, resultBool) <- timeItT $ (Right <$> evaluate b) `catches` pureExceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
-        Right b -> (if b then TestPassed else TestFailed, Nothing)
+        Right bool -> (if bool then TestPassed else TestFailed, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
@@ -268,8 +263,6 @@ runIOTest func = do
 
 instance IsTest Property where
   runTest = runPropertyTest
-
-deriving instance Generic Result
 
 runPropertyTest :: Property -> IO TestRunResult
 runPropertyTest p = do
@@ -326,37 +319,6 @@ data TestStatus = TestPassed | TestFailed
 instance FromJSON TestStatus
 
 instance ToJSON TestStatus
-
-runInSilencedNiceProcess :: (FromJSON a, ToJSON a) => IO a -> IO a
-runInSilencedNiceProcess func = do
-  (sharedMemOutsideFd, sharedMemInsideFd) <- createPipe
-  sharedMemOutsideHandle <- fdToHandle sharedMemOutsideFd
-  sharedMemInsideHandle <- fdToHandle sharedMemInsideFd
-  testProcess <- forkProcess $ do
-    -- Be nice while testing so that the computer cannot lock up.
-    nice 19
-    -- Don't input or output anything
-    newStdin <- createFile "/dev/null" ownerModes
-    _ <- dupTo newStdin stdInput
-    newStdout <- createFile "/dev/null" ownerModes
-    _ <- dupTo newStdout stdOutput
-    newStderr <- createFile "/dev/null" ownerModes
-    _ <- dupTo newStderr stdError
-    -- Actually run the function
-    status <- func
-    -- Encode the output
-    let statusBs = LB.toStrict $ JSON.encode status
-    -- Write it to the pipe
-    SB.hPut sharedMemInsideHandle statusBs
-    hFlush sharedMemInsideHandle
-    hClose sharedMemInsideHandle
-  -- Wait for the testing process to finish
-  _ <- getProcessStatus True False testProcess
-  -- Read its result from the pipe
-  statusBs <- LB.fromStrict <$> SB.hGetSome sharedMemOutsideHandle 10240 -- FIXME figure out a way to get rid of this magic constant
-  case JSON.eitherDecode statusBs of
-    Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
-    Right res -> pure res
 
 shouldBe :: (Show a, Eq a) => a -> a -> IO ()
 shouldBe actual expected = unless (actual == expected) $ throwIO $ Equality (show actual) (show expected)

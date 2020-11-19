@@ -21,6 +21,7 @@ source-repository head
 library
   exposed-modules:
       Test.Syd
+      Test.Syd.Silence
   other-modules:
       Paths_sydtest
   hs-source-dirs:

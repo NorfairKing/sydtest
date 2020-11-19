@@ -7,13 +7,14 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Test.Syd where
 
 import Control.Exception
 import Control.Monad.Reader
-import Data.Aeson as JSON (FromJSON (..), ToJSON (..), eitherDecode, encode)
+import Data.Aeson as JSON ((.:), (.=), FromJSON (..), ToJSON (..), eitherDecode, encode, object, withObject)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
@@ -31,7 +32,6 @@ import System.Posix.Process
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
-import Test.QuickCheck.Property
 import Test.QuickCheck.Test
 
 -- For the Testable (IO ()) instance
@@ -164,16 +164,94 @@ runIOTest func = do
 instance IsTest Property where
   runTest = runPropertyTest
 
+deriving instance Generic Result
+
+instance FromJSON Result where
+  parseJSON = withObject "Result" $ \o -> do
+    t <- o .: "type"
+    case (t :: Text) of
+      "success" ->
+        Success
+          <$> o .: "num-tests"
+          <*> o .: "num-discarded"
+          <*> o .: "labels"
+          <*> o .: "classes"
+          <*> o .: "tables"
+          <*> o .: "output"
+      "gave-up" ->
+        GaveUp
+          <$> o .: "num-tests"
+          <*> o .: "num-discarded"
+          <*> o .: "labels"
+          <*> o .: "classes"
+          <*> o .: "tables"
+          <*> o .: "output"
+      "failure" ->
+        Failure
+          <$> o .: "num-tests"
+          <*> o .: "num-discarded"
+          <*> o .: "num-shrinks"
+          <*> o .: "num-shrink-tries"
+          <*> o .: "num-shrink-final"
+          <*> (pure (error "dummy seed"))
+          <*> o .: "size"
+          <*> o .: "reason"
+          <*> (pure (error "dummy exception"))
+          <*> o .: "output"
+          <*> o .: "failing-case"
+          <*> o .: "failing-labels"
+          <*> o .: "failing-classes"
+      _ -> fail "Unknown result type"
+
+instance ToJSON Result where
+  toJSON r = case r of
+    Success {..} ->
+      object
+        [ "type" .= ("success" :: Text),
+          "num-tests" .= numTests,
+          "num-discarded" .= numDiscarded,
+          "labels" .= labels,
+          "classes" .= classes,
+          "tables" .= tables,
+          "output" .= output
+        ]
+    GaveUp {..} ->
+      object
+        [ "type" .= ("gave-up" :: Text),
+          "num-tests" .= numTests,
+          "num-discarded" .= numDiscarded,
+          "labels" .= labels,
+          "classes" .= classes,
+          "tables" .= tables,
+          "output" .= output
+        ]
+    Failure {..} ->
+      object
+        [ "type" .= ("failure" :: Text),
+          "num-tests" .= numTests,
+          "num-discarded" .= numDiscarded,
+          "num-shrinks" .= numShrinks,
+          "num-shrink-tries" .= numShrinkTries,
+          "num-shrink-final" .= numShrinkFinal,
+          "seed" .= (), -- Dummy
+          "size" .= usedSize,
+          "reason" .= reason,
+          "exception" .= (), -- Dummy
+          "output" .= output,
+          "failing-case" .= failingTestCase,
+          "failing-labels" .= failingLabels,
+          "failing-classes" .= failingClasses
+        ]
+
 runPropertyTest :: Property -> IO TestRunResult
 runPropertyTest p = do
   let args = stdArgs -- Customise args
-  testRunResultStatus <- runInSilencedNiceProcess $ do
-    result <- quickCheckWithResult args p
-    pure $ case result of
-      Success {} -> TestPassed
-      GaveUp {} -> TestFailed
-      Failure {} -> TestFailed
-      NoExpectedFailure {} -> TestFailed
+  result <- runInSilencedNiceProcess $ quickCheckWithResult args p
+  testRunResultStatus <- pure $ case result of
+    Success {} -> TestPassed
+    GaveUp {} -> TestFailed
+    Failure {} -> TestFailed
+    NoExpectedFailure {} -> TestFailed
   -- InsufficientCoverage {} -> TestFailed
   pure TestRunResult {..}
 
@@ -188,8 +266,15 @@ pureExceptionHandlers a =
 
 type Test = IO ()
 
-data TestRunResult = TestRunResult {testRunResultStatus :: TestStatus}
-  deriving (Show)
+data TestRunResult
+  = TestRunResult
+      { testRunResultStatus :: TestStatus
+      }
+  deriving (Show, Generic)
+
+instance FromJSON TestRunResult
+
+instance ToJSON TestRunResult
 
 data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
@@ -225,7 +310,7 @@ runInSilencedNiceProcess func = do
   -- Wait for the testing process to finish
   _ <- getProcessStatus True False testProcess
   -- Read its result from the pipe
-  statusBs <- LB.fromStrict <$> SB.hGetSome sharedMemOutsideHandle 1024 -- FIXMe figure out a way to get rid of this magic constant
+  statusBs <- LB.fromStrict <$> SB.hGetSome sharedMemOutsideHandle 10240 -- FIXMe figure out a way to get rid of this magic constant
   case JSON.eitherDecode statusBs of
     Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
     Right res -> pure res

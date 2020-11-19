@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -9,9 +10,11 @@
 module Test.Syd where
 
 import Control.Exception
+import Control.Monad.Reader
 import Data.Aeson as JSON
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
+import Data.IORef
 import qualified Data.Text as T
 import Data.Text (Text)
 import Data.Text.Encoding as TE
@@ -21,6 +24,44 @@ import System.IO (hClose, hFlush)
 import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Process
+
+sydTest :: Spec -> IO ()
+sydTest spec = do
+  ((), specForest) <- runTestDefM spec
+  resultForest <- runSpecForest specForest
+  printOutputSpecForest resultForest
+  when (shouldExitFail resultForest) (exitWith (ExitFailure 1))
+
+type Spec = TestDefM ()
+
+data TestDefEnv
+  = TestDefEnv
+      { testDefEnvForest :: IORef (SpecForest Test)
+      }
+
+newtype TestDefM a = TestDefM {unTestDefM :: ReaderT TestDefEnv IO a}
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestDefEnv)
+
+runTestDefM :: TestDefM a -> IO (a, SpecForest Test)
+runTestDefM defFunc = do
+  forestVar <- newIORef []
+  let env = TestDefEnv {testDefEnvForest = forestVar}
+  let func = unTestDefM defFunc
+  a <- runReaderT func env
+  sf <- readIORef forestVar
+  pure (a, sf)
+
+describe :: String -> TestDefM a -> TestDefM a
+describe s func = do
+  (a, sf) <- liftIO $ runTestDefM func
+  var <- asks testDefEnvForest
+  liftIO $ modifyIORef var $ (++ [DescribeNode s sf]) -- FIXME this can probably be slow
+  pure a
+
+it :: String -> Test -> TestDefM ()
+it s t = do
+  var <- asks testDefEnvForest
+  liftIO $ modifyIORef var $ (++ [SpecifyNode s t]) -- FIXME this can probably be slow
 
 type SpecForest a = [SpecTree a]
 
@@ -59,13 +100,16 @@ outputSpecTree = \case
 outputTestRunResult :: TestRunResult -> Text
 outputTestRunResult = T.pack . show
 
+shouldExitFail :: SpecForest TestRunResult -> Bool
+shouldExitFail = any (any ((== TestFailed) . testRunResultStatus))
+
 type Test = IO ()
 
 data TestRunResult = TestRunResult {testRunResultStatus :: TestStatus}
   deriving (Show)
 
 data TestStatus = TestPassed | TestFailed
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 instance FromJSON TestStatus
 

@@ -15,6 +15,7 @@ library:
   - aeson
   - bytestring
   - interprocess
+  - mtl
   - text
   - unix
 

@@ -16,7 +16,6 @@ library:
   - bytestring
   - interprocess
   - unix
-  - uuid
 
 tests:
   sydtest-test:

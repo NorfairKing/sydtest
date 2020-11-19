@@ -31,7 +31,6 @@ library
     , bytestring
     , interprocess
     , unix
-    , uuid
   default-language: Haskell2010
 
 test-suite sydtest-test

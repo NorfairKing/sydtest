@@ -25,22 +25,22 @@ main = do
           Right TestFailed -> pure ()
           Left e -> die $ unlines ["Uncaught exception: ", displayException e]
   success (pure ()) -- Something that passes
-      --     -- Exceptions
-      -- failed (error "hi") -- Something that errors in IO
-      -- failed (pure undefined) -- Something that errors purely
-      -- failed (exitWith $ ExitFailure 1) -- Exit code
-      -- failed (throw $ RecConError "test")
-      -- failed (pure (seq (let c = Cons1 {} in field c) ())) -- Record construction (1)
-      -- failed (seq (let c = Cons1 {} in field c) (pure ())) -- Record construction (2)
-      -- failed (throw $ RecSelError "test")
-      -- failed (pure (seq (let c = Cons2 in field c) ())) -- Record selection (1)
-      -- failed (seq (let c = Cons2 in field c) (pure ())) -- Record selection (2)
-      -- failed (throw $ RecUpdError "test")
-      -- failed (pure (seq (let c = Cons2 in c {field = "this will throw"}) ())) -- Record update (1)
-      -- failed (seq (let c = Cons2 in c {field = "this will throw"}) (pure ())) -- Record update (2)
-      -- failed (throw $ PatternMatchFail "test")
-      -- failed (pure (seq (let Cons1 s = Cons2 in s) ())) -- Pattern match (1)
-      -- failed (seq (let Cons1 s = Cons2 in s) (pure ())) -- Pattern match (2)
-      --       -- Printing
-      -- success (print "hi")
-      -- success (putStrLn "hi")
+      -- Exceptions
+  failed (error "hi") -- Something that errors in IO
+  failed (pure undefined) -- Something that errors purely
+  failed (exitWith $ ExitFailure 1) -- Exit code
+  failed (throw $ RecConError "test")
+  failed (pure (seq (let c = Cons1 {} in field c) ())) -- Record construction (1)
+  failed (seq (let c = Cons1 {} in field c) (pure ())) -- Record construction (2)
+  failed (throw $ RecSelError "test")
+  failed (pure (seq (let c = Cons2 in field c) ())) -- Record selection (1)
+  failed (seq (let c = Cons2 in field c) (pure ())) -- Record selection (2)
+  failed (throw $ RecUpdError "test")
+  failed (pure (seq (let c = Cons2 in c {field = "this will throw"}) ())) -- Record update (1)
+  failed (seq (let c = Cons2 in c {field = "this will throw"}) (pure ())) -- Record update (2)
+  failed (throw $ PatternMatchFail "test")
+  failed (pure (seq (let Cons1 s = Cons2 in s) ())) -- Pattern match (1)
+  failed (seq (let Cons1 s = Cons2 in s) (pure ())) -- Pattern match (2)
+        -- Printing
+  success (print "hi")
+  success (putStrLn "hi")

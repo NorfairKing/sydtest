@@ -19,6 +19,7 @@ library:
   - mtl
   - quickcheck-io # TODO make this optional
   - rainbow
+  - safe
   - text
   - timeit
   - unix

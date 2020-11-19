@@ -34,6 +34,7 @@ library
     , mtl
     , quickcheck-io
     , rainbow
+    , safe
     , text
     , timeit
     , unix

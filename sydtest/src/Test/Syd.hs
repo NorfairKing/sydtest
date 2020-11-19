@@ -19,12 +19,16 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.ByteString.Lazy as LB
+import Data.Foldable
 import Data.IORef
+import Data.List
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import GHC.Stack
 import Rainbow
+import Safe
 import System.Exit
 import System.IO (hClose, hFlush)
 import System.Posix.Files
@@ -69,19 +73,20 @@ describe :: String -> TestDefM a -> TestDefM a
 describe s func = do
   (a, sf) <- liftIO $ runTestDefM func
   var <- asks testDefEnvForest
-  liftIO $ modifyIORef var $ (++ [DescribeNode s sf]) -- FIXME this can probably be slow
+  liftIO $ modifyIORef var $ (++ [DescribeNode (T.pack s) sf]) -- FIXME this can probably be slow because of ++
   pure a
 
-it :: IsTest test => String -> test -> TestDefM ()
+it :: (HasCallStack, IsTest test) => String -> test -> TestDefM ()
 it s t = do
   var <- asks testDefEnvForest
-  liftIO $ modifyIORef var $ (++ [SpecifyNode s $ runTest t]) -- FIXME this can probably be slow
+  let testDef = TestDef {testDefVal = runTest t, testDefCallStack = callStack}
+  liftIO $ modifyIORef var $ (++ [SpecifyNode (T.pack s) testDef]) -- FIXME this can probably be slow because of ++
 
 type SpecForest a = [SpecTree a]
 
 data SpecTree a
-  = DescribeNode String (SpecForest a) -- A description
-  | SpecifyNode String a -- A test with its description
+  = DescribeNode Text (SpecForest a) -- A description
+  | SpecifyNode Text a -- A test with its description
   deriving (Show, Functor)
 
 instance Foldable SpecTree where
@@ -94,39 +99,104 @@ instance Traversable SpecTree where
     DescribeNode s sts -> DescribeNode s <$> traverse (traverse func) sts
     SpecifyNode s a -> SpecifyNode s <$> func a
 
-type TestForest = SpecForest (IO TestRunResult)
+data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
+  deriving (Functor)
 
-type ResultForest = SpecForest TestRunResult
+type TestForest = SpecForest (TestDef (IO TestRunResult))
+
+type ResultForest = SpecForest (TestDef TestRunResult)
+
+type ResultTree = SpecTree (TestDef TestRunResult)
 
 runSpecForest :: TestForest -> IO ResultForest
-runSpecForest = traverse (traverse id)
+runSpecForest = traverse $ traverse $ \td -> do
+  let runTest = testDefVal td
+  result <- runTest
+  pure $ td {testDefVal = result}
 
 printOutputSpecForest :: ResultForest -> IO ()
 printOutputSpecForest results = do
   byteStringMaker <- byteStringMakerFromEnvironment
-  let bytestrings = map (chunksToByteStrings byteStringMaker) (outputSpecForest results) :: [[ByteString]]
+  let bytestrings = map (chunksToByteStrings byteStringMaker) (outputResultReport results) :: [[ByteString]]
   forM_ bytestrings $ \bs -> do
     mapM_ SB.putStr bs
     SB8.putStrLn ""
 
+outputResultReport :: ResultForest -> [[Chunk]]
+outputResultReport rf =
+  concat
+    [ [ [fore blue $ chunk "Tests:"],
+        [chunk ""]
+      ],
+      outputSpecForest rf,
+      [ [chunk ""],
+        [chunk ""],
+        [fore blue $ chunk "Failures:"],
+        [chunk ""]
+      ],
+      outputFailures rf
+    ]
+
 outputSpecForest :: ResultForest -> [[Chunk]]
 outputSpecForest = concatMap outputSpecTree
 
-outputSpecTree :: SpecTree TestRunResult -> [[Chunk]]
+outputSpecTree :: ResultTree -> [[Chunk]]
 outputSpecTree = \case
-  DescribeNode s sf -> [fore yellow $ chunk (T.pack s)] : map (chunk "  " :) (outputSpecForest sf)
-  SpecifyNode s TestRunResult {..} ->
-    [ map
-        (fore (statusColour testRunResultStatus))
-        ( [ chunk (statusCheckMark testRunResultStatus),
-            chunk (T.pack s)
-          ]
-        ),
-      concat
-        [ [chunk (T.pack (printf "%10.2f ms " (testRunResultExecutionTime * 1000)))],
-          [chunk (T.pack (printf " (%d tests passed)" w)) | w <- maybeToList testRunResultNumTests]
+  DescribeNode t sf -> [fore yellow $ chunk t] : map (chunk "  " :) (outputSpecForest sf)
+  SpecifyNode t (TestDef (TestRunResult {..}) _) ->
+    map (map (fore (statusColour testRunResultStatus))) $
+      filter
+        (not . null)
+        [ [ chunk (statusCheckMark testRunResultStatus),
+            chunk t
+          ],
+          concat
+            [ -- [chunk (T.pack (printf "%10.2f ms " (testRunResultExecutionTime * 1000)))],
+              [chunk (T.pack (printf "  (passed for all of %d inputs)" w)) | w <- maybeToList testRunResultNumTests, testRunResultStatus == TestPassed]
+            ]
         ]
-    ]
+
+outputFailures :: ResultForest -> [[Chunk]]
+outputFailures rf =
+  let failures = filter ((== TestFailed) . testRunResultStatus . testDefVal . snd) $ flattenSpecForest rf
+      nbDigitsInFailureCount = ceiling $ logBase 10 $ genericLength failures :: Int
+   in concat
+        [ map (chunk "  " :) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
+            [ [ (fore cyan) $ chunk $ T.pack $
+                  case headMay $ getCallStack cs of
+                    Nothing -> "Unknown location"
+                    Just (_, SrcLoc {..}) ->
+                      concat
+                        [ srcLocFile,
+                          ":",
+                          show srcLocStartLine
+                        ]
+              ],
+              map
+                (fore (statusColour testRunResultStatus))
+                [ chunk $ statusCheckMark testRunResultStatus,
+                  chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
+                  chunk $ T.intercalate "." ts
+                ],
+              [chunk ""]
+            ]
+        ]
+
+indexed :: [a] -> (Word -> a -> b) -> [b]
+indexed ls func = zipWith func [1 ..] ls
+
+flattenSpecForest :: SpecForest a -> [([Text], a)]
+flattenSpecForest = concatMap flattenSpecTree
+
+flattenSpecTree :: SpecTree a -> [([Text], a)]
+flattenSpecTree = \case
+  DescribeNode t sf -> map (\(ts, a) -> (t : ts, a)) $ flattenSpecForest sf
+  SpecifyNode t a -> [([t], a)]
+
+outputFailure :: TestRunResult -> Maybe [[Chunk]]
+outputFailure TestRunResult {..} = case testRunResultStatus of
+  TestPassed -> Nothing
+  TestFailed -> Just [[chunk "Failure"]]
 
 statusColour :: TestStatus -> Radiant
 statusColour = \case
@@ -138,8 +208,8 @@ statusCheckMark = \case
   TestPassed -> "\10003 "
   TestFailed -> "\10007 "
 
-shouldExitFail :: SpecForest TestRunResult -> Bool
-shouldExitFail = any (any ((== TestFailed) . testRunResultStatus))
+shouldExitFail :: ResultForest -> Bool
+shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))
 
 class IsTest a where
   runTest :: a -> IO TestRunResult

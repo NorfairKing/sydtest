@@ -15,6 +15,7 @@ library:
   - QuickCheck # TODO make this optional
   - aeson
   - bytestring
+  - compact
   - interprocess
   - mtl
   - quickcheck-io # TODO make this optional

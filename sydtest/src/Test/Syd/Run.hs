@@ -5,7 +5,6 @@
 module Test.Syd.Run where
 
 import Control.Exception
-import Data.Aeson as JSON hiding (Result, Success)
 import Data.Typeable
 import GHC.Generics (Generic)
 import System.Exit
@@ -100,22 +99,10 @@ data TestRunResult
       }
   deriving (Show, Generic)
 
-instance FromJSON TestRunResult
-
-instance ToJSON TestRunResult
-
 data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
-
-instance FromJSON TestStatus
-
-instance ToJSON TestStatus
 
 data Assertion = Equality String String
   deriving (Show, Eq, Typeable, Generic)
 
 instance Exception Assertion
-
-instance FromJSON Assertion
-
-instance ToJSON Assertion

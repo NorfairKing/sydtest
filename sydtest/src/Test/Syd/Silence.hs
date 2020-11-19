@@ -1,15 +1,15 @@
 module Test.Syd.Silence where
 
-import Data.Aeson as JSON
-import qualified Data.ByteString as SB
-import qualified Data.ByteString.Lazy as LB
+import Data.Compact
+import Data.Compact.Serialize
+import Data.Typeable
 import System.Exit
 import System.IO (hClose, hFlush)
 import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Process
 
-runInSilencedNiceProcess :: (FromJSON a, ToJSON a) => IO a -> IO a
+runInSilencedNiceProcess :: Typeable a => IO a -> IO a
 runInSilencedNiceProcess func = do
   (sharedMemOutsideFd, sharedMemInsideFd) <- createPipe
   sharedMemOutsideHandle <- fdToHandle sharedMemOutsideFd
@@ -25,17 +25,15 @@ runInSilencedNiceProcess func = do
     newStderr <- createFile "/dev/null" ownerModes
     _ <- dupTo newStderr stdError
     -- Actually run the function
-    status <- func
-    -- Encode the output
-    let statusBs = LB.toStrict $ JSON.encode status
-    -- Write it to the pipe
-    SB.hPut sharedMemInsideHandle statusBs
+    result <- func
+    compactRegion <- compact result
+    hPutCompact sharedMemInsideHandle compactRegion
     hFlush sharedMemInsideHandle
     hClose sharedMemInsideHandle
   -- Wait for the testing process to finish
   _ <- getProcessStatus True False testProcess
   -- Read its result from the pipe
-  statusBs <- LB.fromStrict <$> SB.hGetSome sharedMemOutsideHandle 10240 -- FIXME figure out a way to get rid of this magic constant
-  case JSON.eitherDecode statusBs of
+  errOrResult <- hUnsafeGetCompact sharedMemOutsideHandle
+  case errOrResult of
     Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
-    Right res -> pure res
+    Right compactRegion -> pure $ getCompact compactRegion

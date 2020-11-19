@@ -19,7 +19,6 @@ import qualified Data.ByteString.Lazy as LB
 import Data.IORef
 import qualified Data.Text as T
 import Data.Text (Text)
-import Data.Text.Encoding as TE
 import GHC.Generics (Generic)
 import Rainbow
 import System.Exit
@@ -39,13 +38,13 @@ type Spec = TestDefM ()
 
 data TestDefEnv
   = TestDefEnv
-      { testDefEnvForest :: IORef (SpecForest Test)
+      { testDefEnvForest :: IORef TestForest
       }
 
 newtype TestDefM a = TestDefM {unTestDefM :: ReaderT TestDefEnv IO a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestDefEnv)
 
-runTestDefM :: TestDefM a -> IO (a, SpecForest Test)
+runTestDefM :: TestDefM a -> IO (a, TestForest)
 runTestDefM defFunc = do
   forestVar <- newIORef []
   let env = TestDefEnv {testDefEnvForest = forestVar}
@@ -61,10 +60,10 @@ describe s func = do
   liftIO $ modifyIORef var $ (++ [DescribeNode s sf]) -- FIXME this can probably be slow
   pure a
 
-it :: String -> Test -> TestDefM ()
+it :: IsTest test => String -> test -> TestDefM ()
 it s t = do
   var <- asks testDefEnvForest
-  liftIO $ modifyIORef var $ (++ [SpecifyNode s t]) -- FIXME this can probably be slow
+  liftIO $ modifyIORef var $ (++ [SpecifyNode s $ runTest t]) -- FIXME this can probably be slow
 
 type SpecForest a = [SpecTree a]
 
@@ -83,13 +82,14 @@ instance Traversable SpecTree where
     DescribeNode s sts -> DescribeNode s <$> traverse (traverse func) sts
     SpecifyNode s a -> SpecifyNode s <$> func a
 
-runSpecForest :: SpecForest Test -> IO (SpecForest TestRunResult)
-runSpecForest = traverse (traverse runTest)
+type TestForest = SpecForest (IO TestRunResult)
 
-runSpecTree :: SpecTree Test -> IO (SpecTree TestRunResult)
-runSpecTree = traverse runTest
+type ResultForest = SpecForest TestRunResult
 
-printOutputSpecForest :: SpecForest TestRunResult -> IO ()
+runSpecForest :: TestForest -> IO ResultForest
+runSpecForest = traverse (traverse id)
+
+printOutputSpecForest :: ResultForest -> IO ()
 printOutputSpecForest results = do
   byteStringMaker <- byteStringMakerFromEnvironment
   let bytestrings = map (chunksToByteStrings byteStringMaker) (outputSpecForest results) :: [[ByteString]]
@@ -97,7 +97,7 @@ printOutputSpecForest results = do
     mapM_ SB.putStr bs
     SB8.putStrLn ""
 
-outputSpecForest :: SpecForest TestRunResult -> [[Chunk]]
+outputSpecForest :: ResultForest -> [[Chunk]]
 outputSpecForest = concatMap outputSpecTree
 
 outputSpecTree :: SpecTree TestRunResult -> [[Chunk]]
@@ -124,20 +124,14 @@ statusCheckMark = \case
 shouldExitFail :: SpecForest TestRunResult -> Bool
 shouldExitFail = any (any ((== TestFailed) . testRunResultStatus))
 
-type Test = IO ()
+class IsTest a where
+  runTest :: a -> IO TestRunResult
 
-data TestRunResult = TestRunResult {testRunResultStatus :: TestStatus}
-  deriving (Show)
+instance IsTest (IO a) where
+  runTest = runIOTest
 
-data TestStatus = TestPassed | TestFailed
-  deriving (Show, Eq, Generic)
-
-instance FromJSON TestStatus
-
-instance ToJSON TestStatus
-
-runTest :: Test -> IO TestRunResult
-runTest func = do
+runIOTest :: IO a -> IO TestRunResult
+runIOTest func = do
   testRunResultStatus <-
     runInSilencedNiceProcess $
       (func >>= (evaluate . (`seq` TestPassed)))
@@ -149,6 +143,18 @@ runTest func = do
                     Handler $ \(_ :: PatternMatchFail) -> pure TestFailed
                   ]
   pure TestRunResult {..}
+
+type Test = IO ()
+
+data TestRunResult = TestRunResult {testRunResultStatus :: TestStatus}
+  deriving (Show)
+
+data TestStatus = TestPassed | TestFailed
+  deriving (Show, Eq, Generic)
+
+instance FromJSON TestStatus
+
+instance ToJSON TestStatus
 
 runInSilencedNiceProcess :: (FromJSON a, ToJSON a) => IO a -> IO a
 runInSilencedNiceProcess func = do

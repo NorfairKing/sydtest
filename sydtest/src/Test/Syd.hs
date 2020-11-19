@@ -30,6 +30,7 @@ import System.IO (hClose, hFlush)
 import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Process
+import System.TimeIt
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
@@ -117,13 +118,14 @@ outputSpecTree = \case
   SpecifyNode s TestRunResult {..} ->
     [ map
         (fore (statusColour testRunResultStatus))
-        ( concat
-            [ [ chunk (statusCheckMark testRunResultStatus),
-                chunk (T.pack s)
-              ],
-              [chunk (T.pack (printf " (%d tests passed)" w)) | w <- maybeToList testRunResultNumTests]
-            ]
-        )
+        ( [ chunk (statusCheckMark testRunResultStatus),
+            chunk (T.pack s)
+          ]
+        ),
+      concat
+        [ [chunk (T.pack (printf "%10.2f ms " (testRunResultExecutionTime * 1000)))],
+          [chunk (T.pack (printf " (%d tests passed)" w)) | w <- maybeToList testRunResultNumTests]
+        ]
     ]
 
 statusColour :: TestStatus -> Radiant
@@ -148,9 +150,7 @@ instance IsTest Bool where
 runPureTest :: Bool -> IO TestRunResult
 runPureTest b = do
   let testRunResultNumTests = Nothing
-  resultBool <-
-    (evaluate b)
-      `catches` (pureExceptionHandlers False)
+  (testRunResultExecutionTime, resultBool) <- timeItT $ (evaluate b) `catches` (pureExceptionHandlers False)
   let testRunResultStatus = if resultBool then TestPassed else TestFailed
   pure TestRunResult {..}
 
@@ -160,9 +160,10 @@ instance IsTest (IO a) where
 runIOTest :: IO a -> IO TestRunResult
 runIOTest func = do
   let testRunResultNumTests = Nothing
-  testRunResultStatus <-
-    runInSilencedNiceProcess $
-      (func >>= (evaluate . (`seq` TestPassed)))
+  (testRunResultExecutionTime, testRunResultStatus) <-
+    timeItT
+      $ runInSilencedNiceProcess
+      $ (func >>= (evaluate . (`seq` TestPassed)))
         `catches` ( [ Handler $ \(_ :: ExitCode) -> pure TestFailed
                     ]
                       ++ (pureExceptionHandlers TestFailed)
@@ -178,7 +179,7 @@ runPropertyTest :: Property -> IO TestRunResult
 runPropertyTest p = do
   let args = stdArgs -- Customise args
   runInSilencedNiceProcess $ do
-    result <- quickCheckWithResult args p
+    (testRunResultExecutionTime, result) <- timeItT $ quickCheckWithResult args p
     testRunResultStatus <- pure $ case result of
       Success {} -> TestPassed
       GaveUp {} -> TestFailed
@@ -201,6 +202,7 @@ type Test = IO ()
 data TestRunResult
   = TestRunResult
       { testRunResultStatus :: !TestStatus,
+        testRunResultExecutionTime :: !Double,
         testRunResultNumTests :: !(Maybe Word)
       }
   deriving (Show, Generic)
@@ -218,7 +220,6 @@ instance ToJSON TestStatus
 
 runInSilencedNiceProcess :: (FromJSON a, ToJSON a) => IO a -> IO a
 runInSilencedNiceProcess func = do
-  -- FIXME: Forking a process is expensive and probably not needed for pure code.
   (sharedMemOutsideFd, sharedMemInsideFd) <- createPipe
   sharedMemOutsideHandle <- fdToHandle sharedMemOutsideFd
   sharedMemInsideHandle <- fdToHandle sharedMemInsideFd
@@ -243,7 +244,7 @@ runInSilencedNiceProcess func = do
   -- Wait for the testing process to finish
   _ <- getProcessStatus True False testProcess
   -- Read its result from the pipe
-  statusBs <- LB.fromStrict <$> SB.hGetSome sharedMemOutsideHandle 10240 -- FIXMe figure out a way to get rid of this magic constant
+  statusBs <- LB.fromStrict <$> SB.hGetSome sharedMemOutsideHandle 10240 -- FIXME figure out a way to get rid of this magic constant
   case JSON.eitherDecode statusBs of
     Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
     Right res -> pure res

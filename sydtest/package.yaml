@@ -13,13 +13,14 @@ library:
   source-dirs: src
   dependencies:
   - QuickCheck # TODO make this optional
-  - quickcheck-io # TODO make this optional
   - aeson
   - bytestring
   - interprocess
   - mtl
+  - quickcheck-io # TODO make this optional
   - rainbow
   - text
+  - timeit
   - unix
 
 tests:

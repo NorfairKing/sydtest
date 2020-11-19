@@ -35,6 +35,7 @@ library
     , quickcheck-io
     , rainbow
     , text
+    , timeit
     , unix
   default-language: Haskell2010
 

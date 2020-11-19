@@ -51,22 +51,29 @@ runInProcess func = do
   -- FIXME: Forking a process is expensive and potentially not needed for pure code.
   (sharedMemOutsideFd, sharedMemInsideFd) <- createPipe
   sharedMemOutsideHandle <- fdToHandle sharedMemOutsideFd
-  doneVar <- newEmptyMVar
+  sharedMemInsideHandle <- fdToHandle sharedMemInsideFd
   testProcess <- forkProcess $ do
-    nice 19 -- Be nice
-    sharedMemInsideHandle <- fdToHandle sharedMemInsideFd
+    -- Be nice while testing so that the computer cannot lock up.
+    nice 19
+    -- Don't input or output anything
+    newStdin <- createFile "/dev/null" ownerModes
+    dupTo newStdin stdInput
+    newStdout <- createFile "/dev/null" ownerModes
+    dupTo newStdout stdOutput
+    newStderr <- createFile "/dev/null" ownerModes
+    dupTo newStderr stdError
+    -- Actually run the function
     status <- func
+    -- Encode the output
     let statusBs = LB.toStrict $ JSON.encode status
+    -- Write it to the pipe
     hPut sharedMemInsideHandle statusBs
     hFlush sharedMemInsideHandle
     hClose sharedMemInsideHandle
-    -- Wait for the status to be read
-    putMVar doneVar ()
-  () <- takeMVar doneVar
+  -- Wait for the testing process to finish
+  _ <- getProcessStatus True False testProcess
+  -- Read its result from the pipe
   statusBs <- LB.fromStrict <$> hGetSome sharedMemOutsideHandle 1024
   case JSON.eitherDecode statusBs of
-    Left err -> die err
-    Right res -> do
-      -- Wait to make sure the process is finished.
-      _ <- getProcessStatus True False testProcess
-      pure res
+    Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
+    Right res -> pure res

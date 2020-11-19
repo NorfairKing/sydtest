@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
@@ -11,6 +12,8 @@ import Control.Exception
 import Data.Aeson as JSON
 import Data.ByteString
 import qualified Data.ByteString.Lazy as LB
+import Data.Foldable
+import Data.Traversable
 import Foreign.StablePtr
 import GHC.Generics (Generic)
 import System.Exit
@@ -37,15 +40,23 @@ type SpecForest a = [SpecTree a]
 data SpecTree a
   = DescribeNode String (SpecForest a) -- A description
   | SpecifyNode String a -- A test with its description
-  deriving (Show)
+  deriving (Show, Functor)
+
+instance Foldable SpecTree where
+  foldMap f = \case
+    DescribeNode _ sts -> foldMap (foldMap f) sts
+    SpecifyNode _ a -> f a
+
+instance Traversable SpecTree where
+  traverse func = \case
+    DescribeNode s sts -> DescribeNode s <$> traverse (traverse func) sts
+    SpecifyNode s a -> SpecifyNode s <$> func a
 
 runSpecForest :: SpecForest Test -> IO (SpecForest TestRunResult)
-runSpecForest = mapM runSpecTree
+runSpecForest = traverse (traverse runTest)
 
 runSpecTree :: SpecTree Test -> IO (SpecTree TestRunResult)
-runSpecTree = \case
-  DescribeNode s sts -> DescribeNode s <$> mapM runSpecTree sts
-  SpecifyNode s t -> SpecifyNode s <$> runTest t
+runSpecTree = traverse runTest
 
 runTest :: Test -> IO TestRunResult
 runTest func = do

@@ -1,3 +1,4 @@
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 
@@ -19,19 +20,21 @@ main = sydTest $ do
     it "Pure undefined" $ (pure undefined :: IO ())
     it "Impure undefined" $ (undefined :: IO ())
   it "Exit code" $ exitWith $ ExitFailure 1
-  describe "Pure exceptions" $ do
+  describe "Pure exceptions in IO" $ do
     it "Record construction error" $ (throw $ RecConError "test" :: IO ())
-    it "Record construction error" $ (pure (seq (let c = Cons1 {} in field c) ()) :: IO ())
-    it "Record construction error" $ (seq (let c = Cons1 {} in field c) (pure ()) :: IO ())
+    exceptionTest "Record construction error" $ let c = Cons1 {} in field c
     it "Record selection error" $ (throw $ RecSelError "test" :: IO ())
-    it "Record selection error" $ (pure (seq (let c = Cons2 in field c) ()) :: IO ())
-    it "Record selection error" $ (seq (let c = Cons2 in field c) (pure ()) :: IO ())
+    exceptionTest "Record selection error" $ let c = Cons2 in field c
     it "Record update error" $ (throw $ RecUpdError "test" :: IO ())
-    it "Record update error" $ (pure (seq (let c = Cons2 in c {field = "this will throw"}) ()) :: IO ())
-    it "Record update error" $ (seq (let c = Cons2 in c {field = "this will throw"}) (pure ()) :: IO ())
+    exceptionTest "Record update error" $ let c = Cons2 in c {field = "this will throw"}
     it "Pattern matching error" $ (throw $ PatternMatchFail "test" :: IO ())
-    it "Pattern matching error" $ (pure (seq (let Cons1 s = Cons2 in s) ()) :: IO ())
-    it "Pattern matching error" $ (seq (let Cons1 s = Cons2 in s) (pure ()) :: IO ())
+    exceptionTest "Pattern matching error" $ let Cons1 s = Cons2 in s
   describe "Printing" $ do
     it "print" $ print "hi"
     it "putStrLn" $ putStrLn "hi"
+
+exceptionTest :: String -> a -> Spec
+exceptionTest s a = describe s $ do
+  it "fails in IO, as the result" $ (pure (seq a ()) :: IO ())
+  it "fails in IO, as the action" $ (seq a (pure ()) :: IO ())
+  it "fails in pure code" $ seq a True

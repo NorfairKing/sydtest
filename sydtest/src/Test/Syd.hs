@@ -127,6 +127,17 @@ shouldExitFail = any (any ((== TestFailed) . testRunResultStatus))
 class IsTest a where
   runTest :: a -> IO TestRunResult
 
+instance IsTest Bool where
+  runTest = runPureTest
+
+runPureTest :: Bool -> IO TestRunResult
+runPureTest b = do
+  resultBool <-
+    (evaluate b)
+      `catches` (pureExceptionHandlers False)
+  let testRunResultStatus = if resultBool then TestPassed else TestFailed
+  pure TestRunResult {..}
+
 instance IsTest (IO a) where
   runTest = runIOTest
 
@@ -135,14 +146,20 @@ runIOTest func = do
   testRunResultStatus <-
     runInSilencedNiceProcess $
       (func >>= (evaluate . (`seq` TestPassed)))
-        `catches` [ Handler $ \(_ :: ErrorCall) -> pure TestFailed,
-                    Handler $ \(_ :: ExitCode) -> pure TestFailed,
-                    Handler $ \(_ :: RecConError) -> pure TestFailed,
-                    Handler $ \(_ :: RecSelError) -> pure TestFailed,
-                    Handler $ \(_ :: RecUpdError) -> pure TestFailed,
-                    Handler $ \(_ :: PatternMatchFail) -> pure TestFailed
-                  ]
+        `catches` ( [ Handler $ \(_ :: ExitCode) -> pure TestFailed
+                    ]
+                      ++ (pureExceptionHandlers TestFailed)
+                  )
   pure TestRunResult {..}
+
+pureExceptionHandlers :: a -> [Handler a]
+pureExceptionHandlers a =
+  [ Handler $ \(_ :: ErrorCall) -> pure a,
+    Handler $ \(_ :: RecConError) -> pure a,
+    Handler $ \(_ :: RecSelError) -> pure a,
+    Handler $ \(_ :: RecUpdError) -> pure a,
+    Handler $ \(_ :: PatternMatchFail) -> pure a
+  ]
 
 type Test = IO ()
 

@@ -160,26 +160,29 @@ outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =
   let failures = filter ((== TestFailed) . testRunResultStatus . testDefVal . snd) $ flattenSpecForest rf
       nbDigitsInFailureCount = ceiling $ logBase 10 $ genericLength failures :: Int
-   in concat
-        [ map (chunk "  " :) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
-            [ [ (fore cyan) $ chunk $ T.pack $
-                  case headMay $ getCallStack cs of
-                    Nothing -> "Unknown location"
-                    Just (_, SrcLoc {..}) ->
-                      concat
-                        [ srcLocFile,
-                          ":",
-                          show srcLocStartLine
-                        ]
-              ],
-              map
-                (fore (statusColour testRunResultStatus))
-                [ chunk $ statusCheckMark testRunResultStatus,
-                  chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
-                  chunk $ T.intercalate "." ts
-                ],
-              [chunk ""]
-            ]
+   in map (chunk "  " :) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
+        [ [ (fore cyan) $ chunk $ T.pack $
+              case headMay $ getCallStack cs of
+                Nothing -> "Unknown location"
+                Just (_, SrcLoc {..}) ->
+                  concat
+                    [ srcLocFile,
+                      ":",
+                      show srcLocStartLine
+                    ]
+          ],
+          map
+            (fore (statusColour testRunResultStatus))
+            [ chunk $ statusCheckMark testRunResultStatus,
+              chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
+              chunk $ T.intercalate "." ts
+            ],
+          [ chunk $ T.pack $ (replicate (nbDigitsInFailureCount + 3) ' ' ++) $ case (testRunResultNumTests, testRunResultNumShrinks) of
+              (Nothing, _) -> "Failed"
+              (Just numTests, Nothing) -> printf "Failled after %d tests" numTests
+              (Just numTests, Just numShrinks) -> printf "Failed after %d tests and %d shrinks" numTests numShrinks
+          ],
+          [chunk ""]
         ]
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
@@ -222,6 +225,7 @@ runPureTest b = do
   let testRunResultNumTests = Nothing
   (testRunResultExecutionTime, resultBool) <- timeItT $ (evaluate b) `catches` (pureExceptionHandlers False)
   let testRunResultStatus = if resultBool then TestPassed else TestFailed
+  let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
 instance IsTest (IO a) where
@@ -238,6 +242,7 @@ runIOTest func = do
                     ]
                       ++ (pureExceptionHandlers TestFailed)
                   )
+  let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
 instance IsTest Property where
@@ -256,6 +261,9 @@ runPropertyTest p = do
       Failure {} -> TestFailed
       NoExpectedFailure {} -> TestFailed
     let testRunResultNumTests = Just $ fromIntegral $ numTests result
+    let testRunResultNumShrinks = case result of
+          Failure {} -> Just $ fromIntegral $ numShrinks result
+          _ -> Nothing
     pure TestRunResult {..}
 
 pureExceptionHandlers :: a -> [Handler a]
@@ -273,7 +281,8 @@ data TestRunResult
   = TestRunResult
       { testRunResultStatus :: !TestStatus,
         testRunResultExecutionTime :: !Double,
-        testRunResultNumTests :: !(Maybe Word)
+        testRunResultNumTests :: !(Maybe Word),
+        testRunResultNumShrinks :: !(Maybe Word)
       }
   deriving (Show, Generic)
 

@@ -23,6 +23,7 @@ library
       Test.Syd
       Test.Syd.Run
       Test.Syd.Silence
+      Test.Syd.SpecForest
   other-modules:
       Paths_sydtest
   hs-source-dirs:

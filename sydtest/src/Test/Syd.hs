@@ -28,6 +28,7 @@ import Safe
 import System.Exit
 import Test.QuickCheck.IO ()
 import Test.Syd.Run
+import Test.Syd.SpecForest
 import Text.Printf
 
 sydTest :: Spec -> IO ()
@@ -68,23 +69,6 @@ it s t = do
   var <- asks testDefEnvForest
   let testDef = TestDef {testDefVal = runTest t, testDefCallStack = callStack}
   liftIO $ modifyIORef var $ (++ [SpecifyNode (T.pack s) testDef]) -- FIXME this can probably be slow because of ++
-
-type SpecForest a = [SpecTree a]
-
-data SpecTree a
-  = DescribeNode Text (SpecForest a) -- A description
-  | SpecifyNode Text a -- A test with its description
-  deriving (Show, Functor)
-
-instance Foldable SpecTree where
-  foldMap f = \case
-    DescribeNode _ sts -> foldMap (foldMap f) sts
-    SpecifyNode _ a -> f a
-
-instance Traversable SpecTree where
-  traverse func = \case
-    DescribeNode s sts -> DescribeNode s <$> traverse (traverse func) sts
-    SpecifyNode s a -> SpecifyNode s <$> func a
 
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
   deriving (Functor)
@@ -189,14 +173,6 @@ outputFailures rf =
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls
-
-flattenSpecForest :: SpecForest a -> [([Text], a)]
-flattenSpecForest = concatMap flattenSpecTree
-
-flattenSpecTree :: SpecTree a -> [([Text], a)]
-flattenSpecTree = \case
-  DescribeNode t sf -> map (\(ts, a) -> (t : ts, a)) $ flattenSpecForest sf
-  SpecifyNode t a -> [([t], a)]
 
 outputFailure :: TestRunResult -> Maybe [[Chunk]]
 outputFailure TestRunResult {..} = case testRunResultStatus of

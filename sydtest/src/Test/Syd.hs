@@ -25,6 +25,7 @@ import Data.List
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Text (Text)
+import Data.Typeable
 import GHC.Generics (Generic)
 import GHC.Stack
 import Rainbow
@@ -160,30 +161,38 @@ outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =
   let failures = filter ((== TestFailed) . testRunResultStatus . testDefVal . snd) $ flattenSpecForest rf
       nbDigitsInFailureCount = ceiling $ logBase 10 $ genericLength failures :: Int
-   in map (chunk "  " :) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
-        [ [ (fore cyan) $ chunk $ T.pack $
-              case headMay $ getCallStack cs of
-                Nothing -> "Unknown location"
-                Just (_, SrcLoc {..}) ->
-                  concat
-                    [ srcLocFile,
-                      ":",
-                      show srcLocStartLine
-                    ]
-          ],
-          map
-            (fore (statusColour testRunResultStatus))
-            [ chunk $ statusCheckMark testRunResultStatus,
-              chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
-              chunk $ T.intercalate "." ts
+      pad = (chunk (T.replicate (nbDigitsInFailureCount + 3) " ") :)
+   in map (chunk "  " :) $ filter (not . null) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
+        concat
+          [ [ [ (fore cyan) $ chunk $ T.pack $
+                  case headMay $ getCallStack cs of
+                    Nothing -> "Unknown location"
+                    Just (_, SrcLoc {..}) ->
+                      concat
+                        [ srcLocFile,
+                          ":",
+                          show srcLocStartLine
+                        ]
+              ],
+              map
+                (fore (statusColour testRunResultStatus))
+                [ chunk $ statusCheckMark testRunResultStatus,
+                  chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
+                  chunk $ T.intercalate "." ts
+                ]
             ],
-          [ chunk $ T.pack $ (replicate (nbDigitsInFailureCount + 3) ' ' ++) $ case (testRunResultNumTests, testRunResultNumShrinks) of
-              (Nothing, _) -> "Failed"
-              (Just numTests, Nothing) -> printf "Failled after %d tests" numTests
-              (Just numTests, Just numShrinks) -> printf "Failed after %d tests and %d shrinks" numTests numShrinks
-          ],
-          [chunk ""]
-        ]
+            map (pad . (: []) . chunk . T.pack) $
+              case (testRunResultNumTests, testRunResultNumShrinks) of
+                (Nothing, _) -> []
+                (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
+                (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
+            case testRunResultException of
+              Nothing -> []
+              Just s ->
+                let ls = lines s
+                 in map (pad . (: []) . chunk . T.pack) ls,
+            [[chunk ""]]
+          ]
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls
@@ -223,8 +232,10 @@ instance IsTest Bool where
 runPureTest :: Bool -> IO TestRunResult
 runPureTest b = do
   let testRunResultNumTests = Nothing
-  (testRunResultExecutionTime, resultBool) <- timeItT $ (evaluate b) `catches` (pureExceptionHandlers False)
-  let testRunResultStatus = if resultBool then TestPassed else TestFailed
+  (testRunResultExecutionTime, resultBool) <- timeItT $ (Right <$> evaluate b) `catches` pureExceptionHandlers
+  let (testRunResultStatus, testRunResultException) = case resultBool of
+        Left ex -> (TestFailed, Just $ displayException ex)
+        Right b -> (if b then TestPassed else TestFailed, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
@@ -234,14 +245,19 @@ instance IsTest (IO a) where
 runIOTest :: IO a -> IO TestRunResult
 runIOTest func = do
   let testRunResultNumTests = Nothing
-  (testRunResultExecutionTime, testRunResultStatus) <-
+  (testRunResultExecutionTime, (testRunResultStatus, testRunResultException)) <-
     timeItT
       $ runInSilencedNiceProcess
-      $ (func >>= (evaluate . (`seq` TestPassed)))
-        `catches` ( [ Handler $ \(_ :: ExitCode) -> pure TestFailed
-                    ]
-                      ++ (pureExceptionHandlers TestFailed)
-                  )
+      $ do
+        result <-
+          (func >>= (evaluate . (`seq` Right TestPassed)))
+            `catches` ( [ Handler $ \(e :: ExitCode) -> pure (Left $ SomeException e)
+                        ]
+                          ++ pureExceptionHandlers
+                      )
+        pure $ case result of
+          Left ex -> (TestFailed, Just $ displayException ex)
+          Right r -> (r, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
@@ -264,15 +280,18 @@ runPropertyTest p = do
     let testRunResultNumShrinks = case result of
           Failure {} -> Just $ fromIntegral $ numShrinks result
           _ -> Nothing
+    let testRunResultException = case result of
+          Failure {} -> displayException <$> theException result
+          _ -> Nothing
     pure TestRunResult {..}
 
-pureExceptionHandlers :: a -> [Handler a]
-pureExceptionHandlers a =
-  [ Handler $ \(_ :: ErrorCall) -> pure a,
-    Handler $ \(_ :: RecConError) -> pure a,
-    Handler $ \(_ :: RecSelError) -> pure a,
-    Handler $ \(_ :: RecUpdError) -> pure a,
-    Handler $ \(_ :: PatternMatchFail) -> pure a
+pureExceptionHandlers :: [Handler (Either SomeException a)]
+pureExceptionHandlers =
+  [ Handler $ \(e :: ErrorCall) -> pure (Left (SomeException e)),
+    Handler $ \(e :: RecConError) -> pure (Left (SomeException e)),
+    Handler $ \(e :: RecSelError) -> pure (Left (SomeException e)),
+    Handler $ \(e :: RecUpdError) -> pure (Left (SomeException e)),
+    Handler $ \(e :: PatternMatchFail) -> pure (Left (SomeException e))
   ]
 
 type Test = IO ()
@@ -280,9 +299,10 @@ type Test = IO ()
 data TestRunResult
   = TestRunResult
       { testRunResultStatus :: !TestStatus,
-        testRunResultExecutionTime :: !Double,
+        testRunResultException :: !(Maybe String),
         testRunResultNumTests :: !(Maybe Word),
-        testRunResultNumShrinks :: !(Maybe Word)
+        testRunResultNumShrinks :: !(Maybe Word),
+        testRunResultExecutionTime :: !Double
       }
   deriving (Show, Generic)
 
@@ -328,5 +348,10 @@ runInSilencedNiceProcess func = do
     Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
     Right res -> pure res
 
-shouldBe :: Eq a => a -> a -> IO ()
-shouldBe actual expected = unless (actual == expected) $ error "Not equal"
+shouldBe :: (Show a, Eq a) => a -> a -> IO ()
+shouldBe actual expected = unless (actual == expected) $ throwIO $ Equality (show actual) (show expected)
+
+data Assertion a = Equality a a
+  deriving (Show, Eq, Typeable)
+
+instance Exception (Assertion String)

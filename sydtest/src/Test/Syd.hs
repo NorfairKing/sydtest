@@ -53,6 +53,7 @@ runInProcess func = do
   sharedMemOutsideHandle <- fdToHandle sharedMemOutsideFd
   doneVar <- newEmptyMVar
   testProcess <- forkProcess $ do
+    nice 19 -- Be nice
     sharedMemInsideHandle <- fdToHandle sharedMemInsideFd
     status <- func
     let statusBs = LB.toStrict $ JSON.encode status
@@ -66,5 +67,6 @@ runInProcess func = do
   case JSON.eitherDecode statusBs of
     Left err -> die err
     Right res -> do
-      ps <- getProcessStatus True False testProcess
+      -- Wait to make sure the process is finished.
+      _ <- getProcessStatus True False testProcess
       pure res

@@ -65,6 +65,7 @@ spec = do
         it "should fail to show that sorting does nothing"
           $ property
           $ \ls -> sort ls == (ls :: [Int])
+        it "should work with custom generators too" $ forAll arbitrary $ \b -> b || True
       describe "impure" $ do
         it "reversing a list twice is the same as reversing it once"
           $ property
@@ -72,6 +73,7 @@ spec = do
         it "should fail to show that sorting does nothing"
           $ property
           $ \ls -> sort ls `shouldBe` (ls :: [Int])
+        it "should work with custom generators too" $ forAll arbitrary $ \b -> (b || True) `shouldBe` True
   describe "Long running tests"
     $ forM_ [1 :: Int .. 10]
     $ \i ->

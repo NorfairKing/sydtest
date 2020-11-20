@@ -34,6 +34,7 @@ library
   build-depends:
       QuickCheck
     , aeson
+    , async
     , base >=4.7 && <5
     , bytestring
     , compact
@@ -45,6 +46,7 @@ library
     , text
     , timeit
     , unix
+    , unliftio
   default-language: Haskell2010
 
 test-suite sydtest-test

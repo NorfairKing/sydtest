@@ -14,6 +14,7 @@ library:
   dependencies:
   - QuickCheck # TODO make this optional
   - aeson
+  - async
   - bytestring
   - compact
   - interprocess
@@ -24,6 +25,7 @@ library:
   - text
   - timeit
   - unix
+  - unliftio
 
 tests:
   sydtest-test:

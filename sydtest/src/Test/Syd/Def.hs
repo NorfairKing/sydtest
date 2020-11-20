@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Test.Syd.Def where
@@ -44,7 +45,7 @@ it s t = do
   liftIO $ modifyIORef var $ (++ [SpecifyNode (T.pack s) testDef]) -- FIXME this can probably be slow because of ++
 
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
-  deriving (Functor)
+  deriving (Functor, Foldable, Traversable)
 
 type TestForest = SpecForest (TestDef (IO TestRunResult))
 

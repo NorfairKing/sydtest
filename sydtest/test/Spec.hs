@@ -22,7 +22,6 @@ instance ToUnit Int -- No implementation on purpose
 main :: IO ()
 main = do
   ((), testForest) <- runTestDefM spec
-  _ <- runSpecForestSynchronously testForest
   _ <- runSpecForestInterleavedWithOutputSynchronously testForest
   _ <- runSpecForestInterleavedWithOutputAsynchronously 8 testForest
   pure ()

@@ -11,7 +11,9 @@ import GHC.Generics (Generic)
 import System.Exit
 import System.TimeIt
 import Test.QuickCheck
+import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
+import Test.QuickCheck.Random
 import Test.Syd.Silence
 import UnliftIO
 import UnliftIO.Resource
@@ -60,7 +62,7 @@ instance IsTest Property where
 
 runPropertyTest :: TestRunSettings -> Property -> ResourceT IO TestRunResult
 runPropertyTest TestRunSettings {..} p = do
-  let args = stdArgs {chatty = False} -- Customise args
+  let args = stdArgs {chatty = False, replay = Just (mkQCGen testRunSettingSeed, 0)} -- Customise args
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
   runWrapper $ do
@@ -97,9 +99,17 @@ type Test = IO ()
 
 data TestRunSettings
   = TestRunSettings
-      { testRunSettingChildProcessOverride :: Maybe Bool -- Nothing means use the default, the specific test can decide what that is.
+      { testRunSettingChildProcessOverride :: Maybe Bool, -- Nothing means use the default, the specific test can decide what that is.
+        testRunSettingSeed :: Int
       }
   deriving (Show, Generic)
+
+defaultSettings :: TestRunSettings
+defaultSettings =
+  TestRunSettings
+    { testRunSettingChildProcessOverride = Nothing,
+      testRunSettingSeed = 42
+    }
 
 data TestRunResult
   = TestRunResult

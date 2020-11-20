@@ -4,6 +4,7 @@
 
 module Test.Syd.Def where
 
+import Control.Monad.RWS.Strict
 import Control.Monad.Reader
 import Data.IORef
 import qualified Data.Text as T
@@ -15,44 +16,26 @@ import UnliftIO.Resource
 
 type Spec = TestDefM ()
 
-data TestDefEnv
-  = TestDefEnv
-      { testDefEnvForest :: !(IORef TestForest),
-        testDefSettingsMod :: !(TestRunSettings -> TestRunSettings)
-      }
-
-newtype TestDefM a = TestDefM {unTestDefM :: ReaderT TestDefEnv IO a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestDefEnv)
+newtype TestDefM a = TestDefM {unTestDefM :: RWST TestRunSettings TestForest () IO a}
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestRunSettings, MonadWriter TestForest, MonadState ())
 
 runTestDefM :: TestDefM a -> IO (a, TestForest)
 runTestDefM defFunc = do
-  forestVar <- newIORef []
-  let env =
-        TestDefEnv
-          { testDefEnvForest = forestVar,
-            testDefSettingsMod = id
-          }
   let func = unTestDefM defFunc
-  a <- runReaderT func env
-  sf <- readIORef forestVar
-  pure (a, sf)
+  (a, _, testForest) <- runRWST func defaultSettings () -- TODO allow passing in settings from the command-line
+  pure (a, testForest)
 
 describe :: String -> TestDefM a -> TestDefM a
-describe s func = do
-  (a, sf) <- liftIO $ runTestDefM func
-  var <- asks testDefEnvForest
-  liftIO $ modifyIORef var $ (++ [DescribeNode (T.pack s) sf]) -- FIXME this can probably be slow because of ++
-  pure a
+describe s func = censor ((: []) . DescribeNode (T.pack s)) func
 
 it :: (HasCallStack, IsTest test) => String -> test -> TestDefM ()
 it s t = do
-  var <- asks testDefEnvForest
-  let sets = TestRunSettings {testRunSettingChildProcessOverride = Nothing}
+  sets <- ask
   let testDef = TestDef {testDefVal = runTest sets t, testDefCallStack = callStack}
-  liftIO $ modifyIORef var $ (++ [SpecifyNode (T.pack s) testDef]) -- FIXME this can probably be slow because of ++
+  tell [SpecifyNode (T.pack s) testDef]
 
-modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM ()
-modifyRunSettings modFunc = pure ()
+modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM a -> TestDefM a
+modifyRunSettings = local
 
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)

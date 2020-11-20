@@ -14,10 +14,7 @@ module Test.Syd
   )
 where
 
-import Control.Concurrent
-import Control.Concurrent.MVar
 import Control.Concurrent.QSem
-import Control.Exception
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
@@ -33,6 +30,7 @@ import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Silence
 import Test.Syd.SpecForest
+import UnliftIO
 import UnliftIO.Async
 import UnliftIO.Resource
 
@@ -82,5 +80,76 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
   mapM_ outputLine $ outputFailuresWithHeading resultForest
   pure resultForest
 
+-- This fails miserably when silencing is used.
+runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest -> IO ResultForest
+runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = runResourceT $ do
+  handleForest <- makeHandleForest testForest
+  let runRunner = runner nbThreads handleForest
+      runPrinter = liftIO $ printer handleForest
+  ((), resultForest) <- concurrently runRunner runPrinter
+  pure resultForest
+
+type HandleForest = SpecForest (TestDef (ResourceT IO TestRunResult), MVar TestRunResult)
+
+type HandleTree = SpecTree (TestDef (ResourceT IO TestRunResult), MVar TestRunResult)
+
+makeHandleForest :: TestForest -> ResourceT IO HandleForest
+makeHandleForest = traverse $ traverse $ \td -> do
+  var <- newEmptyMVar
+  pure (td, var)
+
+runner :: Int -> HandleForest -> ResourceT IO ()
+runner nbThreads handleForest = do
+  sem <- liftIO $ newQSem nbThreads
+  mapM_
+    ( traverse
+        ( \(td, var) ->
+            bracket_ (liftIO $ waitQSem sem) (liftIO $ signalQSem sem) $ do
+              let runTest :: ResourceT IO ()
+                  runTest = do
+                    result <- testDefVal td
+                    putMVar var result
+              a <- async runTest
+              void $ register (wait a)
+        )
+    )
+    handleForest
+
+printer :: HandleForest -> IO ResultForest
+printer handleForest = do
+  byteStringMaker <- liftIO byteStringMakerFromEnvironment
+  let outputLine :: [Chunk] -> IO ()
+      outputLine lineChunks = do
+        let bss = chunksToByteStrings byteStringMaker lineChunks
+        mapM_ SB.putStr bss
+        SB8.putStrLn ""
+  let pad :: Int -> [Chunk] -> [Chunk]
+      pad level = (chunk (T.replicate (level * 2) " ") :)
+      goTree :: Int -> HandleTree -> IO ResultTree
+      goTree level = \case
+        DescribeNode t sf -> do
+          outputLine $ pad level $ outputDescribeLine t
+          DescribeNode t <$> goForest (succ level) sf
+        SpecifyNode t (td, var) -> do
+          let runFunc = testDefVal td
+          result <- takeMVar var
+          let td' = td {testDefVal = result}
+          mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
+          pure $ SpecifyNode t td'
+      goForest :: Int -> HandleForest -> IO ResultForest
+      goForest level = mapM (goTree level)
+  mapM_ outputLine $ outputTestsHeader
+  resultForest <- goForest 0 handleForest
+  outputLine $ [chunk " "]
+  mapM_ outputLine $ outputFailuresWithHeading resultForest
+  pure resultForest
+
 shouldExitFail :: ResultForest -> Bool
 shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))
+-- type TestForest = SpecForest (TestDef (ResourceT IO TestRunResult))
+--
+-- type TestTree = SpecTree (TestDef (ResourceT IO TestRunResult))
+--
+-- type ResultForest = SpecForest (TestDef TestRunResult)
+--
+-- type ResultTree = SpecTree (TestDef TestRunResult)

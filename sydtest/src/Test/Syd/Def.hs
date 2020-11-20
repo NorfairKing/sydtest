@@ -17,7 +17,8 @@ type Spec = TestDefM ()
 
 data TestDefEnv
   = TestDefEnv
-      { testDefEnvForest :: IORef TestForest
+      { testDefEnvForest :: !(IORef TestForest),
+        testDefSettingsMod :: !(TestRunSettings -> TestRunSettings)
       }
 
 newtype TestDefM a = TestDefM {unTestDefM :: ReaderT TestDefEnv IO a}
@@ -26,7 +27,11 @@ newtype TestDefM a = TestDefM {unTestDefM :: ReaderT TestDefEnv IO a}
 runTestDefM :: TestDefM a -> IO (a, TestForest)
 runTestDefM defFunc = do
   forestVar <- newIORef []
-  let env = TestDefEnv {testDefEnvForest = forestVar}
+  let env =
+        TestDefEnv
+          { testDefEnvForest = forestVar,
+            testDefSettingsMod = id
+          }
   let func = unTestDefM defFunc
   a <- runReaderT func env
   sf <- readIORef forestVar
@@ -45,6 +50,9 @@ it s t = do
   let sets = TestRunSettings {testRunSettingChildProcessOverride = Nothing}
   let testDef = TestDef {testDefVal = runTest sets t, testDefCallStack = callStack}
   liftIO $ modifyIORef var $ (++ [SpecifyNode (T.pack s) testDef]) -- FIXME this can probably be slow because of ++
+
+modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM ()
+modifyRunSettings modFunc = pure ()
 
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)

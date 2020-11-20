@@ -64,7 +64,7 @@ main = void $ sydTestResult $ do
     $ forM_ [1 :: Int .. 10]
     $ \i ->
       it (concat ["takes a while (", show i, ")"]) $
-        threadDelay 100_000
+        threadDelay 1_000_000
   describe "Diff" $ do
     it "shows nice multi-line diffs" $
       ("foo", replicate 7 "quux", "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")

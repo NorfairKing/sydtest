@@ -36,13 +36,22 @@ runInSilencedProcess func = do
         hClose pipeWriteHandle
       cleanupProcess :: ProcessID -> IO ()
       cleanupProcess pid = do
-        mps <- catchJust (\ioerr -> if isDoesNotExistError ioerr then Just Nothing else Nothing) (getProcessStatus True False pid) pure
+        mps <-
+          catchJust
+            (\ioerr -> if isDoesNotExistError ioerr then Just ioerr else Nothing)
+            (Just <$> getProcessStatus False False pid)
+            (\_ -> pure Nothing)
         case mps of
           Nothing -> pure () -- No process found
-          Just _ -> pure () -- Already taken care of.
+          Just Nothing -> signalProcess sigTERM pid
+          Just (Just _) -> pure () -- Already taken care of.
   (_, testProcess) <- allocate (forkProcess runChild) cleanupProcess
+  liftIO $ print "waiting for process to finish"
   -- Wait for the testing process to finish
-  _ <- liftIO $ getProcessStatus True False testProcess
+  mf <- liftIO $ getProcessStatus True False testProcess
+  liftIO $ print $ case mf of
+    Nothing -> "going on, but not finished"
+    Just _ -> "process finished"
   -- Read its result from the pipe
   errOrResult <- liftIO $ hUnsafeGetCompact pipeReadHandle
   case errOrResult of

@@ -41,10 +41,12 @@ library
     , compact
     , interprocess
     , mtl
+    , pretty-show
     , quickcheck-io
     , rainbow
     , resourcet
     , safe
+    , split
     , text
     , timeit
     , unix

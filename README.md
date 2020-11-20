@@ -12,6 +12,8 @@ An experimental testing framework for Haskell
 * Source location annotations for tests in test output
 * Test execution timing
 * Coloured output
+* `ppShow` instead of `show` for counterexample output
+* Coloured multi-line diffing
 * Fancy Unicode output
 * Optional: Progress output during test suit execution
 * Optional: Silent test execution

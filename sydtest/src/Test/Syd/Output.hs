@@ -10,11 +10,13 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import Data.List
+import Data.List.Split (splitWhen)
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Text (Text)
 import GHC.Stack
 import Rainbow
+import Rainbow.Types (Chunk (..))
 import Safe
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
@@ -129,18 +131,24 @@ outputFailures rf =
 outputEqualityAssertionFailed :: String -> String -> [[Chunk]]
 outputEqualityAssertionFailed actual expected =
   let diff = getDiff actual expected
-      actualChunks = flip mapMaybe diff $ \d -> case d of
+      splitLines = splitWhen ((== "\n") . _yarn)
+      actualChunks = splitLines $ flip mapMaybe diff $ \d -> case d of
         Both a _ -> Just $ chunk (T.singleton a)
         First a -> Just $ fore red $ chunk (T.singleton a)
         _ -> Nothing
-      expectedChunks = flip mapMaybe diff $ \d -> case d of
+      expectedChunks = splitLines $ flip mapMaybe diff $ \d -> case d of
         Both a _ -> Just $ chunk (T.singleton a)
         Second a -> Just $ fore green $ chunk (T.singleton a)
         _ -> Nothing
-   in [ [chunk "Expected these values to be equal: "],
-        chunk "Actual:   " : actualChunks,
-        chunk "Expected: " : expectedChunks
-      ]
+      chunksLinesWithHeader :: Chunk -> [[Chunk]] -> [[Chunk]]
+      chunksLinesWithHeader header = \case
+        [cs] -> [header : cs]
+        cs -> [header] : cs
+   in concat
+        [ [[chunk "Expected these values to be equal: "]],
+          chunksLinesWithHeader (fore blue $ "Actual:   ") actualChunks,
+          chunksLinesWithHeader (fore blue "Expected: ") expectedChunks
+        ]
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls

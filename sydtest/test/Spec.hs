@@ -56,6 +56,9 @@ main = void $ sydTestResult $ do
     $ \i ->
       it (concat ["takes a while (", show i, ")"]) $
         threadDelay 100_000
+  describe "Diff"
+    $ it "shows nice multi-line diffs"
+    $ ("foo", replicate 9 "quux", "bar") `shouldBe` ("foofoo", replicate 8 "quux", "baz")
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

@@ -93,14 +93,15 @@ outputFailures rf =
    in map (chunk "  " :) $ filter (not . null) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
         concat
           [ [ [ (fore cyan) $ chunk $ T.pack $
-                  case headMay $ getCallStack cs of
-                    Nothing -> "Unknown location"
-                    Just (_, SrcLoc {..}) ->
-                      concat
-                        [ srcLocFile,
-                          ":",
-                          show srcLocStartLine
-                        ]
+                  replicate 2 ' '
+                    ++ case headMay $ getCallStack cs of
+                      Nothing -> "Unknown location"
+                      Just (_, SrcLoc {..}) ->
+                        concat
+                          [ srcLocFile,
+                            ":",
+                            show srcLocStartLine
+                          ]
               ],
               map
                 (fore (statusColour testRunResultStatus))

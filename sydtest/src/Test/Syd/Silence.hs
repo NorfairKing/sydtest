@@ -4,36 +4,49 @@ import Data.Compact
 import Data.Compact.Serialize
 import Data.Typeable
 import System.Exit
-import System.IO (hClose, hFlush)
+import System.IO.Error
 import System.Posix.Files
 import System.Posix.IO
 import System.Posix.Process
+import System.Posix.Signals
+import System.Posix.Types
+import UnliftIO
+import UnliftIO.Resource
 
-runInSilencedNiceProcess :: Typeable a => IO a -> IO a
+runInSilencedNiceProcess :: (Typeable a, MonadUnliftIO m) => ResourceT m a -> ResourceT m a
 runInSilencedNiceProcess func = do
-  (sharedMemOutsideFd, sharedMemInsideFd) <- createPipe
-  sharedMemOutsideHandle <- fdToHandle sharedMemOutsideFd
-  sharedMemInsideHandle <- fdToHandle sharedMemInsideFd
-  testProcess <- forkProcess $ do
-    -- Be nice while testing so that the computer cannot lock up.
-    nice 19
-    -- Don't input or output anything
-    newStdin <- createFile "/dev/null" ownerModes
-    _ <- dupTo newStdin stdInput
-    newStdout <- createFile "/dev/null" ownerModes
-    _ <- dupTo newStdout stdOutput
-    newStderr <- createFile "/dev/null" ownerModes
-    _ <- dupTo newStderr stdError
-    -- Actually run the function
-    result <- func
-    compactRegion <- compact result
-    hPutCompact sharedMemInsideHandle compactRegion
-    hFlush sharedMemInsideHandle
-    hClose sharedMemInsideHandle
+  (pipeReadFd, pipeWriteFd) <- liftIO createPipe
+  pipeReadHandle <- liftIO $ fdToHandle pipeReadFd
+  pipeWriteHandle <- liftIO $ fdToHandle pipeWriteFd
+  runInIO <- askRunInIO
+  let runChild :: IO ()
+      runChild = do
+        -- Be nice while testing so that the computer cannot lock up.
+        nice 19
+        -- Don't input or output anything
+        newStdin <- createFile "/dev/null" ownerModes
+        _ <- dupTo newStdin stdInput
+        newStdout <- createFile "/dev/null" ownerModes
+        _ <- dupTo newStdout stdOutput
+        newStderr <- createFile "/dev/null" ownerModes
+        _ <- dupTo newStderr stdError
+        -- Actually run the function
+        result <- runInIO func
+        compactRegion <- compact result
+        hPutCompact pipeWriteHandle compactRegion
+        hFlush pipeWriteHandle
+        hClose pipeWriteHandle
+      cleanupProcess :: ProcessID -> IO ()
+      cleanupProcess pid = do
+        mps <- catchJust (\ioerr -> if isDoesNotExistError ioerr then Just Nothing else Nothing) (getProcessStatus True False pid) pure
+        case mps of
+          Nothing -> pure () -- No process found
+          Just _ -> pure () -- Already taken care of.
+  (_, testProcess) <- allocate (forkProcess runChild) cleanupProcess
   -- Wait for the testing process to finish
-  _ <- getProcessStatus True False testProcess
+  _ <- liftIO $ getProcessStatus True False testProcess
   -- Read its result from the pipe
-  errOrResult <- hUnsafeGetCompact sharedMemOutsideHandle
+  errOrResult <- liftIO $ hUnsafeGetCompact pipeReadHandle
   case errOrResult of
-    Left err -> die err -- This cannot happen if the result was fewer than 1024 bytes in size
+    Left err -> liftIO $ die err -- This means something went wrong with the compact region
     Right compactRegion -> pure $ getCompact compactRegion

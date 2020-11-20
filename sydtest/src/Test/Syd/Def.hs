@@ -11,6 +11,7 @@ import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.Run
 import Test.Syd.SpecForest
+import UnliftIO.Resource
 
 type Spec = TestDefM ()
 
@@ -47,9 +48,9 @@ it s t = do
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)
 
-type TestForest = SpecForest (TestDef (IO TestRunResult))
+type TestForest = SpecForest (TestDef (ResourceT IO TestRunResult))
 
-type TestTree = SpecTree (TestDef (IO TestRunResult))
+type TestTree = SpecTree (TestDef (ResourceT IO TestRunResult))
 
 type ResultForest = SpecForest (TestDef TestRunResult)
 

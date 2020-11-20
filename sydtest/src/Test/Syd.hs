@@ -34,6 +34,7 @@ import Test.Syd.Run
 import Test.Syd.Silence
 import Test.Syd.SpecForest
 import UnliftIO.Async
+import UnliftIO.Resource
 
 sydTest :: Spec -> IO ()
 sydTest spec = do
@@ -43,25 +44,26 @@ sydTest spec = do
 sydTestResult :: Spec -> IO ResultForest
 sydTestResult spec = do
   ((), specForest) <- runTestDefM spec
-  runSpecForestInterleavedWithOutputAsynchronously 10 specForest
+  runSpecForestInterleavedWithOutputSynchronously specForest
 
-runSpecForest :: TestForest -> IO ResultForest
-runSpecForest = traverse $ traverse $ \td -> do
+runSpecForestSynchronously :: TestForest -> ResourceT IO ResultForest
+runSpecForestSynchronously = traverse $ traverse $ \td -> do
   let runFunc = testDefVal td
   result <- runFunc
   pure $ td {testDefVal = result}
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest -> IO ResultForest
-runSpecForestInterleavedWithOutputSynchronously testForest = do
-  byteStringMaker <- byteStringMakerFromEnvironment
-  let outputLine :: [Chunk] -> IO ()
+runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
+  byteStringMaker <- liftIO byteStringMakerFromEnvironment
+  let outputLine :: [Chunk] -> ResourceT IO ()
       outputLine lineChunks = do
         let bss = chunksToByteStrings byteStringMaker lineChunks
-        mapM_ SB.putStr bss
-        SB8.putStrLn ""
+        liftIO $ do
+          mapM_ SB.putStr bss
+          SB8.putStrLn ""
   let pad :: Int -> [Chunk] -> [Chunk]
       pad level = (chunk (T.replicate (level * 2) " ") :)
-      goTree :: Int -> TestTree -> IO ResultTree
+      goTree :: Int -> TestTree -> ResourceT IO ResultTree
       goTree level = \case
         DescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
@@ -72,82 +74,13 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-      goForest :: Int -> TestForest -> IO ResultForest
+      goForest :: Int -> TestForest -> ResourceT IO ResultForest
       goForest level = mapM (goTree level)
   mapM_ outputLine $ outputTestsHeader
   resultForest <- goForest 0 testForest
   outputLine $ [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
   pure resultForest
-
-runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest -> IO ResultForest
-runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = do
-  handleForest <- makeHandleForest testForest
-  let doOutput = outputter handleForest
-      doRun = runner nbThreads handleForest
-  ((), resultForest) <- concurrently doRun doOutput
-  pure resultForest
-
-type HandleForest = SpecForest (TestDef (IO TestRunResult), MVar TestRunResult)
-
-type HandleTree = SpecTree (TestDef (IO TestRunResult), MVar TestRunResult)
-
-makeHandleForest :: TestForest -> IO HandleForest
-makeHandleForest = traverse $ traverse $ \td -> do
-  var <- newEmptyMVar
-  pure (td, var)
-
-outputter :: HandleForest -> IO ResultForest
-outputter handleForest = do
-  byteStringMaker <- byteStringMakerFromEnvironment
-  let outputLine :: [Chunk] -> IO ()
-      outputLine lineChunks = do
-        let bss = chunksToByteStrings byteStringMaker lineChunks
-        mapM_ SB.putStr bss
-        SB8.putStrLn ""
-  let pad :: Int -> [Chunk] -> [Chunk]
-      pad level = (chunk (T.replicate (level * 2) " ") :)
-      goTree :: Int -> HandleTree -> IO ResultTree
-      goTree level = \case
-        DescribeNode t sf -> do
-          outputLine $ pad level $ outputDescribeLine t
-          DescribeNode t <$> goForest (succ level) sf
-        SpecifyNode t (td, var) -> do
-          result <- takeMVar var
-          print result
-          let td' = td {testDefVal = result}
-          mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
-          pure $ SpecifyNode t td'
-      goForest :: Int -> HandleForest -> IO ResultForest
-      goForest level = mapM (goTree level)
-  mapM_ outputLine $ outputTestsHeader
-  resultForest <- goForest 0 handleForest
-  outputLine $ [chunk " "]
-  mapM_ outputLine $ outputFailuresWithHeading resultForest
-  pure resultForest
-
-runner :: Int -> HandleForest -> IO ()
-runner nbThreads handleForest = do
-  sem <- newQSem nbThreads
-  aRef <- newIORef []
-  let goForest :: HandleForest -> IO ()
-      goForest = mapM_ goTree
-      goTree :: HandleTree -> IO ()
-      goTree = \case
-        DescribeNode _ sf -> goForest sf
-        SpecifyNode _ (td, var) -> do
-          bracket_ (waitQSem sem) (signalQSem sem) $ do
-            a <- async $ do
-              result <- testDefVal td
-              putMVar var result
-            modifyIORef aRef (a :)
-  goForest handleForest `finally` (readIORef aRef >>= mapM_ wait)
-
-runOne :: TestDef (IO TestRunResult) -> MVar TestRunResult -> IO ()
-runOne td var = do
-  a <- async $ testDefVal td
-  result <- wait a
-  putMVar var result
 
 shouldExitFail :: ResultForest -> Bool
 shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))

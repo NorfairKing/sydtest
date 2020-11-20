@@ -4,7 +4,7 @@
 
 module Test.Syd.Run where
 
-import Control.Exception
+import Control.Exception hiding (Handler, catches, evaluate)
 import Data.Typeable
 import GHC.Generics (Generic)
 import System.Exit
@@ -12,14 +12,16 @@ import System.TimeIt
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.Syd.Silence
+import UnliftIO
+import UnliftIO.Resource
 
 class IsTest a where
-  runTest :: a -> IO TestRunResult
+  runTest :: a -> ResourceT IO TestRunResult
 
 instance IsTest Bool where
   runTest = runPureTest
 
-runPureTest :: Bool -> IO TestRunResult
+runPureTest :: Bool -> ResourceT IO TestRunResult
 runPureTest b = do
   let testRunResultNumTests = Nothing
   (testRunResultExecutionTime, resultBool) <- timeItT $ (Right <$> evaluate b) `catches` pureExceptionHandlers
@@ -32,7 +34,7 @@ runPureTest b = do
 instance IsTest (IO a) where
   runTest = runIOTest
 
-runIOTest :: IO a -> IO TestRunResult
+runIOTest :: IO a -> ResourceT IO TestRunResult
 runIOTest func = do
   let testRunResultNumTests = Nothing
   (testRunResultExecutionTime, (testRunResultStatus, testRunResultException)) <-
@@ -40,7 +42,7 @@ runIOTest func = do
       $ runInSilencedNiceProcess
       $ do
         result <-
-          (func >>= (evaluate . (`seq` Right TestPassed)))
+          (liftIO func >>= (evaluate . (`seq` Right TestPassed)))
             `catches` ( [ Handler $ \(e :: ExitCode) -> pure (Left $ Left $ displayException e)
                         ]
                           ++ pureExceptionHandlers
@@ -54,11 +56,11 @@ runIOTest func = do
 instance IsTest Property where
   runTest = runPropertyTest
 
-runPropertyTest :: Property -> IO TestRunResult
+runPropertyTest :: Property -> ResourceT IO TestRunResult
 runPropertyTest p = do
   let args = stdArgs -- Customise args
   runInSilencedNiceProcess $ do
-    (testRunResultExecutionTime, result) <- timeItT $ quickCheckWithResult args p
+    (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args p
     testRunResultStatus <- pure $ case result of
       Success {} -> TestPassed
       GaveUp {} -> TestFailed
@@ -77,7 +79,7 @@ runPropertyTest p = do
           _ -> Nothing
     pure TestRunResult {..}
 
-pureExceptionHandlers :: [Handler (Either (Either String Assertion) a)]
+pureExceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
 pureExceptionHandlers =
   [ Handler $ \(a :: Assertion) -> pure (Left $ Right a),
     Handler $ \(e :: ErrorCall) -> pure (Left (Left (displayException e))),

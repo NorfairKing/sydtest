@@ -181,7 +181,11 @@ data TestRunResult
 data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
 
-data Assertion = Equality String String
+data Assertion
+  = NotEqualButShouldHaveBeenEqual String String
+  | EqualButShouldNotHaveBeenEqual String String
+  | PredicateSucceededButShouldHaveFailed String
+  | PredicateFailedButShouldHaveSucceeded String
   deriving (Show, Eq, Typeable, Generic)
 
 instance Exception Assertion

@@ -125,7 +125,10 @@ outputFailures rf =
                 let ls = lines s
                  in map ((: []) . chunk . T.pack) ls
               Just (Right a) -> case a of
-                Equality actual expected -> outputEqualityAssertionFailed actual expected,
+                NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
+                EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
+                PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
+                PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual,
             [[chunk ""]]
           ]
 
@@ -146,10 +149,35 @@ outputEqualityAssertionFailed actual expected =
         [cs] -> [header : cs]
         cs -> [header] : cs
    in concat
-        [ [[chunk "Expected these values to be equal: "]],
+        [ [[chunk "Expected these values to be equal:"]],
           chunksLinesWithHeader (fore blue $ "Actual:   ") actualChunks,
           chunksLinesWithHeader (fore blue "Expected: ") expectedChunks
         ]
+
+outputNotEqualAssertionFailed :: String -> String -> [[Chunk]]
+outputNotEqualAssertionFailed actual notExpected =
+  if actual == notExpected -- String equality
+    then
+      [ [chunk "Did not expect equality of this value:"],
+        [chunk (T.pack actual)]
+      ]
+    else
+      [ [chunk "These two values were considered equal but should not have been equal:"],
+        [fore blue $ "Actual      : ", chunk (T.pack actual)],
+        [fore blue $ "Not Expected: ", chunk (T.pack notExpected)]
+      ]
+
+outputPredicateSuccessAssertionFailed :: String -> [[Chunk]]
+outputPredicateSuccessAssertionFailed actual =
+  [ [chunk "Predicate failed, but should have succeeded, on this value:"],
+    [chunk (T.pack actual)]
+  ]
+
+outputPredicateFailAssertionFailed :: String -> [[Chunk]]
+outputPredicateFailAssertionFailed actual =
+  [ [chunk "Predicate succeeded, but should have failed, on this value:"],
+    [chunk (T.pack actual)]
+  ]
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls

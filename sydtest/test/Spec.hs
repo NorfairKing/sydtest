@@ -97,6 +97,11 @@ spec = do
     after print $ before (pure 5) $ it "is five in IO" $ \i -> i `shouldBe` (5 :: Int)
     after_ (pure ()) $ it "is passes purely" $ True
     after_ (pure ()) $ it "is passes in IO" $ True `shouldBe` True
+  describe "assertions" $ do
+    it "shouldBe" $ 3 `shouldBe` 4
+    it "shouldNotBe" $ 3 `shouldNotBe` 3
+    it "shouldSatisfy" $ 3 `shouldSatisfy` even
+    it "shouldNotSatisfy" $ 3 `shouldNotSatisfy` odd
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

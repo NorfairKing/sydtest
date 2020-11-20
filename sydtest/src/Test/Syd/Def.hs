@@ -48,6 +48,8 @@ data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
 
 type TestForest = SpecForest (TestDef (IO TestRunResult))
 
+type TestTree = SpecTree (TestDef (IO TestRunResult))
+
 type ResultForest = SpecForest (TestDef TestRunResult)
 
 type ResultTree = SpecTree (TestDef TestRunResult)

@@ -4,7 +4,9 @@
 
 module Main where
 
+import Control.Concurrent
 import Control.Exception
+import Control.Monad
 import Data.List
 import System.Exit
 import Test.QuickCheck
@@ -13,7 +15,7 @@ import Test.Syd
 data DangerousRecord = Cons1 {field :: String} | Cons2
 
 main :: IO ()
-main = sydTest $ do
+main = void $ sydTestResult $ do
   it "Passes" $ (pure () :: IO ())
   describe "error" $ do
     it "Pure error" $ (pure (error "foobar") :: IO ())
@@ -49,6 +51,11 @@ main = sydTest $ do
       it "should fail to show that sorting does nothing"
         $ property
         $ \ls -> sort ls `shouldBe` (ls :: [Int])
+  describe "Long running tests"
+    $ forM_ [1 :: Int .. 10]
+    $ \i ->
+      it (concat ["takes a while (", show i, ")"]) $
+        threadDelay 100_000
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

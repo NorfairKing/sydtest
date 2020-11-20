@@ -32,36 +32,57 @@ printOutputSpecForest results = do
 outputResultReport :: ResultForest -> [[Chunk]]
 outputResultReport rf =
   concat
-    [ [ [fore blue $ chunk "Tests:"],
-        [chunk ""]
-      ],
+    [ outputTestsHeader,
       outputSpecForest rf,
       [ [chunk ""],
-        [chunk ""],
-        [fore blue $ chunk "Failures:"],
         [chunk ""]
       ],
+      outputFailuresWithHeading rf
+    ]
+
+outputFailuresWithHeading :: ResultForest -> [[Chunk]]
+outputFailuresWithHeading rf =
+  concat
+    [ outputFailuresHeader,
       outputFailures rf
     ]
+
+outputTestsHeader :: [[Chunk]]
+outputTestsHeader = outputHeader "Tests:"
+
+outputFailuresHeader :: [[Chunk]]
+outputFailuresHeader = outputHeader "Failures:"
+
+outputHeader :: Text -> [[Chunk]]
+outputHeader t =
+  [ [fore blue $ chunk t],
+    [chunk ""]
+  ]
 
 outputSpecForest :: ResultForest -> [[Chunk]]
 outputSpecForest = concatMap outputSpecTree
 
 outputSpecTree :: ResultTree -> [[Chunk]]
 outputSpecTree = \case
-  DescribeNode t sf -> [fore yellow $ chunk t] : map (chunk "  " :) (outputSpecForest sf)
-  SpecifyNode t (TestDef (TestRunResult {..}) _) ->
-    map (map (fore (statusColour testRunResultStatus))) $
-      filter
-        (not . null)
-        [ [ chunk (statusCheckMark testRunResultStatus),
-            chunk t
-          ],
-          concat
-            [ -- [chunk (T.pack (printf "%10.2f ms " (testRunResultExecutionTime * 1000)))],
-              [chunk (T.pack (printf "  (passed for all of %d inputs)" w)) | w <- maybeToList testRunResultNumTests, testRunResultStatus == TestPassed]
-            ]
-        ]
+  DescribeNode t sf -> outputDescribeLine t : map (chunk "  " :) (outputSpecForest sf)
+  SpecifyNode t td -> outputSpecifyLines t td
+
+outputDescribeLine :: Text -> [Chunk]
+outputDescribeLine t = [fore yellow $ chunk t]
+
+outputSpecifyLines :: Text -> TestDef TestRunResult -> [[Chunk]]
+outputSpecifyLines t (TestDef (TestRunResult {..}) _) =
+  map (map (fore (statusColour testRunResultStatus))) $
+    filter
+      (not . null)
+      [ [ chunk (statusCheckMark testRunResultStatus),
+          chunk t
+        ],
+        concat
+          [ -- [chunk (T.pack (printf "%10.2f ms " (testRunResultExecutionTime * 1000)))],
+            [chunk (T.pack (printf "  (passed for all of %d inputs)" w)) | w <- maybeToList testRunResultNumTests, testRunResultStatus == TestPassed]
+          ]
+      ]
 
 outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =

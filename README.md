@@ -15,7 +15,7 @@ An experimental testing framework for Haskell
 * `ppShow` instead of `show` for counterexample output
 * Coloured multi-line diffing
 * Fancy Unicode output
-* Optional: Progress output during test suit execution
-* Optional: Silent test execution
-* Standard output and standard error suppression
+* Optional progress output during test suit execution
+* Optional silent test execution
+* Optional standard output and standard error suppression
 

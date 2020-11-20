@@ -5,6 +5,7 @@
 module Test.Syd.Run where
 
 import Control.Exception hiding (Handler, catches, evaluate)
+import Data.Maybe
 import Data.Typeable
 import GHC.Generics (Generic)
 import System.Exit
@@ -16,15 +17,17 @@ import UnliftIO
 import UnliftIO.Resource
 
 class IsTest a where
-  runTest :: a -> ResourceT IO TestRunResult
+  runTest :: TestRunSettings -> a -> ResourceT IO TestRunResult
 
 instance IsTest Bool where
   runTest = runPureTest
 
-runPureTest :: Bool -> ResourceT IO TestRunResult
-runPureTest b = do
+runPureTest :: TestRunSettings -> Bool -> ResourceT IO TestRunResult
+runPureTest TestRunSettings {..} b = do
   let testRunResultNumTests = Nothing
-  (testRunResultExecutionTime, resultBool) <- timeItT $ (Right <$> evaluate b) `catches` exceptionHandlers
+  let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
+  let runWrapper = if runInChildProcess then runInSilencedProcess else id
+  (testRunResultExecutionTime, resultBool) <- timeItT $ runWrapper $ (Right <$> evaluate b) `catches` exceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
@@ -34,12 +37,14 @@ runPureTest b = do
 instance IsTest (IO a) where
   runTest = runIOTest
 
-runIOTest :: IO a -> ResourceT IO TestRunResult
-runIOTest func = do
+runIOTest :: TestRunSettings -> IO a -> ResourceT IO TestRunResult
+runIOTest TestRunSettings {..} func = do
   let testRunResultNumTests = Nothing
+  let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
+  let runWrapper = if runInChildProcess then runInSilencedProcess else id
   (testRunResultExecutionTime, (testRunResultStatus, testRunResultException)) <-
     timeItT
-      $ runInSilencedNiceProcess
+      $ runWrapper
       $ do
         result <-
           (liftIO func >>= (evaluate . (`seq` Right TestPassed)))
@@ -53,10 +58,12 @@ runIOTest func = do
 instance IsTest Property where
   runTest = runPropertyTest
 
-runPropertyTest :: Property -> ResourceT IO TestRunResult
-runPropertyTest p = do
-  let args = stdArgs -- Customise args
-  runInSilencedNiceProcess $ do
+runPropertyTest :: TestRunSettings -> Property -> ResourceT IO TestRunResult
+runPropertyTest TestRunSettings {..} p = do
+  let args = stdArgs {chatty = False} -- Customise args
+  let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
+  let runWrapper = if runInChildProcess then runInSilencedProcess else id
+  runWrapper $ do
     (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args p
     testRunResultStatus <- pure $ case result of
       Success {} -> TestPassed
@@ -87,6 +94,12 @@ exceptionHandlers =
   ]
 
 type Test = IO ()
+
+data TestRunSettings
+  = TestRunSettings
+      { testRunSettingChildProcessOverride :: Maybe Bool -- Nothing means use the default, the specific test can decide what that is.
+      }
+  deriving (Show, Generic)
 
 data TestRunResult
   = TestRunResult

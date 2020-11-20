@@ -42,7 +42,8 @@ describe s func = do
 it :: (HasCallStack, IsTest test) => String -> test -> TestDefM ()
 it s t = do
   var <- asks testDefEnvForest
-  let testDef = TestDef {testDefVal = runTest t, testDefCallStack = callStack}
+  let sets = TestRunSettings {testRunSettingChildProcessOverride = Nothing}
+  let testDef = TestDef {testDefVal = runTest sets t, testDefCallStack = callStack}
   liftIO $ modifyIORef var $ (++ [SpecifyNode (T.pack s) testDef]) -- FIXME this can probably be slow because of ++
 
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}

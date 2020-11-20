@@ -13,16 +13,14 @@ import System.Posix.Types
 import UnliftIO
 import UnliftIO.Resource
 
-runInSilencedNiceProcess :: (Typeable a, MonadUnliftIO m) => ResourceT m a -> ResourceT m a
-runInSilencedNiceProcess func = do
+runInSilencedProcess :: (Typeable a, MonadUnliftIO m) => ResourceT m a -> ResourceT m a
+runInSilencedProcess func = do
   (pipeReadFd, pipeWriteFd) <- liftIO createPipe
   pipeReadHandle <- liftIO $ fdToHandle pipeReadFd
   pipeWriteHandle <- liftIO $ fdToHandle pipeWriteFd
   runInIO <- askRunInIO
   let runChild :: IO ()
       runChild = do
-        -- Be nice while testing so that the computer cannot lock up.
-        nice 19
         -- Don't input or output anything
         newStdin <- createFile "/dev/null" ownerModes
         _ <- dupTo newStdin stdInput

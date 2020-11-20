@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Test.Syd.SpecForest where
 
@@ -11,7 +12,7 @@ type SpecForest a = [SpecTree a]
 data SpecTree a
   = DescribeNode Text (SpecForest a) -- A description
   | SpecifyNode Text a -- A test with its description
-  deriving (Show, Functor)
+  deriving (Functor)
 
 instance Foldable SpecTree where
   foldMap f = \case

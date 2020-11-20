@@ -41,20 +41,20 @@ sydTestResult spec = do
   ((), specForest) <- runTestDefM spec
   runSpecForestInterleavedWithOutputSynchronously specForest
 
-runSpecForestSynchronously :: TestForest -> IO ResultForest
+runSpecForestSynchronously :: TestForest () -> IO ResultForest
 runSpecForestSynchronously testForest =
   runResourceT $
     traverse
       ( traverse
           ( \td -> do
-              let runFunc = testDefVal td
+              let runFunc = testDefVal td ()
               result <- runFunc
               pure $ td {testDefVal = result}
           )
       )
       testForest
 
-runSpecForestInterleavedWithOutputSynchronously :: TestForest -> IO ResultForest
+runSpecForestInterleavedWithOutputSynchronously :: TestForest () -> IO ResultForest
 runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
   byteStringMaker <- liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> ResourceT IO ()
@@ -65,18 +65,18 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
           SB8.putStrLn ""
   let pad :: Int -> [Chunk] -> [Chunk]
       pad level = (chunk (T.replicate (level * 2) " ") :)
-      goTree :: Int -> TestTree -> ResourceT IO ResultTree
+      goTree :: Int -> TestTree () -> ResourceT IO ResultTree
       goTree level = \case
         DescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
           DescribeNode t <$> goForest (succ level) sf
         SpecifyNode t td -> do
-          let runFunc = testDefVal td
+          let runFunc = testDefVal td ()
           result <- runFunc
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-      goForest :: Int -> TestForest -> ResourceT IO ResultForest
+      goForest :: Int -> TestForest () -> ResourceT IO ResultForest
       goForest level = mapM (goTree level)
   mapM_ outputLine $ outputTestsHeader
   resultForest <- goForest 0 testForest
@@ -85,7 +85,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
   pure resultForest
 
 -- This fails miserably when silencing is used.
-runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest -> IO ResultForest
+runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest () -> IO ResultForest
 runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = runResourceT $ do
   handleForest <- makeHandleForest testForest
   let runRunner = runner nbThreads handleForest
@@ -93,16 +93,16 @@ runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = runResou
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-type HandleForest = SpecForest (TestDef (ResourceT IO TestRunResult), MVar TestRunResult)
+type HandleForest a = SpecForest (TestDef (a -> ResourceT IO TestRunResult), MVar TestRunResult)
 
-type HandleTree = SpecTree (TestDef (ResourceT IO TestRunResult), MVar TestRunResult)
+type HandleTree a = SpecTree (TestDef (a -> ResourceT IO TestRunResult), MVar TestRunResult)
 
-makeHandleForest :: TestForest -> ResourceT IO HandleForest
+makeHandleForest :: TestForest a -> ResourceT IO (HandleForest a)
 makeHandleForest = traverse $ traverse $ \td -> do
   var <- newEmptyMVar
   pure (td, var)
 
-runner :: Int -> HandleForest -> ResourceT IO ()
+runner :: Int -> HandleForest () -> ResourceT IO ()
 runner nbThreads handleForest = do
   sem <- liftIO $ newQSem nbThreads
   mapM_
@@ -111,7 +111,7 @@ runner nbThreads handleForest = do
             liftIO $ waitQSem sem
             let job :: ResourceT IO ()
                 job = do
-                  result <- testDefVal td
+                  result <- testDefVal td ()
                   putMVar var result
                   liftIO $ signalQSem sem
             a <- async job
@@ -120,7 +120,7 @@ runner nbThreads handleForest = do
     )
     handleForest
 
-printer :: HandleForest -> IO ResultForest
+printer :: HandleForest () -> IO ResultForest
 printer handleForest = do
   byteStringMaker <- liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> IO ()
@@ -130,7 +130,7 @@ printer handleForest = do
         SB8.putStrLn ""
   let pad :: Int -> [Chunk] -> [Chunk]
       pad level = (chunk (T.replicate (level * 2) " ") :)
-      goTree :: Int -> HandleTree -> IO ResultTree
+      goTree :: Int -> HandleTree () -> IO ResultTree
       goTree level = \case
         DescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
@@ -140,7 +140,7 @@ printer handleForest = do
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-      goForest :: Int -> HandleForest -> IO ResultForest
+      goForest :: Int -> HandleForest () -> IO ResultForest
       goForest level = mapM (goTree level)
   mapM_ outputLine $ outputTestsHeader
   resultForest <- goForest 0 handleForest

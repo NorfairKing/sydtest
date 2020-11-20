@@ -1,6 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-missing-fields #-}
+{-# OPTIONS_GHC -fno-warn-missing-fields -fno-warn-missing-methods #-}
 
 module Main where
 
@@ -14,6 +14,11 @@ import Test.Syd
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
 
+class ToUnit a where
+  toUnit :: a -> ()
+
+instance ToUnit Int -- No implementation on purpose
+
 main :: IO ()
 main = void $ sydTestResult $ do
   it "Passes" $ (pure () :: IO ())
@@ -24,7 +29,7 @@ main = void $ sydTestResult $ do
     it "Pure undefined" $ (pure undefined :: IO ())
     it "Impure undefined" $ (undefined :: IO ())
   it "Exit code" $ exitWith $ ExitFailure 1
-  describe "Pure exceptions in IO" $ do
+  describe "exceptions" $ do
     it "Record construction error" $ (throw $ RecConError "test" :: IO ())
     exceptionTest "Record construction error" $ let c = Cons1 {} in field c
     it "Record selection error" $ (throw $ RecSelError "test" :: IO ())
@@ -33,6 +38,10 @@ main = void $ sydTestResult $ do
     exceptionTest "Record update error" $ let c = Cons2 in c {field = "this will throw"}
     it "Pattern matching error" $ (throw $ PatternMatchFail "test" :: IO ())
     exceptionTest "Pattern matching error" $ let Cons1 s = Cons2 in s
+    it "ArithException" $ (throw Underflow :: IO ())
+    exceptionTest "Pattern matching error" $ 1 `div` 0
+    it "NoMethodError" $ (throw (NoMethodError "test") :: IO ())
+    exceptionTest "Pattern matching error" $ toUnit (5 :: Int)
   describe "Printing" $ do
     it "print" $ print "hi"
     it "putStrLn" $ putStrLn "hi"
@@ -56,9 +65,11 @@ main = void $ sydTestResult $ do
     $ \i ->
       it (concat ["takes a while (", show i, ")"]) $
         threadDelay 100_000
-  describe "Diff"
-    $ it "shows nice multi-line diffs"
-    $ ("foo", replicate 9 "quux", "bar") `shouldBe` ("foofoo", replicate 8 "quux", "baz")
+  describe "Diff" $ do
+    it "shows nice multi-line diffs" $
+      ("foo", replicate 7 "quux", "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")
+    it "shows nice multi-line diffs" $
+      ("foo", [], "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

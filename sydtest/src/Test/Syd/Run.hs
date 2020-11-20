@@ -24,7 +24,7 @@ instance IsTest Bool where
 runPureTest :: Bool -> ResourceT IO TestRunResult
 runPureTest b = do
   let testRunResultNumTests = Nothing
-  (testRunResultExecutionTime, resultBool) <- timeItT $ (Right <$> evaluate b) `catches` pureExceptionHandlers
+  (testRunResultExecutionTime, resultBool) <- timeItT $ (Right <$> evaluate b) `catches` exceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
@@ -43,10 +43,7 @@ runIOTest func = do
       $ do
         result <-
           (liftIO func >>= (evaluate . (`seq` Right TestPassed)))
-            `catches` ( [ Handler $ \(e :: ExitCode) -> pure (Left $ Left $ displayException e)
-                        ]
-                          ++ pureExceptionHandlers
-                      )
+            `catches` exceptionHandlers
         pure $ case result of
           Left ex -> (TestFailed, Just ex)
           Right r -> (r, Nothing)
@@ -79,14 +76,14 @@ runPropertyTest p = do
           _ -> Nothing
     pure TestRunResult {..}
 
-pureExceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
-pureExceptionHandlers =
-  [ Handler $ \(a :: Assertion) -> pure (Left $ Right a),
-    Handler $ \(e :: ErrorCall) -> pure (Left (Left (displayException e))),
-    Handler $ \(e :: RecConError) -> pure (Left (Left (displayException e))),
-    Handler $ \(e :: RecSelError) -> pure (Left (Left (displayException e))),
-    Handler $ \(e :: RecUpdError) -> pure (Left (Left (displayException e))),
-    Handler $ \(e :: PatternMatchFail) -> pure (Left (Left (displayException e)))
+exceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
+exceptionHandlers =
+  [ -- Re-throw AsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
+    Handler (\e -> throw (e :: AsyncException)),
+    -- Catch assertions first because we know what to do with them.
+    Handler $ \(a :: Assertion) -> pure (Left $ Right a),
+    -- Catch all the rest as a string
+    Handler (\e -> return $ Left (Left (displayException (e :: SomeException))))
   ]
 
 type Test = IO ()

@@ -12,6 +12,7 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - Diff
   - QuickCheck # TODO make this optional
   - aeson
   - async

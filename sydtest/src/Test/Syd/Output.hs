@@ -5,6 +5,7 @@
 module Test.Syd.Output where
 
 import Control.Monad.Reader
+import Data.Algorithm.Diff
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
@@ -121,13 +122,25 @@ outputFailures rf =
                 let ls = lines s
                  in map ((: []) . chunk . T.pack) ls
               Just (Right a) -> case a of
-                Equality actual expected ->
-                  [ [chunk "Expected these values to be equal: "],
-                    [chunk "Actual:   ", chunk (T.pack actual)],
-                    [chunk "Expected: ", chunk (T.pack expected)]
-                  ],
+                Equality actual expected -> outputEqualityAssertionFailed actual expected,
             [[chunk ""]]
           ]
+
+outputEqualityAssertionFailed :: String -> String -> [[Chunk]]
+outputEqualityAssertionFailed actual expected =
+  let diff = getDiff actual expected
+      actualChunks = flip mapMaybe diff $ \d -> case d of
+        Both a _ -> Just $ chunk (T.singleton a)
+        First a -> Just $ fore red $ chunk (T.singleton a)
+        _ -> Nothing
+      expectedChunks = flip mapMaybe diff $ \d -> case d of
+        Both a _ -> Just $ chunk (T.singleton a)
+        Second a -> Just $ fore green $ chunk (T.singleton a)
+        _ -> Nothing
+   in [ [chunk "Expected these values to be equal: "],
+        chunk "Actual:   " : actualChunks,
+        chunk "Expected: " : expectedChunks
+      ]
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls

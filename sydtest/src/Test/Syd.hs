@@ -47,7 +47,7 @@ runSpecForestSynchronously testForest =
     traverse
       ( traverse
           ( \td -> do
-              let runFunc = testDefVal td ()
+              let runFunc = testDefVal td ($ ())
               result <- runFunc
               pure $ td {testDefVal = result}
           )
@@ -71,7 +71,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
           outputLine $ pad level $ outputDescribeLine t
           DescribeNode t <$> goForest (succ level) sf
         SpecifyNode t td -> do
-          let runFunc = testDefVal td ()
+          let runFunc = testDefVal td ($ ())
           result <- runFunc
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
@@ -93,9 +93,9 @@ runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = runResou
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-type HandleForest a = SpecForest (TestDef (a -> ResourceT IO TestRunResult), MVar TestRunResult)
+type HandleForest a = SpecForest (TestDef (((a -> IO ()) -> IO ()) -> ResourceT IO TestRunResult), MVar TestRunResult)
 
-type HandleTree a = SpecTree (TestDef (a -> ResourceT IO TestRunResult), MVar TestRunResult)
+type HandleTree a = SpecTree (TestDef (((a -> IO ()) -> IO ()) -> ResourceT IO TestRunResult), MVar TestRunResult)
 
 makeHandleForest :: TestForest a -> ResourceT IO (HandleForest a)
 makeHandleForest = traverse $ traverse $ \td -> do
@@ -111,7 +111,7 @@ runner nbThreads handleForest = do
             liftIO $ waitQSem sem
             let job :: ResourceT IO ()
                 job = do
-                  result <- testDefVal td ()
+                  result <- testDefVal td ($ ())
                   putMVar var result
                   liftIO $ signalQSem sem
             a <- async job

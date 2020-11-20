@@ -84,6 +84,19 @@ spec = do
       ("foo", replicate 7 "quux", "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")
     it "shows nice multi-line diffs" $
       ("foo", [], "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")
+  describe "around" $ do
+    before (pure 5) $ it "is five purely" $ \i -> i == (5 :: Int)
+    before (pure 5) $ it "is five in IO" $ \i -> i `shouldBe` (5 :: Int)
+    before_ (pure ()) $ it "is passes purely" $ True
+    before_ (pure ()) $ it "is passes in IO" $ True `shouldBe` True
+    around (\func -> func (5 :: Int)) $ it "is five purely" $ \i -> i == (5 :: Int)
+    around (\func -> func (5 :: Int)) $ it "is five in IO" $ \i -> i `shouldBe` (5 :: Int)
+    around_ id $ it "is passes purely" $ True
+    around_ id $ it "is passes in IO" $ True `shouldBe` True
+    after print $ before (pure 5) $ it "is five purely" $ \i -> i == (5 :: Int)
+    after print $ before (pure 5) $ it "is five in IO" $ \i -> i `shouldBe` (5 :: Int)
+    after_ (pure ()) $ it "is passes purely" $ True
+    after_ (pure ()) $ it "is passes in IO" $ True `shouldBe` True
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

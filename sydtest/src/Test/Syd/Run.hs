@@ -22,20 +22,20 @@ import UnliftIO.Resource
 class IsTest e where
   type Arg e
   type Arg e = ()
-  runTest :: TestRunSettings -> (forall r. (Arg e -> IO r) -> IO r) -> e -> ResourceT IO TestRunResult
+  runTest :: TestRunSettings -> ((Arg e -> IO ()) -> IO ()) -> e -> ResourceT IO TestRunResult
 
 instance IsTest Bool where
   type Arg Bool = ()
   runTest = runPureTest
 
-runPureTest :: TestRunSettings -> (forall r. (() -> IO r) -> IO r) -> Bool -> ResourceT IO TestRunResult
+runPureTest :: TestRunSettings -> ((() -> IO ()) -> IO ()) -> Bool -> ResourceT IO TestRunResult
 runPureTest sets wrapper bool = runPureTestWithArg sets wrapper (\() -> bool)
 
 instance IsTest (arg -> Bool) where
   type Arg (arg -> Bool) = arg
   runTest = runPureTestWithArg
 
-runPureTestWithArg :: TestRunSettings -> (forall r. (arg -> IO r) -> IO r) -> (arg -> Bool) -> ResourceT IO TestRunResult
+runPureTestWithArg :: TestRunSettings -> ((arg -> IO ()) -> IO ()) -> (arg -> Bool) -> ResourceT IO TestRunResult
 runPureTestWithArg TestRunSettings {..} wrapper computeBool = do
   let testRunResultNumTests = Nothing
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
@@ -43,7 +43,7 @@ runPureTestWithArg TestRunSettings {..} wrapper computeBool = do
   (testRunResultExecutionTime, resultBool) <- timeItT
     $ runWrapper
     $ liftIO
-    $ wrapper
+    $ applyWrapper wrapper
     $ \arg -> (Right <$> evaluate (computeBool arg)) `catches` exceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
@@ -51,18 +51,26 @@ runPureTestWithArg TestRunSettings {..} wrapper computeBool = do
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
+applyWrapper :: ((arg -> IO ()) -> IO ()) -> (arg -> IO r) -> IO r
+applyWrapper wrapper func = do
+  var <- newEmptyMVar
+  wrapper $ \arg -> do
+    res <- func arg
+    putMVar var res
+  readMVar var
+
 instance IsTest (IO a) where
   type Arg (IO a) = ()
   runTest = runIOTest
 
-runIOTest :: TestRunSettings -> (forall r. (() -> IO r) -> IO r) -> IO a -> ResourceT IO TestRunResult
+runIOTest :: TestRunSettings -> ((() -> IO ()) -> IO ()) -> IO a -> ResourceT IO TestRunResult
 runIOTest sets wrapper func = runIOTestWithArg sets wrapper (\() -> func)
 
 instance IsTest (arg -> IO a) where
   type Arg (arg -> IO a) = arg
   runTest = runIOTestWithArg
 
-runIOTestWithArg :: TestRunSettings -> (forall r. (arg -> IO r) -> IO r) -> (arg -> IO a) -> ResourceT IO TestRunResult
+runIOTestWithArg :: TestRunSettings -> ((arg -> IO ()) -> IO ()) -> (arg -> IO a) -> ResourceT IO TestRunResult
 runIOTestWithArg TestRunSettings {..} wrapper func = do
   let testRunResultNumTests = Nothing
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
@@ -71,7 +79,7 @@ runIOTestWithArg TestRunSettings {..} wrapper func = do
     timeItT
       $ runWrapper
       $ liftIO
-      $ wrapper
+      $ applyWrapper wrapper
       $ \arg -> do
         result <-
           (liftIO (func arg) >>= (evaluate . (`seq` Right TestPassed)))
@@ -86,14 +94,14 @@ instance IsTest Property where
   type Arg Property = ()
   runTest = runPropertyTest
 
-runPropertyTest :: TestRunSettings -> (forall r. (() -> IO r) -> IO r) -> Property -> ResourceT IO TestRunResult
+runPropertyTest :: TestRunSettings -> ((() -> IO ()) -> IO ()) -> Property -> ResourceT IO TestRunResult
 runPropertyTest sets wrapper p = runPropertyTestWithArg sets wrapper (\() -> p)
 
 instance IsTest (arg -> Property) where
   type Arg (arg -> Property) = arg
   runTest = runPropertyTestWithArg
 
-runPropertyTestWithArg :: TestRunSettings -> (forall r. (arg -> IO r) -> IO r) -> (arg -> Property) -> ResourceT IO TestRunResult
+runPropertyTestWithArg :: TestRunSettings -> ((arg -> IO ()) -> IO ()) -> (arg -> Property) -> ResourceT IO TestRunResult
 runPropertyTestWithArg TestRunSettings {..} wrapper p = do
   let args =
         stdArgs
@@ -106,7 +114,7 @@ runPropertyTestWithArg TestRunSettings {..} wrapper p = do
           }
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
-  runWrapper $ liftIO $ wrapper $ \arg -> do
+  runWrapper $ liftIO $ applyWrapper wrapper $ \arg -> do
     (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args (p arg)
     testRunResultStatus <- pure $ case result of
       Success {} -> TestPassed

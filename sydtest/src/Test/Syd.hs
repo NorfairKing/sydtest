@@ -18,8 +18,6 @@ import Control.Concurrent.QSem
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
-import Data.Functor.Compose
-import Data.IORef
 import qualified Data.Text as T
 import Rainbow
 import System.Exit
@@ -31,7 +29,6 @@ import Test.Syd.Run
 import Test.Syd.Silence
 import Test.Syd.SpecForest
 import UnliftIO
-import UnliftIO.Async
 import UnliftIO.Resource
 
 sydTest :: Spec -> IO ()
@@ -112,12 +109,12 @@ runner nbThreads handleForest = do
     ( traverse
         ( \(td, var) -> do
             liftIO $ waitQSem sem
-            let runTest :: ResourceT IO ()
-                runTest = do
+            let job :: ResourceT IO ()
+                job = do
                   result <- testDefVal td
                   putMVar var result
                   liftIO $ signalQSem sem
-            a <- async runTest
+            a <- async job
             void $ register (wait a)
         )
     )
@@ -139,7 +136,6 @@ printer handleForest = do
           outputLine $ pad level $ outputDescribeLine t
           DescribeNode t <$> goForest (succ level) sf
         SpecifyNode t (td, var) -> do
-          let runFunc = testDefVal td
           result <- takeMVar var
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'

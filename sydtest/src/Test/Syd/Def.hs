@@ -5,8 +5,6 @@
 module Test.Syd.Def where
 
 import Control.Monad.RWS.Strict
-import Control.Monad.Reader
-import Data.IORef
 import qualified Data.Text as T
 import GHC.Stack
 import Test.QuickCheck.IO ()
@@ -36,6 +34,18 @@ it s t = do
 
 modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM a -> TestDefM a
 modifyRunSettings = local
+
+modifyMaxSuccess :: (Int -> Int) -> TestDefM a -> TestDefM a
+modifyMaxSuccess func = modifyRunSettings $ \trs -> trs {testRunSettingMaxSuccess = func (testRunSettingMaxSuccess trs)}
+
+modifyMaxDiscardRatio :: (Int -> Int) -> TestDefM a -> TestDefM a
+modifyMaxDiscardRatio func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
+
+modifyMaxSize :: (Int -> Int) -> TestDefM a -> TestDefM a
+modifyMaxSize func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
+
+modifyMaxShrinks :: (Int -> Int) -> TestDefM a -> TestDefM a
+modifyMaxShrinks func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
 
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)

@@ -46,27 +46,32 @@ spec = do
     it "Pattern matching error" $ (throw $ PatternMatchFail "test" :: IO ())
     exceptionTest "Pattern matching error" $ let Cons1 s = Cons2 in s
     it "ArithException" $ (throw Underflow :: IO ())
-    exceptionTest "Pattern matching error" $ 1 `div` 0
+    exceptionTest "Pattern matching error" $ 1 `div` (0 :: Int)
     it "NoMethodError" $ (throw (NoMethodError "test") :: IO ())
     exceptionTest "Pattern matching error" $ toUnit (5 :: Int)
   describe "Printing" $ do
     it "print" $ print "hi"
     it "putStrLn" $ putStrLn "hi"
-  describe "Property tests" $ do
-    describe "pure" $ do
-      it "reversing a list twice is the same as reversing it once"
-        $ property
-        $ \ls -> reverse (reverse ls) == (ls :: [Int])
-      it "should fail to show that sorting does nothing"
-        $ property
-        $ \ls -> sort ls == (ls :: [Int])
-    describe "impure" $ do
-      it "reversing a list twice is the same as reversing it once"
-        $ property
-        $ \ls -> reverse (reverse ls) `shouldBe` (ls :: [Int])
-      it "should fail to show that sorting does nothing"
-        $ property
-        $ \ls -> sort ls `shouldBe` (ls :: [Int])
+  modifyMaxSuccess (`div` 10)
+    $ modifyMaxSize (`div` 1)
+    $ modifyMaxShrinks (const 1)
+    $ modifyMaxDiscardRatio (const 1)
+    $ describe "Property tests"
+    $ do
+      describe "pure" $ do
+        it "reversing a list twice is the same as reversing it once"
+          $ property
+          $ \ls -> reverse (reverse ls) == (ls :: [Int])
+        it "should fail to show that sorting does nothing"
+          $ property
+          $ \ls -> sort ls == (ls :: [Int])
+      describe "impure" $ do
+        it "reversing a list twice is the same as reversing it once"
+          $ property
+          $ \ls -> reverse (reverse ls) `shouldBe` (ls :: [Int])
+        it "should fail to show that sorting does nothing"
+          $ property
+          $ \ls -> sort ls `shouldBe` (ls :: [Int])
   describe "Long running tests"
     $ forM_ [1 :: Int .. 10]
     $ \i ->

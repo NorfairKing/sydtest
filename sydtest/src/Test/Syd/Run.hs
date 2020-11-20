@@ -62,7 +62,15 @@ instance IsTest Property where
 
 runPropertyTest :: TestRunSettings -> Property -> ResourceT IO TestRunResult
 runPropertyTest TestRunSettings {..} p = do
-  let args = stdArgs {chatty = False, replay = Just (mkQCGen testRunSettingSeed, 0)} -- Customise args
+  let args =
+        stdArgs
+          { replay = Just (mkQCGen testRunSettingSeed, 0),
+            chatty = False,
+            maxSuccess = testRunSettingMaxSuccess,
+            maxDiscardRatio = testRunSettingMaxDiscardRatio,
+            maxSize = testRunSettingMaxSize,
+            maxShrinks = testRunSettingMaxShrinks
+          }
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
   runWrapper $ do
@@ -100,7 +108,11 @@ type Test = IO ()
 data TestRunSettings
   = TestRunSettings
       { testRunSettingChildProcessOverride :: Maybe Bool, -- Nothing means use the default, the specific test can decide what that is.
-        testRunSettingSeed :: Int
+        testRunSettingSeed :: Int,
+        testRunSettingMaxSuccess :: Int,
+        testRunSettingMaxDiscardRatio :: Int,
+        testRunSettingMaxSize :: Int,
+        testRunSettingMaxShrinks :: Int
       }
   deriving (Show, Generic)
 
@@ -108,7 +120,11 @@ defaultSettings :: TestRunSettings
 defaultSettings =
   TestRunSettings
     { testRunSettingChildProcessOverride = Nothing,
-      testRunSettingSeed = 42
+      testRunSettingSeed = 42,
+      testRunSettingMaxSuccess = maxSuccess stdArgs,
+      testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,
+      testRunSettingMaxSize = maxSize stdArgs,
+      testRunSettingMaxShrinks = 100 -- This is different from what quickcheck does so that test suites are more likely to finish
     }
 
 data TestRunResult

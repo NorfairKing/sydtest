@@ -117,6 +117,7 @@ outputFailures rf =
               case (testRunResultNumTests, testRunResultNumShrinks) of
                 (Nothing, _) -> []
                 (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
+                (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
                 (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
             map pad $ case testRunResultException of
               Nothing -> []

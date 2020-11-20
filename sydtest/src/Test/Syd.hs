@@ -16,10 +16,13 @@ where
 
 import Control.Concurrent
 import Control.Concurrent.MVar
+import Control.Concurrent.QSem
+import Control.Exception
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import Data.Functor.Compose
+import Data.IORef
 import qualified Data.Text as T
 import Rainbow
 import System.Exit
@@ -60,9 +63,9 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
       pad level = (chunk (T.replicate (level * 2) " ") :)
       goTree :: Int -> TestTree -> IO ResultTree
       goTree level = \case
-        DescribeNode t sts -> do
+        DescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
-          DescribeNode t <$> goForest (succ level) sts
+          DescribeNode t <$> goForest (succ level) sf
         SpecifyNode t td -> do
           let runFunc = testDefVal td
           result <- runFunc
@@ -106,11 +109,12 @@ outputter handleForest = do
       pad level = (chunk (T.replicate (level * 2) " ") :)
       goTree :: Int -> HandleTree -> IO ResultTree
       goTree level = \case
-        DescribeNode t sts -> do
+        DescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
-          DescribeNode t <$> goForest (succ level) sts
+          DescribeNode t <$> goForest (succ level) sf
         SpecifyNode t (td, var) -> do
-          result <- readMVar var
+          result <- takeMVar var
+          print result
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
@@ -123,7 +127,21 @@ outputter handleForest = do
   pure resultForest
 
 runner :: Int -> HandleForest -> IO ()
-runner nbThreads handleForest = pooledMapConcurrentlyN_ nbThreads (uncurry runOne) (Compose handleForest)
+runner nbThreads handleForest = do
+  sem <- newQSem nbThreads
+  aRef <- newIORef []
+  let goForest :: HandleForest -> IO ()
+      goForest = mapM_ goTree
+      goTree :: HandleTree -> IO ()
+      goTree = \case
+        DescribeNode _ sf -> goForest sf
+        SpecifyNode _ (td, var) -> do
+          bracket_ (waitQSem sem) (signalQSem sem) $ do
+            a <- async $ do
+              result <- testDefVal td
+              putMVar var result
+            modifyIORef aRef (a :)
+  goForest handleForest `finally` (readIORef aRef >>= mapM_ wait)
 
 runOne :: TestDef (IO TestRunResult) -> MVar TestRunResult -> IO ()
 runOne td var = do

@@ -16,6 +16,6 @@ An experimental testing framework for Haskell
 * Coloured multi-line diffing
 * Fancy Unicode output
 * Optional progress output during test suit execution
-* Optional silent test execution
+* ~Optional silent test execution~
 * Optional standard output and standard error suppression
 

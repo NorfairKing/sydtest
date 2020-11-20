@@ -44,11 +44,18 @@ sydTestResult spec = do
   ((), specForest) <- runTestDefM spec
   runSpecForestInterleavedWithOutputSynchronously specForest
 
-runSpecForestSynchronously :: TestForest -> ResourceT IO ResultForest
-runSpecForestSynchronously = traverse $ traverse $ \td -> do
-  let runFunc = testDefVal td
-  result <- runFunc
-  pure $ td {testDefVal = result}
+runSpecForestSynchronously :: TestForest -> IO ResultForest
+runSpecForestSynchronously testForest =
+  runResourceT $
+    traverse
+      ( traverse
+          ( \td -> do
+              let runFunc = testDefVal td
+              result <- runFunc
+              pure $ td {testDefVal = result}
+          )
+      )
+      testForest
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest -> IO ResultForest
 runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
@@ -103,14 +110,15 @@ runner nbThreads handleForest = do
   sem <- liftIO $ newQSem nbThreads
   mapM_
     ( traverse
-        ( \(td, var) ->
-            bracket_ (liftIO $ waitQSem sem) (liftIO $ signalQSem sem) $ do
-              let runTest :: ResourceT IO ()
-                  runTest = do
-                    result <- testDefVal td
-                    putMVar var result
-              a <- async runTest
-              void $ register (wait a)
+        ( \(td, var) -> do
+            liftIO $ waitQSem sem
+            let runTest :: ResourceT IO ()
+                runTest = do
+                  result <- testDefVal td
+                  putMVar var result
+                  liftIO $ signalQSem sem
+            a <- async runTest
+            void $ register (wait a)
         )
     )
     handleForest

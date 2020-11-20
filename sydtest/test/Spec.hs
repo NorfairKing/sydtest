@@ -20,7 +20,15 @@ class ToUnit a where
 instance ToUnit Int -- No implementation on purpose
 
 main :: IO ()
-main = void $ sydTestResult $ do
+main = do
+  ((), testForest) <- runTestDefM spec
+  _ <- runSpecForestSynchronously testForest
+  _ <- runSpecForestInterleavedWithOutputSynchronously testForest
+  _ <- runSpecForestInterleavedWithOutputAsynchronously 8 testForest
+  pure ()
+
+spec :: Spec
+spec = do
   it "Passes" $ (pure () :: IO ())
   describe "error" $ do
     it "Pure error" $ (pure (error "foobar") :: IO ())
@@ -64,7 +72,7 @@ main = void $ sydTestResult $ do
     $ forM_ [1 :: Int .. 10]
     $ \i ->
       it (concat ["takes a while (", show i, ")"]) $
-        threadDelay 1_000_000
+        threadDelay 100_000
   describe "Diff" $ do
     it "shows nice multi-line diffs" $
       ("foo", replicate 7 "quux", "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")

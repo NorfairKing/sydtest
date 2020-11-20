@@ -17,10 +17,10 @@ runInSilencedProcess :: (Typeable a, MonadUnliftIO m) => ResourceT m a -> Resour
 runInSilencedProcess func = do
   (pipeReadFd, pipeWriteFd) <- liftIO createPipe
   pipeReadHandle <- liftIO $ fdToHandle pipeReadFd
-  pipeWriteHandle <- liftIO $ fdToHandle pipeWriteFd
   runInIO <- askRunInIO
   let runChild :: IO ()
       runChild = do
+        pipeWriteHandle <- liftIO $ fdToHandle pipeWriteFd
         -- Don't input or output anything
         newStdin <- createFile "/dev/null" ownerModes
         _ <- dupTo newStdin stdInput
@@ -46,12 +46,8 @@ runInSilencedProcess func = do
           Just Nothing -> signalProcess sigTERM pid
           Just (Just _) -> pure () -- Already taken care of.
   (_, testProcess) <- allocate (forkProcess runChild) cleanupProcess
-  liftIO $ print "waiting for process to finish"
   -- Wait for the testing process to finish
   mf <- liftIO $ getProcessStatus True False testProcess
-  liftIO $ print $ case mf of
-    Nothing -> "going on, but not finished"
-    Just _ -> "process finished"
   -- Read its result from the pipe
   errOrResult <- liftIO $ hUnsafeGetCompact pipeReadHandle
   case errOrResult of

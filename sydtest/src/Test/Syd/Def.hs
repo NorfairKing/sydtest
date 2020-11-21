@@ -1,11 +1,14 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.Def where
 
 import Control.Monad.RWS.Strict
+import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Stack
 import Test.QuickCheck.IO ()
@@ -34,7 +37,7 @@ runTestDefM defFunc = do
   pure (a, testForest)
 
 describe :: String -> TestDefM a b -> TestDefM a b
-describe s func = censor ((: []) . DescribeNode (T.pack s)) func
+describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 
 it :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg test) ()
 it s t = do
@@ -44,7 +47,7 @@ it s t = do
           { testDefVal = \supplyArg -> runTest sets (\func -> supplyArg func) t,
             testDefCallStack = callStack
           }
-  tell [SpecifyNode (T.pack s) testDef]
+  tell [DefSpecifyNode (T.pack s) testDef ()]
 
 modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM a b -> TestDefM a b
 modifyRunSettings = local
@@ -94,16 +97,45 @@ aroundWith func (TestDefM rwst) = TestDefM $ flip mapRWST rwst $ \inner -> do
         let supplyA :: (a -> IO ()) -> IO ()
             supplyA takeA = supplyB $ func takeA
          in takeSupplyA supplyA
+      modifyTree :: SpecDefTree a e -> SpecDefTree b e
+      modifyTree = \case
+        DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
+        DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
+      modifyForest :: SpecDefForest a e -> SpecDefForest b e
+      modifyForest = map modifyTree
   let forest' :: TestForest b
-      forest' = fmap (fmap (fmap modifyVal)) forest
+      forest' = modifyForest forest
   pure (res, s, forest')
 
 data TestDef a = TestDef {testDefVal :: a, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)
 
-type TestForest a = SpecForest (TestDef (((a -> IO ()) -> IO ()) -> ResourceT IO TestRunResult))
+type TestForest a = SpecDefForest a ()
 
-type TestTree a = SpecTree (TestDef (((a -> IO ()) -> IO ()) -> ResourceT IO TestRunResult))
+type TestTree a = SpecDefTree a ()
+
+type SpecDefForest a e = [SpecDefTree a e]
+
+data SpecDefTree a e where -- a: testInput, e: extra
+  DefDescribeNode :: Text -> SpecDefForest a e -> SpecDefTree a e -- A description
+  DefSpecifyNode :: Text -> TestDef (((a -> IO ()) -> IO ()) -> ResourceT IO TestRunResult) -> e -> SpecDefTree a e -- A test with its description
+      -- DefAroundAllNode :: ((a -> IO ()) -> (b -> IO ())) -> SpecDefTree a e -> SpecDefTree b e
+      --
+
+instance Functor (SpecDefTree a) where
+  fmap f = \case
+    DefDescribeNode t sf -> DefDescribeNode t (map (fmap f) sf)
+    DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
+
+instance Foldable (SpecDefTree a) where
+  foldMap f = \case
+    DefDescribeNode _ sf -> foldMap (foldMap f) sf
+    DefSpecifyNode _ _ e -> f e
+
+instance Traversable (SpecDefTree a) where
+  traverse f = \case
+    DefDescribeNode t sdf -> DefDescribeNode t <$> traverse (traverse f) sdf
+    DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
 
 type ResultForest = SpecForest (TestDef TestRunResult)
 

@@ -6,6 +6,8 @@ module Test.Syd.SpecForest where
 
 import Data.Text (Text)
 import Test.QuickCheck.IO ()
+import UnliftIO
+import UnliftIO.Resource
 
 type SpecForest a = [SpecTree a]
 

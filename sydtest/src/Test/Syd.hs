@@ -42,17 +42,18 @@ sydTestResult spec = do
   runSpecForestInterleavedWithOutputSynchronously specForest
 
 runSpecForestSynchronously :: TestForest () -> IO ResultForest
-runSpecForestSynchronously testForest =
-  runResourceT $
-    traverse
-      ( traverse
-          ( \td -> do
-              let runFunc = testDefVal td ($ ())
-              result <- runFunc
-              pure $ td {testDefVal = result}
-          )
-      )
-      testForest
+runSpecForestSynchronously = runResourceT . goForest
+  where
+    goForest :: TestForest () -> ResourceT IO ResultForest
+    goForest = mapM goTree
+    goTree :: TestTree () -> ResourceT IO ResultTree
+    goTree = \case
+      DefDescribeNode t f -> DescribeNode t <$> goForest f
+      DefSpecifyNode t td () -> do
+        let runFunc = testDefVal td ($ ())
+        result <- runFunc
+        let td' = td {testDefVal = result}
+        pure $ SpecifyNode t td'
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest () -> IO ResultForest
 runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
@@ -67,10 +68,10 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
       pad level = (chunk (T.replicate (level * 2) " ") :)
       goTree :: Int -> TestTree () -> ResourceT IO ResultTree
       goTree level = \case
-        DescribeNode t sf -> do
+        DefDescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
           DescribeNode t <$> goForest (succ level) sf
-        SpecifyNode t td -> do
+        DefSpecifyNode t td () -> do
           let runFunc = testDefVal td ($ ())
           result <- runFunc
           let td' = td {testDefVal = result}
@@ -93,32 +94,33 @@ runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = runResou
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-type HandleForest a = SpecForest (TestDef (((a -> IO ()) -> IO ()) -> ResourceT IO TestRunResult), MVar TestRunResult)
+type HandleForest a = SpecDefForest a (MVar TestRunResult)
 
-type HandleTree a = SpecTree (TestDef (((a -> IO ()) -> IO ()) -> ResourceT IO TestRunResult), MVar TestRunResult)
+type HandleTree a = SpecDefTree a (MVar TestRunResult)
 
 makeHandleForest :: TestForest a -> ResourceT IO (HandleForest a)
-makeHandleForest = traverse $ traverse $ \td -> do
+makeHandleForest = traverse $ traverse $ \() -> do
   var <- newEmptyMVar
-  pure (td, var)
+  pure var
 
 runner :: Int -> HandleForest () -> ResourceT IO ()
 runner nbThreads handleForest = do
   sem <- liftIO $ newQSem nbThreads
-  mapM_
-    ( traverse
-        ( \(td, var) -> do
-            liftIO $ waitQSem sem
-            let job :: ResourceT IO ()
-                job = do
-                  result <- testDefVal td ($ ())
-                  putMVar var result
-                  liftIO $ signalQSem sem
-            a <- async job
-            void $ register (wait a)
-        )
-    )
-    handleForest
+  let goForest :: a -> HandleForest a -> ResourceT IO ()
+      goForest a = mapM_ (goTree a)
+      goTree :: a -> HandleTree a -> ResourceT IO ()
+      goTree a = \case
+        DefDescribeNode _ sdf -> goForest a sdf
+        DefSpecifyNode _ td var -> do
+          liftIO $ waitQSem sem
+          let job :: ResourceT IO ()
+              job = do
+                result <- testDefVal td ($ a)
+                putMVar var result
+                liftIO $ signalQSem sem
+          a <- async job
+          void $ register (wait a)
+  goForest () handleForest
 
 printer :: HandleForest () -> IO ResultForest
 printer handleForest = do
@@ -130,17 +132,17 @@ printer handleForest = do
         SB8.putStrLn ""
   let pad :: Int -> [Chunk] -> [Chunk]
       pad level = (chunk (T.replicate (level * 2) " ") :)
-      goTree :: Int -> HandleTree () -> IO ResultTree
+      goTree :: Int -> HandleTree a -> IO ResultTree
       goTree level = \case
-        DescribeNode t sf -> do
+        DefDescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
           DescribeNode t <$> goForest (succ level) sf
-        SpecifyNode t (td, var) -> do
+        DefSpecifyNode t td var -> do
           result <- takeMVar var
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-      goForest :: Int -> HandleForest () -> IO ResultForest
+      goForest :: Int -> HandleForest a -> IO ResultForest
       goForest level = mapM (goTree level)
   mapM_ outputLine $ outputTestsHeader
   resultForest <- goForest 0 handleForest

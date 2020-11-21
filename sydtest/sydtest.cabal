@@ -25,6 +25,7 @@ library
       Test.Syd.Expectation
       Test.Syd.Output
       Test.Syd.Run
+      Test.Syd.Runner
       Test.Syd.Silence
       Test.Syd.SpecForest
   other-modules:

@@ -7,6 +7,7 @@ module Main where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.List
 import System.Exit
 import Test.QuickCheck
@@ -97,6 +98,19 @@ spec = do
     after print $ before (pure 5) $ it "is five in IO" $ \i -> i `shouldBe` (5 :: Int)
     after_ (pure ()) $ it "is passes purely" $ True
     after_ (pure ()) $ it "is passes in IO" $ True `shouldBe` True
+  describe "aroundAll" $ do
+    beforeAll (pure 5) $ it "is five purely" $ \i () -> i == (5 :: Int)
+    beforeAll (pure 5) $ it "is five in IO" $ \i () -> i `shouldBe` (5 :: Int)
+    beforeAll_ (pure ()) $ it "is passes purely" $ True
+    beforeAll_ (pure ()) $ it "is passes in IO" $ True `shouldBe` True
+    aroundAll (\func -> func (5 :: Int)) $ it "is five purely" $ \i () -> i == (5 :: Int)
+    aroundAll (\func -> func (5 :: Int)) $ it "is five in IO" $ \i () -> i `shouldBe` (5 :: Int)
+    aroundAll_ id $ it "is passes purely" $ True
+    aroundAll_ id $ it "is passes in IO" $ True `shouldBe` True
+    afterAll (liftIO . print) $ beforeAll (pure 5) $ it "is five purely" $ \i () -> i == (5 :: Int)
+    afterAll (liftIO . print) $ beforeAll (pure 5) $ it "is five in IO" $ \i () -> i `shouldBe` (5 :: Int)
+    afterAll_ (pure ()) $ it "is passes purely" $ True
+    afterAll_ (pure ()) $ it "is passes in IO" $ True `shouldBe` True
   describe "assertions" $ do
     it "shouldBe" $ 3 `shouldBe` 4
     it "shouldNotBe" $ 3 `shouldNotBe` 3

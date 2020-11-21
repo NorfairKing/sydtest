@@ -18,4 +18,6 @@ An experimental testing framework for Haskell
 * Optional progress output during test suit execution
 * ~Optional silent test execution~
 * Optional standard output and standard error suppression
+* `around` and friends
+* `aroundAll` and friends
 

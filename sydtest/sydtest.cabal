@@ -44,7 +44,6 @@ library
     , pretty-show
     , quickcheck-io
     , rainbow
-    , resourcet
     , safe
     , split
     , text

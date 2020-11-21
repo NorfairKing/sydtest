@@ -23,7 +23,6 @@ library:
   - pretty-show
   - quickcheck-io # TODO make this optional
   - rainbow
-  - resourcet
   - safe
   - split
   - text

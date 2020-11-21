@@ -112,10 +112,10 @@ spec = do
     afterAll_ (pure ()) $ it "is passes purely" $ True
     afterAll_ (pure ()) $ it "is passes in IO" $ True `shouldBe` True
   describe "assertions" $ do
-    it "shouldBe" $ 3 `shouldBe` 4
-    it "shouldNotBe" $ 3 `shouldNotBe` 3
-    it "shouldSatisfy" $ 3 `shouldSatisfy` even
-    it "shouldNotSatisfy" $ 3 `shouldNotSatisfy` odd
+    it "shouldBe" $ 3 `shouldBe` (4 :: Int)
+    it "shouldNotBe" $ 3 `shouldNotBe` (3 :: Int)
+    it "shouldSatisfy" $ (3 :: Int) `shouldSatisfy` even
+    it "shouldNotSatisfy" $ (3 :: Int) `shouldNotSatisfy` odd
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

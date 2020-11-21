@@ -11,9 +11,8 @@ import System.Posix.Process
 import System.Posix.Signals
 import System.Posix.Types
 import UnliftIO
-import UnliftIO.Resource
 
-runInSilencedProcess :: (Typeable a, MonadUnliftIO m) => ResourceT m a -> ResourceT m a
+runInSilencedProcess :: (Typeable a, MonadUnliftIO m) => m a -> m a
 runInSilencedProcess func = do
   (pipeReadFd, pipeWriteFd) <- liftIO createPipe
   pipeReadHandle <- liftIO $ fdToHandle pipeReadFd
@@ -45,9 +44,9 @@ runInSilencedProcess func = do
           Nothing -> pure () -- No process found
           Just Nothing -> signalProcess sigTERM pid
           Just (Just _) -> pure () -- Already taken care of.
-  (_, testProcess) <- allocate (forkProcess runChild) cleanupProcess
+  testProcess <- liftIO $ forkProcess runChild
   -- Wait for the testing process to finish
-  mf <- liftIO $ getProcessStatus True False testProcess
+  _ <- liftIO $ (getProcessStatus True False testProcess) `finally` (cleanupProcess testProcess)
   -- Read its result from the pipe
   errOrResult <- liftIO $ hUnsafeGetCompact pipeReadHandle
   case errOrResult of

@@ -30,7 +30,6 @@ import Test.Syd.Run
 import Test.Syd.Silence
 import Test.Syd.SpecForest
 import UnliftIO
-import UnliftIO.Resource
 
 sydTest :: Spec -> IO ()
 sydTest spec = do
@@ -43,11 +42,11 @@ sydTestResult spec = do
   runSpecForestInterleavedWithOutputSynchronously specForest
 
 runSpecForestSynchronously :: TestForest () () -> IO ResultForest
-runSpecForestSynchronously = runResourceT . goForest ()
+runSpecForestSynchronously = goForest ()
   where
-    goForest :: a -> TestForest a () -> ResourceT IO ResultForest
+    goForest :: a -> TestForest a () -> IO ResultForest
     goForest a = mapM (goTree a)
-    goTree :: forall a. a -> TestTree a () -> ResourceT IO ResultTree
+    goTree :: forall a. a -> TestTree a () -> IO ResultTree
     goTree a = \case
       DefDescribeNode t sdf -> DescribeNode t <$> goForest a sdf
       DefSpecifyNode t td () -> do
@@ -73,9 +72,9 @@ applySimpleWrapper takeTakeA takeA b = do
   liftIO $ readMVar var
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest () () -> IO ResultForest
-runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
+runSpecForestInterleavedWithOutputSynchronously testForest = do
   byteStringMaker <- liftIO byteStringMakerFromEnvironment
-  let outputLine :: [Chunk] -> ResourceT IO ()
+  let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = do
         let bss = chunksToByteStrings byteStringMaker lineChunks
         liftIO $ do
@@ -83,7 +82,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
           SB8.putStrLn ""
   let pad :: Int -> [Chunk] -> [Chunk]
       pad level = (chunk (T.replicate (level * 2) " ") :)
-      goTree :: Int -> a -> TestTree a () -> ResourceT IO ResultTree
+      goTree :: Int -> a -> TestTree a () -> IO ResultTree
       goTree level a = \case
         DefDescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
@@ -95,9 +94,9 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
         DefAroundAllNode func sdf -> AroundAllNode <$> applySimpleWrapper func (\b -> goForest level b sdf) a
-      goForest :: Int -> a -> TestForest a () -> ResourceT IO ResultForest
+      goForest :: Int -> a -> TestForest a () -> IO ResultForest
       goForest level a = mapM (goTree level a)
-  mapM_ outputLine $ outputTestsHeader
+  mapM_ outputLine outputTestsHeader
   resultForest <- goForest 0 () testForest
   outputLine $ [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
@@ -105,7 +104,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = runResourceT $ do
 
 -- This fails miserably when silencing is used.
 runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest () () -> IO ResultForest
-runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = runResourceT $ do
+runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   let runRunner = runner nbThreads handleForest
       runPrinter = liftIO $ printer handleForest
@@ -116,28 +115,28 @@ type HandleForest a b = SpecDefForest a b (MVar TestRunResult)
 
 type HandleTree a b = SpecDefTree a b (MVar TestRunResult)
 
-makeHandleForest :: TestForest a b -> ResourceT IO (HandleForest a b)
+makeHandleForest :: TestForest a b -> IO (HandleForest a b)
 makeHandleForest = traverse $ traverse $ \() -> do
   var <- newEmptyMVar
   pure var
 
-runner :: Int -> HandleForest () () -> ResourceT IO ()
+runner :: Int -> HandleForest () () -> IO ()
 runner nbThreads handleForest = do
   sem <- liftIO $ newQSem nbThreads
-  let goForest :: a -> HandleForest a () -> ResourceT IO ()
+  let goForest :: a -> HandleForest a () -> IO ()
       goForest a = mapM_ (goTree a)
-      goTree :: a -> HandleTree a () -> ResourceT IO ()
+      goTree :: a -> HandleTree a () -> IO ()
       goTree a = \case
         DefDescribeNode _ sdf -> goForest a sdf
         DefSpecifyNode _ td var -> do
           liftIO $ waitQSem sem
-          let job :: ResourceT IO ()
+          let job :: IO ()
               job = do
                 result <- testDefVal td (\f -> f a ())
                 putMVar var result
                 liftIO $ signalQSem sem
           jobAsync <- async job
-          void $ register (wait jobAsync)
+          link jobAsync
         DefAroundAllNode func sdf -> applySimpleWrapper func (\b -> goForest b sdf) a
   goForest () handleForest
 

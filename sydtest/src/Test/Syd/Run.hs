@@ -17,7 +17,6 @@ import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
 import Test.Syd.Silence
 import UnliftIO
-import UnliftIO.Resource
 
 class IsTest e where
   type Arg1 e
@@ -28,7 +27,7 @@ class IsTest e where
     TestRunSettings ->
     ((Arg1 e -> Arg2 e -> IO ()) -> IO ()) ->
     e ->
-    ResourceT IO TestRunResult
+    IO TestRunResult
 
 instance IsTest Bool where
   type Arg1 Bool = () -- The argument from 'aroundAll'
@@ -49,7 +48,7 @@ runPureTestWithArg ::
   TestRunSettings ->
   ((arg1 -> arg2 -> IO ()) -> IO ()) ->
   (arg1 -> arg2 -> Bool) ->
-  ResourceT IO TestRunResult
+  IO TestRunResult
 runPureTestWithArg TestRunSettings {..} wrapper computeBool = do
   let testRunResultNumTests = Nothing
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
@@ -92,7 +91,7 @@ instance IsTest (arg1 -> arg2 -> IO a) where
   type Arg2 (arg1 -> arg2 -> IO a) = arg2
   runTest = runIOTestWithArg
 
-runIOTestWithArg :: TestRunSettings -> ((arg1 -> arg2 -> IO ()) -> IO ()) -> (arg1 -> arg2 -> IO a) -> ResourceT IO TestRunResult
+runIOTestWithArg :: TestRunSettings -> ((arg1 -> arg2 -> IO ()) -> IO ()) -> (arg1 -> arg2 -> IO a) -> IO TestRunResult
 runIOTestWithArg TestRunSettings {..} wrapper func = do
   let testRunResultNumTests = Nothing
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
@@ -127,7 +126,7 @@ instance IsTest (arg1 -> arg2 -> Property) where
   type Arg2 (arg1 -> arg2 -> Property) = arg2
   runTest = runPropertyTestWithArg
 
-runPropertyTestWithArg :: TestRunSettings -> ((arg1 -> arg2 -> IO ()) -> IO ()) -> (arg1 -> arg2 -> Property) -> ResourceT IO TestRunResult
+runPropertyTestWithArg :: TestRunSettings -> ((arg1 -> arg2 -> IO ()) -> IO ()) -> (arg1 -> arg2 -> Property) -> IO TestRunResult
 runPropertyTestWithArg TestRunSettings {..} wrapper p = do
   let args =
         stdArgs

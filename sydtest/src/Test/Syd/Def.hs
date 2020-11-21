@@ -15,7 +15,6 @@ import Test.QuickCheck.IO ()
 import Test.Syd.Run
 import Test.Syd.SpecForest
 import UnliftIO
-import UnliftIO.Resource
 
 -- The same naming as in hspec for easy migration
 type Spec = SpecWith () ()
@@ -96,8 +95,8 @@ aroundWith func (TestDefM rwst) = TestDefM $ flip mapRWST rwst $ \inner -> do
   (res, s, forest) <- inner
   let modifyVal ::
         forall x.
-        (((x -> c -> IO ()) -> IO ()) -> ResourceT IO TestRunResult) ->
-        (((x -> d -> IO ()) -> IO ()) -> ResourceT IO TestRunResult)
+        (((x -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
+        (((x -> d -> IO ()) -> IO ()) -> IO TestRunResult)
       modifyVal takeSupplyA supplyB =
         let supplyA :: (x -> c -> IO ()) -> IO ()
             supplyA takeA = supplyB $ \x -> func (takeA x)
@@ -114,30 +113,30 @@ aroundWith func (TestDefM rwst) = TestDefM $ flip mapRWST rwst $ \inner -> do
   pure (res, s, forest')
 
 -- | Run a custom action before all spec items.
-beforeAll :: ResourceT IO a -> TestDefM a b e -> TestDefM () b e
+beforeAll :: IO a -> TestDefM a b e -> TestDefM () b e
 beforeAll action = aroundAll (action >>=)
 
 -- | Run a custom action before all spec items.
-beforeAll_ :: ResourceT IO () -> TestDefM a b e -> TestDefM a b e
+beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 beforeAll_ action = aroundAll_ (action >>)
 
 -- | Run a custom action after all spec items.
-afterAll :: (a -> ResourceT IO ()) -> TestDefM a b e -> TestDefM a b e
+afterAll :: (a -> IO ()) -> TestDefM a b e -> TestDefM a b e
 afterAll action = aroundAllWith $ \e x -> e x `finally` action x
 
 -- | Run a custom action after all spec items.
-afterAll_ :: ResourceT IO () -> TestDefM a b e -> TestDefM a b e
+afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 afterAll_ action = afterAll $ \_ -> action
 
 -- | Run a custom action before and/or after all spec items.
-aroundAll :: ((a -> ResourceT IO ()) -> ResourceT IO ()) -> TestDefM a b e -> TestDefM () b e
+aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM a b e -> TestDefM () b e
 aroundAll action = aroundAllWith $ \e () -> action e
 
 -- | Run a custom action before and/or after all spec items.
-aroundAll_ :: (ResourceT IO () -> ResourceT IO ()) -> TestDefM a b e -> TestDefM a b e
+aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e
 aroundAll_ action = aroundAllWith $ \e a -> action (e a)
 
-aroundAllWith :: forall a b c r. ((a -> ResourceT IO ()) -> (b -> ResourceT IO ())) -> TestDefM a c r -> TestDefM b c r
+aroundAllWith :: forall a b c r. ((a -> IO ()) -> (b -> IO ())) -> TestDefM a c r -> TestDefM b c r
 aroundAllWith func (TestDefM rwst) = TestDefM $ flip mapRWST rwst $ \inner -> do
   (res, s, forest) <- inner
   let forest' = [DefAroundAllNode func forest]
@@ -154,8 +153,8 @@ type SpecDefForest a c e = [SpecDefTree a c e]
 
 data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
   DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
-  DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> ResourceT IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
-  DefAroundAllNode :: ((a -> ResourceT IO ()) -> (b -> ResourceT IO ())) -> SpecDefForest a c e -> SpecDefTree b c e
+  DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
+  DefAroundAllNode :: ((a -> IO ()) -> (b -> IO ())) -> SpecDefForest a c e -> SpecDefTree b c e
 
 instance Functor (SpecDefTree a c) where
   fmap f = \case

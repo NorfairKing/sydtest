@@ -1,6 +1,19 @@
 # sydtest
 
-An experimental testing framework for Haskell
+An experimental testing framework for Haskell with great defaults advanced testing features.
+
+
+## The devil is in the defaults
+
+This project chooses best practices as defaults:
+
+- A fixed seed for deterministic randomness
+- Pretty show for output
+
+## Advanced testing features
+
+- Multi-line coloured diff for equality assertion failures
+- Wrap a test group to use a `withResource`-like function (`aroundAll`)
 
 ## Features & Comparison to similar projects
 
@@ -19,7 +32,7 @@ An experimental testing framework for Haskell
 | First-class support for golden tests                                                      | 🚧      | [Lib](https://hackage.haskell.org/package/hspec-golden)     | [Lib](https://hackage.haskell.org/package/tasty-golden)          |
 | Source location annotations for tests in test output                                      | ✔️       | ✔️                                                           | ✖️                                                                |
 | Test suite filtering to select which tests to run                                         | 🚧      | ✔️                                                           | ✖️                                                                |
-| Individual test execution timing                                                          | 🚧      | ✖️                                                           | [Lib](https://hackage.haskell.org/package/tasty-stats)           |
+| Individual test execution timing                                                          | 🚧      | [Lib](http://hackage.haskell.org/package/hspec-slow)        | [Lib](https://hackage.haskell.org/package/tasty-stats)           |
 | Test group execution timing                                                               | 🚧      | ✖️                                                           | ?                                                                |
 | Test suite execution timing                                                               | 🚧      | ✔️                                                           | ✖️                                                                |
 | Coloured output                                                                           | ✔️       | ✔️                                                           | ✔️                                                                |
@@ -36,8 +49,8 @@ An experimental testing framework for Haskell
 | Optional standard output and standard error suppression [2]                               | ✖️       | ✖️                                                           | ✖️                                                                |
 | Aquire and release a resource for every test in a group (`before` and `after`)            | ✔️       | ✖️                                                           | ✖️                                                                |
 | Aquire and release a resource once for an entire test group (`beforeAll` and `afterAll`)  | ✔️       | ✔️                                                           | ✔️                                                                |
-| Wrap a single test to use a withResource function (`around`)                              | ✔️       | ✔️                                                           | ✖️                                                                |
-| Wrap a test group to use a withResource function (`aroundAll`)                            | ✔️       | ✖️                                                           | ✖️                                                                |
+| Wrap a single test to use a `withResource`-like function (`around`)                       | ✔️       | ✔️                                                           | ✖️                                                                |
+| Wrap a test group to use a `withResource`-like function (`aroundAll`)                     | ✔️       | ✖️                                                           | ✖️                                                                |
 | Randomising execution order                                                               | 🚧      | ✔️                                                           | ?                                                                |
 | Randomised execution order by default                                                     | 🚧      | ✖️                                                           | ?                                                                |
 | Deterministic randomness                                                                  | ✔️       | ✔️                                                           | ✔️                                                                |

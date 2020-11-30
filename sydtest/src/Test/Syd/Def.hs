@@ -3,12 +3,16 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.Def where
 
 import Control.Monad.RWS.Strict
+import Data.DList (DList)
+import qualified Data.DList as DList
+import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Stack
@@ -37,7 +41,10 @@ runTestDefM :: Settings -> TestDefM a b c -> IO (c, TestForest a b)
 runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
   (a, _, testForest) <- runRWST func (toTestRunSettings sets) () -- TODO allow passing in settings from the command-line
-  pure (a, testForest)
+  let testForest' = case settingFilter sets of
+        Nothing -> testForest
+        Just f -> filterTestForest f testForest
+  pure (a, testForest')
 
 toTestRunSettings :: Settings -> TestRunSettings
 toTestRunSettings Settings {..} =
@@ -49,6 +56,23 @@ toTestRunSettings Settings {..} =
       testRunSettingMaxDiscardRatio = settingMaxDiscard,
       testRunSettingMaxShrinks = settingMaxShrinks
     }
+
+filterTestForest :: Text -> SpecDefForest a b c -> SpecDefForest a b c
+filterTestForest f = fromMaybe [] . goForest DList.empty
+  where
+    goForest :: DList Text -> SpecDefForest a b c -> Maybe (SpecDefForest a b c)
+    goForest ts sdf = do
+      let sdf' = mapMaybe (goTree ts) sdf
+      guard $ not $ null sdf'
+      pure sdf'
+    goTree :: DList Text -> SpecDefTree a b c -> Maybe (SpecDefTree a b c)
+    goTree dl = \case
+      DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
+      DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest dl sdf
+      DefSpecifyNode t td e -> do
+        let tl = DList.toList (DList.snoc dl t)
+        guard $ f `T.isInfixOf` (T.intercalate "." tl)
+        pure $ DefSpecifyNode t td e
 
 describe :: String -> TestDefM a b c -> TestDefM a b c
 describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func

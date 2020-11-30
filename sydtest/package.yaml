@@ -18,10 +18,13 @@ library:
   - async
   - bytestring
   - compact
+  - dlist
   - envparse
   - interprocess
   - mtl
   - optparse-applicative
+  - path
+  - path-io
   - pretty-show
   - quickcheck-io
   - rainbow
@@ -33,8 +36,6 @@ library:
   - unliftio
   - yaml
   - yamlparse-applicative
-  - path-io
-  - path
 
 tests:
   sydtest-test:

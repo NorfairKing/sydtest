@@ -8,6 +8,7 @@ module Test.Syd.OptParse where
 
 import Control.Applicative
 import Data.Maybe
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Yaml
 import qualified Env
@@ -32,7 +33,8 @@ data Settings = Settings
     settingMaxSuccess :: Int,
     settingMaxSize :: Int,
     settingMaxDiscard :: Int,
-    settingMaxShrinks :: Int
+    settingMaxShrinks :: Int,
+    settingFilter :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
@@ -45,6 +47,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
   let settingMaxSize = fromMaybe (d testRunSettingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize
   let settingMaxDiscard = fromMaybe (d testRunSettingMaxDiscardRatio) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard
   let settingMaxShrinks = fromMaybe (d testRunSettingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks
+  let settingFilter = flagFilter <|> envFilter <|> mc configFilter
   pure Settings {..}
   where
     mc :: (Configuration -> Maybe a) -> Maybe a
@@ -61,7 +64,8 @@ data Configuration = Configuration
     configMaxSize :: Maybe Int,
     configMaxSuccess :: Maybe Int,
     configMaxDiscard :: Maybe Int,
-    configMaxShrinks :: Maybe Int
+    configMaxShrinks :: Maybe Int,
+    configFilter :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
@@ -78,6 +82,7 @@ instance YamlSchema Configuration where
         <*> optionalField "max-size" "Maximum size parameter to pass to generators"
         <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
+        <*> optionalField "filter" "Filter to select which parts of the test tree to run"
 
 -- | Get the configuration
 --
@@ -110,7 +115,8 @@ data Environment = Environment
     envMaxSize :: Maybe Int,
     envMaxSuccess :: Maybe Int,
     envMaxDiscard :: Maybe Int,
-    envMaxShrinks :: Maybe Int
+    envMaxShrinks :: Maybe Int,
+    envFilter :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
@@ -128,6 +134,7 @@ environmentParser =
       <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
       <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
       <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
+      <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
   where
     mE = Env.def Nothing
 
@@ -167,7 +174,8 @@ data Flags = Flags
     flagMaxSuccess :: Maybe Int,
     flagMaxSize :: Maybe Int,
     flagMaxDiscard :: Maybe Int,
-    flagMaxShrinks :: Maybe Int
+    flagMaxShrinks :: Maybe Int,
+    flagFilter :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
@@ -230,6 +238,16 @@ parseFlags =
                   ( mconcat
                       [ long "max-shrinks",
                         help "Maximum number of shrinks of a failing test input"
+                      ]
+                  )
+              )
+          )
+      <*> ( optional
+              ( strOption
+                  ( mconcat
+                      [ long "filter",
+                        long "match",
+                        help "Filter to select which parts of the test tree to run"
                       ]
                   )
               )

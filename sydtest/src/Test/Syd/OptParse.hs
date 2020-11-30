@@ -28,9 +28,11 @@ getSettings = do
 
 -- | A product type for the settings that your program will use
 data Settings = Settings
-  { settingMaxSuccess :: Int,
+  { settingSeed :: Int,
+    settingMaxSuccess :: Int,
     settingMaxSize :: Int,
-    settingMaxDiscard :: Int
+    settingMaxDiscard :: Int,
+    settingMaxShrinks :: Int
   }
   deriving (Show, Eq, Generic)
 
@@ -38,9 +40,11 @@ data Settings = Settings
 combineToSettings :: Flags -> Environment -> Maybe Configuration -> IO Settings
 combineToSettings Flags {..} Environment {..} mConf = do
   let d func = func defaultTestRunSettings
+  let settingSeed = fromMaybe (d testRunSettingSeed) $ flagSeed <|> envSeed <|> mc configSeed
   let settingMaxSuccess = fromMaybe (d testRunSettingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess
   let settingMaxSize = fromMaybe (d testRunSettingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize
   let settingMaxDiscard = fromMaybe (d testRunSettingMaxDiscardRatio) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard
+  let settingMaxShrinks = fromMaybe (d testRunSettingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks
   pure Settings {..}
   where
     mc :: (Configuration -> Maybe a) -> Maybe a
@@ -53,9 +57,11 @@ combineToSettings Flags {..} Environment {..} mConf = do
 --
 -- Use 'YamlParse.readConfigFile' or 'YamlParse.readFirstConfigFile' to read a configuration.
 data Configuration = Configuration
-  { configMaxSize :: Maybe Int,
+  { configSeed :: Maybe Int,
+    configMaxSize :: Maybe Int,
     configMaxSuccess :: Maybe Int,
-    configMaxDiscard :: Maybe Int
+    configMaxDiscard :: Maybe Int,
+    configMaxShrinks :: Maybe Int
   }
   deriving (Show, Eq, Generic)
 
@@ -67,9 +73,11 @@ instance YamlSchema Configuration where
   yamlSchema =
     objectParser "Configuration" $
       Configuration
-        <$> optionalField "max-success" "Number of quickcheck examples to run"
+        <$> optionalField "seed" "Seed for random generation of test cases"
+        <*> optionalField "max-success" "Number of quickcheck examples to run"
         <*> optionalField "max-size" "Maximum size parameter to pass to generators"
         <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
+        <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
 
 -- | Get the configuration
 --
@@ -98,9 +106,11 @@ defaultConfigFile = do
 -- For example, use 'Text', not 'SqliteConfig'.
 data Environment = Environment
   { envConfigFile :: Maybe FilePath,
+    envSeed :: Maybe Int,
     envMaxSize :: Maybe Int,
     envMaxSuccess :: Maybe Int,
-    envMaxDiscard :: Maybe Int
+    envMaxDiscard :: Maybe Int,
+    envMaxShrinks :: Maybe Int
   }
   deriving (Show, Eq, Generic)
 
@@ -113,11 +123,13 @@ environmentParser =
   Env.prefixed "SYDTEST_" $
     Environment
       <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (mE <> Env.help "Config file")
+      <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
       <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
       <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
       <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
+      <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
   where
-    mE = Env.def Nothing <> Env.keep
+    mE = Env.def Nothing
 
 -- | Get the command-line flags
 getFlags :: IO Flags
@@ -151,9 +163,11 @@ flagsParser =
 -- | The flags that are common across commands.
 data Flags = Flags
   { flagConfigFile :: Maybe FilePath,
+    flagSeed :: Maybe Int,
     flagMaxSuccess :: Maybe Int,
     flagMaxSize :: Maybe Int,
-    flagMaxDiscard :: Maybe Int
+    flagMaxDiscard :: Maybe Int,
+    flagMaxShrinks :: Maybe Int
   }
   deriving (Show, Eq, Generic)
 
@@ -170,6 +184,16 @@ parseFlags =
               ]
           )
       )
+      <*> ( optional
+              ( option
+                  auto
+                  ( mconcat
+                      [ long "seed",
+                        help "Seed for random generation of test cases"
+                      ]
+                  )
+              )
+          )
       <*> ( optional
               ( option
                   auto
@@ -196,6 +220,16 @@ parseFlags =
                   ( mconcat
                       [ long "max-discard",
                         help "Maximum number of discarded tests per successful test before giving up"
+                      ]
+                  )
+              )
+          )
+      <*> ( optional
+              ( option
+                  auto
+                  ( mconcat
+                      [ long "max-shrinks",
+                        help "Maximum number of shrinks of a failing test input"
                       ]
                   )
               )

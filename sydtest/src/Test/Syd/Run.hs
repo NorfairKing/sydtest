@@ -177,8 +177,8 @@ data TestRunSettings = TestRunSettings
   { testRunSettingChildProcessOverride :: Maybe Bool, -- Nothing means use the default, the specific test can decide what that is.
     testRunSettingSeed :: Int,
     testRunSettingMaxSuccess :: Int,
-    testRunSettingMaxDiscardRatio :: Int,
     testRunSettingMaxSize :: Int,
+    testRunSettingMaxDiscardRatio :: Int,
     testRunSettingMaxShrinks :: Int
   }
   deriving (Show, Generic)
@@ -189,8 +189,8 @@ defaultTestRunSettings =
     { testRunSettingChildProcessOverride = Nothing,
       testRunSettingSeed = 42, -- This is set by default because we want reproducability by default.
       testRunSettingMaxSuccess = maxSuccess stdArgs,
-      testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,
       testRunSettingMaxSize = maxSize stdArgs,
+      testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,
       testRunSettingMaxShrinks = 100 -- This is different from what quickcheck does so that test suites are more likely to finish
     }
 

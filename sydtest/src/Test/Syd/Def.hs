@@ -43,11 +43,11 @@ toTestRunSettings :: Settings -> TestRunSettings
 toTestRunSettings Settings {..} =
   TestRunSettings
     { testRunSettingChildProcessOverride = testRunSettingChildProcessOverride defaultTestRunSettings,
-      testRunSettingSeed = testRunSettingSeed defaultTestRunSettings,
+      testRunSettingSeed = settingSeed,
       testRunSettingMaxSuccess = settingMaxSuccess,
       testRunSettingMaxSize = settingMaxSize,
       testRunSettingMaxDiscardRatio = settingMaxDiscard,
-      testRunSettingMaxShrinks = testRunSettingMaxShrinks defaultTestRunSettings
+      testRunSettingMaxShrinks = settingMaxShrinks
     }
 
 describe :: String -> TestDefM a b c -> TestDefM a b c

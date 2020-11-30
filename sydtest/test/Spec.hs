@@ -12,6 +12,7 @@ import Data.List
 import System.Exit
 import Test.QuickCheck
 import Test.Syd
+import Test.Syd.OptParse
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
 
@@ -22,7 +23,8 @@ instance ToUnit Int -- No implementation on purpose
 
 main :: IO ()
 main = do
-  ((), testForest) <- runTestDefM spec
+  sets <- getSettings
+  testForest <- execTestDefM sets spec
   _ <- runSpecForestInterleavedWithOutputSynchronously testForest
   _ <- runSpecForestInterleavedWithOutputAsynchronously 8 testForest
   pure ()
@@ -53,33 +55,32 @@ spec = do
   describe "Printing" $ do
     it "print" $ print "hi"
     it "putStrLn" $ putStrLn "hi"
-  modifyMaxSuccess (`div` 10)
-    $ modifyMaxSize (`div` 1)
-    $ modifyMaxShrinks (const 1)
-    $ modifyMaxDiscardRatio (const 1)
-    $ describe "Property tests"
-    $ do
-      describe "pure" $ do
-        it "reversing a list twice is the same as reversing it once"
-          $ property
-          $ \ls -> reverse (reverse ls) == (ls :: [Int])
-        it "should fail to show that sorting does nothing"
-          $ property
-          $ \ls -> sort ls == (ls :: [Int])
-        it "should work with custom generators too" $ forAll arbitrary $ \b -> b || True
-      describe "impure" $ do
-        it "reversing a list twice is the same as reversing it once"
-          $ property
-          $ \ls -> reverse (reverse ls) `shouldBe` (ls :: [Int])
-        it "should fail to show that sorting does nothing"
-          $ property
-          $ \ls -> sort ls `shouldBe` (ls :: [Int])
-        it "should work with custom generators too" $ forAll arbitrary $ \b -> (b || True) `shouldBe` True
-  describe "Long running tests"
-    $ forM_ [1 :: Int .. 10]
-    $ \i ->
-      it (concat ["takes a while (", show i, ")"]) $
-        threadDelay 100_000
+  modifyMaxSuccess (`div` 10) $
+    modifyMaxSize (`div` 1) $
+      modifyMaxShrinks (const 1) $
+        modifyMaxDiscardRatio (const 1) $
+          describe "Property tests" $ do
+            describe "pure" $ do
+              it "reversing a list twice is the same as reversing it once" $
+                property $
+                  \ls -> reverse (reverse ls) == (ls :: [Int])
+              it "should fail to show that sorting does nothing" $
+                property $
+                  \ls -> sort ls == (ls :: [Int])
+              it "should work with custom generators too" $ forAll arbitrary $ \b -> b || True
+            describe "impure" $ do
+              it "reversing a list twice is the same as reversing it once" $
+                property $
+                  \ls -> reverse (reverse ls) `shouldBe` (ls :: [Int])
+              it "should fail to show that sorting does nothing" $
+                property $
+                  \ls -> sort ls `shouldBe` (ls :: [Int])
+              it "should work with custom generators too" $ forAll arbitrary $ \b -> (b || True) `shouldBe` True
+  describe "Long running tests" $
+    forM_ [1 :: Int .. 10] $
+      \i ->
+        it (concat ["takes a while (", show i, ")"]) $
+          threadDelay 100_000
   describe "Diff" $ do
     it "shows nice multi-line diffs" $
       ("foo", replicate 7 "quux", "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")

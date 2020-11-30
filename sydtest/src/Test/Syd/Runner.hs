@@ -14,14 +14,15 @@ import qualified Data.Text as T
 import Rainbow
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
+import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.SpecForest
 import UnliftIO
 
-sydTestResult :: Spec -> IO ResultForest
-sydTestResult spec = do
-  specForest <- execTestDefM spec
+sydTestResult :: Settings -> Spec -> IO ResultForest
+sydTestResult sets spec = do
+  specForest <- execTestDefM sets spec
   runSpecForestInterleavedWithOutputSynchronously specForest
 
 runSpecForestSynchronously :: TestForest () () -> IO ResultForest
@@ -84,9 +85,10 @@ type HandleForest a b = SpecDefForest a b (MVar TestRunResult)
 type HandleTree a b = SpecDefTree a b (MVar TestRunResult)
 
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
-makeHandleForest = traverse $ traverse $ \() -> do
-  var <- newEmptyMVar
-  pure var
+makeHandleForest = traverse $
+  traverse $ \() -> do
+    var <- newEmptyMVar
+    pure var
 
 runner :: Int -> HandleForest () () -> IO ()
 runner nbThreads handleForest = do

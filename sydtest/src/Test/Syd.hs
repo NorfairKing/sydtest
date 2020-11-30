@@ -21,6 +21,7 @@ import System.Exit
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
 import Test.Syd.Expectation
+import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner
@@ -29,7 +30,12 @@ import Test.Syd.SpecForest
 
 sydTest :: Spec -> IO ()
 sydTest spec = do
-  resultForest <- sydTestResult spec
+  sets <- getSettings
+  sydTestWith sets spec
+
+sydTestWith :: Settings -> Spec -> IO ()
+sydTestWith sets spec = do
+  resultForest <- sydTestResult sets spec
   when (shouldExitFail resultForest) (exitWith (ExitFailure 1))
 
 shouldExitFail :: ResultForest -> Bool

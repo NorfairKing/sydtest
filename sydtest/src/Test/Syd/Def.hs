@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.Def where
@@ -12,6 +13,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Stack
 import Test.QuickCheck.IO ()
+import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecForest
 import UnliftIO
@@ -23,20 +25,30 @@ type SpecWith a b = SpecM a b ()
 
 type SpecM a b c = TestDefM a b c
 
-newtype TestDefM a b c
-  = TestDefM
-      { unTestDefM :: RWST TestRunSettings (TestForest a b) () IO c
-      }
+newtype TestDefM a b c = TestDefM
+  { unTestDefM :: RWST TestRunSettings (TestForest a b) () IO c
+  }
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestRunSettings, MonadWriter (TestForest a b), MonadState ())
 
-execTestDefM :: TestDefM a b c -> IO (TestForest a b)
-execTestDefM = fmap snd . runTestDefM
+execTestDefM :: Settings -> TestDefM a b c -> IO (TestForest a b)
+execTestDefM sets = fmap snd . runTestDefM sets
 
-runTestDefM :: TestDefM a b c -> IO (c, TestForest a b)
-runTestDefM defFunc = do
+runTestDefM :: Settings -> TestDefM a b c -> IO (c, TestForest a b)
+runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
-  (a, _, testForest) <- runRWST func defaultSettings () -- TODO allow passing in settings from the command-line
+  (a, _, testForest) <- runRWST func (toTestRunSettings sets) () -- TODO allow passing in settings from the command-line
   pure (a, testForest)
+
+toTestRunSettings :: Settings -> TestRunSettings
+toTestRunSettings Settings {..} =
+  TestRunSettings
+    { testRunSettingChildProcessOverride = testRunSettingChildProcessOverride defaultTestRunSettings,
+      testRunSettingSeed = testRunSettingSeed defaultTestRunSettings,
+      testRunSettingMaxSuccess = settingMaxSuccess,
+      testRunSettingMaxSize = settingMaxSize,
+      testRunSettingMaxDiscardRatio = settingMaxDiscard,
+      testRunSettingMaxShrinks = testRunSettingMaxShrinks defaultTestRunSettings
+    }
 
 describe :: String -> TestDefM a b c -> TestDefM a b c
 describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
@@ -91,26 +103,27 @@ around_ :: (IO () -> IO ()) -> TestDefM a c e -> TestDefM a c e
 around_ action = aroundWith $ \e a -> action (e a)
 
 aroundWith :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
-aroundWith func (TestDefM rwst) = TestDefM $ flip mapRWST rwst $ \inner -> do
-  (res, s, forest) <- inner
-  let modifyVal ::
-        forall x.
-        (((x -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
-        (((x -> d -> IO ()) -> IO ()) -> IO TestRunResult)
-      modifyVal takeSupplyA supplyB =
-        let supplyA :: (x -> c -> IO ()) -> IO ()
-            supplyA takeA = supplyB $ \x -> func (takeA x)
-         in takeSupplyA supplyA
-      modifyTree :: forall x e. SpecDefTree x c e -> SpecDefTree x d e
-      modifyTree = \case
-        DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
-        DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
-        DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
-      modifyForest :: forall x e. SpecDefForest x c e -> SpecDefForest x d e
-      modifyForest = map modifyTree
-  let forest' :: SpecDefForest a d ()
-      forest' = modifyForest forest
-  pure (res, s, forest')
+aroundWith func (TestDefM rwst) = TestDefM $
+  flip mapRWST rwst $ \inner -> do
+    (res, s, forest) <- inner
+    let modifyVal ::
+          forall x.
+          (((x -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
+          (((x -> d -> IO ()) -> IO ()) -> IO TestRunResult)
+        modifyVal takeSupplyA supplyB =
+          let supplyA :: (x -> c -> IO ()) -> IO ()
+              supplyA takeA = supplyB $ \x -> func (takeA x)
+           in takeSupplyA supplyA
+        modifyTree :: forall x e. SpecDefTree x c e -> SpecDefTree x d e
+        modifyTree = \case
+          DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
+          DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
+          DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
+        modifyForest :: forall x e. SpecDefForest x c e -> SpecDefForest x d e
+        modifyForest = map modifyTree
+    let forest' :: SpecDefForest a d ()
+        forest' = modifyForest forest
+    pure (res, s, forest')
 
 -- | Run a custom action before all spec items.
 beforeAll :: IO a -> TestDefM a b e -> TestDefM () b e
@@ -137,10 +150,11 @@ aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e
 aroundAll_ action = aroundAllWith $ \e a -> action (e a)
 
 aroundAllWith :: forall a b c r. ((a -> IO ()) -> (b -> IO ())) -> TestDefM a c r -> TestDefM b c r
-aroundAllWith func (TestDefM rwst) = TestDefM $ flip mapRWST rwst $ \inner -> do
-  (res, s, forest) <- inner
-  let forest' = [DefAroundAllNode func forest]
-  pure (res, s, forest')
+aroundAllWith func (TestDefM rwst) = TestDefM $
+  flip mapRWST rwst $ \inner -> do
+    (res, s, forest) <- inner
+    let forest' = [DefAroundAllNode func forest]
+    pure (res, s, forest')
 
 data TestDef v = TestDef {testDefVal :: v, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)

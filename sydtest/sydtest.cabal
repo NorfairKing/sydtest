@@ -23,6 +23,7 @@ library
       Test.Syd
       Test.Syd.Def
       Test.Syd.Expectation
+      Test.Syd.OptParse
       Test.Syd.Output
       Test.Syd.Run
       Test.Syd.Runner
@@ -40,8 +41,12 @@ library
     , base >=4.7 && <5
     , bytestring
     , compact
+    , envparse
     , interprocess
     , mtl
+    , optparse-applicative
+    , path
+    , path-io
     , pretty-show
     , quickcheck-io
     , rainbow
@@ -51,6 +56,8 @@ library
     , timeit
     , unix
     , unliftio
+    , yaml
+    , yamlparse-applicative
   default-language: Haskell2010
 
 test-suite sydtest-test

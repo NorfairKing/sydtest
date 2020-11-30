@@ -13,15 +13,17 @@ library:
   source-dirs: src
   dependencies:
   - Diff
-  - QuickCheck # TODO make this optional
+  - QuickCheck
   - aeson
   - async
   - bytestring
   - compact
+  - envparse
   - interprocess
   - mtl
+  - optparse-applicative
   - pretty-show
-  - quickcheck-io # TODO make this optional
+  - quickcheck-io
   - rainbow
   - safe
   - split
@@ -29,6 +31,10 @@ library:
   - timeit
   - unix
   - unliftio
+  - yaml
+  - yamlparse-applicative
+  - path-io
+  - path
 
 tests:
   sydtest-test:

@@ -53,11 +53,11 @@ runPureTestWithArg TestRunSettings {..} wrapper computeBool = do
   let testRunResultNumTests = Nothing
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
-  (testRunResultExecutionTime, resultBool) <- timeItT
-    $ runWrapper
-    $ liftIO
-    $ applyWrapper2 wrapper
-    $ \arg1 arg2 -> (Right <$> evaluate (computeBool arg1 arg2)) `catches` exceptionHandlers
+  (testRunResultExecutionTime, resultBool) <- timeItT $
+    runWrapper $
+      liftIO $
+        applyWrapper2 wrapper $
+          \arg1 arg2 -> (Right <$> evaluate (computeBool arg1 arg2)) `catches` exceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
@@ -97,17 +97,17 @@ runIOTestWithArg TestRunSettings {..} wrapper func = do
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
   (testRunResultExecutionTime, (testRunResultStatus, testRunResultException)) <-
-    timeItT
-      $ runWrapper
-      $ liftIO
-      $ applyWrapper2 wrapper
-      $ \arg1 arg2 -> do
-        result <-
-          (liftIO (func arg1 arg2) >>= (evaluate . (`seq` Right TestPassed)))
-            `catches` exceptionHandlers
-        pure $ case result of
-          Left ex -> (TestFailed, Just ex)
-          Right r -> (r, Nothing)
+    timeItT $
+      runWrapper $
+        liftIO $
+          applyWrapper2 wrapper $
+            \arg1 arg2 -> do
+              result <-
+                (liftIO (func arg1 arg2) >>= (evaluate . (`seq` Right TestPassed)))
+                  `catches` exceptionHandlers
+              pure $ case result of
+                Left ex -> (TestFailed, Just ex)
+                Right r -> (r, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
@@ -139,25 +139,27 @@ runPropertyTestWithArg TestRunSettings {..} wrapper p = do
           }
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
-  runWrapper $ liftIO $ applyWrapper2 wrapper $ \arg1 arg2 -> do
-    (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args (p arg1 arg2)
-    testRunResultStatus <- pure $ case result of
-      Success {} -> TestPassed
-      GaveUp {} -> TestFailed
-      Failure {} -> TestFailed
-      NoExpectedFailure {} -> TestFailed
-    let testRunResultNumTests = Just $ fromIntegral $ numTests result
-    let testRunResultNumShrinks = case result of
-          Failure {} -> Just $ fromIntegral $ numShrinks result
-          _ -> Nothing
-    let testRunResultException = case result of
-          Failure {} -> do
-            se <- theException result
-            pure $ case fromException se of
-              Just a -> Right a
-              Nothing -> Left $ displayException se
-          _ -> Nothing
-    pure TestRunResult {..}
+  runWrapper $
+    liftIO $
+      applyWrapper2 wrapper $ \arg1 arg2 -> do
+        (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args (p arg1 arg2)
+        testRunResultStatus <- pure $ case result of
+          Success {} -> TestPassed
+          GaveUp {} -> TestFailed
+          Failure {} -> TestFailed
+          NoExpectedFailure {} -> TestFailed
+        let testRunResultNumTests = Just $ fromIntegral $ numTests result
+        let testRunResultNumShrinks = case result of
+              Failure {} -> Just $ fromIntegral $ numShrinks result
+              _ -> Nothing
+        let testRunResultException = case result of
+              Failure {} -> do
+                se <- theException result
+                pure $ case fromException se of
+                  Just a -> Right a
+                  Nothing -> Left $ displayException se
+              _ -> Nothing
+        pure TestRunResult {..}
 
 exceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
 exceptionHandlers =
@@ -171,36 +173,34 @@ exceptionHandlers =
 
 type Test = IO ()
 
-data TestRunSettings
-  = TestRunSettings
-      { testRunSettingChildProcessOverride :: Maybe Bool, -- Nothing means use the default, the specific test can decide what that is.
-        testRunSettingSeed :: Int,
-        testRunSettingMaxSuccess :: Int,
-        testRunSettingMaxDiscardRatio :: Int,
-        testRunSettingMaxSize :: Int,
-        testRunSettingMaxShrinks :: Int
-      }
+data TestRunSettings = TestRunSettings
+  { testRunSettingChildProcessOverride :: Maybe Bool, -- Nothing means use the default, the specific test can decide what that is.
+    testRunSettingSeed :: Int,
+    testRunSettingMaxSuccess :: Int,
+    testRunSettingMaxDiscardRatio :: Int,
+    testRunSettingMaxSize :: Int,
+    testRunSettingMaxShrinks :: Int
+  }
   deriving (Show, Generic)
 
-defaultSettings :: TestRunSettings
-defaultSettings =
+defaultTestRunSettings :: TestRunSettings
+defaultTestRunSettings =
   TestRunSettings
     { testRunSettingChildProcessOverride = Nothing,
-      testRunSettingSeed = 42,
+      testRunSettingSeed = 42, -- This is set by default because we want reproducability by default.
       testRunSettingMaxSuccess = maxSuccess stdArgs,
       testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,
       testRunSettingMaxSize = maxSize stdArgs,
       testRunSettingMaxShrinks = 100 -- This is different from what quickcheck does so that test suites are more likely to finish
     }
 
-data TestRunResult
-  = TestRunResult
-      { testRunResultStatus :: !TestStatus,
-        testRunResultException :: !(Maybe (Either String Assertion)),
-        testRunResultNumTests :: !(Maybe Word),
-        testRunResultNumShrinks :: !(Maybe Word),
-        testRunResultExecutionTime :: !Double -- In seconds
-      }
+data TestRunResult = TestRunResult
+  { testRunResultStatus :: !TestStatus,
+    testRunResultException :: !(Maybe (Either String Assertion)),
+    testRunResultNumTests :: !(Maybe Word),
+    testRunResultNumShrinks :: !(Maybe Word),
+    testRunResultExecutionTime :: !Double -- In seconds
+  }
   deriving (Show, Generic)
 
 data TestStatus = TestPassed | TestFailed

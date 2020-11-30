@@ -1,6 +1,7 @@
 resolver: lts-15.15
 packages:
 - sydtest
+- sydtest-discover
 extra-deps:
 - compact-0.2.0.0@sha256:9c5785bdc178ea6cf8f514ad35a78c64220e3cdb22216534e4cf496765551c7e,2345
 - interprocess-0.2.0.1@sha256:f6e1a666d0d743a5d5faa302b1f38a68b5ce661de7bb3988377064f46a940d9a,3492

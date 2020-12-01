@@ -12,8 +12,8 @@ import qualified Data.ByteString.Char8 as SB8
 import Data.List
 import Data.List.Split (splitWhen)
 import Data.Maybe
-import qualified Data.Text as T
 import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Stack
 import Rainbow
 import Rainbow.Types (Chunk (..))
@@ -45,10 +45,13 @@ outputResultReport rf =
 
 outputFailuresWithHeading :: ResultForest -> [[Chunk]]
 outputFailuresWithHeading rf =
-  concat
-    [ outputFailuresHeader,
-      outputFailures rf
-    ]
+  if any testFailed (flattenSpecForest rf)
+    then
+      concat
+        [ outputFailuresHeader,
+          outputFailures rf
+        ]
+    else []
 
 outputTestsHeader :: [[Chunk]]
 outputTestsHeader = outputHeader "Tests:"
@@ -88,63 +91,73 @@ outputSpecifyLines t (TestDef (TestRunResult {..}) _) =
           ]
       ]
 
+testFailed :: (a, TestDef TestRunResult) -> Bool
+testFailed = (== TestFailed) . testRunResultStatus . testDefVal . snd
+
 outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =
-  let failures = filter ((== TestFailed) . testRunResultStatus . testDefVal . snd) $ flattenSpecForest rf
+  let failures = filter testFailed $ flattenSpecForest rf
       nbDigitsInFailureCount :: Int
       nbDigitsInFailureCount = ceiling (logBase 10 (genericLength failures) :: Double)
       pad = (chunk (T.replicate (nbDigitsInFailureCount + 3) " ") :)
-   in map (chunk "  " :) $ filter (not . null) $ concat $ indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
-        concat
-          [ [ [ (fore cyan) $ chunk $ T.pack $
-                  replicate 2 ' '
-                    ++ case headMay $ getCallStack cs of
-                      Nothing -> "Unknown location"
-                      Just (_, SrcLoc {..}) ->
-                        concat
-                          [ srcLocFile,
-                            ":",
-                            show srcLocStartLine
-                          ]
-              ],
-              map
-                (fore (statusColour testRunResultStatus))
-                [ chunk $ statusCheckMark testRunResultStatus,
-                  chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
-                  chunk $ T.intercalate "." ts
+   in map (chunk "  " :) $
+        filter (not . null) $
+          concat $
+            indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
+              concat
+                [ [ [ (fore cyan) $
+                        chunk $
+                          T.pack $
+                            replicate 2 ' '
+                              ++ case headMay $ getCallStack cs of
+                                Nothing -> "Unknown location"
+                                Just (_, SrcLoc {..}) ->
+                                  concat
+                                    [ srcLocFile,
+                                      ":",
+                                      show srcLocStartLine
+                                    ]
+                    ],
+                    map
+                      (fore (statusColour testRunResultStatus))
+                      [ chunk $ statusCheckMark testRunResultStatus,
+                        chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
+                        chunk $ T.intercalate "." ts
+                      ]
+                  ],
+                  map (pad . (: []) . chunk . T.pack) $
+                    case (testRunResultNumTests, testRunResultNumShrinks) of
+                      (Nothing, _) -> []
+                      (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
+                      (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
+                      (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
+                  map pad $ case testRunResultException of
+                    Nothing -> []
+                    Just (Left s) ->
+                      let ls = lines s
+                       in map ((: []) . chunk . T.pack) ls
+                    Just (Right a) -> case a of
+                      NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
+                      EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
+                      PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
+                      PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual,
+                  [[chunk ""]]
                 ]
-            ],
-            map (pad . (: []) . chunk . T.pack) $
-              case (testRunResultNumTests, testRunResultNumShrinks) of
-                (Nothing, _) -> []
-                (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
-                (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
-                (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
-            map pad $ case testRunResultException of
-              Nothing -> []
-              Just (Left s) ->
-                let ls = lines s
-                 in map ((: []) . chunk . T.pack) ls
-              Just (Right a) -> case a of
-                NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
-                EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
-                PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
-                PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual,
-            [[chunk ""]]
-          ]
 
 outputEqualityAssertionFailed :: String -> String -> [[Chunk]]
 outputEqualityAssertionFailed actual expected =
   let diff = getDiff actual expected
       splitLines = splitWhen ((== "\n") . _yarn)
-      actualChunks = splitLines $ flip mapMaybe diff $ \d -> case d of
-        Both a _ -> Just $ chunk (T.singleton a)
-        First a -> Just $ fore red $ chunk (T.singleton a)
-        _ -> Nothing
-      expectedChunks = splitLines $ flip mapMaybe diff $ \d -> case d of
-        Both a _ -> Just $ chunk (T.singleton a)
-        Second a -> Just $ fore green $ chunk (T.singleton a)
-        _ -> Nothing
+      actualChunks = splitLines $
+        flip mapMaybe diff $ \d -> case d of
+          Both a _ -> Just $ chunk (T.singleton a)
+          First a -> Just $ fore red $ chunk (T.singleton a)
+          _ -> Nothing
+      expectedChunks = splitLines $
+        flip mapMaybe diff $ \d -> case d of
+          Both a _ -> Just $ chunk (T.singleton a)
+          Second a -> Just $ fore green $ chunk (T.singleton a)
+          _ -> Nothing
       chunksLinesWithHeader :: Chunk -> [[Chunk]] -> [[Chunk]]
       chunksLinesWithHeader header = \case
         [cs] -> [header : cs]

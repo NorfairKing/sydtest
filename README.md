@@ -105,4 +105,4 @@ spec = do
 ### Parallel test execution
 
 Tests are executed with as many threads as you have capabilities by default.
-You can use `-j` or `--jobs` to set the number of threads to use, and `--synchronous` to execute the tests with everything in one thread.
+You can use `-j` or `--jobs` to set the number of threads to use.

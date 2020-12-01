@@ -6,6 +6,7 @@
 
 module Test.Syd.Runner where
 
+import Control.Concurrent (getNumCapabilities)
 import Control.Concurrent.QSem
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
@@ -23,7 +24,13 @@ import UnliftIO
 sydTestResult :: Settings -> Spec -> IO ResultForest
 sydTestResult sets spec = do
   specForest <- execTestDefM sets spec
-  runSpecForestInterleavedWithOutputSynchronously specForest
+  case settingParallelism sets of
+    Synchronous -> runSpecForestInterleavedWithOutputSynchronously specForest
+    ByCapabilities -> do
+      i <- getNumCapabilities
+      runSpecForestInterleavedWithOutputAsynchronously i specForest
+    Asynchronous i ->
+      runSpecForestInterleavedWithOutputAsynchronously i specForest
 
 runSpecForestSynchronously :: TestForest () () -> IO ResultForest
 runSpecForestSynchronously = goForest ()

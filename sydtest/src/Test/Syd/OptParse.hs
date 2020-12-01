@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -7,6 +8,7 @@
 module Test.Syd.OptParse where
 
 import Control.Applicative
+import Control.Monad
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -29,13 +31,17 @@ getSettings = do
 
 -- | A product type for the settings that your program will use
 data Settings = Settings
-  { settingSeed :: Int,
-    settingMaxSuccess :: Int,
-    settingMaxSize :: Int,
-    settingMaxDiscard :: Int,
-    settingMaxShrinks :: Int,
-    settingFilter :: Maybe Text
+  { settingSeed :: !Int,
+    settingParallelism :: !Parallelism,
+    settingMaxSuccess :: !Int,
+    settingMaxSize :: !Int,
+    settingMaxDiscard :: !Int,
+    settingMaxShrinks :: !Int,
+    settingFilter :: !(Maybe Text)
   }
+  deriving (Show, Eq, Generic)
+
+data Parallelism = Synchronous | ByCapabilities | Asynchronous Int
   deriving (Show, Eq, Generic)
 
 -- | Combine everything to 'Settings'
@@ -43,6 +49,7 @@ combineToSettings :: Flags -> Environment -> Maybe Configuration -> IO Settings
 combineToSettings Flags {..} Environment {..} mConf = do
   let d func = func defaultTestRunSettings
   let settingSeed = fromMaybe (d testRunSettingSeed) $ flagSeed <|> envSeed <|> mc configSeed
+  let settingParallelism = fromMaybe ByCapabilities $ flagParallelism <|> envParallelism <|> mc configParallelism
   let settingMaxSuccess = fromMaybe (d testRunSettingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess
   let settingMaxSize = fromMaybe (d testRunSettingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize
   let settingMaxDiscard = fromMaybe (d testRunSettingMaxDiscardRatio) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard
@@ -60,12 +67,13 @@ combineToSettings Flags {..} Environment {..} mConf = do
 --
 -- Use 'YamlParse.readConfigFile' or 'YamlParse.readFirstConfigFile' to read a configuration.
 data Configuration = Configuration
-  { configSeed :: Maybe Int,
-    configMaxSize :: Maybe Int,
-    configMaxSuccess :: Maybe Int,
-    configMaxDiscard :: Maybe Int,
-    configMaxShrinks :: Maybe Int,
-    configFilter :: Maybe Text
+  { configSeed :: !(Maybe Int),
+    configParallelism :: !(Maybe Parallelism),
+    configMaxSize :: !(Maybe Int),
+    configMaxSuccess :: !(Maybe Int),
+    configMaxDiscard :: !(Maybe Int),
+    configMaxShrinks :: !(Maybe Int),
+    configFilter :: !(Maybe Text)
   }
   deriving (Show, Eq, Generic)
 
@@ -78,11 +86,18 @@ instance YamlSchema Configuration where
     objectParser "Configuration" $
       Configuration
         <$> optionalField "seed" "Seed for random generation of test cases"
+        <*> optionalField "parallelism" "How parallel to execute the tests"
         <*> optionalField "max-success" "Number of quickcheck examples to run"
         <*> optionalField "max-size" "Maximum size parameter to pass to generators"
         <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
+
+instance YamlSchema Parallelism where
+  yamlSchema = flip fmap yamlSchema $ \case
+    Nothing -> ByCapabilities
+    Just 1 -> Synchronous
+    Just n -> Asynchronous n
 
 -- | Get the configuration
 --
@@ -111,12 +126,13 @@ defaultConfigFile = do
 -- For example, use 'Text', not 'SqliteConfig'.
 data Environment = Environment
   { envConfigFile :: Maybe FilePath,
-    envSeed :: Maybe Int,
-    envMaxSize :: Maybe Int,
-    envMaxSuccess :: Maybe Int,
-    envMaxDiscard :: Maybe Int,
-    envMaxShrinks :: Maybe Int,
-    envFilter :: Maybe Text
+    envSeed :: !(Maybe Int),
+    envParallelism :: !(Maybe Parallelism),
+    envMaxSize :: !(Maybe Int),
+    envMaxSuccess :: !(Maybe Int),
+    envMaxDiscard :: !(Maybe Int),
+    envMaxShrinks :: !(Maybe Int),
+    envFilter :: !(Maybe Text)
   }
   deriving (Show, Eq, Generic)
 
@@ -130,12 +146,16 @@ environmentParser =
     Environment
       <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (mE <> Env.help "Config file")
       <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
+      <*> Env.var (fmap Just . (Env.auto >=> parseParallelism)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
       <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
       <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
       <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
       <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
       <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
   where
+    parseParallelism :: Int -> Either e Parallelism
+    parseParallelism 1 = Right Synchronous
+    parseParallelism i = Right (Asynchronous i)
     mE = Env.def Nothing
 
 -- | Get the command-line flags
@@ -171,6 +191,7 @@ flagsParser =
 data Flags = Flags
   { flagConfigFile :: Maybe FilePath,
     flagSeed :: Maybe Int,
+    flagParallelism :: Maybe Parallelism,
     flagMaxSuccess :: Maybe Int,
     flagMaxSize :: Maybe Int,
     flagMaxDiscard :: Maybe Int,
@@ -202,6 +223,13 @@ parseFlags =
                   )
               )
           )
+      <*> optional
+        ( ( \case
+              1 -> Synchronous
+              i -> Asynchronous i
+          )
+            <$> option auto (mconcat [short 'j', long "jobs", help "How parallel to execute the tests"])
+        )
       <*> ( optional
               ( option
                   auto

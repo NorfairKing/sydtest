@@ -20,8 +20,6 @@ sydTestDiscover = do
   specSourceFileRel <- stripProperPrefix testDir specSourceFile
   otherSpecFiles <- mapMaybe parseSpecModule . sort . filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) <$> sourceFilesInNonHiddenDirsRecursively testDir
   let output = makeSpecModule argSettings specSourceFileRel otherSpecFiles
-  putStrLn argDestination
-  putStrLn output
   writeFile argDestination output
 
 data Arguments = Arguments

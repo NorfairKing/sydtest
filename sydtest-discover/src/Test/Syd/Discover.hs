@@ -5,32 +5,56 @@ module Test.Syd.Discover where
 
 import Control.Monad.IO.Class
 import Data.List
+import Data.Maybe
+import Options.Applicative
 import Path
 import Path.IO
-import System.Environment
-import System.Exit
 import qualified System.FilePath as FP
 
 sydTestDiscover :: IO ()
 sydTestDiscover = do
-  args <- getArgs
-  print args
-  case args of
-    (src : _ : dest : restArgs) -> do
-      here <- getCurrentDir
-      specSourceFile <- resolveFile' src
-      -- We asume that the spec source is a top-level module.
-      let testDir = parent specSourceFile
-      specSourceFileRel <- stripProperPrefix testDir specSourceFile
-      otherSpecFiles <- sort . filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) <$> sourceFilesInNonHiddenDirsRecursively testDir
-      let sets = Settings {settingMain = True}
-      let output = makeSpecModule sets specSourceFileRel otherSpecFiles
-      putStrLn output
-      writeFile dest output
-    _ -> die "args don't make sense"
+  Arguments {..} <- getArguments
+  specSourceFile <- resolveFile' argSource
+  -- We asume that the spec source is a top-level module.
+  let testDir = parent specSourceFile
+  specSourceFileRel <- stripProperPrefix testDir specSourceFile
+  otherSpecFiles <- mapMaybe parseSpecModule . sort . filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) <$> sourceFilesInNonHiddenDirsRecursively testDir
+  let output = makeSpecModule argSettings specSourceFileRel otherSpecFiles
+  putStrLn argDestination
+  putStrLn output
+  writeFile argDestination output
+
+data Arguments = Arguments
+  { argSource :: FilePath,
+    argIgnored :: FilePath,
+    argDestination :: FilePath,
+    argSettings :: Settings
+  }
+  deriving (Show, Eq)
+
+data Settings = Settings
+  { settingMain :: Bool
+  }
+  deriving (Show, Eq)
+
+getArguments :: IO Arguments
+getArguments = execParser $ info argumentsParser fullDesc
+
+argumentsParser :: Parser Arguments
+argumentsParser =
+  Arguments
+    <$> strArgument (mconcat [help "Source file path"])
+    <*> strArgument (mconcat [help "Ignored argument"])
+    <*> strArgument (mconcat [help "Destiantion file path"])
+    <*> ( Settings
+            <$> ( flag' True (mconcat [long "main", help "generate a main module and function"])
+                    <|> flag' False (mconcat [long "no-main", help "don't generate a main module and function"])
+                    <|> pure True
+                )
+        )
 
 sourceFilesInNonHiddenDirsRecursively ::
-  forall m i.
+  forall m.
   MonadIO m =>
   Path Abs Dir ->
   m [Path Rel File]
@@ -39,15 +63,15 @@ sourceFilesInNonHiddenDirsRecursively =
   where
     goWalk ::
       Path Rel Dir -> [Path Rel Dir] -> [Path Rel File] -> m (WalkAction Rel)
-    goWalk curdir subdirs files = do
+    goWalk curdir subdirs _ = do
       pure $ WalkExclude $ filter (isHiddenIn curdir) subdirs
     goOutput ::
       Path Rel Dir -> [Path Rel Dir] -> [Path Rel File] -> m [Path Rel File]
-    goOutput curdir subdirs files =
-      pure $ map (curdir </>) $ filter (not . hidden) files
+    goOutput curdir _ files =
+      pure $ map (curdir </>) $ filter (not . hiddenFile) files
 
-hidden :: Path Rel File -> Bool
-hidden = goFile
+hiddenFile :: Path Rel File -> Bool
+hiddenFile = goFile
   where
     goFile :: Path Rel File -> Bool
     goFile f = isHiddenIn (parent f) f || goDir (parent f)
@@ -68,18 +92,35 @@ isHaskellFile p = case fileExtension p of
   Just ".lhs" -> True
   _ -> False
 
+data SpecModule = SpecModule
+  { specModulePath :: Path Rel File,
+    specModuleModuleName :: String,
+    specModuleDescription :: String
+  }
+
+parseSpecModule :: Path Rel File -> Maybe SpecModule
+parseSpecModule rf = do
+  let specModulePath = rf
+  let specModuleModuleName = makeModuleName rf
+  let withoutExtension = FP.dropExtension $ fromRelFile rf
+  withoutSpecSuffix <- stripSuffix "Spec" withoutExtension
+  withoutSpecSuffixPath <- parseRelFile withoutSpecSuffix
+  let specModuleDescription = makeModuleName withoutSpecSuffixPath
+  pure SpecModule {..}
+  where
+    stripSuffix :: Eq a => [a] -> [a] -> Maybe [a]
+    stripSuffix suffix s = reverse <$> stripPrefix (reverse suffix) (reverse s)
+
 makeModuleName :: Path Rel File -> String
 makeModuleName fp =
   intercalate "." $ FP.splitDirectories $ FP.dropExtensions $ fromRelFile fp
 
-makeSpecModule :: Settings -> Path Rel File -> [Path Rel File] -> String
+makeSpecModule :: Settings -> Path Rel File -> [SpecModule] -> String
 makeSpecModule Settings {..} destination sources =
   unlines
-    [ moduleDeclaration
-        ( if settingMain then "Main" else makeModuleName destination
-        ),
+    [ if settingMain then "" else moduleDeclaration (makeModuleName destination),
       "",
-      "import Test.Syd (Spec, sydTest)",
+      "import Test.Syd",
       "",
       importDeclarations sources,
       if settingMain then mainDeclaration else "",
@@ -96,17 +137,18 @@ mainDeclaration =
       "main = sydTest spec"
     ]
 
-importDeclarations :: [Path Rel File] -> String
-importDeclarations = unlines . map (("import qualified " <>) . makeModuleName)
+importDeclarations :: [SpecModule] -> String
+importDeclarations = unlines . map (("import qualified " <>) . specModuleModuleName)
 
-specDeclaration :: [Path Rel File] -> String
+specDeclaration :: [SpecModule] -> String
 specDeclaration fs =
   unlines $
     "spec :: Spec" :
     "spec = do" :
-    map (("  " ++) . specFunctionName) fs
+    map moduleSpecLine fs
 
-specFunctionName :: Path Rel File -> String
-specFunctionName rf = makeModuleName rf ++ ".spec"
+moduleSpecLine :: SpecModule -> String
+moduleSpecLine rf = unwords [" ", "describe", "\"" <> specModuleModuleName rf <> "\"", specFunctionName rf]
 
-data Settings = Settings {settingMain :: Bool} deriving (Show, Eq)
+specFunctionName :: SpecModule -> String
+specFunctionName rf = specModuleModuleName rf ++ ".spec"

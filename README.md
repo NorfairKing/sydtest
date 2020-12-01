@@ -61,7 +61,6 @@ This project chooses best practices as defaults:
 | Declaring that an individual test should fail                                             | 🚧      | ✖️                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Declaring that at least one in a test group should fail                                   | 🚧      | C                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Using scarce resources across tests                                                       | 🚧      | C                                                           | ?                                                                |
-| Lazy test suite definition                                                                | 🚧      | ✖️                                                           | ?                                                                |
 | A way to fail the test suite as soon as one test fails (`--fail-fast`)                    | 🚧      | ✔️                                                           | ?                                                                |
 
 * ✔️: Supported 

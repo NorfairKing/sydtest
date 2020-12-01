@@ -13,6 +13,7 @@ library:
   source-dirs: src
   dependencies:
   - filepath
+  - optparse-applicative
   - path
   - path-io
 
@@ -28,9 +29,20 @@ executables:
     - sydtest-discover
 
 tests:
-  sydtest-discover-test:
-    main:                Spec.hs
-    source-dirs:         test
+  sydtest-discover-test-main:
+    main: Spec.hs
+    source-dirs: test-main
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest-discover
+    - sydtest
+  sydtest-discover-test-no-main:
+    main: Main.hs
+    source-dirs: test-no-main
     build-tools: sydtest-discover
     ghc-options:
     - -threaded

@@ -75,3 +75,34 @@ Please let me know if I made a mistake anywhere, and feel free to fill in the qu
 * [1]: Test discovery is always handled via a separate library so I use `✔️` instead of `Lib`.
 * [2]: It turns out that this is surprisingly difficult, due to [forkProcess' interaction with `MVar`s](https://www.reddit.com/r/haskell/comments/jsap9r/how_dangerous_is_forkprocess/) but I'm still looking for a way to make it happen. The answer may lie in [the way `weigh` does it](https://github.com/fpco/weigh/blob/bfcf4415144d7d2817dfcb91b6f9a6dfd7236de7/src/Weigh.hs#L373)
 
+
+## Features in detail
+
+### Declarative monadic test definition
+
+Tests are declared as follows:
+
+``` haskell
+spec :: Spec
+spec = do
+  describe "myFunction" $ do -- description of which functions you are testing
+    it "does what you want it to" $ -- sentence to describe what you expect to happen
+      2 + 3 == 5 -- Test code
+```
+
+### Safe test execution
+
+Code that throws exceptions can be tested without trouble:
+
+``` haskell
+spec :: Spec
+spec = do
+  describe "pred" $ do
+    it "throws no exceptions" $
+      pred (0 :: Word) -- causes overflow (below zero), so this test will fail.
+```
+
+### Parallel test execution
+
+Tests are executed with as many threads as you have capabilities by default.
+You can use `-j` or `--jobs` to set the number of threads to use, and `--synchronous` to execute the tests with everything in one thread.

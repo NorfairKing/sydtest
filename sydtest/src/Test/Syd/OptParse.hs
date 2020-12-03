@@ -48,6 +48,19 @@ data Settings = Settings
   }
   deriving (Show, Eq, Generic)
 
+defaultSettings :: Settings
+defaultSettings =
+  let d func = func defaultTestRunSettings
+   in Settings
+        { settingSeed = d testRunSettingSeed,
+          settingParallelism = ByCapabilities,
+          settingMaxSuccess = d testRunSettingMaxSuccess,
+          settingMaxSize = d testRunSettingMaxSize,
+          settingMaxDiscard = d testRunSettingMaxDiscardRatio,
+          settingMaxShrinks = d testRunSettingMaxShrinks,
+          settingFilter = Nothing
+        }
+
 data Parallelism
   = -- | One thread
     Synchronous
@@ -60,15 +73,17 @@ data Parallelism
 -- | Combine everything to 'Settings'
 combineToSettings :: Flags -> Environment -> Maybe Configuration -> IO Settings
 combineToSettings Flags {..} Environment {..} mConf = do
-  let d func = func defaultTestRunSettings
-  let settingSeed = fromMaybe (d testRunSettingSeed) $ flagSeed <|> envSeed <|> mc configSeed
-  let settingParallelism = fromMaybe ByCapabilities $ flagParallelism <|> envParallelism <|> mc configParallelism
-  let settingMaxSuccess = fromMaybe (d testRunSettingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess
-  let settingMaxSize = fromMaybe (d testRunSettingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize
-  let settingMaxDiscard = fromMaybe (d testRunSettingMaxDiscardRatio) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard
-  let settingMaxShrinks = fromMaybe (d testRunSettingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks
-  let settingFilter = flagFilter <|> envFilter <|> mc configFilter
-  pure Settings {..}
+  let d func = func defaultSettings
+  pure
+    Settings
+      { settingSeed = fromMaybe (d settingSeed) $ flagSeed <|> envSeed <|> mc configSeed,
+        settingParallelism = fromMaybe (d settingParallelism) $ flagParallelism <|> envParallelism <|> mc configParallelism,
+        settingMaxSuccess = fromMaybe (d settingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess,
+        settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
+        settingMaxDiscard = fromMaybe (d settingMaxDiscard) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
+        settingMaxShrinks = fromMaybe (d settingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks,
+        settingFilter = flagFilter <|> envFilter <|> mc configFilter
+      }
   where
     mc :: (Configuration -> Maybe a) -> Maybe a
     mc f = mConf >>= f

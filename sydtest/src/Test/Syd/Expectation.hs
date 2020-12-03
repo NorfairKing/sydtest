@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
+-- | This module defines all the functions you will use to define your tests
 module Test.Syd.Expectation where
 
 import Control.Exception
@@ -11,14 +12,18 @@ import Test.QuickCheck.IO ()
 import Test.Syd.Run
 import Text.Show.Pretty
 
+-- | Assert that two values are equal according to `==`.
 shouldBe :: (HasCallStack, Show a, Eq a) => a -> a -> IO ()
 shouldBe actual expected = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
 
+-- | Assert that two values are not equal according to `==`.
 shouldNotBe :: (HasCallStack, Show a, Eq a) => a -> a -> IO ()
 shouldNotBe actual expected = unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected)
 
+-- | Assert that a value satisfies the given predicate.
 shouldSatisfy :: (HasCallStack, Show a, Eq a) => a -> (a -> Bool) -> IO ()
 shouldSatisfy actual p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual)
 
+-- | Assert that a value does not satisfy the given predicate.
 shouldNotSatisfy :: (HasCallStack, Show a, Eq a) => a -> (a -> Bool) -> IO ()
 shouldNotSatisfy actual p = unless (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual)

@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
+-- | This module defines the 'IsTest' class and the different instances for it.
 module Test.Syd.Run where
 
 import Control.Exception hiding (Handler, catches, evaluate)

@@ -4,6 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | This module defines how to run a test suite
 module Test.Syd.Runner where
 
 import Control.Concurrent (getNumCapabilities)

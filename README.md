@@ -9,6 +9,7 @@ This project chooses best practices as defaults:
 
 - A fixed seed for deterministic randomness
 - Pretty show for output
+- Bounded shrinking by default
 
 ## Advanced testing features
 
@@ -47,7 +48,7 @@ This project chooses best practices as defaults:
 | Inter-test progress output during test suite execution                                    | ✔️       | ✔️                                                           | ?                                                                |
 | Intra-test progress output during test suite execution                                    | 🚧      | ✔️                                                           | ?                                                                |
 | Optional standard output and standard error suppression [2]                               | ✖️       | ✖️                                                           | ✖️                                                                |
-| Aquire and release a resource for every test in a group (`before` and `after`)            | ✔️       | ✖️                                                           | ✖️                                                                |
+| Aquire and release a resource for every test in a group (`before` and `after`)            | ✔️       | ✔️                                                           | ✖️                                                                |
 | Aquire and release a resource once for an entire test group (`beforeAll` and `afterAll`)  | ✔️       | ✔️                                                           | ✔️                                                                |
 | Wrap a single test to use a `withResource`-like function (`around`)                       | ✔️       | ✔️                                                           | ✖️                                                                |
 | Wrap a test group to use a `withResource`-like function (`aroundAll`)                     | ✔️       | ✖️                                                           | ✖️                                                                |

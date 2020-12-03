@@ -1,6 +1,6 @@
 # sydtest
 
-An experimental testing framework for Haskell with great defaults advanced testing features.
+An experimental testing framework for Haskell with good defaults and advanced testing features.
 
 
 ## The devil is in the defaults

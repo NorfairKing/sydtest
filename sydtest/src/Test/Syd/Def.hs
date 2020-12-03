@@ -150,6 +150,21 @@ describe :: String -> TestDefM a b c -> TestDefM a b c
 describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 
 -- | Declare a test
+--
+-- === Example usage:
+--
+-- ==== Pure test
+--
+-- > describe "addition" $
+-- >     it "adds 3 to 5 to result in 8" $
+-- >         3 + 5 `shouldBe` 8
+--
+-- ==== Property test
+--
+-- > describe "sort" $
+-- >     it "is idempotent" $
+-- >         forAllValid $ \ls ->
+-- >             sort (sort ls) `shouldBe` (sort (ls :: [Int]))
 it :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test) (Arg2 test) ()
 it s t = do
   sets <- ask

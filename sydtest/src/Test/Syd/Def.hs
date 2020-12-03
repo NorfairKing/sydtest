@@ -7,7 +7,67 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Test.Syd.Def where
+-- | This module defines all the functions you will use to define your test suite.
+module Test.Syd.Def
+  ( -- * API Functions
+
+    -- ** Declaring tests
+    describe,
+    it,
+    specify,
+
+    -- ** Declaring test dependencies
+
+    -- *** Dependencies around all of a group of tests
+    beforeAll,
+    beforeAll_,
+    afterAll,
+    afterAll_,
+    aroundAll,
+    aroundAll_,
+    aroundAllWith,
+
+    -- *** Dependencies around each of a group of tests
+    before,
+    before_,
+    after,
+    after_,
+    around,
+    around_,
+    aroundWith,
+
+    -- *** Declaring different test settings
+    modifyMaxSuccess,
+    modifyMaxDiscardRatio,
+    modifyMaxSize,
+    modifyMaxShrinks,
+    modifyRunSettings,
+
+    -- * Test definition types
+    TestDefM (..),
+    execTestDefM,
+    runTestDefM,
+
+    -- ** Implementation details
+    toTestRunSettings,
+    filterTestForest,
+
+    -- * Test suite types
+    TestDef (..),
+    TestForest,
+    TestTree,
+    SpecDefForest,
+    SpecDefTree (..),
+    ResultForest,
+    ResultTree,
+    shouldExitFail,
+
+    -- * Hspec synonyms
+    Spec,
+    SpecWith,
+    SpecM,
+  )
+where
 
 import Control.Monad.RWS.Strict
 import Data.DList (DList)
@@ -22,13 +82,24 @@ import Test.Syd.Run
 import Test.Syd.SpecForest
 import UnliftIO
 
--- The same naming as in hspec for easy migration
+-- | A synonym for easy migration from hspec
 type Spec = SpecWith () ()
 
+-- | A synonym for easy migration from hspec
 type SpecWith a b = SpecM a b ()
 
+-- | A synonym for easy migration from hspec
 type SpecM a b c = TestDefM a b c
 
+-- | The test definition monad
+--
+-- This type has three parameters:
+--
+-- * @a@: The type of the result of `aroundAll`
+-- * @b@: The type of the result of `around`
+-- * @c@: The result
+--
+-- In practice, all of these three parameters should be '()' at the top level.
 newtype TestDefM a b c = TestDefM
   { unTestDefM :: RWST TestRunSettings (TestForest a b) () IO c
   }
@@ -74,9 +145,11 @@ filterTestForest f = fromMaybe [] . goForest DList.empty
         guard $ f `T.isInfixOf` (T.intercalate "." tl)
         pure $ DefSpecifyNode t td e
 
+-- | Declare a test group
 describe :: String -> TestDefM a b c -> TestDefM a b c
 describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 
+-- | Declare a test
 it :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test) (Arg2 test) ()
 it s t = do
   sets <- ask
@@ -86,6 +159,10 @@ it s t = do
             testDefCallStack = callStack
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
+
+-- | A synonym for 'it'
+specify :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test) (Arg2 test) ()
+specify = it
 
 modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM a b c -> TestDefM a b c
 modifyRunSettings = local
@@ -215,3 +292,6 @@ instance Traversable (SpecDefTree a c) where
 type ResultForest = SpecForest (TestDef TestRunResult)
 
 type ResultTree = SpecTree (TestDef TestRunResult)
+
+shouldExitFail :: ResultForest -> Bool
+shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))

@@ -5,7 +5,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd
-  ( module Test.Syd,
+  ( sydTest,
+    sydTestWith,
+    Settings (..),
+    Parallelism (..),
     module Test.Syd.Runner,
     module Test.Syd.Run,
     module Test.Syd.SpecForest,
@@ -28,15 +31,14 @@ import Test.Syd.Runner
 import Test.Syd.Silence
 import Test.Syd.SpecForest
 
+-- | Evaluate a test suite definition and then run it, with default 'Settings'
 sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
   sydTestWith sets spec
 
+-- | Evaluate a test suite definition and then run it, with given 'Settings'
 sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
   resultForest <- sydTestResult sets spec
   when (shouldExitFail resultForest) (exitWith (ExitFailure 1))
-
-shouldExitFail :: ResultForest -> Bool
-shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))

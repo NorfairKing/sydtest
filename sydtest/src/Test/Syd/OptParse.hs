@@ -29,19 +29,32 @@ getSettings = do
   config <- getConfiguration flags env
   combineToSettings flags env config
 
--- | A product type for the settings that your program will use
+-- | Test suite definition and run settings
 data Settings = Settings
-  { settingSeed :: !Int,
+  { -- | The seed to use for deterministic randomness
+    settingSeed :: !Int,
+    -- | How parallel to run the test suite
     settingParallelism :: !Parallelism,
+    -- | How many examples to run a property test with
     settingMaxSuccess :: !Int,
+    -- | The maximum size parameter to supply to generators
     settingMaxSize :: !Int,
+    -- | The maximum number of discarded examples per tested example
     settingMaxDiscard :: !Int,
+    -- | The maximum number of tries to use while shrinking a counterexample.
     settingMaxShrinks :: !Int,
+    -- | The filter to use to select which tests to run
     settingFilter :: !(Maybe Text)
   }
   deriving (Show, Eq, Generic)
 
-data Parallelism = Synchronous | ByCapabilities | Asynchronous Int
+data Parallelism
+  = -- | One thread
+    Synchronous
+  | -- | As many threads as 'getNumCapabilities' tells you you have
+    ByCapabilities
+  | -- | A given number of threads
+    Asynchronous Int
   deriving (Show, Eq, Generic)
 
 -- | Combine everything to 'Settings'

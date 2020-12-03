@@ -30,6 +30,10 @@ class IsTest e where
     e ->
     IO TestRunResult
 
+newtype AroundAll a = AroundAll {unAroundAll :: a}
+
+newtype Around b = Around {unAround :: b}
+
 instance IsTest Bool where
   type Arg1 Bool = () -- The argument from 'aroundAll'
   type Arg2 Bool = () -- The argument from 'around'

@@ -79,6 +79,7 @@ test-suite sydtest-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      AroundAllSpec
       AroundSpec
       Paths_sydtest
   hs-source-dirs:

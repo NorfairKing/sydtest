@@ -72,7 +72,7 @@ outputSpecTree :: ResultTree -> [[Chunk]]
 outputSpecTree = \case
   DescribeNode t sf -> outputDescribeLine t : map (chunk "  " :) (outputSpecForest sf)
   SpecifyNode t td -> outputSpecifyLines t td
-  AroundAllNode sf -> outputSpecForest sf
+  SubForestNode sf -> outputSpecForest sf
 
 outputDescribeLine :: Text -> [Chunk]
 outputDescribeLine t = [fore yellow $ chunk t]

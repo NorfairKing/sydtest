@@ -25,7 +25,7 @@ import UnliftIO
 sydTestResult :: Settings -> Spec -> IO ResultForest
 sydTestResult sets spec = do
   specForest <- execTestDefM sets spec
-  case settingParallelism sets of
+  case settingThreads sets of
     Synchronous -> runSpecForestInterleavedWithOutputSynchronously specForest
     ByCapabilities -> do
       i <- getNumCapabilities
@@ -46,7 +46,8 @@ runSpecForestSynchronously = goForest ()
         result <- runFunc
         let td' = td {testDefVal = result}
         pure $ SpecifyNode t td'
-      DefAroundAllNode func sdf -> AroundAllNode <$> applySimpleWrapper func (\b -> goForest b sdf) a
+      DefAroundAllNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest b sdf) a
+      DefParallelismNode _ sdf -> SubForestNode <$> goForest a sdf -- Ignore, it's synchronous anyway
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest () () -> IO ResultForest
 runSpecForestInterleavedWithOutputSynchronously testForest = do
@@ -70,7 +71,10 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-        DefAroundAllNode func sdf -> AroundAllNode <$> applySimpleWrapper func (\b -> goForest level b sdf) a
+        DefAroundAllNode func sdf ->
+          SubForestNode
+            <$> applySimpleWrapper func (\b -> goForest level b sdf) a
+        DefParallelismNode _ sdf -> SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
       goForest :: Int -> a -> TestForest a () -> IO ResultForest
       goForest level a = mapM (goTree level a)
   mapM_ outputLine outputTestsHeader
@@ -101,22 +105,29 @@ makeHandleForest = traverse $
 runner :: Int -> HandleForest () () -> IO ()
 runner nbThreads handleForest = do
   sem <- liftIO $ newQSem nbThreads
-  let goForest :: a -> HandleForest a () -> IO ()
-      goForest a = mapM_ (goTree a)
-      goTree :: a -> HandleTree a () -> IO ()
-      goTree a = \case
-        DefDescribeNode _ sdf -> goForest a sdf
+  let goForest :: Parallelism -> a -> HandleForest a () -> IO ()
+      goForest p a = mapM_ (goTree p a)
+      goTree :: Parallelism -> a -> HandleTree a () -> IO ()
+      goTree p a = \case
+        DefDescribeNode _ sdf -> goForest p a sdf
         DefSpecifyNode _ td var -> do
           liftIO $ waitQSem sem
-          let job :: IO ()
-              job = do
-                result <- testDefVal td (\f -> f a ())
-                putMVar var result
-                liftIO $ signalQSem sem
-          jobAsync <- async job
-          link jobAsync
-        DefAroundAllNode func sdf -> applySimpleWrapper func (\b -> goForest b sdf) a
-  goForest () handleForest
+          let runNow = testDefVal td (\f -> f a ())
+          case p of
+            Parallel -> do
+              let job :: IO ()
+                  job = do
+                    result <- runNow
+                    putMVar var result
+                    liftIO $ signalQSem sem
+              jobAsync <- async job
+              link jobAsync
+            Sequential -> do
+              result <- runNow
+              putMVar var result
+        DefAroundAllNode func sdf -> applySimpleWrapper func (\b -> goForest p b sdf) a
+        DefParallelismNode p' sdf -> goForest p' a sdf
+  goForest Parallel () handleForest
 
 printer :: HandleForest () () -> IO ResultForest
 printer handleForest = do
@@ -138,7 +149,8 @@ printer handleForest = do
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-        DefAroundAllNode _ sdf -> AroundAllNode <$> goForest level sdf
+        DefAroundAllNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf
       goForest :: Int -> HandleForest a b -> IO ResultForest
       goForest level = mapM (goTree level)
   mapM_ outputLine $ outputTestsHeader

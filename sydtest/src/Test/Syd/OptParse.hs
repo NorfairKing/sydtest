@@ -34,7 +34,7 @@ data Settings = Settings
   { -- | The seed to use for deterministic randomness
     settingSeed :: !Int,
     -- | How parallel to run the test suite
-    settingParallelism :: !Parallelism,
+    settingThreads :: !Threads,
     -- | How many examples to run a property test with
     settingMaxSuccess :: !Int,
     -- | The maximum size parameter to supply to generators
@@ -53,7 +53,7 @@ defaultSettings =
   let d func = func defaultTestRunSettings
    in Settings
         { settingSeed = d testRunSettingSeed,
-          settingParallelism = ByCapabilities,
+          settingThreads = ByCapabilities,
           settingMaxSuccess = d testRunSettingMaxSuccess,
           settingMaxSize = d testRunSettingMaxSize,
           settingMaxDiscard = d testRunSettingMaxDiscardRatio,
@@ -61,7 +61,7 @@ defaultSettings =
           settingFilter = Nothing
         }
 
-data Parallelism
+data Threads
   = -- | One thread
     Synchronous
   | -- | As many threads as 'getNumCapabilities' tells you you have
@@ -77,7 +77,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
   pure
     Settings
       { settingSeed = fromMaybe (d settingSeed) $ flagSeed <|> envSeed <|> mc configSeed,
-        settingParallelism = fromMaybe (d settingParallelism) $ flagParallelism <|> envParallelism <|> mc configParallelism,
+        settingThreads = fromMaybe (d settingThreads) $ flagThreads <|> envThreads <|> mc configThreads,
         settingMaxSuccess = fromMaybe (d settingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess,
         settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
         settingMaxDiscard = fromMaybe (d settingMaxDiscard) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
@@ -96,7 +96,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
 -- Use 'YamlParse.readConfigFile' or 'YamlParse.readFirstConfigFile' to read a configuration.
 data Configuration = Configuration
   { configSeed :: !(Maybe Int),
-    configParallelism :: !(Maybe Parallelism),
+    configThreads :: !(Maybe Threads),
     configMaxSize :: !(Maybe Int),
     configMaxSuccess :: !(Maybe Int),
     configMaxDiscard :: !(Maybe Int),
@@ -121,7 +121,7 @@ instance YamlSchema Configuration where
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
 
-instance YamlSchema Parallelism where
+instance YamlSchema Threads where
   yamlSchema = flip fmap yamlSchema $ \case
     Nothing -> ByCapabilities
     Just 1 -> Synchronous
@@ -155,7 +155,7 @@ defaultConfigFile = do
 data Environment = Environment
   { envConfigFile :: Maybe FilePath,
     envSeed :: !(Maybe Int),
-    envParallelism :: !(Maybe Parallelism),
+    envThreads :: !(Maybe Threads),
     envMaxSize :: !(Maybe Int),
     envMaxSuccess :: !(Maybe Int),
     envMaxDiscard :: !(Maybe Int),
@@ -174,16 +174,16 @@ environmentParser =
     Environment
       <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (mE <> Env.help "Config file")
       <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
-      <*> Env.var (fmap Just . (Env.auto >=> parseParallelism)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
+      <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
       <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
       <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
       <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
       <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
       <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
   where
-    parseParallelism :: Int -> Either e Parallelism
-    parseParallelism 1 = Right Synchronous
-    parseParallelism i = Right (Asynchronous i)
+    parseThreads :: Int -> Either e Threads
+    parseThreads 1 = Right Synchronous
+    parseThreads i = Right (Asynchronous i)
     mE = Env.def Nothing
 
 -- | Get the command-line flags
@@ -219,7 +219,7 @@ flagsParser =
 data Flags = Flags
   { flagConfigFile :: Maybe FilePath,
     flagSeed :: Maybe Int,
-    flagParallelism :: Maybe Parallelism,
+    flagThreads :: Maybe Threads,
     flagMaxSuccess :: Maybe Int,
     flagMaxSize :: Maybe Int,
     flagMaxDiscard :: Maybe Int,

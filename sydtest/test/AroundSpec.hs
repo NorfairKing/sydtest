@@ -5,9 +5,9 @@ import Control.Monad.IO.Class
 import Test.Syd
 
 spec :: Spec
-spec = do
+spec = sequential $
   describe "before" $ do
-    var <- liftIO $ newTVarIO 1
+    var <- liftIO $ newTVarIO (1 :: Int)
     let readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
     before_ (() <$ readAndIncrement) $
       before readAndIncrement $ do

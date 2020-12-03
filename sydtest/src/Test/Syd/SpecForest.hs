@@ -12,20 +12,20 @@ type SpecForest a = [SpecTree a]
 data SpecTree a
   = DescribeNode Text (SpecForest a) -- A description
   | SpecifyNode Text a -- A test with its description
-  | AroundAllNode (SpecForest a) -- A test with its description
+  | SubForestNode (SpecForest a) -- A test with its description
   deriving (Functor)
 
 instance Foldable SpecTree where
   foldMap f = \case
     DescribeNode _ sts -> foldMap (foldMap f) sts
     SpecifyNode _ a -> f a
-    AroundAllNode sts -> foldMap (foldMap f) sts
+    SubForestNode sts -> foldMap (foldMap f) sts
 
 instance Traversable SpecTree where
   traverse func = \case
     DescribeNode s sf -> DescribeNode s <$> traverse (traverse func) sf
     SpecifyNode s a -> SpecifyNode s <$> func a
-    AroundAllNode sf -> AroundAllNode <$> traverse (traverse func) sf
+    SubForestNode sf -> SubForestNode <$> traverse (traverse func) sf
 
 flattenSpecForest :: SpecForest a -> [([Text], a)]
 flattenSpecForest = concatMap flattenSpecTree
@@ -34,4 +34,4 @@ flattenSpecTree :: SpecTree a -> [([Text], a)]
 flattenSpecTree = \case
   DescribeNode t sf -> map (\(ts, a) -> (t : ts, a)) $ flattenSpecForest sf
   SpecifyNode t a -> [([t], a)]
-  AroundAllNode sf -> flattenSpecForest sf
+  SubForestNode sf -> flattenSpecForest sf

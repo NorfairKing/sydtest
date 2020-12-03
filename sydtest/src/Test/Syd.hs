@@ -11,7 +11,7 @@ module Test.Syd
     sydTestWith,
     Settings (..),
     defaultSettings,
-    Parallelism (..),
+    Threads (..),
 
     -- * Defining a test suite
 
@@ -46,6 +46,12 @@ module Test.Syd
     modifyMaxSize,
     modifyMaxShrinks,
     modifyRunSettings,
+
+    -- *** Declaring parallelism
+    sequential,
+    parallel,
+    withParallelism,
+    Parallelism (..),
 
     -- ** Test definition types
     TestDefM (..),

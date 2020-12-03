@@ -43,6 +43,12 @@ module Test.Syd.Def
     modifyMaxShrinks,
     modifyRunSettings,
 
+    -- *** Declaring parallelism
+    sequential,
+    parallel,
+    withParallelism,
+    Parallelism (..),
+
     -- * Test definition types
     TestDefM (..),
     execTestDefM,
@@ -83,13 +89,13 @@ import Test.Syd.SpecForest
 import UnliftIO
 
 -- | A synonym for easy migration from hspec
-type Spec = SpecWith () ()
+type Spec = SpecWith ()
 
 -- | A synonym for easy migration from hspec
-type SpecWith a b = SpecM a b ()
+type SpecWith a = SpecM a ()
 
 -- | A synonym for easy migration from hspec
-type SpecM a b c = TestDefM a b c
+type SpecM a b = TestDefM () a b
 
 -- | The test definition monad
 --
@@ -144,6 +150,7 @@ filterTestForest f = fromMaybe [] . goForest DList.empty
         let tl = DList.toList (DList.snoc dl t)
         guard $ f `T.isInfixOf` (T.intercalate "." tl)
         pure $ DefSpecifyNode t td e
+      DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
 
 -- | Declare a test group
 describe :: String -> TestDefM a b c -> TestDefM a b c
@@ -194,6 +201,17 @@ modifyMaxSize func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRa
 modifyMaxShrinks :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
 modifyMaxShrinks func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
 
+-- | Declare that all tests below must be run sequentially
+sequential :: TestDefM a b c -> TestDefM a b c
+sequential = withParallelism Sequential
+
+-- | Declare that all tests below may be run in parallel. (This is the default.)
+parallel :: TestDefM a b c -> TestDefM a b c
+parallel = withParallelism Parallel
+
+withParallelism :: Parallelism -> TestDefM a b c -> TestDefM a b c
+withParallelism p = censor ((: []) . DefParallelismNode p)
+
 -- | Run a custom action before every spec item.
 before :: IO c -> TestDefM a c e -> TestDefM a () e
 before action = around (action >>=)
@@ -235,6 +253,7 @@ aroundWith func (TestDefM rwst) = TestDefM $
           DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
           DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
           DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
+          DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
         modifyForest :: forall x e. SpecDefForest x c e -> SpecDefForest x d e
         modifyForest = map modifyTree
     let forest' :: SpecDefForest a d ()
@@ -285,24 +304,30 @@ data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around
   DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
   DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
   DefAroundAllNode :: ((a -> IO ()) -> (b -> IO ())) -> SpecDefForest a c e -> SpecDefTree b c e
+  DefParallelismNode :: Parallelism -> SpecDefForest a c e -> SpecDefTree a c e
 
 instance Functor (SpecDefTree a c) where
   fmap f = \case
     DefDescribeNode t sf -> DefDescribeNode t (map (fmap f) sf)
     DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
     DefAroundAllNode func sdf -> DefAroundAllNode func (map (fmap f) sdf)
+    DefParallelismNode p sdf -> DefParallelismNode p (map (fmap f) sdf)
 
 instance Foldable (SpecDefTree a c) where
   foldMap f = \case
     DefDescribeNode _ sf -> foldMap (foldMap f) sf
     DefSpecifyNode _ _ e -> f e
     DefAroundAllNode _ sdf -> foldMap (foldMap f) sdf
+    DefParallelismNode _ sdf -> foldMap (foldMap f) sdf
 
 instance Traversable (SpecDefTree a c) where
   traverse f = \case
     DefDescribeNode t sdf -> DefDescribeNode t <$> traverse (traverse f) sdf
     DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
     DefAroundAllNode func sdf -> DefAroundAllNode func <$> traverse (traverse f) sdf
+    DefParallelismNode p sdf -> DefParallelismNode p <$> traverse (traverse f) sdf
+
+data Parallelism = Parallel | Sequential
 
 type ResultForest = SpecForest (TestDef TestRunResult)
 

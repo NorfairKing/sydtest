@@ -188,27 +188,46 @@ around_ :: (IO () -> IO ()) -> TestDefM a c e -> TestDefM a c e
 around_ action = aroundWith $ \e a -> action (e a)
 
 aroundWith :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
-aroundWith func (TestDefM rwst) = TestDefM $
+aroundWith func = aroundWith' $ \(takeACFunc :: a -> c -> IO ()) a d ->
+  undefined
+
+aroundWith' :: forall a c d r. ((a -> c -> IO ()) -> (a -> d -> IO ())) -> TestDefM a c r -> TestDefM a d r
+aroundWith' func (TestDefM rwst) = TestDefM $
   flip mapRWST rwst $ \inner -> do
     (res, s, forest) <- inner
     let modifyVal ::
           forall x.
+          ((x -> IO ()) -> (a -> IO ())) ->
           (((x -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
-          (((x -> d -> IO ()) -> IO ()) -> IO TestRunResult)
-        modifyVal takeSupplyA supplyB =
-          let supplyA :: (x -> c -> IO ()) -> IO ()
-              supplyA takeA = supplyB $ \x -> func (takeA x)
-           in takeSupplyA supplyA
-        modifyTree :: forall x e. SpecDefTree x c e -> SpecDefTree x d e
-        modifyTree = \case
-          DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
-          DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
-          DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
-          DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
-        modifyForest :: forall x e. SpecDefForest x c e -> SpecDefForest x d e
-        modifyForest = map modifyTree
+          ((x -> d -> IO ()) -> IO ()) ->
+          IO TestRunResult
+        modifyVal modFunc takeSupplyXC supplyXD =
+          let supplyXC :: (x -> c -> IO ()) -> IO ()
+              supplyXC takeXC =
+                let takeXD :: x -> d -> IO ()
+                    takeXD x d = undefined
+                 in -- let takeAC a c =
+                    -- in func takeAC :: a -> d -> IO ()
+                    -- func takeXC x d
+                    -- let takeAC a c =
+                    --       modFunc
+                    --         ( \x -> takeXC x c
+                    --         )
+                    --         a
+                    --  in func takeAC x d
+                    supplyXD takeXD
+           in takeSupplyXC supplyXC
+        -- modifyTree :: forall x. SpecDefTree a c e ->
+        modifyTree :: forall x e. ((x -> IO ()) -> (a -> IO ())) -> SpecDefTree x c e -> SpecDefTree x d e
+        modifyTree modFunc = \case
+          DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest modFunc sdf
+          DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal modFunc <$> td) e
+          DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest (modFunc . f) sdf
+          DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest modFunc sdf
+        modifyForest :: forall x e. ((x -> IO ()) -> (a -> IO ())) -> SpecDefForest x c e -> SpecDefForest x d e
+        modifyForest modFunc = map (modifyTree modFunc)
     let forest' :: SpecDefForest a d ()
-        forest' = modifyForest forest
+        forest' = modifyForest id forest
     pure (res, s, forest')
 
 -- | Run a custom action before all spec items.

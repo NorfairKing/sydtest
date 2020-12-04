@@ -206,22 +206,15 @@ aroundWith' func (TestDefM rwst) = TestDefM $
               supplyXC takeXC =
                 let takeXD :: x -> d -> IO ()
                     takeXD x d = undefined
-                 in -- let takeAC a c =
-                    -- in func takeAC :: a -> d -> IO ()
-                    -- func takeXC x d
-                    -- let takeAC a c =
-                    --       modFunc
-                    --         ( \x -> takeXC x c
-                    --         )
-                    --         a
-                    --  in func takeAC x d
-                    supplyXD takeXD
+                 in supplyXD takeXD
            in takeSupplyXC supplyXC
-        -- modifyTree :: forall x. SpecDefTree a c e ->
+        -- For this function to work recursively, the first parameter of the input and the output types must be the same
         modifyTree :: forall x e. ((x -> IO ()) -> (a -> IO ())) -> SpecDefTree x c e -> SpecDefTree x d e
         modifyTree modFunc = \case
           DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest modFunc sdf
           DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal modFunc <$> td) e
+          -- Definition:
+          -- DefAroundAllNode :: ((u -> IO ()) -> (x -> IO ())) -> SpecDefForest u c e -> SpecDefTree x c e
           DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest (modFunc . f) sdf
           DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest modFunc sdf
         modifyForest :: forall x e. ((x -> IO ()) -> (a -> IO ())) -> SpecDefForest x c e -> SpecDefForest x d e

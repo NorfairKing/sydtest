@@ -19,6 +19,7 @@ import Test.Syd.Def
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
+import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import UnliftIO
 
@@ -111,10 +112,10 @@ runner nbThreads handleForest = do
       goTree p a = \case
         DefDescribeNode _ sdf -> goForest p a sdf
         DefSpecifyNode _ td var -> do
-          liftIO $ waitQSem sem
           let runNow = testDefVal td (\f -> f a ())
           case p of
             Parallel -> do
+              liftIO $ waitQSem sem
               let job :: IO ()
                   job = do
                     result <- runNow

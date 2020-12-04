@@ -19,8 +19,8 @@ import Rainbow
 import Rainbow.Types (Chunk (..))
 import Safe
 import Test.QuickCheck.IO ()
-import Test.Syd.Def
 import Test.Syd.Run
+import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Printf
 

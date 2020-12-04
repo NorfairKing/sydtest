@@ -36,19 +36,6 @@ module Test.Syd.Def
     around_,
     aroundWith,
 
-    -- *** Declaring different test settings
-    modifyMaxSuccess,
-    modifyMaxDiscardRatio,
-    modifyMaxSize,
-    modifyMaxShrinks,
-    modifyRunSettings,
-
-    -- *** Declaring parallelism
-    sequential,
-    parallel,
-    withParallelism,
-    Parallelism (..),
-
     -- * Test definition types
     TestDefM (..),
     execTestDefM,
@@ -57,16 +44,6 @@ module Test.Syd.Def
     -- ** Implementation details
     toTestRunSettings,
     filterTestForest,
-
-    -- * Test suite types
-    TestDef (..),
-    TestForest,
-    TestTree,
-    SpecDefForest,
-    SpecDefTree (..),
-    ResultForest,
-    ResultTree,
-    shouldExitFail,
 
     -- * Hspec synonyms
     Spec,
@@ -85,7 +62,7 @@ import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.OptParse
 import Test.Syd.Run
-import Test.Syd.SpecForest
+import Test.Syd.SpecDef
 import UnliftIO
 
 -- | A synonym for easy migration from hspec
@@ -186,32 +163,6 @@ it s t = do
 specify :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test) (Arg2 test) ()
 specify = it
 
-modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM a b c -> TestDefM a b c
-modifyRunSettings = local
-
-modifyMaxSuccess :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
-modifyMaxSuccess func = modifyRunSettings $ \trs -> trs {testRunSettingMaxSuccess = func (testRunSettingMaxSuccess trs)}
-
-modifyMaxDiscardRatio :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
-modifyMaxDiscardRatio func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
-
-modifyMaxSize :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
-modifyMaxSize func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
-
-modifyMaxShrinks :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
-modifyMaxShrinks func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
-
--- | Declare that all tests below must be run sequentially
-sequential :: TestDefM a b c -> TestDefM a b c
-sequential = withParallelism Sequential
-
--- | Declare that all tests below may be run in parallel. (This is the default.)
-parallel :: TestDefM a b c -> TestDefM a b c
-parallel = withParallelism Parallel
-
-withParallelism :: Parallelism -> TestDefM a b c -> TestDefM a b c
-withParallelism p = censor ((: []) . DefParallelismNode p)
-
 -- | Run a custom action before every spec item.
 before :: IO c -> TestDefM a c e -> TestDefM a () e
 before action = around (action >>=)
@@ -290,48 +241,3 @@ aroundAllWith func (TestDefM rwst) = TestDefM $
     (res, s, forest) <- inner
     let forest' = [DefAroundAllNode func forest]
     pure (res, s, forest')
-
-data TestDef v = TestDef {testDefVal :: v, testDefCallStack :: CallStack}
-  deriving (Functor, Foldable, Traversable)
-
-type TestForest a c = SpecDefForest a c ()
-
-type TestTree a c = SpecDefTree a c ()
-
-type SpecDefForest a c e = [SpecDefTree a c e]
-
-data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
-  DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
-  DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
-  DefAroundAllNode :: ((a -> IO ()) -> (b -> IO ())) -> SpecDefForest a c e -> SpecDefTree b c e
-  DefParallelismNode :: Parallelism -> SpecDefForest a c e -> SpecDefTree a c e
-
-instance Functor (SpecDefTree a c) where
-  fmap f = \case
-    DefDescribeNode t sf -> DefDescribeNode t (map (fmap f) sf)
-    DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
-    DefAroundAllNode func sdf -> DefAroundAllNode func (map (fmap f) sdf)
-    DefParallelismNode p sdf -> DefParallelismNode p (map (fmap f) sdf)
-
-instance Foldable (SpecDefTree a c) where
-  foldMap f = \case
-    DefDescribeNode _ sf -> foldMap (foldMap f) sf
-    DefSpecifyNode _ _ e -> f e
-    DefAroundAllNode _ sdf -> foldMap (foldMap f) sdf
-    DefParallelismNode _ sdf -> foldMap (foldMap f) sdf
-
-instance Traversable (SpecDefTree a c) where
-  traverse f = \case
-    DefDescribeNode t sdf -> DefDescribeNode t <$> traverse (traverse f) sdf
-    DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
-    DefAroundAllNode func sdf -> DefAroundAllNode func <$> traverse (traverse f) sdf
-    DefParallelismNode p sdf -> DefParallelismNode p <$> traverse (traverse f) sdf
-
-data Parallelism = Parallel | Sequential
-
-type ResultForest = SpecForest (TestDef TestRunResult)
-
-type ResultTree = SpecTree (TestDef TestRunResult)
-
-shouldExitFail :: ResultForest -> Bool
-shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))

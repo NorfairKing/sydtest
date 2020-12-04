@@ -76,13 +76,15 @@ module Test.Syd
     -- * Defining tests
 
     -- * Reexports
-    module Test.Syd.Runner,
-    module Test.Syd.Run,
-    module Test.Syd.SpecForest,
-    module Test.Syd.Expectation,
-    module Test.Syd.Output,
-    module Test.Syd.Silence,
     module Test.Syd.Def,
+    module Test.Syd.Expectation,
+    module Test.Syd.Modify,
+    module Test.Syd.Output,
+    module Test.Syd.Run,
+    module Test.Syd.Runner,
+    module Test.Syd.Silence,
+    module Test.Syd.SpecDef,
+    module Test.Syd.SpecForest,
   )
 where
 
@@ -91,11 +93,13 @@ import System.Exit
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
 import Test.Syd.Expectation
+import Test.Syd.Modify
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner
 import Test.Syd.Silence
+import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 
 -- | Evaluate a test suite definition and then run it, with default 'Settings'

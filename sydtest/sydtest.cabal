@@ -23,11 +23,13 @@ library
       Test.Syd
       Test.Syd.Def
       Test.Syd.Expectation
+      Test.Syd.Modify
       Test.Syd.OptParse
       Test.Syd.Output
       Test.Syd.Run
       Test.Syd.Runner
       Test.Syd.Silence
+      Test.Syd.SpecDef
       Test.Syd.SpecForest
   other-modules:
       Paths_sydtest

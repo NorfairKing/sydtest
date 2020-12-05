@@ -8,16 +8,27 @@ import Control.Monad.IO.Class
 import Test.Syd
 
 spec :: Spec
-spec = sequential $
+spec = sequential $ do
   describe "beforeAll" $ do
-    var <- liftIO $ newTVarIO (1 :: Int)
+    var <- liftIO $ newTVarIO (0 :: Int)
     let readAndIncrement :: IO Int
-        readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
+        readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
     beforeAll readAndIncrement $ do
       let t :: HList '[Int] -> () -> IO ()
           t (HCons i HNil) () = i `shouldBe` 1
-      it' "reads 2" t
-      it' "reads 2" t
+      it' "reads 1" t
+      it' "reads 1" t
+  describe "beforeAll_" $ do
+    var <- liftIO $ newTVarIO (0 :: Int)
+    let increment :: IO ()
+        increment = atomically $ modifyTVar var (+ 1)
+    beforeAll_ increment $ do
+      let t :: IO ()
+          t = do
+            i <- readTVarIO var
+            i `shouldBe` 1
+      it' "reads 1" t
+      it' "reads 1" t
 
 --  describe "beforeAll" $ do
 --    var <- liftIO $ newTVarIO (1 :: Int)

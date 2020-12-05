@@ -49,7 +49,6 @@ runSpecForestSynchronously = goForest ()
         let td' = td {testDefVal = result}
         pure $ SpecifyNode t td'
       DefWrapNode func sdf -> SubForestNode <$> applySimpleWrapper'' func (goForest a sdf)
-      DefAroundAllNode func sdf -> SubForestNode <$> applySimpleWrapper' func (\b -> goForest b sdf)
       DefAroundAllWithNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b a) sdf) (getElem a)
       DefAfterAllNode func sdf -> SubForestNode <$> (goForest a sdf `finally` func a)
       DefParallelismNode _ sdf -> SubForestNode <$> goForest a sdf -- Ignore, it's synchronous anyway
@@ -77,7 +76,6 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
         DefWrapNode func sdf -> SubForestNode <$> applySimpleWrapper'' func (goForest level a sdf)
-        DefAroundAllNode func sdf -> SubForestNode <$> applySimpleWrapper' func (\b -> goForest level b sdf)
         DefAroundAllWithNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) (getElem a)
         DefAfterAllNode func sdf -> SubForestNode <$> (goForest level a sdf `finally` func a)
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
@@ -132,7 +130,6 @@ runner nbThreads handleForest = do
               result <- runNow
               putMVar var result
         DefWrapNode func sdf -> func (goForest p a sdf)
-        DefAroundAllNode func sdf -> func (\b -> goForest p b sdf)
         DefAroundAllWithNode func sdf -> func (\b -> goForest p (HCons b a) sdf) (getElem a)
         DefAfterAllNode func sdf -> goForest p a sdf `finally` func a
         DefParallelismNode p' sdf -> goForest p' a sdf
@@ -159,7 +156,6 @@ printer handleForest = do
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
         DefWrapNode _ sdf -> SubForestNode <$> goForest level sdf
-        DefAroundAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAfterAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf

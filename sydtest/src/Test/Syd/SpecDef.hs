@@ -38,12 +38,7 @@ data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around
   DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
   DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
   DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
-  DefAroundAllNode :: ((a -> IO ()) -> IO ()) -> SpecDefForest a c e -> SpecDefTree () c e
   DefAroundAllWithNode ::
-    -- ( HContains (HList a l) a,
-    --   HContains (HList b (a ': l)) a,
-    --   HContains (HList b (a ': l)) b
-    -- ) =>
     ((b -> IO ()) -> (a -> IO ())) ->
     SpecDefForest (HList b (a ': l)) c e ->
     SpecDefTree (HList a l) c e
@@ -59,7 +54,6 @@ instance Functor (SpecDefTree a c) where
           DefDescribeNode t sdf -> DefDescribeNode t $ goF sdf
           DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
           DefWrapNode func sdf -> DefWrapNode func $ goF sdf
-          DefAroundAllNode func sdf -> DefAroundAllNode func $ goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
@@ -73,7 +67,6 @@ instance Foldable (SpecDefTree a c) where
           DefDescribeNode _ sdf -> goF sdf
           DefSpecifyNode _ _ e -> f e
           DefWrapNode _ sdf -> goF sdf
-          DefAroundAllNode _ sdf -> goF sdf
           DefAroundAllWithNode _ sdf -> goF sdf
           DefAfterAllNode _ sdf -> goF sdf
           DefParallelismNode _ sdf -> goF sdf
@@ -87,7 +80,6 @@ instance Traversable (SpecDefTree a c) where
           DefDescribeNode t sdf -> DefDescribeNode t <$> goF sdf
           DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
           DefWrapNode func sdf -> DefWrapNode func <$> goF sdf
-          DefAroundAllNode func sdf -> DefAroundAllNode func <$> goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf

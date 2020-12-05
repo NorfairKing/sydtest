@@ -22,6 +22,7 @@ module Test.Syd.SpecDef where
 import Data.Text (Text)
 import GHC.Stack
 import Test.QuickCheck.IO ()
+import Test.Syd.HList
 import Test.Syd.Run
 import Test.Syd.SpecForest
 
@@ -32,18 +33,22 @@ type TestForest a c = SpecDefForest a c ()
 
 type TestTree a c = SpecDefTree a c ()
 
-type SpecDefForest a c e = [SpecDefTree a c e]
+type SpecDefForest (a :: [*]) c e = [SpecDefTree a c e]
 
-data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
-  DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
+data SpecDefTree (a :: [*]) c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
+  DefSpecifyNode ::
+    Text ->
+    TestDef (((HList a -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
+    e ->
+    SpecDefTree a c e -- A test with its description
   DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
   DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
-  DefBeforeAllNode :: IO a -> SpecDefForest (HList (a ': l)) c e -> SpecDefTree (HList l) c e
+  DefBeforeAllNode :: IO a -> SpecDefForest (a ': l) c e -> SpecDefTree l c e
   DefAroundAllWithNode ::
     ((b -> IO ()) -> (a -> IO ())) ->
-    SpecDefForest (HList (b ': a ': l)) c e ->
-    SpecDefTree (HList (a ': l)) c e
-  DefAfterAllNode :: (a -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
+    SpecDefForest (b ': a ': l) c e ->
+    SpecDefTree (a ': l) c e
+  DefAfterAllNode :: (HList a -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
   DefParallelismNode :: Parallelism -> SpecDefForest a c e -> SpecDefTree a c e
 
 instance Functor (SpecDefTree a c) where
@@ -96,25 +101,3 @@ type ResultTree = SpecTree (TestDef TestRunResult)
 
 shouldExitFail :: ResultForest -> Bool
 shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))
-
-data HList (r :: [*]) where
-  HNill :: HList '[]
-  HCons :: e -> HList l -> HList (e ': l)
-
-class HContains a b where
-  getElem :: a -> b
-
-instance HContains (HList '[]) () where
-  getElem HNill = ()
-
-instance HContains (HList '[a]) a where
-  getElem (HCons a _) = a
-
-instance HContains (HList l) a => HContains (HList (a ': l)) a where
-  getElem (HCons a _) = getElem a
-
-instance HContains (HList l) a => HContains (HList (b ': l)) a where
-  getElem (HCons _ hl) = getElem hl
-
-instance {-# OVERLAPPING #-} HContains a a where
-  getElem = id

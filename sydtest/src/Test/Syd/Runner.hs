@@ -20,6 +20,7 @@ import qualified Data.Text as T
 import Rainbow
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
+import Test.Syd.HList
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
@@ -27,7 +28,7 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import UnliftIO
 
-sydTestResult :: Settings -> TestDefM () () r -> IO ResultForest
+sydTestResult :: Settings -> TestDefM '[] () r -> IO ResultForest
 sydTestResult sets spec = do
   specForest <- execTestDefM sets spec
   case settingThreads sets of
@@ -38,12 +39,12 @@ sydTestResult sets spec = do
     Asynchronous i ->
       runSpecForestInterleavedWithOutputAsynchronously i specForest
 
-runSpecForestSynchronously :: TestForest () () -> IO ResultForest
-runSpecForestSynchronously = goForest ()
+runSpecForestSynchronously :: TestForest '[] () -> IO ResultForest
+runSpecForestSynchronously = goForest HNil
   where
-    goForest :: a -> TestForest a () -> IO ResultForest
+    goForest :: HList a -> TestForest a () -> IO ResultForest
     goForest a = mapM (goTree a)
-    goTree :: forall a. a -> TestTree a () -> IO ResultTree
+    goTree :: forall a. HList a -> TestTree a () -> IO ResultTree
     goTree a = \case
       DefDescribeNode t sdf -> DescribeNode t <$> goForest a sdf
       DefSpecifyNode t td () -> do
@@ -64,7 +65,7 @@ runSpecForestSynchronously = goForest ()
       DefAfterAllNode func sdf -> SubForestNode <$> (goForest a sdf `finally` func a)
       DefParallelismNode _ sdf -> SubForestNode <$> goForest a sdf -- Ignore, it's synchronous anyway
 
-runSpecForestInterleavedWithOutputSynchronously :: TestForest () () -> IO ResultForest
+runSpecForestInterleavedWithOutputSynchronously :: TestForest '[] () -> IO ResultForest
 runSpecForestInterleavedWithOutputSynchronously testForest = do
   byteStringMaker <- liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> IO ()
@@ -75,7 +76,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           SB8.putStrLn ""
   let pad :: Int -> [Chunk] -> [Chunk]
       pad level = (chunk (T.replicate (level * 2) " ") :)
-      goTree :: Int -> a -> TestTree a () -> IO ResultTree
+      goTree :: Int -> HList a -> TestTree a () -> IO ResultTree
       goTree level a = \case
         DefDescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
@@ -98,16 +99,16 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
            in SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) x
         DefAfterAllNode func sdf -> SubForestNode <$> (goForest level a sdf `finally` func a)
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
-      goForest :: Int -> a -> TestForest a () -> IO ResultForest
+      goForest :: Int -> HList a -> TestForest a () -> IO ResultForest
       goForest level a = mapM (goTree level a)
   mapM_ outputLine outputTestsHeader
-  resultForest <- goForest 0 () testForest
+  resultForest <- goForest 0 HNil testForest
   outputLine $ [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
   pure resultForest
 
 -- This fails miserably when silencing is used.
-runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest () () -> IO ResultForest
+runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest '[] () -> IO ResultForest
 runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   let runRunner = runner nbThreads handleForest
@@ -125,12 +126,12 @@ makeHandleForest = traverse $
     var <- newEmptyMVar
     pure var
 
-runner :: Int -> HandleForest () () -> IO ()
+runner :: Int -> HandleForest '[] () -> IO ()
 runner nbThreads handleForest = do
   sem <- liftIO $ newQSem nbThreads
-  let goForest :: Parallelism -> a -> HandleForest a () -> IO ()
+  let goForest :: Parallelism -> HList a -> HandleForest a () -> IO ()
       goForest p a = mapM_ (goTree p a)
-      goTree :: Parallelism -> a -> HandleTree a () -> IO ()
+      goTree :: Parallelism -> HList a -> HandleTree a () -> IO ()
       goTree p a = \case
         DefDescribeNode _ sdf -> goForest p a sdf
         DefSpecifyNode _ td var -> do
@@ -157,9 +158,9 @@ runner nbThreads handleForest = do
            in func (\b -> goForest p (HCons b a) sdf) x
         DefAfterAllNode func sdf -> goForest p a sdf `finally` func a
         DefParallelismNode p' sdf -> goForest p' a sdf
-  goForest Parallel () handleForest
+  goForest Parallel HNil handleForest
 
-printer :: HandleForest () () -> IO ResultForest
+printer :: HandleForest '[] () -> IO ResultForest
 printer handleForest = do
   byteStringMaker <- liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> IO ()

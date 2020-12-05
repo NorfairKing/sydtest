@@ -7,7 +7,6 @@ module Main where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
-import Control.Monad.IO.Class
 import Data.List
 import System.Exit
 import Test.QuickCheck

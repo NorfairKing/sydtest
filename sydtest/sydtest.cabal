@@ -23,6 +23,7 @@ library
       Test.Syd
       Test.Syd.Def
       Test.Syd.Expectation
+      Test.Syd.HList
       Test.Syd.Modify
       Test.Syd.OptParse
       Test.Syd.Output

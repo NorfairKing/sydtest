@@ -11,12 +11,13 @@ spec :: Spec
 spec = sequential $
   describe "beforeAll" $ do
     var <- liftIO $ newTVarIO (1 :: Int)
-    let readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
-    beforeAll (() <$ readAndIncrement) $ do
-      it "reads 2" $ \i () ->
-        i `shouldBe` 1
-      it "reads 2" $ \i () ->
-        i `shouldBe` 1
+    let readAndIncrement :: IO Int
+        readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
+    beforeAll readAndIncrement $ do
+      let t :: HList '[Int] -> () -> IO ()
+          t (HCons i HNil) () = i `shouldBe` 1
+      it' "reads 2" t
+      it' "reads 2" t
 
 --  describe "beforeAll" $ do
 --    var <- liftIO $ newTVarIO (1 :: Int)

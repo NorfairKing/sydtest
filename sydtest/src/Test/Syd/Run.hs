@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
@@ -16,14 +17,13 @@ import System.TimeIt
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
+import Test.Syd.HList
 import Test.Syd.Silence
 import UnliftIO
 
 class IsTest e where
   type Arg1 e
-  type Arg1 e = ()
   type Arg2 e
-  type Arg2 e = ()
   runTest ::
     TestRunSettings ->
     ((Arg1 e -> Arg2 e -> IO ()) -> IO ()) ->
@@ -31,14 +31,16 @@ class IsTest e where
     IO TestRunResult
 
 instance IsTest Bool where
-  type Arg1 Bool = () -- The argument from 'aroundAll'
+  type Arg1 Bool = HList '[] -- The argument from 'aroundAll'
   type Arg2 Bool = () -- The argument from 'around'
-  runTest sets wrapper func = runTest sets wrapper (\() () -> func)
+  runTest sets wrapper func =
+    runTest sets wrapper (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> Bool) where
-  type Arg1 (arg -> Bool) = ()
+  type Arg1 (arg -> Bool) = HList '[]
   type Arg2 (arg -> Bool) = arg
-  runTest sets wrapper func = runTest sets wrapper (\() -> func)
+  runTest sets wrapper func =
+    runTest sets wrapper (\(HNil :: HList '[]) arg -> func arg)
 
 instance IsTest (arg1 -> arg2 -> Bool) where
   type Arg1 (arg1 -> arg2 -> Bool) = arg1
@@ -78,14 +80,14 @@ applyWrapper2 wrapper func = do
   liftIO $ readMVar var
 
 instance IsTest (IO a) where
-  type Arg1 (IO a) = ()
+  type Arg1 (IO a) = HList '[]
   type Arg2 (IO a) = ()
-  runTest sets wrapper func = runTest sets wrapper (\() () -> func)
+  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> IO a) where
-  type Arg1 (arg -> IO a) = ()
+  type Arg1 (arg -> IO a) = HList '[]
   type Arg2 (arg -> IO a) = arg
-  runTest sets wrapper func = runTest sets wrapper (\() -> func)
+  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) -> func)
 
 instance IsTest (arg1 -> arg2 -> IO a) where
   type Arg1 (arg1 -> arg2 -> IO a) = arg1
@@ -113,14 +115,14 @@ runIOTestWithArg TestRunSettings {..} wrapper func = do
   pure TestRunResult {..}
 
 instance IsTest Property where
-  type Arg1 Property = ()
+  type Arg1 Property = HList '[]
   type Arg2 Property = ()
-  runTest sets wrapper func = runTest sets wrapper (\() () -> func)
+  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> Property) where
-  type Arg1 (arg -> Property) = ()
+  type Arg1 (arg -> Property) = HList '[]
   type Arg2 (arg -> Property) = arg
-  runTest sets wrapper func = runTest sets wrapper (\() -> func)
+  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) -> func)
 
 instance IsTest (arg1 -> arg2 -> Property) where
   type Arg1 (arg1 -> arg2 -> Property) = arg1

@@ -78,6 +78,7 @@ module Test.Syd
     -- * Reexports
     module Test.Syd.Def,
     module Test.Syd.Expectation,
+    module Test.Syd.HList,
     module Test.Syd.Modify,
     module Test.Syd.Output,
     module Test.Syd.Run,
@@ -93,6 +94,7 @@ import System.Exit
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
 import Test.Syd.Expectation
+import Test.Syd.HList
 import Test.Syd.Modify
 import Test.Syd.OptParse
 import Test.Syd.Output

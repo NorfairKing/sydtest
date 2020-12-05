@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | This module defines how to run a test suite
 module Test.Syd.Runner where
@@ -47,7 +48,7 @@ runSpecForestSynchronously = goForest ()
         result <- runFunc
         let td' = td {testDefVal = result}
         pure $ SpecifyNode t td'
-      DefAroundAllNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest b sdf) a
+      DefAroundAllNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b a) sdf) (getElem a)
       DefParallelismNode _ sdf -> SubForestNode <$> goForest a sdf -- Ignore, it's synchronous anyway
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest () () -> IO ResultForest
@@ -74,7 +75,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           pure $ SpecifyNode t td'
         DefAroundAllNode func sdf ->
           SubForestNode
-            <$> applySimpleWrapper func (\b -> goForest level b sdf) a
+            <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) (getElem a)
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
       goForest :: Int -> a -> TestForest a () -> IO ResultForest
       goForest level a = mapM (goTree level a)
@@ -126,7 +127,7 @@ runner nbThreads handleForest = do
             Sequential -> do
               result <- runNow
               putMVar var result
-        DefAroundAllNode func sdf -> applySimpleWrapper func (\b -> goForest p b sdf) a
+        DefAroundAllNode func sdf -> applySimpleWrapper func (\b -> goForest p (HCons b a) sdf) (getElem a)
         DefParallelismNode p' sdf -> goForest p' a sdf
   goForest Parallel () handleForest
 
@@ -173,4 +174,20 @@ applySimpleWrapper takeTakeA takeA b = do
         liftIO $ putMVar var r
     )
     b
+  liftIO $ readMVar var
+
+applySimpleWrapper2 ::
+  MonadIO m =>
+  ((a -> b -> m ()) -> (c -> d -> m ())) ->
+  (a -> b -> m r) ->
+  (c -> d -> m r)
+applySimpleWrapper2 takeTakeAB takeAB c d = do
+  var <- liftIO $ newEmptyMVar
+  takeTakeAB
+    ( \a b -> do
+        r <- takeAB a b
+        liftIO $ putMVar var r
+    )
+    c
+    d
   liftIO $ readMVar var

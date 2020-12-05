@@ -44,6 +44,10 @@ data SpecDefTree (a :: [*]) c e where -- a: input from 'aroundAll', c: input fro
   DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
   DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
   DefBeforeAllNode :: IO a -> SpecDefForest (a ': l) c e -> SpecDefTree l c e
+  DefAroundAllNode ::
+    ((a -> IO ()) -> IO ()) ->
+    SpecDefForest (a ': l) c e ->
+    SpecDefTree l c e
   DefAroundAllWithNode ::
     ((b -> IO ()) -> (a -> IO ())) ->
     SpecDefForest (b ': a ': l) c e ->
@@ -61,6 +65,7 @@ instance Functor (SpecDefTree a c) where
           DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
           DefWrapNode func sdf -> DefWrapNode func $ goF sdf
           DefBeforeAllNode func sdf -> DefBeforeAllNode func $ goF sdf
+          DefAroundAllNode func sdf -> DefAroundAllNode func $ goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
@@ -75,6 +80,7 @@ instance Foldable (SpecDefTree a c) where
           DefSpecifyNode _ _ e -> f e
           DefWrapNode _ sdf -> goF sdf
           DefBeforeAllNode _ sdf -> goF sdf
+          DefAroundAllNode _ sdf -> goF sdf
           DefAroundAllWithNode _ sdf -> goF sdf
           DefAfterAllNode _ sdf -> goF sdf
           DefParallelismNode _ sdf -> goF sdf
@@ -89,6 +95,7 @@ instance Traversable (SpecDefTree a c) where
           DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
           DefWrapNode func sdf -> DefWrapNode func <$> goF sdf
           DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goF sdf
+          DefAroundAllNode func sdf -> DefAroundAllNode func <$> goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf

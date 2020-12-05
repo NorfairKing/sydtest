@@ -52,6 +52,22 @@ spec = sequential $ do
             i `shouldBe` 0
       it' "reads 0" t
       it' "reads 0" t
+  describe "aroundAll" $ do
+    var <- liftIO $ newTVarIO (0 :: Int)
+    let readAndIncrement :: IO Int
+        readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
+    let increment :: IO ()
+        increment = atomically $ modifyTVar var (+ 1)
+    let incrementBeforeAndAfter :: (Int -> IO ()) -> IO ()
+        incrementBeforeAndAfter func = do
+          i <- readAndIncrement
+          func i
+          increment
+    aroundAll incrementBeforeAndAfter $ do
+      let t :: HList '[Int] -> () -> IO ()
+          t (HCons i HNil) () = i `shouldBe` 1
+      it' "reads 1" t
+      it' "reads 1" t
 
 -- describe "aroundAll" $ do
 --   var <- liftIO $ newTVarIO (0 :: Int)

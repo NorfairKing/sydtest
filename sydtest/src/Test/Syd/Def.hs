@@ -138,6 +138,7 @@ filterTestForest f = fromMaybe [] . goForest DList.empty
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
+      DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest dl sdf
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
@@ -256,6 +257,7 @@ aroundWith' func (TestDefM rwst) = TestDefM $
           DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
           DefWrapNode f sdf -> DefWrapNode f $ modifyForest sdf
           DefBeforeAllNode f sdf -> DefBeforeAllNode f $ modifyForest sdf
+          DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
           DefAroundAllWithNode f sdf -> DefAroundAllWithNode f $ modifyForest sdf
           DefAfterAllNode f sdf -> DefAfterAllNode f $ modifyForest sdf
           DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
@@ -285,9 +287,8 @@ afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 afterAll_ action = afterAll' $ \_ -> action
 
 -- | Run a custom action before and/or after all spec items.
-aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM (a ': b ': l) c e -> TestDefM (b ': l) c e
-aroundAll func = aroundAllWith $ \takeB _ ->
-  func $ \b -> takeB b
+aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM (a ': l) c e -> TestDefM l c e
+aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
 
 -- | Run a custom action before and/or after all spec items.
 aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e

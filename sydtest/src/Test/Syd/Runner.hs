@@ -59,6 +59,8 @@ runSpecForestSynchronously = goForest HNil
                   b <- func
                   goForest (HCons b a) sdf
               )
+      DefAroundAllNode func sdf ->
+        SubForestNode <$> applySimpleWrapper' func (\b -> goForest (HCons b a) sdf)
       DefAroundAllWithNode func sdf ->
         let HCons x _ = a
          in SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b a) sdf) x
@@ -94,6 +96,8 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
                     b <- func
                     goForest level (HCons b a) sdf
                 )
+        DefAroundAllNode func sdf ->
+          SubForestNode <$> applySimpleWrapper' func (\b -> goForest level (HCons b a) sdf)
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
            in SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) x
@@ -153,6 +157,8 @@ runner nbThreads handleForest = do
         DefBeforeAllNode func sdf -> do
           b <- func
           goForest p (HCons b a) sdf
+        DefAroundAllNode func sdf ->
+          func (\b -> goForest p (HCons b a) sdf)
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
            in func (\b -> goForest p (HCons b a) sdf) x
@@ -182,6 +188,7 @@ printer handleForest = do
           pure $ SpecifyNode t td'
         DefWrapNode _ sdf -> SubForestNode <$> goForest level sdf
         DefBeforeAllNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefAroundAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAfterAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf

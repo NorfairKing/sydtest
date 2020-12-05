@@ -188,16 +188,14 @@ around_ :: (IO () -> IO ()) -> TestDefM a c e -> TestDefM a c e
 around_ action = aroundWith $ \e a -> action (e a)
 
 aroundWith :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
-aroundWith func = aroundWith' $ \(takeACFunc :: a -> c -> IO ()) a d ->
-  undefined
+aroundWith func = aroundWith' $ \(takeACFunc :: a -> c -> IO ()) a d -> func (\c -> takeACFunc a c) d
 
-aroundWith' :: forall a c d r. ((a -> c -> IO ()) -> (a -> d -> IO ())) -> TestDefM a c r -> TestDefM a d r
+aroundWith' :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
 aroundWith' func (TestDefM rwst) = TestDefM $
   flip mapRWST rwst $ \inner -> do
     (res, s, forest) <- inner
     let modifyVal ::
           forall x.
-          ((x -> IO ()) -> (a -> IO ())) ->
           (((x -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
           ((x -> d -> IO ()) -> IO ()) ->
           IO TestRunResult
@@ -209,16 +207,16 @@ aroundWith' func (TestDefM rwst) = TestDefM $
                  in supplyXD takeXD
            in takeSupplyXC supplyXC
         -- For this function to work recursively, the first parameter of the input and the output types must be the same
-        modifyTree :: forall x e. ((x -> IO ()) -> (a -> IO ())) -> SpecDefTree x c e -> SpecDefTree x d e
+        modifyTree :: forall x e. SpecDefTree x c e -> SpecDefTree x d e
         modifyTree modFunc = \case
-          DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest modFunc sdf
-          DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal modFunc <$> td) e
+          DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
+          DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
           -- Definition:
           -- DefAroundAllNode :: ((u -> IO ()) -> (x -> IO ())) -> SpecDefForest u c e -> SpecDefTree x c e
-          DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest (modFunc . f) sdf
-          DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest modFunc sdf
-        modifyForest :: forall x e. ((x -> IO ()) -> (a -> IO ())) -> SpecDefForest x c e -> SpecDefForest x d e
-        modifyForest modFunc = map (modifyTree modFunc)
+          DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest f sdf
+          DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
+        modifyForest :: forall x e. SpecDefForest x c e -> SpecDefForest x d e
+        modifyForest modFunc = map modifyTree
     let forest' :: SpecDefForest a d ()
         forest' = modifyForest id forest
     pure (res, s, forest')

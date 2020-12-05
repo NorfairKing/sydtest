@@ -48,7 +48,7 @@ runSpecForestSynchronously = goForest ()
         result <- runFunc
         let td' = td {testDefVal = result}
         pure $ SpecifyNode t td'
-      DefAroundAllNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b a) sdf) (getElem a)
+      DefAroundAllWithNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b a) sdf) (getElem a)
       DefParallelismNode _ sdf -> SubForestNode <$> goForest a sdf -- Ignore, it's synchronous anyway
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest () () -> IO ResultForest
@@ -73,7 +73,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-        DefAroundAllNode func sdf ->
+        DefAroundAllWithNode func sdf ->
           SubForestNode
             <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) (getElem a)
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
@@ -127,7 +127,7 @@ runner nbThreads handleForest = do
             Sequential -> do
               result <- runNow
               putMVar var result
-        DefAroundAllNode func sdf -> applySimpleWrapper func (\b -> goForest p (HCons b a) sdf) (getElem a)
+        DefAroundAllWithNode func sdf -> applySimpleWrapper func (\b -> goForest p (HCons b a) sdf) (getElem a)
         DefParallelismNode p' sdf -> goForest p' a sdf
   goForest Parallel () handleForest
 
@@ -151,7 +151,7 @@ printer handleForest = do
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
-        DefAroundAllNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf
       goForest :: Int -> HandleForest a b -> IO ResultForest
       goForest level = mapM (goTree level)

@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE IncoherentInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -34,9 +35,11 @@ type TestTree a c = SpecDefTree a c ()
 type SpecDefForest a c e = [SpecDefTree a c e]
 
 data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
-  DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
   DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
-  DefAroundAllNode ::
+  DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
+  DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
+  DefAroundAllNode :: ((a -> IO ()) -> IO ()) -> SpecDefForest a c e -> SpecDefTree () c e
+  DefAroundAllWithNode ::
     -- ( HContains (HList a l) a,
     --   HContains (HList b (a ': l)) a,
     --   HContains (HList b (a ': l)) b
@@ -44,28 +47,50 @@ data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around
     ((b -> IO ()) -> (a -> IO ())) ->
     SpecDefForest (HList b (a ': l)) c e ->
     SpecDefTree (HList a l) c e
+  DefAfterAllNode :: (a -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
   DefParallelismNode :: Parallelism -> SpecDefForest a c e -> SpecDefTree a c e
 
 instance Functor (SpecDefTree a c) where
-  fmap f = \case
-    DefDescribeNode t sf -> DefDescribeNode t (map (fmap f) sf)
-    DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
-    DefAroundAllNode func sdf -> DefAroundAllNode func (map (fmap f) sdf)
-    DefParallelismNode p sdf -> DefParallelismNode p (map (fmap f) sdf)
+  fmap :: forall e f. (e -> f) -> SpecDefTree a c e -> SpecDefTree a c f
+  fmap f =
+    let goF :: forall x y. SpecDefForest x y e -> SpecDefForest x y f
+        goF = map (fmap f)
+     in \case
+          DefDescribeNode t sdf -> DefDescribeNode t $ goF sdf
+          DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
+          DefWrapNode func sdf -> DefWrapNode func $ goF sdf
+          DefAroundAllNode func sdf -> DefAroundAllNode func $ goF sdf
+          DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goF sdf
+          DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
+          DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
 
 instance Foldable (SpecDefTree a c) where
-  foldMap f = \case
-    DefDescribeNode _ sf -> foldMap (foldMap f) sf
-    DefSpecifyNode _ _ e -> f e
-    DefAroundAllNode _ sdf -> foldMap (foldMap f) sdf
-    DefParallelismNode _ sdf -> foldMap (foldMap f) sdf
+  foldMap :: forall e m. Monoid m => (e -> m) -> SpecDefTree a c e -> m
+  foldMap f =
+    let goF :: forall x y. SpecDefForest x y e -> m
+        goF = foldMap (foldMap f)
+     in \case
+          DefDescribeNode _ sdf -> goF sdf
+          DefSpecifyNode _ _ e -> f e
+          DefWrapNode _ sdf -> goF sdf
+          DefAroundAllNode _ sdf -> goF sdf
+          DefAroundAllWithNode _ sdf -> goF sdf
+          DefAfterAllNode _ sdf -> goF sdf
+          DefParallelismNode _ sdf -> goF sdf
 
 instance Traversable (SpecDefTree a c) where
-  traverse f = \case
-    DefDescribeNode t sdf -> DefDescribeNode t <$> traverse (traverse f) sdf
-    DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
-    DefAroundAllNode func sdf -> DefAroundAllNode func <$> traverse (traverse f) sdf
-    DefParallelismNode p sdf -> DefParallelismNode p <$> traverse (traverse f) sdf
+  traverse :: forall u w f. Applicative f => (u -> f w) -> SpecDefTree a c u -> f (SpecDefTree a c w)
+  traverse f =
+    let goF :: forall x y. SpecDefForest x y u -> f (SpecDefForest x y w)
+        goF = traverse (traverse f)
+     in \case
+          DefDescribeNode t sdf -> DefDescribeNode t <$> goF sdf
+          DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
+          DefWrapNode func sdf -> DefWrapNode func <$> goF sdf
+          DefAroundAllNode func sdf -> DefAroundAllNode func <$> goF sdf
+          DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goF sdf
+          DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
+          DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf
 
 data Parallelism = Parallel | Sequential
 

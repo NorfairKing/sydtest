@@ -25,14 +25,13 @@ module Test.Syd.Def
     -- ** Declaring test dependencies
 
     -- *** Dependencies around all of a group of tests
-
-    --beforeAll,
-    --beforeAll_,
-    --afterAll,
-    --afterAll_,
-    --aroundAll,
-    --aroundAll_,
-    --aroundAllWith,
+    beforeAll,
+    beforeAll_,
+    afterAll,
+    afterAll_,
+    aroundAll,
+    aroundAll_,
+    aroundAllWith,
 
     -- *** Dependencies around each of a group of tests
     before,
@@ -130,7 +129,7 @@ filterTestForest f = fromMaybe [] . goForest DList.empty
     goTree :: DList Text -> SpecDefTree a b c -> Maybe (SpecDefTree a b c)
     goTree dl = \case
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
-      DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest dl sdf
+      DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
       DefSpecifyNode t td e -> do
         let tl = DList.toList (DList.snoc dl t)
         guard $ f `T.isInfixOf` (T.intercalate "." tl)
@@ -196,7 +195,14 @@ around_ :: (IO () -> IO ()) -> TestDefM a c e -> TestDefM a c e
 around_ action = aroundWith $ \e a -> action (e a)
 
 aroundWith :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
-aroundWith = undefined
+aroundWith func =
+  aroundWith' $
+    \( takeAC ::
+         a -> c -> IO () -- Just to make sure the 'a' is not ambiguous.
+       )
+     a
+     d ->
+        func (\c -> takeAC a c) d
 
 aroundWith' :: forall a c d r u. HContains u a => ((a -> c -> IO ()) -> (a -> d -> IO ())) -> TestDefM u c r -> TestDefM u d r
 aroundWith' func (TestDefM rwst) = TestDefM $
@@ -217,62 +223,54 @@ aroundWith' func (TestDefM rwst) = TestDefM $
                        in func takeAC (getElem x) d
                  in supplyXD takeXD
            in takeSupplyXC supplyXC
-        -- modifyListVal ::
-        --   forall x l.
-        --   HContains x a =>
-        --   (((x -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
-        --   ((x -> d -> IO ()) -> IO ()) ->
-        --   IO TestRunResult
-        -- modifyListVal takeSupplyXC supplyXD = undefined
 
         -- For this function to work recursively, the first parameter of the input and the output types must be the same
         modifyTree :: forall x e. HContains x a => SpecDefTree x c e -> SpecDefTree x d e
         modifyTree = \case
           DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
           DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
-          DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
+          DefAroundAllWithNode f sdf -> DefAroundAllWithNode f $ modifyForest sdf
           DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
-        -- modifyListTree :: forall x l e. HContains x a => SpecDefTree x c e -> SpecDefTree x d e
-        -- modifyListTree = \case
-        --   DefDescribeNode t sdf -> DefDescribeNode t $ modifyListForest sdf
-        --   DefSpecifyNode t td e -> DefSpecifyNode t (modifyListVal <$> td) e
-        --   -- DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyListForest sdf
-        --   DefParallelismNode f sdf -> DefParallelismNode f $ modifyListForest sdf
         modifyForest :: forall x e. HContains x a => SpecDefForest x c e -> SpecDefForest x d e
         modifyForest = map modifyTree
-    -- modifyListForest :: forall x l e. HContains x a => SpecDefForest x c e -> SpecDefForest x d e
-    -- modifyListForest = map modifyListTree
     let forest' :: SpecDefForest u d ()
         forest' = modifyForest forest
     pure (res, s, forest')
 
 -- | Run a custom action before all spec items.
--- beforeAll :: IO a -> TestDefM a b e -> TestDefM () b e
--- beforeAll action = aroundAll (action >>=)
---
--- -- | Run a custom action before all spec items.
--- beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
--- beforeAll_ action = aroundAll_ (action >>)
---
--- -- | Run a custom action after all spec items.
--- afterAll :: (a -> IO ()) -> TestDefM a b e -> TestDefM a b e
--- afterAll action = aroundAllWith $ \e x -> e x `finally` action x
---
--- -- | Run a custom action after all spec items.
--- afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
--- afterAll_ action = afterAll $ \_ -> action
---
--- -- | Run a custom action before and/or after all spec items.
--- aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM a b e -> TestDefM () b e
--- aroundAll action = aroundAllWith $ \e () -> action e
---
--- -- | Run a custom action before and/or after all spec items.
--- aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e
--- aroundAll_ action = aroundAllWith $ \e a -> action (e a)
---
--- aroundAllWith :: forall a b c r. ((a -> IO ()) -> (b -> IO ())) -> TestDefM a c r -> TestDefM b c r
--- aroundAllWith func (TestDefM rwst) = TestDefM $
---   flip mapRWST rwst $ \inner -> do
---     (res, s, forest) <- inner
---     let forest' = [DefAroundAllNode func forest]
---     pure (res, s, forest')
+beforeAll :: IO a -> TestDefM a b e -> TestDefM () b e
+beforeAll action = aroundAll (action >>=)
+
+-- | Run a custom action before all spec items.
+beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
+beforeAll_ action = aroundAll_ (action >>)
+
+-- | Run a custom action after all spec items.
+afterAll :: (a -> IO ()) -> TestDefM a b e -> TestDefM a b e
+afterAll func = wrapRWST $ \forest -> DefAfterAllNode func forest
+
+-- | Run a custom action after all spec items.
+afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
+afterAll_ action = afterAll $ \_ -> action
+
+-- | Run a custom action before and/or after all spec items.
+aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM a b e -> TestDefM () b e
+aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
+
+-- | Run a custom action before and/or after all spec items.
+aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e
+aroundAll_ func = wrapRWST $ \forest -> DefWrapNode func forest
+
+aroundAllWith ::
+  forall a b c l r.
+  ((b -> IO ()) -> (a -> IO ())) ->
+  TestDefM (HList b (a ': l)) c r ->
+  TestDefM (HList a l) c r
+aroundAllWith func = wrapRWST $ \forest -> DefAroundAllWithNode func forest
+
+wrapRWST :: (TestForest a c -> TestTree b d) -> TestDefM a c l -> TestDefM b d l
+wrapRWST func (TestDefM rwst) = TestDefM $
+  flip mapRWST rwst $ \inner -> do
+    (res, s, forest) <- inner
+    let forest' = [func forest]
+    pure (res, s, forest')

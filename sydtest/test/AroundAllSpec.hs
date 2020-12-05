@@ -1,3 +1,6 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+
 module AroundAllSpec (spec) where
 
 import Control.Concurrent.STM
@@ -33,31 +36,35 @@ spec = sequential $ do
           i <- readTVarIO var
           i `shouldBe` 0
 
-  describe "aroundAll" $ do
-    var <- liftIO $ newTVarIO (0 :: Int)
-    let increment = atomically $ modifyTVar var succ
-        readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
-        aroundAllWithFunc :: (Int -> IO ()) -> Int -> IO ()
-        aroundAllWithFunc intFunc j = do
-          i <- readAndIncrement
-          intFunc $ i + j
-          increment
-        aroundAllFunc :: (Int -> IO ()) -> IO ()
-        aroundAllFunc intFunc = do
-          i <- readAndIncrement
-          intFunc i
-          increment
-        aroundAllFunc_ :: IO () -> IO ()
-        aroundAllFunc_ func = do
-          increment
-          func
-          increment
-    aroundAll aroundAllFunc $
-      aroundAllWith aroundAllWithFunc $
-        aroundAll_ aroundAllFunc_ $ do
-          it "reads 1" $ \i () ->
-            i `shouldBe` 1
-          it "reads 1" $ \i () ->
-            i `shouldBe` 1
-          it "reads 1" $ \i () ->
-            i `shouldBe` 1
+-- describe "aroundAll" $ do
+--   var <- liftIO $ newTVarIO (0 :: Int)
+--   let increment = atomically $ modifyTVar var succ
+--       readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
+--       aroundAllWithFunc :: (Int -> IO ()) -> Int -> IO ()
+--       aroundAllWithFunc intFunc j = do
+--         i <- readAndIncrement
+--         intFunc $ i + j
+--         increment
+--       aroundAllFunc :: (HList Int '[] -> IO ()) -> IO ()
+--       aroundAllFunc intFunc = do
+--         i <- readAndIncrement
+--         intFunc (HLast i)
+--         increment
+--       aroundAllFunc_ :: IO () -> IO ()
+--       aroundAllFunc_ func = do
+--         increment
+--         func
+--         increment
+--   aroundAll aroundAllFunc $
+--     aroundAllWith aroundAllWithFunc $
+--       aroundAll_ aroundAllFunc_ $ do
+--         pure () :: TestDefM (HList Int '[Int]) () ()
+--         it "reads 1" $ \(HCons i (HLast j)) () -> do
+--           i `shouldBe` 1
+--           j `shouldBe` 1
+--         it "reads 1" $ \(HCons i (HLast j)) () -> do
+--           i `shouldBe` 1
+--           j `shouldBe` 1
+--         it "reads 1" $ \(HCons i (HLast j)) () -> do
+--           i `shouldBe` 1
+--           j `shouldBe` 1

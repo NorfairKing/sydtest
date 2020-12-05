@@ -8,7 +8,15 @@ import Control.Monad.IO.Class
 import Test.Syd
 
 spec :: Spec
-spec = sequential $ pure ()
+spec = sequential $
+  describe "beforeAll" $ do
+    var <- liftIO $ newTVarIO (1 :: Int)
+    let readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
+    beforeAll (() <$ readAndIncrement) $ do
+      it "reads 2" $ \i () ->
+        i `shouldBe` 1
+      it "reads 2" $ \i () ->
+        i `shouldBe` 1
 
 --  describe "beforeAll" $ do
 --    var <- liftIO $ newTVarIO (1 :: Int)

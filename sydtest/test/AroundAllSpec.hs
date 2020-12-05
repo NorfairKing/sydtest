@@ -41,34 +41,18 @@ spec = sequential $ do
             t (HCons i HNil) () = i `shouldBe` 1
         it' "reads 1" t
         it' "reads 1" t
+  describe "afterAll_" $ do
+    var <- liftIO $ newTVarIO (0 :: Int)
+    let increment :: IO ()
+        increment = atomically $ modifyTVar var (+ 1)
+    afterAll_ increment $ do
+      let t :: IO ()
+          t = do
+            i <- readTVarIO var
+            i `shouldBe` 0
+      it' "reads 0" t
+      it' "reads 0" t
 
---  describe "beforeAll" $ do
---    var <- liftIO $ newTVarIO (1 :: Int)
---    let readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
---    beforeAll_ (() <$ readAndIncrement) $
---      beforeAll readAndIncrement $ do
---        it "reads 2" $ \i () ->
---          i `shouldBe` 2
---        it "reads 2" $ \i () ->
---          i `shouldBe` 2
---        it "reads 2" $ \i () ->
---          i `shouldBe` 2
---
---  describe "afterAll" $ do
---    var <- liftIO $ newTVarIO (0 :: Int)
---    let increment = atomically $ modifyTVar var succ
---    afterAll_ (() <$ increment) $
---      afterAll (\() -> increment) $ do
---        it "reads 0" $ do
---          i <- readTVarIO var
---          i `shouldBe` 0
---        it "reads 0" $ do
---          i <- readTVarIO var
---          i `shouldBe` 0
---        it "reads 0" $ do
---          i <- readTVarIO var
---          i `shouldBe` 0
---
 -- describe "aroundAll" $ do
 --   var <- liftIO $ newTVarIO (0 :: Int)
 --   let increment = atomically $ modifyTVar var succ

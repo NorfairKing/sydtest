@@ -1,9 +1,12 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 -- | This module defines how to run a test suite
 module Test.Syd.Runner where
@@ -24,7 +27,7 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import UnliftIO
 
-sydTestResult :: Settings -> Spec -> IO ResultForest
+sydTestResult :: Settings -> TestDefM () () r -> IO ResultForest
 sydTestResult sets spec = do
   specForest <- execTestDefM sets spec
   case settingThreads sets of
@@ -49,7 +52,15 @@ runSpecForestSynchronously = goForest ()
         let td' = td {testDefVal = result}
         pure $ SpecifyNode t td'
       DefWrapNode func sdf -> SubForestNode <$> applySimpleWrapper'' func (goForest a sdf)
-      DefAroundAllWithNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b a) sdf) (getElem a)
+      DefBeforeAllNode func sdf -> do
+        SubForestNode
+          <$> ( do
+                  b <- func
+                  goForest (HCons b a) sdf
+              )
+      DefAroundAllWithNode func sdf ->
+        let HCons x _ = a
+         in SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b a) sdf) x
       DefAfterAllNode func sdf -> SubForestNode <$> (goForest a sdf `finally` func a)
       DefParallelismNode _ sdf -> SubForestNode <$> goForest a sdf -- Ignore, it's synchronous anyway
 
@@ -76,7 +87,15 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
         DefWrapNode func sdf -> SubForestNode <$> applySimpleWrapper'' func (goForest level a sdf)
-        DefAroundAllWithNode func sdf -> SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) (getElem a)
+        DefBeforeAllNode func sdf ->
+          SubForestNode
+            <$> ( do
+                    b <- func
+                    goForest level (HCons b a) sdf
+                )
+        DefAroundAllWithNode func sdf ->
+          let HCons x _ = a
+           in SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) x
         DefAfterAllNode func sdf -> SubForestNode <$> (goForest level a sdf `finally` func a)
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
       goForest :: Int -> a -> TestForest a () -> IO ResultForest
@@ -130,7 +149,12 @@ runner nbThreads handleForest = do
               result <- runNow
               putMVar var result
         DefWrapNode func sdf -> func (goForest p a sdf)
-        DefAroundAllWithNode func sdf -> func (\b -> goForest p (HCons b a) sdf) (getElem a)
+        DefBeforeAllNode func sdf -> do
+          b <- func
+          goForest p (HCons b a) sdf
+        DefAroundAllWithNode func sdf ->
+          let HCons x _ = a
+           in func (\b -> goForest p (HCons b a) sdf) x
         DefAfterAllNode func sdf -> goForest p a sdf `finally` func a
         DefParallelismNode p' sdf -> goForest p' a sdf
   goForest Parallel () handleForest
@@ -156,6 +180,7 @@ printer handleForest = do
           mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
           pure $ SpecifyNode t td'
         DefWrapNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefBeforeAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAfterAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf

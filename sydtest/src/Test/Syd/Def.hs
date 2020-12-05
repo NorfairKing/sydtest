@@ -134,6 +134,7 @@ filterTestForest f = fromMaybe [] . goForest DList.empty
         pure $ DefSpecifyNode t td e
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
+      DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
@@ -232,6 +233,7 @@ aroundWith' func (TestDefM rwst) = TestDefM $
           DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
           DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
           DefWrapNode f sdf -> DefWrapNode f $ modifyForest sdf
+          DefBeforeAllNode f sdf -> DefBeforeAllNode f $ modifyForest sdf
           DefAroundAllWithNode f sdf -> DefAroundAllWithNode f $ modifyForest sdf
           DefAfterAllNode f sdf -> DefAfterAllNode f $ modifyForest sdf
           DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
@@ -242,8 +244,8 @@ aroundWith' func (TestDefM rwst) = TestDefM $
     pure (res, s, forest')
 
 -- | Run a custom action before all spec items.
-beforeAll :: IO b -> TestDefM (HList b (a ': l)) c e -> TestDefM (HList a l) c e
-beforeAll action = aroundAll (action >>=)
+beforeAll :: IO a -> TestDefM (HList (a ': l)) c e -> TestDefM (HList l) c e
+beforeAll action = wrapRWST $ \forest -> DefBeforeAllNode action forest
 
 -- | Run a custom action before all spec items.
 beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
@@ -258,7 +260,7 @@ afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 afterAll_ action = afterAll $ \_ -> action
 
 -- | Run a custom action before and/or after all spec items.
-aroundAll :: ((b -> IO ()) -> IO ()) -> TestDefM (HList b (a ': l)) c e -> TestDefM (HList a l) c e
+aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM (HList (a ': b ': l)) c e -> TestDefM (HList (b ': l)) c e
 aroundAll func = aroundAllWith $ \takeB _ ->
   func $ \b -> takeB b
 
@@ -268,9 +270,9 @@ aroundAll_ func = wrapRWST $ \forest -> DefWrapNode func forest
 
 aroundAllWith ::
   forall a b c l r.
-  ((b -> IO ()) -> (a -> IO ())) ->
-  TestDefM (HList b (a ': l)) c r ->
-  TestDefM (HList a l) c r
+  ((a -> IO ()) -> (b -> IO ())) ->
+  TestDefM (HList (a ': b ': l)) c r ->
+  TestDefM (HList (b ': l)) c r
 aroundAllWith func = wrapRWST $ \forest -> DefAroundAllWithNode func forest
 
 wrapRWST :: (TestForest a c -> TestTree b d) -> TestDefM a c l -> TestDefM b d l

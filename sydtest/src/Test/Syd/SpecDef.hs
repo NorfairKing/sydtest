@@ -38,10 +38,11 @@ data SpecDefTree a c e where -- a: input from 'aroundAll', c: input from 'around
   DefSpecifyNode :: Text -> TestDef (((a -> c -> IO ()) -> IO ()) -> IO TestRunResult) -> e -> SpecDefTree a c e -- A test with its description
   DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
   DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
+  DefBeforeAllNode :: IO a -> SpecDefForest (HList (a ': l)) c e -> SpecDefTree (HList l) c e
   DefAroundAllWithNode ::
     ((b -> IO ()) -> (a -> IO ())) ->
-    SpecDefForest (HList b (a ': l)) c e ->
-    SpecDefTree (HList a l) c e
+    SpecDefForest (HList (b ': a ': l)) c e ->
+    SpecDefTree (HList (a ': l)) c e
   DefAfterAllNode :: (a -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
   DefParallelismNode :: Parallelism -> SpecDefForest a c e -> SpecDefTree a c e
 
@@ -54,6 +55,7 @@ instance Functor (SpecDefTree a c) where
           DefDescribeNode t sdf -> DefDescribeNode t $ goF sdf
           DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
           DefWrapNode func sdf -> DefWrapNode func $ goF sdf
+          DefBeforeAllNode func sdf -> DefBeforeAllNode func $ goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
@@ -67,6 +69,7 @@ instance Foldable (SpecDefTree a c) where
           DefDescribeNode _ sdf -> goF sdf
           DefSpecifyNode _ _ e -> f e
           DefWrapNode _ sdf -> goF sdf
+          DefBeforeAllNode _ sdf -> goF sdf
           DefAroundAllWithNode _ sdf -> goF sdf
           DefAfterAllNode _ sdf -> goF sdf
           DefParallelismNode _ sdf -> goF sdf
@@ -80,6 +83,7 @@ instance Traversable (SpecDefTree a c) where
           DefDescribeNode t sdf -> DefDescribeNode t <$> goF sdf
           DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
           DefWrapNode func sdf -> DefWrapNode func <$> goF sdf
+          DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf
@@ -93,35 +97,23 @@ type ResultTree = SpecTree (TestDef TestRunResult)
 shouldExitFail :: ResultForest -> Bool
 shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))
 
-data HList h (r :: [*]) where
-  HLast :: h -> HList h '[]
-  HCons :: e -> HList h l -> HList e (h ': l)
-
-class HLast a where
-  type LastElem a :: *
-  getLastElem :: a -> LastElem a
-
-instance HLast (HList h '[]) where
-  type LastElem (HList h '[]) = h
-  getLastElem = \case
-    HLast e -> e
-
-instance HLast (HList a b) => HLast (HList h (a ': b)) where
-  type LastElem (HList h (a ': b)) = LastElem (HList a b)
-  getLastElem = \case
-    HCons _ hl -> getLastElem hl
+data HList (r :: [*]) where
+  HNill :: HList '[]
+  HCons :: e -> HList l -> HList (e ': l)
 
 class HContains a b where
   getElem :: a -> b
 
-instance HContains (HList a l) a where
-  getElem (HLast a) = a
+instance HContains (HList '[]) () where
+  getElem HNill = ()
+
+instance HContains (HList '[a]) a where
   getElem (HCons a _) = a
 
-instance HContains (HList a b) a => HContains (HList h (a ': b)) a where
-  getElem (HCons _ hl) = getElem hl
+instance HContains (HList l) a => HContains (HList (a ': l)) a where
+  getElem (HCons a _) = getElem a
 
-instance HContains (HList x l) a => HContains (HList b (x ': l)) a where
+instance HContains (HList l) a => HContains (HList (b ': l)) a where
   getElem (HCons _ hl) = getElem hl
 
 instance {-# OVERLAPPING #-} HContains a a where

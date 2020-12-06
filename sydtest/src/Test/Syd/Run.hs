@@ -11,7 +11,6 @@
 module Test.Syd.Run where
 
 import Control.Exception hiding (Handler, catches, evaluate)
-import Data.Maybe
 import Data.Time.Clock.System
 import Data.Typeable
 import GHC.Generics (Generic)
@@ -19,7 +18,6 @@ import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
 import Test.Syd.HList
-import Test.Syd.Silence
 import UnliftIO
 
 class IsTest e where

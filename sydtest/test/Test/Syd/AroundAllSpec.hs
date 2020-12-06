@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module AroundAllSpec (spec) where
+module Test.Syd.AroundAllSpec (spec) where
 
 import Control.Concurrent.STM
 import Control.Monad.IO.Class

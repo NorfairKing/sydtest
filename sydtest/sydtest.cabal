@@ -88,8 +88,9 @@ test-suite sydtest-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      AroundAllSpec
-      AroundSpec
+      Test.Syd.AroundAllSpec
+      Test.Syd.AroundSpec
+      Test.Syd.FootgunSpec
       Paths_sydtest
   hs-source-dirs:
       test

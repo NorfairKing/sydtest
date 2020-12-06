@@ -1,4 +1,4 @@
-module AroundSpec (spec) where
+module Test.Syd.AroundSpec (spec) where
 
 import Control.Concurrent.STM
 import Control.Monad.IO.Class

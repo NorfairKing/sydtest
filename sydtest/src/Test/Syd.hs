@@ -25,6 +25,7 @@ module Test.Syd
     -- *** Dependencies around all of a group of tests
     beforeAll,
     beforeAll_,
+    beforeAllWith,
     afterAll,
     afterAll',
     afterAll_,

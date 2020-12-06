@@ -29,6 +29,7 @@ module Test.Syd.Def
     -- *** Dependencies around all of a group of tests
     beforeAll,
     beforeAll_,
+    beforeAllWith,
     afterAll,
     afterAll',
     afterAll_,
@@ -139,6 +140,7 @@ filterTestForest f = fromMaybe [] . goForest DList.empty
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
+      DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func <$> goForest dl sdf
       DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest dl sdf
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
@@ -258,6 +260,7 @@ aroundWith' func (TestDefM rwst) = TestDefM $
           DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
           DefWrapNode f sdf -> DefWrapNode f $ modifyForest sdf
           DefBeforeAllNode f sdf -> DefBeforeAllNode f $ modifyForest sdf
+          DefBeforeAllWithNode f sdf -> DefBeforeAllWithNode f $ modifyForest sdf
           DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
           DefAroundAllWithNode f sdf -> DefAroundAllWithNode f $ modifyForest sdf
           DefAfterAllNode f sdf -> DefAfterAllNode f $ modifyForest sdf
@@ -275,6 +278,9 @@ beforeAll action = wrapRWST $ \forest -> DefBeforeAllNode action forest
 -- | Run a custom action before all spec items.
 beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 beforeAll_ action = aroundAll_ (action >>)
+
+beforeAllWith :: (b -> IO a) -> TestDefM (a ': b ': l) c e -> TestDefM (b ': l) c e
+beforeAllWith action = wrapRWST $ \forest -> DefBeforeAllWithNode action forest
 
 -- | Run a custom action after all spec items.
 afterAll :: (a -> IO ()) -> TestDefM (a ': l) b e -> TestDefM (a ': l) b e

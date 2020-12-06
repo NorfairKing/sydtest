@@ -36,9 +36,9 @@ This project chooses best practices as defaults:
 | First-class support for golden tests                                                      | 🚧      | [Lib](https://hackage.haskell.org/package/hspec-golden)     | [Lib](https://hackage.haskell.org/package/tasty-golden)          |
 | Source location annotations for tests in test output                                      | ✔️       | ✔️                                                           | ✖️                                                                |
 | Test suite filtering to select which tests to run                                         | ✔️       | ✔️                                                           | ✔️                                                                |
-| Individual test execution timing                                                          | 🚧      | [Lib](http://hackage.haskell.org/package/hspec-slow)        | [Lib](https://hackage.haskell.org/package/tasty-stats)           |
-| Test group execution timing                                                               | 🚧      | ✖️                                                           | ?                                                                |
+| Individual test execution timing                                                          | ✔️       | [Lib](http://hackage.haskell.org/package/hspec-slow)        | [Lib](https://hackage.haskell.org/package/tasty-stats)           |
 | Test suite execution timing                                                               | 🚧      | ✔️                                                           | ✖️                                                                |
+| Helpful output to find slow tests                                                         | ✔️       | [Lib](http://hackage.haskell.org/package/hspec-slow)        | C
 | Coloured output                                                                           | ✔️       | ✔️                                                           | ✔️                                                                |
 | Colourless output                                                                         | 🚧      | ✔️                                                           | ✔️                                                                |
 | `ppShow` instead of `show` for counterexample output                                      | ✔️       | ✖️                                                           | ✖️                                                                |
@@ -110,3 +110,11 @@ spec = do
 
 Tests are executed with as many threads as you have capabilities by default.
 You can use `-j` or `--jobs` to set the number of threads to use.
+
+### Individual test execution timing and helpful output to find slow tests
+
+Every test is timed and the execution (wall clock) time is shown at the right-hand side of the output.
+The timing information is shown in such a way that it is easily compared: All in milliseconds and with the periods aligned.
+It is also colour-coded so that slow tests really stick out in the report.
+
+![Individual test execution timing](assets/individual-timing.png)

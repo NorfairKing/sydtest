@@ -88,7 +88,6 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
-      DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func <$> goForest dl sdf
       DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest dl sdf
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf

@@ -31,7 +31,9 @@ beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 beforeAll_ action = aroundAll_ (action >>)
 
 beforeAllWith :: (b -> IO a) -> TestDefM (a ': b ': l) c e -> TestDefM (b ': l) c e
-beforeAllWith action = wrapRWST $ \forest -> DefBeforeAllWithNode action forest
+beforeAllWith action = aroundAllWith $ \func b -> do
+  a <- action b
+  func a
 
 -- | Run a custom action after all spec items.
 afterAll :: (a -> IO ()) -> TestDefM (a ': l) b e -> TestDefM (a ': l) b e

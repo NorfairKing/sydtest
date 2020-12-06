@@ -23,7 +23,3 @@ spec = do
 {-# NOINLINE take100ms #-}
 take100ms :: IO ()
 take100ms = threadDelay 100_000
-
-{-# NOINLINE take1s #-}
-take1s :: IO ()
-take1s = threadDelay 1_000_000

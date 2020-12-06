@@ -71,10 +71,6 @@ runner nbThreads handleForest = do
         DefBeforeAllNode func sdf -> do
           b <- func
           goForest p (HCons b a) sdf
-        DefBeforeAllWithNode func sdf -> do
-          let HCons x _ = a
-          b <- func x
-          goForest p (HCons b a) sdf
         DefAroundAllNode func sdf ->
           func (\b -> goForest p (HCons b a) sdf)
         DefAroundAllWithNode func sdf ->
@@ -108,7 +104,6 @@ printer handleForest = do
           pure $ SpecifyNode t td'
         DefWrapNode _ sdf -> SubForestNode <$> goForest level sdf
         DefBeforeAllNode _ sdf -> SubForestNode <$> goForest level sdf
-        DefBeforeAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAroundAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAfterAllNode _ sdf -> SubForestNode <$> goForest level sdf

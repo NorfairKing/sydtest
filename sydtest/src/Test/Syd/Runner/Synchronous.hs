@@ -42,13 +42,6 @@ runSpecForestSynchronously = goForest HNil
                   b <- func
                   goForest (HCons b l) sdf
               )
-      DefBeforeAllWithNode func sdf -> do
-        SubForestNode
-          <$> ( do
-                  let HCons x _ = l
-                  b <- func x
-                  goForest (HCons b l) sdf
-              )
       DefAroundAllNode func sdf ->
         SubForestNode <$> applySimpleWrapper' func (\b -> goForest (HCons b l) sdf)
       DefAroundAllWithNode func sdf ->
@@ -86,13 +79,6 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           SubForestNode
             <$> ( do
                     b <- func
-                    goForest level (HCons b a) sdf
-                )
-        DefBeforeAllWithNode func sdf ->
-          SubForestNode
-            <$> ( do
-                    let HCons x _ = a
-                    b <- func x
                     goForest level (HCons b a) sdf
                 )
         DefAroundAllNode func sdf ->

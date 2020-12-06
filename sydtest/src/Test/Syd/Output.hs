@@ -16,7 +16,6 @@ import Data.List.Split (splitWhen)
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
-import Debug.Trace
 import GHC.Stack
 import Rainbow
 import Rainbow.Types (Chunk (..))
@@ -265,7 +264,6 @@ specForestWidth = goF 0
       DefDescribeNode _ sdf -> goF (succ level) sdf
       DefWrapNode _ sdf -> goF level sdf
       DefBeforeAllNode _ sdf -> goF level sdf
-      DefBeforeAllWithNode _ sdf -> goF level sdf
       DefAroundAllNode _ sdf -> goF level sdf
       DefAroundAllWithNode _ sdf -> goF level sdf
       DefAfterAllNode _ sdf -> goF level sdf

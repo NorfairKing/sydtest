@@ -30,6 +30,7 @@ module Test.Syd.Def
     beforeAll,
     beforeAll_,
     afterAll,
+    afterAll',
     afterAll_,
     aroundAll,
     aroundAll_,

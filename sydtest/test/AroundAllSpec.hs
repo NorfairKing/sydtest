@@ -44,6 +44,19 @@ spec = sequential $ do
         it' "reads 1" t
         it' "reads 1" t
 
+  describe "afterAll'" $ do
+    var <- liftIO $ newTVarIO (0 :: Int)
+    let readAndIncrement :: IO Int
+        readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
+        addExtra :: HList '[Int] -> IO ()
+        addExtra (HCons i HNil) = atomically $ modifyTVar var (+ i)
+    beforeAll readAndIncrement $
+      afterAll' addExtra $ do
+        let t :: HList '[Int] -> () -> IO ()
+            t (HCons i HNil) () = i `shouldBe` 1
+        it' "reads 1" t
+        it' "reads 1" t
+
   describe "afterAll_" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
     let increment :: IO ()

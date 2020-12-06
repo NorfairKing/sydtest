@@ -26,6 +26,7 @@ module Test.Syd
     beforeAll,
     beforeAll_,
     afterAll,
+    afterAll',
     afterAll_,
     aroundAll,
     aroundAll_,

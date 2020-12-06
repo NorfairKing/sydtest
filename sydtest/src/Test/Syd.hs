@@ -55,6 +55,9 @@ module Test.Syd
     withParallelism,
     Parallelism (..),
 
+    -- *** Doing IO during test definition
+    runIO,
+
     -- ** Test definition types
     TestDefM (..),
     execTestDefM,
@@ -88,10 +91,12 @@ module Test.Syd
     module Test.Syd.Silence,
     module Test.Syd.SpecDef,
     module Test.Syd.SpecForest,
+    module Control.Monad.IO.Class,
   )
 where
 
 import Control.Monad
+import Control.Monad.IO.Class
 import System.Exit
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
@@ -117,3 +122,6 @@ sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
   resultForest <- sydTestResult sets spec
   when (shouldExitFail resultForest) (exitWith (ExitFailure 1))
+
+runIO :: IO e -> TestDefM a b e
+runIO = liftIO

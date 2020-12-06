@@ -16,8 +16,8 @@ spec = sequential $ do
     beforeAll readAndIncrement $ do
       let t :: HList '[Int] -> () -> IO ()
           t (HCons i HNil) () = i `shouldBe` 1
-      it' "reads 1" t
-      it' "reads 1" t
+      itWith "reads 1" t
+      itWith "reads 1" t
 
   describe "beforeAll_" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
@@ -28,8 +28,8 @@ spec = sequential $ do
           t = do
             i <- readTVarIO var
             i `shouldBe` 1
-      it' "reads 1" t
-      it' "reads 1" t
+      itWith "reads 1" t
+      itWith "reads 1" t
 
   describe "beforeAllWith" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
@@ -48,8 +48,8 @@ spec = sequential $ do
             t (HCons i (HCons j HNil)) () = do
               i `shouldBe` 3
               j `shouldBe` 1
-        it' "reads 3" t
-        it' "reads 3" t
+        itWith "reads 3" t
+        itWith "reads 3" t
 
   describe "afterAll" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
@@ -61,8 +61,8 @@ spec = sequential $ do
       afterAll addExtra $ do
         let t :: HList '[Int] -> () -> IO ()
             t (HCons i HNil) () = i `shouldBe` 1
-        it' "reads 1" t
-        it' "reads 1" t
+        itWith "reads 1" t
+        itWith "reads 1" t
 
   describe "afterAll'" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
@@ -74,8 +74,8 @@ spec = sequential $ do
       afterAll' addExtra $ do
         let t :: HList '[Int] -> () -> IO ()
             t (HCons i HNil) () = i `shouldBe` 1
-        it' "reads 1" t
-        it' "reads 1" t
+        itWith "reads 1" t
+        itWith "reads 1" t
 
   describe "afterAll_" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
@@ -86,8 +86,8 @@ spec = sequential $ do
           t = do
             i <- readTVarIO var
             i `shouldBe` 0
-      it' "reads 0" t
-      it' "reads 0" t
+      itWith "reads 0" t
+      itWith "reads 0" t
 
   describe "aroundAll" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
@@ -103,8 +103,8 @@ spec = sequential $ do
     aroundAll incrementBeforeAndAfter $ do
       let t :: HList '[Int] -> () -> IO ()
           t (HCons i HNil) () = i `shouldBe` 1
-      it' "reads 1" t
-      it' "reads 1" t
+      itWith "reads 1" t
+      itWith "reads 1" t
 
   describe "aroundAll_" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
@@ -145,38 +145,5 @@ spec = sequential $ do
             t (HCons i (HCons j HNil)) () = do
               i `shouldBe` 3
               j `shouldBe` 1
-        it' "reads correctly" t
-        it' "reads correctly" t
-
--- describe "aroundAll" $ do
---   var <- liftIO $ newTVarIO (0 :: Int)
---   let increment = atomically $ modifyTVar var succ
---       readAndIncrement = atomically $ stateTVar var $ \i -> (i, i + 1)
---       aroundAllWithFunc :: (Int -> IO ()) -> Int -> IO ()
---       aroundAllWithFunc intFunc j = do
---         i <- readAndIncrement
---         intFunc $ i + j
---         increment
---       aroundAllFunc :: (HList Int '[] -> IO ()) -> IO ()
---       aroundAllFunc intFunc = do
---         i <- readAndIncrement
---         intFunc (HLast i)
---         increment
---       aroundAllFunc_ :: IO () -> IO ()
---       aroundAllFunc_ func = do
---         increment
---         func
---         increment
---   aroundAll aroundAllFunc $
---     aroundAllWith aroundAllWithFunc $
---       aroundAll_ aroundAllFunc_ $ do
---         pure () :: TestDefM (HList Int '[Int]) () ()
---         it "reads 1" $ \(HCons i (HLast j)) () -> do
---           i `shouldBe` 1
---           j `shouldBe` 1
---         it "reads 1" $ \(HCons i (HLast j)) () -> do
---           i `shouldBe` 1
---           j `shouldBe` 1
---         it "reads 1" $ \(HCons i (HLast j)) () -> do
---           i `shouldBe` 1
---           j `shouldBe` 1
+        itWith "reads correctly" t
+        itWith "reads correctly" t

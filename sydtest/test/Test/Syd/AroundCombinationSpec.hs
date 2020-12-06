@@ -35,9 +35,9 @@ spec = sequential $ do
       aroundAllWith incrementAroundWith $
         around incrementAround $
           aroundWith' incrementAroundWith2 $ do
-            it' "reads correctly" $
+            itWith "reads correctly" $
               \(HCons i (HCons j HNil) :: HList '[Int, Int]) k ->
                 (i, j, k) `shouldBe` (3, 1, 3)
-            it' "reads correctly" $
+            itWith "reads correctly" $
               \(HCons i (HCons j HNil) :: HList '[Int, Int]) k ->
                 (i, j, k) `shouldBe` (3, 1, 7)

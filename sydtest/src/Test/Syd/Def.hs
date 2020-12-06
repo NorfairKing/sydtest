@@ -20,9 +20,9 @@ module Test.Syd.Def
     -- ** Declaring tests
     describe,
     it,
-    it',
+    itWith,
     specify,
-    specify',
+    specifyWith,
 
     -- ** Rexports
     module Test.Syd.Def.TestDefM,
@@ -77,8 +77,8 @@ it s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
-it' :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
-it' s t = do
+itWith :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+itWith s t = do
   sets <- ask
   let testDef =
         TestDef
@@ -96,5 +96,5 @@ specify :: (HasCallStack, IsTest test, Arg1 test ~ HList '[]) => String -> test 
 specify = it
 
 -- | A synonym for 'it''
-specify' :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
-specify' = it'
+specifyWith :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+specifyWith = itWith

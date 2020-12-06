@@ -9,6 +9,7 @@
 -- | This module defines the 'IsTest' class and the different instances for it.
 module Test.Syd.Run where
 
+import Control.DeepSeq
 import Control.Exception hiding (Handler, catches, evaluate)
 import Data.Maybe
 import Data.Typeable
@@ -55,7 +56,7 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
   (testRunResultExecutionTime, resultBool) <- timeItT $
-    runWrapper $
+    runWrapper $ do
       liftIO $
         applyWrapper2 wrapper $
           \arg1 arg2 -> (Right <$> evaluate (computeBool arg1 arg2)) `catches` exceptionHandlers
@@ -108,9 +109,9 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
           applyWrapper2 wrapper $
             \arg1 arg2 -> do
               result <-
-                (liftIO (func arg1 arg2) >>= (evaluate . (`seq` Right TestPassed)))
+                (liftIO (func arg1 arg2) >>= (evaluate . force . (`seq` Right TestPassed)))
                   `catches` exceptionHandlers
-              pure $ case result of
+              evaluate $ case result of
                 Left ex -> (TestFailed, Just ex)
                 Right r -> (r, Nothing)
   let testRunResultNumShrinks = Nothing
@@ -210,10 +211,12 @@ data TestRunResult = TestRunResult
     testRunResultNumShrinks :: !(Maybe Word),
     testRunResultExecutionTime :: !Double -- In seconds
   }
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
+
+instance NFData TestStatus
 
 data Assertion
   = NotEqualButShouldHaveBeenEqual String String
@@ -223,3 +226,5 @@ data Assertion
   deriving (Show, Eq, Typeable, Generic)
 
 instance Exception Assertion
+
+instance NFData Assertion

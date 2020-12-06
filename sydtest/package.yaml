@@ -18,6 +18,7 @@ library:
   - async
   - bytestring
   - compact
+  - deepseq
   - dlist
   - envparse
   - interprocess

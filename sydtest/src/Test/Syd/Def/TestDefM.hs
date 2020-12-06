@@ -62,8 +62,7 @@ runTestDefM sets defFunc = do
 toTestRunSettings :: Settings -> TestRunSettings
 toTestRunSettings Settings {..} =
   TestRunSettings
-    { testRunSettingChildProcessOverride = testRunSettingChildProcessOverride defaultTestRunSettings,
-      testRunSettingSeed = settingSeed,
+    { testRunSettingSeed = settingSeed,
       testRunSettingMaxSuccess = settingMaxSuccess,
       testRunSettingMaxSize = settingMaxSize,
       testRunSettingMaxDiscardRatio = settingMaxDiscard,

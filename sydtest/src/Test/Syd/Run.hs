@@ -53,13 +53,10 @@ runPureTestWithArg ::
   IO TestRunResult
 runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
-  let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
-  let runWrapper = if runInChildProcess then runInSilencedProcess else id
   (testRunResultExecutionTime, resultBool) <- timeItT $
-    runWrapper $ do
-      liftIO $
-        applyWrapper2 wrapper $
-          \arg1 arg2 -> (Right <$> evaluate (computeBool arg1 arg2)) `catches` exceptionHandlers
+    liftIO $
+      applyWrapper2 wrapper $
+        \arg1 arg2 -> (Right <$> evaluate (computeBool arg1 arg2)) `catches` exceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
@@ -100,20 +97,17 @@ runIOTestWithArg ::
   IO TestRunResult
 runIOTestWithArg func TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
-  let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
-  let runWrapper = if runInChildProcess then runInSilencedProcess else id
   (testRunResultExecutionTime, (testRunResultStatus, testRunResultException)) <-
     timeItT $
-      runWrapper $
-        liftIO $
-          applyWrapper2 wrapper $
-            \arg1 arg2 -> do
-              result <-
-                (liftIO (func arg1 arg2) >>= (evaluate . force . (`seq` Right TestPassed)))
-                  `catches` exceptionHandlers
-              evaluate $ case result of
-                Left ex -> (TestFailed, Just ex)
-                Right r -> (r, Nothing)
+      liftIO $
+        applyWrapper2 wrapper $
+          \arg1 arg2 -> do
+            result <-
+              (liftIO (func arg1 arg2) >>= (evaluate . force . (`seq` Right TestPassed)))
+                `catches` exceptionHandlers
+            evaluate $ case result of
+              Left ex -> (TestFailed, Just ex)
+              Right r -> (r, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
@@ -147,29 +141,26 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
             maxSize = testRunSettingMaxSize,
             maxShrinks = testRunSettingMaxShrinks
           }
-  let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
-  let runWrapper = if runInChildProcess then runInSilencedProcess else id
-  runWrapper $
-    liftIO $
-      applyWrapper2 wrapper $ \arg1 arg2 -> do
-        (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args (p arg1 arg2)
-        testRunResultStatus <- pure $ case result of
-          Success {} -> TestPassed
-          GaveUp {} -> TestFailed
-          Failure {} -> TestFailed
-          NoExpectedFailure {} -> TestFailed
-        let testRunResultNumTests = Just $ fromIntegral $ numTests result
-        let testRunResultNumShrinks = case result of
-              Failure {} -> Just $ fromIntegral $ numShrinks result
-              _ -> Nothing
-        let testRunResultException = case result of
-              Failure {} -> do
-                se <- theException result
-                pure $ case fromException se of
-                  Just a -> Right a
-                  Nothing -> Left $ displayException se
-              _ -> Nothing
-        pure TestRunResult {..}
+  liftIO $
+    applyWrapper2 wrapper $ \arg1 arg2 -> do
+      (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args (p arg1 arg2)
+      testRunResultStatus <- pure $ case result of
+        Success {} -> TestPassed
+        GaveUp {} -> TestFailed
+        Failure {} -> TestFailed
+        NoExpectedFailure {} -> TestFailed
+      let testRunResultNumTests = Just $ fromIntegral $ numTests result
+      let testRunResultNumShrinks = case result of
+            Failure {} -> Just $ fromIntegral $ numShrinks result
+            _ -> Nothing
+      let testRunResultException = case result of
+            Failure {} -> do
+              se <- theException result
+              pure $ case fromException se of
+                Just a -> Right a
+                Nothing -> Left $ displayException se
+            _ -> Nothing
+      pure TestRunResult {..}
 
 exceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
 exceptionHandlers =
@@ -184,8 +175,7 @@ exceptionHandlers =
 type Test = IO ()
 
 data TestRunSettings = TestRunSettings
-  { testRunSettingChildProcessOverride :: Maybe Bool, -- Nothing means use the default, the specific test can decide what that is.
-    testRunSettingSeed :: Int,
+  { testRunSettingSeed :: Int,
     testRunSettingMaxSuccess :: Int,
     testRunSettingMaxSize :: Int,
     testRunSettingMaxDiscardRatio :: Int,
@@ -196,8 +186,7 @@ data TestRunSettings = TestRunSettings
 defaultTestRunSettings :: TestRunSettings
 defaultTestRunSettings =
   TestRunSettings
-    { testRunSettingChildProcessOverride = Nothing,
-      testRunSettingSeed = 42, -- This is set by default because we want reproducability by default.
+    { testRunSettingSeed = 42, -- This is set by default because we want reproducability by default.
       testRunSettingMaxSuccess = maxSuccess stdArgs,
       testRunSettingMaxSize = maxSize stdArgs,
       testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,

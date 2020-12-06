@@ -25,22 +25,20 @@ class IsTest e where
   type Arg1 e
   type Arg2 e
   runTest ::
+    e ->
     TestRunSettings ->
     ((Arg1 e -> Arg2 e -> IO ()) -> IO ()) ->
-    e ->
     IO TestRunResult
 
 instance IsTest Bool where
   type Arg1 Bool = HList '[] -- The argument from 'aroundAll'
   type Arg2 Bool = () -- The argument from 'around'
-  runTest sets wrapper func =
-    runTest sets wrapper (\(HNil :: HList '[]) () -> func)
+  runTest func = runTest (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> Bool) where
   type Arg1 (arg -> Bool) = HList '[]
   type Arg2 (arg -> Bool) = arg
-  runTest sets wrapper func =
-    runTest sets wrapper (\(HNil :: HList '[]) arg -> func arg)
+  runTest func = runTest (\(HNil :: HList '[]) arg -> func arg)
 
 instance IsTest (arg1 -> arg2 -> Bool) where
   type Arg1 (arg1 -> arg2 -> Bool) = arg1
@@ -48,11 +46,11 @@ instance IsTest (arg1 -> arg2 -> Bool) where
   runTest = runPureTestWithArg
 
 runPureTestWithArg ::
+  (arg1 -> arg2 -> Bool) ->
   TestRunSettings ->
   ((arg1 -> arg2 -> IO ()) -> IO ()) ->
-  (arg1 -> arg2 -> Bool) ->
   IO TestRunResult
-runPureTestWithArg TestRunSettings {..} wrapper computeBool = do
+runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
@@ -82,20 +80,24 @@ applyWrapper2 wrapper func = do
 instance IsTest (IO a) where
   type Arg1 (IO a) = HList '[]
   type Arg2 (IO a) = ()
-  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) () -> func)
+  runTest func = runTest (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> IO a) where
   type Arg1 (arg -> IO a) = HList '[]
   type Arg2 (arg -> IO a) = arg
-  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) -> func)
+  runTest func = runTest (\(HNil :: HList '[]) -> func)
 
 instance IsTest (arg1 -> arg2 -> IO a) where
   type Arg1 (arg1 -> arg2 -> IO a) = arg1
   type Arg2 (arg1 -> arg2 -> IO a) = arg2
   runTest = runIOTestWithArg
 
-runIOTestWithArg :: TestRunSettings -> ((arg1 -> arg2 -> IO ()) -> IO ()) -> (arg1 -> arg2 -> IO a) -> IO TestRunResult
-runIOTestWithArg TestRunSettings {..} wrapper func = do
+runIOTestWithArg ::
+  (arg1 -> arg2 -> IO a) ->
+  TestRunSettings ->
+  ((arg1 -> arg2 -> IO ()) -> IO ()) ->
+  IO TestRunResult
+runIOTestWithArg func TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
   let runInChildProcess = fromMaybe False testRunSettingChildProcessOverride
   let runWrapper = if runInChildProcess then runInSilencedProcess else id
@@ -117,20 +119,24 @@ runIOTestWithArg TestRunSettings {..} wrapper func = do
 instance IsTest Property where
   type Arg1 Property = HList '[]
   type Arg2 Property = ()
-  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) () -> func)
+  runTest func = runTest (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> Property) where
   type Arg1 (arg -> Property) = HList '[]
   type Arg2 (arg -> Property) = arg
-  runTest sets wrapper func = runTest sets wrapper (\(HNil :: HList '[]) -> func)
+  runTest func = runTest (\(HNil :: HList '[]) -> func)
 
 instance IsTest (arg1 -> arg2 -> Property) where
   type Arg1 (arg1 -> arg2 -> Property) = arg1
   type Arg2 (arg1 -> arg2 -> Property) = arg2
   runTest = runPropertyTestWithArg
 
-runPropertyTestWithArg :: TestRunSettings -> ((arg1 -> arg2 -> IO ()) -> IO ()) -> (arg1 -> arg2 -> Property) -> IO TestRunResult
-runPropertyTestWithArg TestRunSettings {..} wrapper p = do
+runPropertyTestWithArg ::
+  (arg1 -> arg2 -> Property) ->
+  TestRunSettings ->
+  ((arg1 -> arg2 -> IO ()) -> IO ()) ->
+  IO TestRunResult
+runPropertyTestWithArg p TestRunSettings {..} wrapper = do
   let args =
         stdArgs
           { replay = Just (mkQCGen testRunSettingSeed, 0),

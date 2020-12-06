@@ -173,10 +173,10 @@ it s t = do
         TestDef
           { testDefVal = \supplyArgs ->
               runTest
+                t
                 sets
                 ( \func -> supplyArgs func
-                )
-                t,
+                ),
             testDefCallStack = callStack
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
@@ -186,7 +186,11 @@ it' s t = do
   sets <- ask
   let testDef =
         TestDef
-          { testDefVal = \supplyArgs -> runTest sets (\func -> supplyArgs func) t,
+          { testDefVal = \supplyArgs ->
+              runTest
+                t
+                sets
+                (\func -> supplyArgs func),
             testDefCallStack = callStack
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]

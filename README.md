@@ -2,6 +2,8 @@
 
 An experimental testing framework for Haskell with good defaults and advanced testing features.
 
+Sydtest aims to make the common easy and the hard possible.
+
 
 ## The devil is in the defaults
 

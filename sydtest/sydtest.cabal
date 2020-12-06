@@ -89,8 +89,8 @@ test-suite sydtest-test
   main-is: Spec.hs
   other-modules:
       Test.Syd.AroundAllSpec
+      Test.Syd.AroundCombinationSpec
       Test.Syd.AroundSpec
-      Test.Syd.FootgunSpec
       Paths_sydtest
   hs-source-dirs:
       test

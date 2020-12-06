@@ -75,7 +75,7 @@ outputSpecTree :: Int -> Int -> ResultTree -> [[Chunk]]
 outputSpecTree level treeWidth = \case
   DescribeNode t sf -> outputDescribeLine t : map (padding :) (outputSpecForest (level + 1) treeWidth sf)
   SpecifyNode t td -> outputSpecifyLines level treeWidth t td
-  SubForestNode sf -> outputSpecForest (level + 1) treeWidth sf
+  SubForestNode sf -> outputSpecForest level treeWidth sf
 
 outputDescribeLine :: Text -> [Chunk]
 outputDescribeLine t = [fore yellow $ chunk t]
@@ -92,11 +92,11 @@ outputSpecifyLines level treeWidth specifyText (TestDef (TestRunResult {..}) _) 
             | otherwise -> id
 
       withStatusColour = fore (statusColour testRunResultStatus)
-      specifyTextWithCheckmark = statusCheckMark testRunResultStatus <> specifyText
    in filter
         (not . null)
-        [ [ withStatusColour $ chunk specifyTextWithCheckmark,
-            spacingChunk level specifyTextWithCheckmark executionTimeText treeWidth,
+        [ [ withStatusColour $ chunk (statusCheckMark testRunResultStatus),
+            withStatusColour $ chunk specifyText,
+            spacingChunk level specifyText executionTimeText treeWidth,
             withTimingColour $ chunk executionTimeText
           ],
           [ chunk (T.pack (printf "  (passed for all of %d inputs)" w))
@@ -109,15 +109,15 @@ outputSpecifyLines level treeWidth specifyText (TestDef (TestRunResult {..}) _) 
 --
 -- initial padding | checkmark | description | THIS CHUNK | execution time
 spacingChunk :: Int -> Text -> Text -> Int -> Chunk
-spacingChunk level description executionTimeText treeWidth = chunk $ T.pack $ replicate paddingWidth ' '
+spacingChunk level descriptionText executionTimeText treeWidth = chunk $ T.pack $ replicate paddingWidth ' '
   where
     paddingWidth =
       let preferredMaxWidth = 80
+          checkmarkWidth = 2
           minimumSpacing = 1
-          actualDescriptionWidth = T.length description
-          spaceBetweenDescriptionAndMaxWidth = treeWidth - actualDescriptionWidth
-          actualTimingWidth = T.length executionTimeText -- All timings are the same width
-          totalNecessaryWidth = treeWidth + minimumSpacing + actualTimingWidth + paddingSize * level
+          actualDescriptionWidth = T.length descriptionText
+          actualTimingWidth = T.length executionTimeText
+          totalNecessaryWidth = treeWidth + checkmarkWidth + minimumSpacing + actualTimingWidth -- All timings are the same width
           actualMaxWidth = max totalNecessaryWidth preferredMaxWidth
        in actualMaxWidth - paddingSize * level - actualTimingWidth - actualDescriptionWidth
 

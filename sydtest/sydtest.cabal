@@ -91,6 +91,7 @@ test-suite sydtest-test
       Test.Syd.AroundAllSpec
       Test.Syd.AroundCombinationSpec
       Test.Syd.AroundSpec
+      Test.Syd.FootgunSpec
       Paths_sydtest
   hs-source-dirs:
       test

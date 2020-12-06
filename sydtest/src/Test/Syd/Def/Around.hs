@@ -39,14 +39,50 @@ after action = aroundWith $ \e x -> e x `finally` action x
 after_ :: IO () -> TestDefM a c e -> TestDefM a c e
 after_ action = after $ \_ -> action
 
--- | Run a custom action before and/or after every spec item.
+-- | Run a custom action before and/or after every spec item, to provide access to a resource 'c'.
+--
+-- See the @FOOTGUN@ note in the docs for 'around_'.
 around :: ((c -> IO ()) -> IO ()) -> TestDefM a c e -> TestDefM a () e
 around action = aroundWith $ \e () -> action e
 
--- | Run a custom action before and/or after every spec item.
+-- | Run a custom action before and/or after every spec item without accessing any resources
+--
+-- It is important that the wrapper function that you provide runs the action that it gets _exactly once_.
+--
+-- == __FOOTGUN__
+--
+-- This combinator gives the programmer a lot of power.
+-- In fact, it gives the programmer enough power to break the test framework.
+-- Indeed, you can provide a wrapper function that just _doesn't_ run the function like this:
+--
+-- > spec :: Spec
+-- > spec = do
+-- >    let don'tDo :: IO () -> IO ()
+-- >        don'tDo _ = pure ()
+-- >    around_ don'tDo $ do
+-- >      it "should pass" True
+--
+-- During execution, you'll then get an error like this:
+--
+-- > thread blocked indefinitely in an MVar operation
+--
+-- The same thing will go wrong if you run the given action more than once like this:
+--
+-- > spec :: Spec
+-- > spec = do
+-- >    let doTwice :: IO () -> IO ()
+-- >        doTwice f = f >> f
+-- >    around_ doTwice $ do
+-- >      it "should pass" True
+--
+--
+-- Note: If you're interested in fixing this, talk to me, but only after GHC has gotten impredicative types because that will likely be a requirement.
 around_ :: (IO () -> IO ()) -> TestDefM a c e -> TestDefM a c e
 around_ action = aroundWith $ \e a -> action (e a)
 
+-- | Run a custom action before and/or after every spec item, to provide access to a resource 'c' while using a resource 'd'.
+--
+-- See the @FOOTGUN@ note in the docs for 'around_'.
 aroundWith :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
 aroundWith func =
   aroundWith' $

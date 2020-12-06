@@ -32,6 +32,9 @@ library
       Test.Syd.Output
       Test.Syd.Run
       Test.Syd.Runner
+      Test.Syd.Runner.Asynchronous
+      Test.Syd.Runner.Synchronous
+      Test.Syd.Runner.Wrappers
       Test.Syd.Silence
       Test.Syd.SpecDef
       Test.Syd.SpecForest

@@ -8,11 +8,13 @@ import Test.Syd
 
 spec :: Spec
 spec = do
-  aroundWithTwice
-  aroundWithDon't
+  aroundTwice
+  aroundDon't
+  aroundAllTwice
+  aroundAllDon't
 
-aroundWithDon't :: Spec
-aroundWithDon't = do
+aroundDon't :: Spec
+aroundDon't = do
   -- -- This causes sydtest-test: thread blocked indefinitely in an MVar operation
   -- let don'tDo :: IO () -> IO ()
   --     don'tDo _ = pure ()
@@ -20,11 +22,29 @@ aroundWithDon't = do
   --   it "should pass" True
   pure ()
 
-aroundWithTwice :: Spec
-aroundWithTwice = do
+aroundTwice :: Spec
+aroundTwice = do
   -- -- This causes sydtest-test: thread blocked indefinitely in an MVar operation
   -- let doTwice :: IO () -> IO ()
   --     doTwice f = f >> f
   -- around_ doTwice $ do
+  --   it "should pass" True
+  pure ()
+
+aroundAllDon't :: Spec
+aroundAllDon't = do
+  -- -- This causes sydtest-test: thread blocked indefinitely in an MVar operation
+  -- let don'tDo :: IO () -> IO ()
+  --     don'tDo _ = pure ()
+  -- aroundAll_ don'tDo $ do
+  --   it "should pass" True
+  pure ()
+
+aroundAllTwice :: Spec
+aroundAllTwice = do
+  -- -- This 'just works' but takes longer.
+  -- let doTwice :: IO () -> IO ()
+  --     doTwice f = f >> f
+  -- aroundAll_ doTwice $ do
   --   it "should pass" True
   pure ()

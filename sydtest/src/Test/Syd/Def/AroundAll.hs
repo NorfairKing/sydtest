@@ -44,14 +44,50 @@ afterAll' func = wrapRWST $ \forest -> DefAfterAllNode func forest
 afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 afterAll_ action = afterAll' $ \_ -> action
 
--- | Run a custom action before and/or after all spec items.
+-- | Run a custom action before and/or after all spec items in group, to provide access to a resource 'a'.
+--
+-- See the @FOOTGUN@ note in the docs for 'around_'.
 aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM (a ': l) c e -> TestDefM l c e
 aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
 
--- | Run a custom action before and/or after all spec items.
+-- | Run a custom action before and/or after all spec items in a group without accessing any resources.
+--
+-- == __FOOTGUN__
+--
+-- This combinator gives the programmer a lot of power.
+-- In fact, it gives the programmer enough power to break the test framework.
+-- Indeed, you can provide a wrapper function that just _doesn't_ run the function like this:
+-- The same problem exists when using 'Test.Syd.Def.Around.around_'.
+--
+-- > spec :: Spec
+-- > spec = do
+-- >    let don'tDo :: IO () -> IO ()
+-- >        don'tDo _ = pure ()
+-- >    aroundAll_ don'tDo $ do
+-- >      it "should pass" True
+--
+-- During execution, you'll then get an error like this:
+--
+-- > thread blocked indefinitely in an MVar operation
+--
+-- Something even more pernicious goes wrong when you run the given action more than once like this:
+--
+-- > spec :: Spec
+-- > spec = do
+-- >    let doTwice :: IO () -> IO ()
+-- >        doTwice f = f >> f
+-- >    aroundAll_ doTwice $ do
+-- >      it "should pass" True
+--
+-- In this case, the test will "just work", but it will be executed twice even if the output reports that it only passed once.
+--
+-- Note: If you're interested in fixing this, talk to me, but only after GHC has gotten impredicative types because that will likely be a requirement.
 aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e
 aroundAll_ func = wrapRWST $ \forest -> DefWrapNode func forest
 
+-- | Run a custom action before and/or after all spec items in a group to provide access to a resource 'a' while using a resource 'b'
+--
+-- See the @FOOTGUN@ note in the docs for 'around_'.
 aroundAllWith ::
   forall a b c l r.
   ((a -> IO ()) -> (b -> IO ())) ->

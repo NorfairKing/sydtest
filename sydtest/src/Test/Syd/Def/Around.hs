@@ -54,6 +54,7 @@ around action = aroundWith $ \e () -> action e
 -- This combinator gives the programmer a lot of power.
 -- In fact, it gives the programmer enough power to break the test framework.
 -- Indeed, you can provide a wrapper function that just _doesn't_ run the function like this:
+-- The same problem exists when using 'Test.Syd.Def.Around.aroundAll_'.
 --
 -- > spec :: Spec
 -- > spec = do

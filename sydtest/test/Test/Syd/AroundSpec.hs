@@ -111,3 +111,20 @@ spec = sequential $ do
         i `shouldBe` 4
       it "reads 6" $ \i ->
         i `shouldBe` 6
+
+  describe "aroundWith'" $ do
+    var <- liftIO $ newTVarIO (1 :: Int)
+    let increment = atomically $ modifyTVar var succ
+        readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
+        aroundWithFunc :: (() -> Int -> IO ()) -> () -> () -> IO ()
+        aroundWithFunc intFunc () () = do
+          i <- readAndIncrement
+          intFunc () i
+          increment
+    aroundWith' aroundWithFunc $ do
+      it "reads 2" $ \i ->
+        i `shouldBe` 2
+      it "reads 4" $ \i ->
+        i `shouldBe` 4
+      it "reads 6" $ \i ->
+        i `shouldBe` 6

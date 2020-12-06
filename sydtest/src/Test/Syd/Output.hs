@@ -87,8 +87,8 @@ outputSpecifyLines level treeWidth specifyText (TestDef (TestRunResult {..}) _) 
       withTimingColour =
         if
             | t < 1 -> fore green
-            | t >= 1 && t <= 100 -> fore yellow
-            | t >= 100 && t <= 10000 -> fore red
+            | t >= 10 && t <= 1000 -> fore yellow
+            | t >= 1000 && t <= 10000 -> fore red
             | otherwise -> id
 
       withStatusColour = fore (statusColour testRunResultStatus)

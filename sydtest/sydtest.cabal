@@ -50,7 +50,6 @@ library
     , base >=4.7 && <5
     , bytestring
     , compact
-    , deepseq
     , dlist
     , envparse
     , interprocess
@@ -64,7 +63,7 @@ library
     , safe
     , split
     , text
-    , timeit
+    , time
     , unix
     , unliftio
     , yaml

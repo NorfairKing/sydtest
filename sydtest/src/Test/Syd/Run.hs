@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -9,12 +10,11 @@
 -- | This module defines the 'IsTest' class and the different instances for it.
 module Test.Syd.Run where
 
-import Control.DeepSeq
 import Control.Exception hiding (Handler, catches, evaluate)
 import Data.Maybe
+import Data.Time.Clock.System
 import Data.Typeable
 import GHC.Generics (Generic)
-import System.TimeIt
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
@@ -103,7 +103,7 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
         applyWrapper2 wrapper $
           \arg1 arg2 -> do
             result <-
-              (liftIO (func arg1 arg2) >>= (evaluate . force . (`seq` Right TestPassed)))
+              (liftIO (() <$ func arg1 arg2) >>= (evaluate . (`seq` Right TestPassed)))
                 `catches` exceptionHandlers
             evaluate $ case result of
               Left ex -> (TestFailed, Just ex)
@@ -141,26 +141,28 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
             maxSize = testRunSettingMaxSize,
             maxShrinks = testRunSettingMaxShrinks
           }
-  liftIO $
-    applyWrapper2 wrapper $ \arg1 arg2 -> do
-      (testRunResultExecutionTime, result) <- timeItT $ liftIO $ quickCheckWithResult args (p arg1 arg2)
-      testRunResultStatus <- pure $ case result of
-        Success {} -> TestPassed
-        GaveUp {} -> TestFailed
-        Failure {} -> TestFailed
-        NoExpectedFailure {} -> TestFailed
-      let testRunResultNumTests = Just $ fromIntegral $ numTests result
-      let testRunResultNumShrinks = case result of
-            Failure {} -> Just $ fromIntegral $ numShrinks result
-            _ -> Nothing
-      let testRunResultException = case result of
-            Failure {} -> do
-              se <- theException result
-              pure $ case fromException se of
-                Just a -> Right a
-                Nothing -> Left $ displayException se
-            _ -> Nothing
-      pure TestRunResult {..}
+  liftIO $ do
+    (testRunResultExecutionTime, result) <-
+      timeItT $
+        applyWrapper2 wrapper $ \arg1 arg2 -> do
+          liftIO $ quickCheckWithResult args (p arg1 arg2)
+    testRunResultStatus <- pure $ case result of
+      Success {} -> TestPassed
+      GaveUp {} -> TestFailed
+      Failure {} -> TestFailed
+      NoExpectedFailure {} -> TestFailed
+    let testRunResultNumTests = Just $ fromIntegral $ numTests result
+    let testRunResultNumShrinks = case result of
+          Failure {} -> Just $ fromIntegral $ numShrinks result
+          _ -> Nothing
+    let testRunResultException = case result of
+          Failure {} -> do
+            se <- theException result
+            pure $ case fromException se of
+              Just a -> Right a
+              Nothing -> Left $ displayException se
+          _ -> Nothing
+    pure TestRunResult {..}
 
 exceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
 exceptionHandlers =
@@ -205,8 +207,6 @@ data TestRunResult = TestRunResult
 data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
 
-instance NFData TestStatus
-
 data Assertion
   = NotEqualButShouldHaveBeenEqual String String
   | EqualButShouldNotHaveBeenEqual String String
@@ -216,4 +216,20 @@ data Assertion
 
 instance Exception Assertion
 
-instance NFData Assertion
+-- | Time an action and return the result as well as how long it took in seconds.
+--
+-- This function does not use the 'timeit' package because that package uses CPU time instead of system time.
+-- That means that any waiting, like with 'threadDelay' would not be counted.
+--
+-- Note that this does not evaluate the result, on purpose.
+timeItT :: MonadIO m => m a -> m (Double, a)
+timeItT func = do
+  begin <- liftIO getSystemTime
+  r <- func
+  end <- liftIO getSystemTime
+  pure (diffSystemTime end begin, r)
+  where
+    diffSystemTime :: SystemTime -> SystemTime -> Double
+    diffSystemTime (MkSystemTime s1 ns1) (MkSystemTime s2 ns2) =
+      let diffNanoseconds = fromIntegral (s1 - s2) * 1_000_000_000 + fromIntegral (ns1 - ns2) :: Integer
+       in realToFrac diffNanoseconds / 1_000_000_000

@@ -18,6 +18,7 @@ spec = sequential $ do
           t (HCons i HNil) () = i `shouldBe` 1
       it' "reads 1" t
       it' "reads 1" t
+
   describe "beforeAll_" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
     let increment :: IO ()
@@ -29,6 +30,7 @@ spec = sequential $ do
             i `shouldBe` 1
       it' "reads 1" t
       it' "reads 1" t
+
   describe "afterAll" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
     let readAndIncrement :: IO Int
@@ -41,6 +43,7 @@ spec = sequential $ do
             t (HCons i HNil) () = i `shouldBe` 1
         it' "reads 1" t
         it' "reads 1" t
+
   describe "afterAll_" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
     let increment :: IO ()
@@ -52,6 +55,7 @@ spec = sequential $ do
             i `shouldBe` 0
       it' "reads 0" t
       it' "reads 0" t
+
   describe "aroundAll" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
     let readAndIncrement :: IO Int
@@ -68,6 +72,24 @@ spec = sequential $ do
           t (HCons i HNil) () = i `shouldBe` 1
       it' "reads 1" t
       it' "reads 1" t
+
+  describe "aroundAll_" $ do
+    var <- liftIO $ newTVarIO (0 :: Int)
+    let increment :: IO ()
+        increment = atomically $ modifyTVar var (+ 1)
+    let incrementBeforeAndAfter :: IO () -> IO ()
+        incrementBeforeAndAfter func = do
+          increment
+          func
+          increment
+    aroundAll_ incrementBeforeAndAfter $ do
+      let t :: IO ()
+          t = do
+            i <- readTVarIO var
+            i `shouldBe` 1
+      it "reads 1" t
+      it "reads 1" t
+
   describe "aroundAllWith" $ do
     var <- liftIO $ newTVarIO (0 :: Int)
     let readAndIncrement :: IO Int

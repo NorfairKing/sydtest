@@ -66,8 +66,10 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
         liftIO $ do
           mapM_ SB.putStr bss
           SB8.putStrLn ""
+      treeWidth :: Int
+      treeWidth = specForestWidth testForest
   let pad :: Int -> [Chunk] -> [Chunk]
-      pad level = (chunk (T.replicate (level * 2) " ") :)
+      pad level = (chunk (T.pack (replicate (paddingSize * level) ' ')) :)
       goTree :: Int -> HList a -> TestTree a () -> IO ResultTree
       goTree level a = \case
         DefDescribeNode t sf -> do
@@ -77,7 +79,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           let runFunc = testDefVal td (\f -> f a ())
           result <- runFunc
           let td' = td {testDefVal = result}
-          mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
+          mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
           pure $ SpecifyNode t td'
         DefWrapNode func sdf -> SubForestNode <$> applySimpleWrapper'' func (goForest level a sdf)
         DefBeforeAllNode func sdf ->

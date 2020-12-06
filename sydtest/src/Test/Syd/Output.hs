@@ -1,6 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Test.Syd.Output where
 
@@ -14,6 +16,7 @@ import Data.List.Split (splitWhen)
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
+import Debug.Trace
 import GHC.Stack
 import Rainbow
 import Rainbow.Types (Chunk (..))
@@ -36,7 +39,7 @@ outputResultReport :: ResultForest -> [[Chunk]]
 outputResultReport rf =
   concat
     [ outputTestsHeader,
-      outputSpecForest rf,
+      outputSpecForest 0 (resultForestWidth rf) rf,
       [ [chunk ""],
         [chunk ""]
       ],
@@ -65,31 +68,58 @@ outputHeader t =
     [chunk ""]
   ]
 
-outputSpecForest :: ResultForest -> [[Chunk]]
-outputSpecForest = concatMap outputSpecTree
+outputSpecForest :: Int -> Int -> ResultForest -> [[Chunk]]
+outputSpecForest level treeWidth = concatMap (outputSpecTree level treeWidth)
 
-outputSpecTree :: ResultTree -> [[Chunk]]
-outputSpecTree = \case
-  DescribeNode t sf -> outputDescribeLine t : map (chunk "  " :) (outputSpecForest sf)
-  SpecifyNode t td -> outputSpecifyLines t td
-  SubForestNode sf -> outputSpecForest sf
+outputSpecTree :: Int -> Int -> ResultTree -> [[Chunk]]
+outputSpecTree level treeWidth = \case
+  DescribeNode t sf -> outputDescribeLine t : map (padding :) (outputSpecForest (level + 1) treeWidth sf)
+  SpecifyNode t td -> outputSpecifyLines level treeWidth t td
+  SubForestNode sf -> outputSpecForest (level + 1) treeWidth sf
 
 outputDescribeLine :: Text -> [Chunk]
 outputDescribeLine t = [fore yellow $ chunk t]
 
-outputSpecifyLines :: Text -> TestDef TestRunResult -> [[Chunk]]
-outputSpecifyLines t (TestDef (TestRunResult {..}) _) =
-  map (map (fore (statusColour testRunResultStatus))) $
-    filter
-      (not . null)
-      [ [ chunk (statusCheckMark testRunResultStatus),
-          chunk t
-        ],
-        concat
-          [ -- [chunk (T.pack (printf "%10.2f ms " (testRunResultExecutionTime * 1000)))],
-            [chunk (T.pack (printf "  (passed for all of %d inputs)" w)) | w <- maybeToList testRunResultNumTests, testRunResultStatus == TestPassed]
+outputSpecifyLines :: Int -> Int -> Text -> TestDef TestRunResult -> [[Chunk]]
+outputSpecifyLines level treeWidth specifyText (TestDef (TestRunResult {..}) _) =
+  let t = testRunResultExecutionTime * 1000 -- milliseconds
+      executionTimeText = T.pack (printf (" %10.2f ms") t)
+      withTimingColour =
+        if
+            | t < 1 -> fore green
+            | t >= 1 && t <= 100 -> fore yellow
+            | t >= 100 && t <= 10000 -> fore red
+            | otherwise -> id
+
+      withStatusColour = fore (statusColour testRunResultStatus)
+      specifyTextWithCheckmark = statusCheckMark testRunResultStatus <> specifyText
+   in filter
+        (not . null)
+        [ [ withStatusColour $ chunk specifyTextWithCheckmark,
+            spacingChunk level specifyTextWithCheckmark executionTimeText treeWidth,
+            withTimingColour $ chunk executionTimeText
+          ],
+          [ chunk (T.pack (printf "  (passed for all of %d inputs)" w))
+            | w <- maybeToList testRunResultNumTests,
+              testRunResultStatus == TestPassed
           ]
-      ]
+        ]
+
+-- The chunk for spacing between the description and the timing
+--
+-- initial padding | checkmark | description | THIS CHUNK | execution time
+spacingChunk :: Int -> Text -> Text -> Int -> Chunk
+spacingChunk level description executionTimeText treeWidth = chunk $ T.pack $ replicate paddingWidth ' '
+  where
+    paddingWidth =
+      let preferredMaxWidth = 80
+          minimumSpacing = 1
+          actualDescriptionWidth = T.length description
+          spaceBetweenDescriptionAndMaxWidth = treeWidth - actualDescriptionWidth
+          actualTimingWidth = T.length executionTimeText -- All timings are the same width
+          totalNecessaryWidth = treeWidth + minimumSpacing + actualTimingWidth + paddingSize * level
+          actualMaxWidth = max totalNecessaryWidth preferredMaxWidth
+       in actualMaxWidth - paddingSize * level - actualTimingWidth - actualDescriptionWidth
 
 testFailed :: (a, TestDef TestRunResult) -> Bool
 testFailed = (== TestFailed) . testRunResultStatus . testDefVal . snd
@@ -100,7 +130,7 @@ outputFailures rf =
       nbDigitsInFailureCount :: Int
       nbDigitsInFailureCount = ceiling (logBase 10 (genericLength failures) :: Double)
       pad = (chunk (T.replicate (nbDigitsInFailureCount + 3) " ") :)
-   in map (chunk "  " :) $
+   in map (padding :) $
         filter (not . null) $
           concat $
             indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
@@ -210,3 +240,39 @@ statusCheckMark :: TestStatus -> Text
 statusCheckMark = \case
   TestPassed -> "\10003 "
   TestFailed -> "\10007 "
+
+resultForestWidth :: SpecForest a -> Int
+resultForestWidth = goF 0
+  where
+    goF :: Int -> SpecForest a -> Int
+    goF level = maximum . map (goT level)
+    goT :: Int -> SpecTree a -> Int
+    goT level = \case
+      SpecifyNode t _ -> T.length t + level * paddingSize
+      DescribeNode _ sdf -> goF (succ level) sdf
+      SubForestNode sdf -> goF level sdf
+
+specForestWidth :: SpecDefForest a b c -> Int
+specForestWidth = goF 0
+  where
+    goF :: Int -> SpecDefForest a b c -> Int
+    goF level = \case
+      [] -> 0
+      ts -> maximum $ map (goT level) ts
+    goT :: Int -> SpecDefTree a b c -> Int
+    goT level = \case
+      DefSpecifyNode t _ _ -> T.length t + level * paddingSize
+      DefDescribeNode _ sdf -> goF (succ level) sdf
+      DefWrapNode _ sdf -> goF level sdf
+      DefBeforeAllNode _ sdf -> goF level sdf
+      DefBeforeAllWithNode _ sdf -> goF level sdf
+      DefAroundAllNode _ sdf -> goF level sdf
+      DefAroundAllWithNode _ sdf -> goF level sdf
+      DefAfterAllNode _ sdf -> goF level sdf
+      DefParallelismNode _ sdf -> goF level sdf
+
+padding :: Chunk
+padding = chunk $ T.replicate paddingSize " "
+
+paddingSize :: Int
+paddingSize = 2

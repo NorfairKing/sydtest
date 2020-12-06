@@ -92,8 +92,10 @@ printer handleForest = do
         let bss = chunksToByteStrings byteStringMaker lineChunks
         mapM_ SB.putStr bss
         SB8.putStrLn ""
+      treeWidth :: Int
+      treeWidth = specForestWidth handleForest
   let pad :: Int -> [Chunk] -> [Chunk]
-      pad level = (chunk (T.replicate (level * 2) " ") :)
+      pad level = (chunk (T.pack (replicate (paddingSize * level) ' ')) :)
       goTree :: Int -> HandleTree a b -> IO ResultTree
       goTree level = \case
         DefDescribeNode t sf -> do
@@ -102,7 +104,7 @@ printer handleForest = do
         DefSpecifyNode t td var -> do
           result <- takeMVar var
           let td' = td {testDefVal = result}
-          mapM_ (outputLine . pad level) $ outputSpecifyLines t td'
+          mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
           pure $ SpecifyNode t td'
         DefWrapNode _ sdf -> SubForestNode <$> goForest level sdf
         DefBeforeAllNode _ sdf -> SubForestNode <$> goForest level sdf

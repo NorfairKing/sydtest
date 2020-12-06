@@ -56,9 +56,7 @@ runTestDefM :: Settings -> TestDefM a b c -> IO (c, TestForest a b)
 runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
   (a, _, testForest) <- runRWST func (toTestRunSettings sets) () -- TODO allow passing in settings from the command-line
-  let testForest' = case settingFilter sets of
-        Nothing -> testForest
-        Just f -> filterTestForest f testForest
+  let testForest' = filterTestForest (settingFilter sets) testForest
   pure (a, testForest')
 
 toTestRunSettings :: Settings -> TestRunSettings
@@ -72,8 +70,8 @@ toTestRunSettings Settings {..} =
       testRunSettingMaxShrinks = settingMaxShrinks
     }
 
-filterTestForest :: Text -> SpecDefForest a b c -> SpecDefForest a b c
-filterTestForest f = fromMaybe [] . goForest DList.empty
+filterTestForest :: Maybe Text -> SpecDefForest a b c -> SpecDefForest a b c
+filterTestForest mf = fromMaybe [] . goForest DList.empty
   where
     goForest :: DList Text -> SpecDefForest a b c -> Maybe (SpecDefForest a b c)
     goForest ts sdf = do
@@ -84,7 +82,9 @@ filterTestForest f = fromMaybe [] . goForest DList.empty
     goTree dl = \case
       DefSpecifyNode t td e -> do
         let tl = DList.toList (DList.snoc dl t)
-        guard $ f `T.isInfixOf` (T.intercalate "." tl)
+        guard $ case mf of
+          Just f -> f `T.isInfixOf` (T.intercalate "." tl)
+          Nothing -> True
         pure $ DefSpecifyNode t td e
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf

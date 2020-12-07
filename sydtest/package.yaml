@@ -35,7 +35,6 @@ library:
   - safe
   - split
   - text
-  - time
   - unix
   - unliftio
   - yaml

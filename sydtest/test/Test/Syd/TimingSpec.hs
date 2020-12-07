@@ -11,7 +11,7 @@ import Test.QuickCheck
 import Test.Syd
 
 spec :: Spec
-spec = do
+spec = doNotRandomiseExecutionOrder $ do
   it "takes at least 10 milliseconds (pure)" $
     unsafePerformIO take10ms `seq` True
   it "takes at least 10 milliseconds (IO)" $ do

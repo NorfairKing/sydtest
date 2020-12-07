@@ -11,9 +11,9 @@
 module Test.Syd.Run where
 
 import Control.Exception hiding (Handler, catches, evaluate)
-import Data.Time.Clock.System
 import Data.Typeable
 import Data.Word
+import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Generics (Generic)
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
@@ -220,16 +220,10 @@ instance Exception Assertion
 -- Note that this does not evaluate the result, on purpose.
 timeItT :: MonadIO m => m a -> m (Timed a)
 timeItT func = do
-  begin <- liftIO getSystemTime
+  begin <- liftIO getMonotonicTimeNSec
   r <- func
-  end <- liftIO getSystemTime
-  pure $ Timed r (diffSystemTime end begin)
-  where
-    diffSystemTime :: SystemTime -> SystemTime -> Word64
-    diffSystemTime (MkSystemTime s1 ns1) (MkSystemTime s2 ns2) =
-      let nanosecondsInASecond = 1_000_000_000 :: Word64
-          diffNanoseconds = (fromIntegral (s1 - s2) * nanosecondsInASecond) + fromIntegral (ns1 - ns2) :: Word64
-       in diffNanoseconds
+  end <- liftIO getMonotonicTimeNSec
+  pure $ Timed r (end - begin)
 
 data Timed a = Timed
   { timedValue :: !a,

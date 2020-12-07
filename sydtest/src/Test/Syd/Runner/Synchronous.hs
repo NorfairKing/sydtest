@@ -17,6 +17,7 @@ import qualified Data.Text as T
 import Rainbow
 import Test.Syd.HList
 import Test.Syd.Output
+import Test.Syd.Run
 import Test.Syd.Runner.Wrappers
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
@@ -32,7 +33,7 @@ runSpecForestSynchronously = goForest HNil
       DefDescribeNode t sdf -> DescribeNode t <$> goForest l sdf
       DefSpecifyNode t td () -> do
         let runFunc = testDefVal td (\f -> f l ())
-        result <- runFunc
+        result <- timeItT runFunc
         let td' = td {testDefVal = result}
         pure $ SpecifyNode t td'
       DefWrapNode func sdf -> SubForestNode <$> applySimpleWrapper'' func (goForest l sdf)
@@ -49,6 +50,7 @@ runSpecForestSynchronously = goForest HNil
          in SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b l) sdf) x
       DefAfterAllNode func sdf -> SubForestNode <$> (goForest l sdf `finally` func l)
       DefParallelismNode _ sdf -> SubForestNode <$> goForest l sdf -- Ignore, it's synchronous anyway
+      DefRandomisationNode _ sdf -> SubForestNode <$> goForest l sdf
 
 runSpecForestInterleavedWithOutputSynchronously :: TestForest '[] () -> IO ResultForest
 runSpecForestInterleavedWithOutputSynchronously testForest = do
@@ -70,7 +72,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
           DescribeNode t <$> goForest (succ level) a sf
         DefSpecifyNode t td () -> do
           let runFunc = testDefVal td (\f -> f a ())
-          result <- runFunc
+          result <- timeItT runFunc
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
           pure $ SpecifyNode t td'
@@ -88,6 +90,7 @@ runSpecForestInterleavedWithOutputSynchronously testForest = do
            in SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) x
         DefAfterAllNode func sdf -> SubForestNode <$> (goForest level a sdf `finally` func a)
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
+        DefRandomisationNode _ sdf -> SubForestNode <$> goForest level a sdf
       goForest :: Int -> HList a -> TestForest a () -> IO ResultForest
       goForest level a = mapM (goTree level a)
   mapM_ outputLine outputTestsHeader

@@ -79,9 +79,9 @@ outputSpecTree level treeWidth = \case
 outputDescribeLine :: Text -> [Chunk]
 outputDescribeLine t = [fore yellow $ chunk t]
 
-outputSpecifyLines :: Int -> Int -> Text -> TestDef TestRunResult -> [[Chunk]]
-outputSpecifyLines level treeWidth specifyText (TestDef (TestRunResult {..}) _) =
-  let t = testRunResultExecutionTime * 1000 -- milliseconds
+outputSpecifyLines :: Int -> Int -> Text -> TestDef (Timed TestRunResult) -> [[Chunk]]
+outputSpecifyLines level treeWidth specifyText (TestDef (Timed TestRunResult {..} executionTime) _) =
+  let t = executionTime * 1000 -- milliseconds
       executionTimeText = T.pack (printf (" %10.2f ms") t)
       withTimingColour =
         if
@@ -119,8 +119,8 @@ spacingChunk level descriptionText executionTimeText treeWidth = chunk $ T.pack 
           actualMaxWidth = max totalNecessaryWidth preferredMaxWidth
        in actualMaxWidth - paddingSize * level - actualTimingWidth - actualDescriptionWidth
 
-testFailed :: (a, TestDef TestRunResult) -> Bool
-testFailed = (== TestFailed) . testRunResultStatus . testDefVal . snd
+testFailed :: (a, TestDef (Timed TestRunResult)) -> Bool
+testFailed = (== TestFailed) . testRunResultStatus . timedValue . testDefVal . snd
 
 outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =
@@ -131,7 +131,7 @@ outputFailures rf =
    in map (padding :) $
         filter (not . null) $
           concat $
-            indexed failures $ \w (ts, TestDef (TestRunResult {..}) cs) ->
+            indexed failures $ \w (ts, TestDef (Timed TestRunResult {..} _) cs) ->
               concat
                 [ [ [ (fore cyan) $
                         chunk $

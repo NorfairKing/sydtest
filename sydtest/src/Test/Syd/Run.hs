@@ -51,7 +51,7 @@ runPureTestWithArg ::
   IO TestRunResult
 runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
-  (testRunResultExecutionTime, resultBool) <- timeItT $
+  resultBool <-
     liftIO $
       applyWrapper2 wrapper $
         \outerArgs innerArg -> (Right <$> evaluate (computeBool outerArgs innerArg)) `catches` exceptionHandlers
@@ -95,17 +95,16 @@ runIOTestWithArg ::
   IO TestRunResult
 runIOTestWithArg func TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
-  (testRunResultExecutionTime, (testRunResultStatus, testRunResultException)) <-
-    timeItT $
-      liftIO $
-        applyWrapper2 wrapper $
-          \outerArgs innerArg -> do
-            result <-
-              (liftIO (() <$ func outerArgs innerArg) >>= (evaluate . (`seq` Right TestPassed)))
-                `catches` exceptionHandlers
-            evaluate $ case result of
-              Left ex -> (TestFailed, Just ex)
-              Right r -> (r, Nothing)
+  (testRunResultStatus, testRunResultException) <-
+    liftIO $
+      applyWrapper2 wrapper $
+        \outerArgs innerArg -> do
+          result <-
+            (liftIO (() <$ func outerArgs innerArg) >>= (evaluate . (`seq` Right TestPassed)))
+              `catches` exceptionHandlers
+          evaluate $ case result of
+            Left ex -> (TestFailed, Just ex)
+            Right r -> (r, Nothing)
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
@@ -140,10 +139,9 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
             maxShrinks = testRunSettingMaxShrinks
           }
   liftIO $ do
-    (testRunResultExecutionTime, result) <-
-      timeItT $
-        applyWrapper2 wrapper $ \outerArgs innerArg -> do
-          liftIO $ quickCheckWithResult args (p outerArgs innerArg)
+    result <-
+      applyWrapper2 wrapper $ \outerArgs innerArg -> do
+        liftIO $ quickCheckWithResult args (p outerArgs innerArg)
     testRunResultStatus <- pure $ case result of
       Success {} -> TestPassed
       GaveUp {} -> TestFailed
@@ -197,8 +195,7 @@ data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,
     testRunResultException :: !(Maybe (Either String Assertion)),
     testRunResultNumTests :: !(Maybe Word),
-    testRunResultNumShrinks :: !(Maybe Word),
-    testRunResultExecutionTime :: !Double -- In seconds
+    testRunResultNumShrinks :: !(Maybe Word)
   }
   deriving (Show, Eq, Generic)
 
@@ -220,15 +217,22 @@ instance Exception Assertion
 -- That means that any waiting, like with 'threadDelay' would not be counted.
 --
 -- Note that this does not evaluate the result, on purpose.
-timeItT :: MonadIO m => m a -> m (Double, a)
+timeItT :: MonadIO m => m a -> m (Timed a)
 timeItT func = do
   begin <- liftIO getSystemTime
   r <- func
   end <- liftIO getSystemTime
-  pure (diffSystemTime end begin, r)
+  pure $ Timed r (diffSystemTime end begin)
   where
     diffSystemTime :: SystemTime -> SystemTime -> Double
     diffSystemTime (MkSystemTime s1 ns1) (MkSystemTime s2 ns2) =
       let nanosecondsInASecond = 1_000_000_000 :: Integer
           diffNanoseconds = (fromIntegral (s1 - s2) * nanosecondsInASecond) + fromIntegral (ns1 - ns2) :: Integer
        in realToFrac diffNanoseconds / fromIntegral nanosecondsInASecond
+
+data Timed a = Timed
+  { timedValue :: !a,
+    -- | In seconds
+    timedTime :: !Double
+  }
+  deriving (Show, Eq, Generic)

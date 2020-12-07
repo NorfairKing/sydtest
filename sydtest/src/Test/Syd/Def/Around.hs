@@ -125,6 +125,7 @@ aroundWith' func (TestDefM rwst) = TestDefM $
           DefAroundAllWithNode f sdf -> DefAroundAllWithNode f $ modifyForest sdf
           DefAfterAllNode f sdf -> DefAfterAllNode f $ modifyForest sdf
           DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
+          DefRandomisationNode f sdf -> DefRandomisationNode f $ modifyForest sdf
         modifyForest :: forall x e. HContains x a => SpecDefForest x c e -> SpecDefForest x d e
         modifyForest = map modifyTree
     let forest' :: SpecDefForest u d ()

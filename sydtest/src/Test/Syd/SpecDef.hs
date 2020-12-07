@@ -108,9 +108,9 @@ data Parallelism = Parallel | Sequential
 
 data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecutionOrder
 
-type ResultForest = SpecForest (TestDef TestRunResult)
+type ResultForest = SpecForest (TestDef (Timed TestRunResult))
 
-type ResultTree = SpecTree (TestDef TestRunResult)
+type ResultTree = SpecTree (TestDef (Timed TestRunResult))
 
 shouldExitFail :: ResultForest -> Bool
-shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . testDefVal))
+shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . timedValue . testDefVal))

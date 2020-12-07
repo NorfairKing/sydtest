@@ -41,9 +41,9 @@ runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = do
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-type HandleForest a b = SpecDefForest a b (MVar TestRunResult)
+type HandleForest a b = SpecDefForest a b (MVar (Timed TestRunResult))
 
-type HandleTree a b = SpecDefTree a b (MVar TestRunResult)
+type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunResult))
 
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
 makeHandleForest = traverse $
@@ -60,7 +60,7 @@ runner nbThreads handleForest = do
       goTree p a = \case
         DefDescribeNode _ sdf -> goForest p a sdf
         DefSpecifyNode _ td var -> do
-          let runNow = testDefVal td (\f -> f a ())
+          let runNow = timeItT $ testDefVal td (\f -> f a ())
           case p of
             Parallel -> do
               liftIO $ waitQSem sem

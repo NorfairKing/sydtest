@@ -68,6 +68,9 @@ This project chooses best practices as defaults:
 | Declaring that at least one in a test group should fail                                   | 🚧      | C                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Using scarce resources across tests                                                       | 🚧      | C                                                           | ?                                                                |
 | A way to fail the test suite as soon as one test fails (`--fail-fast`)                    | 🚧      | ✔️                                                           | ?                                                                |
+| Fully configurable via flags                                                              | ✔️       | ✔️                                                           | ✔️                                                                |
+| Fully configurable via environment variables                                              | ✔️       | ✔️                                                           | ✔️                                                                |
+| Fully configurable via configuration file                                                 | ✔️       | ✔️                                                           | ✖️                                                                |
 
 * ✔️: Supported 
 * Lib: Possible with an extra library
@@ -84,16 +87,29 @@ Please let me know if I made a mistake anywhere, and feel free to fill in the qu
 
 ## Features in detail
 
-### Declarative monadic test definition
+### Declarative test definition
 
 Tests are declared as follows:
 
 ``` haskell
 spec :: Spec
 spec = do
-  describe "myFunction" $ do -- description of which functions you are testing
+  describe "(+)" $ do -- description of which functions you are testing
     it "does what you want it to" $ -- sentence to describe what you expect to happen
       2 + 3 == 5 -- Test code
+```
+
+### Monadic test definition
+
+You can use IO actions to help define tests:
+
+``` haskell
+spec :: Spec
+spec = do
+  (a, b) <- runIO whichNumbersToTest 
+  describe "myFunction" $
+    it "does what you want it to" $ -- sentence to describe what you expect to happen
+      myFunction a b
 ```
 
 ### Safe test execution
@@ -108,10 +124,17 @@ spec = do
       pred (0 :: Word) -- causes overflow (below zero), so this test will fail.
 ```
 
+This test will fail, but the test suite will continue to be executed.
+
 ### Parallel test execution
 
 Tests are executed with as many threads as you have capabilities by default.
 You can use `-j` or `--jobs` to set the number of threads to use.
+
+### Test Suite Filtering
+
+Test suites can be filtered using the `--match` or `--filter` flags.
+Empty groups are removed so that their resources are not even set up when there are no tests that need them.
 
 ### Individual test execution timing and helpful output to find slow tests
 
@@ -132,3 +155,8 @@ You can also turn this randomisation off globally using `--no-randomise-executio
 
 Randomisation happens at the test group level. The ordering of the tests within a test group is randomised and the ordering of test groups is randomised, but the ordering is not randomised _across_ test groups.
 This is because resource setups happen at the test group level, and we don't want multiple resource setups to happen concurrently if they were not meant to.
+
+### Configurable in three ways
+
+You can configure a test suite using flags, environment variables and configuration files.
+Try running your test suite with `--help` to see how that works.

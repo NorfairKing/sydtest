@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -81,7 +82,7 @@ outputDescribeLine t = [fore yellow $ chunk t]
 
 outputSpecifyLines :: Int -> Int -> Text -> TestDef (Timed TestRunResult) -> [[Chunk]]
 outputSpecifyLines level treeWidth specifyText (TestDef (Timed TestRunResult {..} executionTime) _) =
-  let t = executionTime * 1000 -- milliseconds
+  let t = fromIntegral executionTime / 1_000_000 :: Double -- milliseconds
       executionTimeText = T.pack (printf (" %10.2f ms") t)
       withTimingColour =
         if

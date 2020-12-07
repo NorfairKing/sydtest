@@ -13,6 +13,7 @@ module Test.Syd.Run where
 import Control.Exception hiding (Handler, catches, evaluate)
 import Data.Time.Clock.System
 import Data.Typeable
+import Data.Word
 import GHC.Generics (Generic)
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
@@ -224,15 +225,15 @@ timeItT func = do
   end <- liftIO getSystemTime
   pure $ Timed r (diffSystemTime end begin)
   where
-    diffSystemTime :: SystemTime -> SystemTime -> Double
+    diffSystemTime :: SystemTime -> SystemTime -> Word64
     diffSystemTime (MkSystemTime s1 ns1) (MkSystemTime s2 ns2) =
-      let nanosecondsInASecond = 1_000_000_000 :: Integer
-          diffNanoseconds = (fromIntegral (s1 - s2) * nanosecondsInASecond) + fromIntegral (ns1 - ns2) :: Integer
-       in realToFrac diffNanoseconds / fromIntegral nanosecondsInASecond
+      let nanosecondsInASecond = 1_000_000_000 :: Word64
+          diffNanoseconds = (fromIntegral (s1 - s2) * nanosecondsInASecond) + fromIntegral (ns1 - ns2) :: Word64
+       in diffNanoseconds
 
 data Timed a = Timed
   { timedValue :: !a,
-    -- | In seconds
-    timedTime :: !Double
+    -- | In nanoseconds
+    timedTime :: !Word64
   }
   deriving (Show, Eq, Generic)

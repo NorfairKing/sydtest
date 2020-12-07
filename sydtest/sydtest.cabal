@@ -35,7 +35,6 @@ library
       Test.Syd.Runner.Asynchronous
       Test.Syd.Runner.Synchronous
       Test.Syd.Runner.Wrappers
-      Test.Syd.Silence
       Test.Syd.SpecDef
       Test.Syd.SpecForest
   other-modules:

@@ -88,7 +88,6 @@ module Test.Syd
     module Test.Syd.Output,
     module Test.Syd.Run,
     module Test.Syd.Runner,
-    module Test.Syd.Silence,
     module Test.Syd.SpecDef,
     module Test.Syd.SpecForest,
     module Control.Monad.IO.Class,
@@ -107,7 +106,6 @@ import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner
-import Test.Syd.Silence
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 

@@ -108,6 +108,11 @@ describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 -- ===== IO property test
 --
 -- TODO example with system temp dir
+--
+-- === __Technical note__
+-- We _could_ make the output type 'TestDefM l (InnerArg test) ()' instead, so that you can declare tests that do not use any outer resources inside a test suite that requires outer resources.
+-- However we have opted _not_ to make this change because it may lead to someone forgetting to use the outer resource when they should be using it.
+-- On the other hand it is also very easy to just put the test that does not use the outer resources outside the group that does.
 it :: forall test. (HasCallStack, IsTest test, OuterArgs test ~ HList '[]) => String -> test -> TestDefM '[] (InnerArg test) ()
 it s t = do
   sets <- ask
@@ -141,7 +146,6 @@ itWithOuter s t = do
 -- | Declare a test that uses all outer resources
 --
 -- Note that this will alwast require a type annotation, along with the @GADTs@ and @ScopedTypeVariables@ extensions.
--- TODO check if this is still true after we change the OuterArgs kind to [*]
 itWithAllOuter :: (HasCallStack, IsTest test, OuterArgs test ~ HList l) => String -> test -> TestDefM l (InnerArg test) ()
 itWithAllOuter s t = do
   sets <- ask

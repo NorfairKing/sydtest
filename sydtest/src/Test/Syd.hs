@@ -48,6 +48,7 @@ module Test.Syd
     modifyMaxSize,
     modifyMaxShrinks,
     modifyRunSettings,
+    TestRunSettings (..),
 
     -- *** Declaring parallelism
     sequential,
@@ -74,6 +75,10 @@ module Test.Syd
     shouldExitFail,
 
     -- ** Hspec synonyms
+
+    --
+    -- These synonyms have been provided so that you can more or less "just" replace "hspec" by "sydTest" and have things work.
+    -- However, hspec does not distinguish between inner and outer resources, so these synonyms assume that all resources are inner resources.
     Spec,
     SpecWith,
     SpecM,

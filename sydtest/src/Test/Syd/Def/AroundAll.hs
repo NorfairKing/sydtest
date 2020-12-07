@@ -22,27 +22,29 @@ import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 import Test.Syd.SpecDef
 
--- | Run a custom action before all spec items.
+-- | Run a custom action before all spec items in a group, to set up an outer resource 'a'.
 beforeAll :: IO a -> TestDefM (a ': l) c e -> TestDefM l c e
 beforeAll action = wrapRWST $ \forest -> DefBeforeAllNode action forest
 
--- | Run a custom action before all spec items.
+-- | Run a custom action before all spec items in a group without setting up any outer resources.
 beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 beforeAll_ action = aroundAll_ (action >>)
 
+-- | Run a custom action before all spec items in a group, to set up an outer resource 'b' by using the outer resource 'a'.
 beforeAllWith :: (b -> IO a) -> TestDefM (a ': b ': l) c e -> TestDefM (b ': l) c e
 beforeAllWith action = aroundAllWith $ \func b -> do
   a <- action b
   func a
 
--- | Run a custom action after all spec items.
+-- | Run a custom action after all spec items, using the outer resource 'a'.
 afterAll :: (a -> IO ()) -> TestDefM (a ': l) b e -> TestDefM (a ': l) b e
 afterAll func = afterAll' $ \(HCons a _) -> func a
 
+-- | Run a custom action after all spec items, using all the outer resources.
 afterAll' :: (HList l -> IO ()) -> TestDefM l b e -> TestDefM l b e
 afterAll' func = wrapRWST $ \forest -> DefAfterAllNode func forest
 
--- | Run a custom action after all spec items.
+-- | Run a custom action after all spec items without using any outer resources.
 afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
 afterAll_ action = afterAll' $ \_ -> action
 
@@ -59,7 +61,6 @@ aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
 -- This combinator gives the programmer a lot of power.
 -- In fact, it gives the programmer enough power to break the test framework.
 -- Indeed, you can provide a wrapper function that just _doesn't_ run the function like this:
--- The same problem exists when using 'Test.Syd.Def.Around.around_'.
 --
 -- > spec :: Spec
 -- > spec = do
@@ -71,6 +72,8 @@ aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
 -- During execution, you'll then get an error like this:
 --
 -- > thread blocked indefinitely in an MVar operation
+--
+-- The same problem exists when using 'Test.Syd.Def.Around.around_'.
 --
 -- Something even more pernicious goes wrong when you run the given action more than once like this:
 --
@@ -97,6 +100,7 @@ aroundAllWith ::
   TestDefM (b ': l) c r
 aroundAllWith func = wrapRWST $ \forest -> DefAroundAllWithNode func forest
 
+-- | Declare a node in the spec def forest
 wrapRWST :: (TestForest a c -> TestTree b d) -> TestDefM a c l -> TestDefM b d l
 wrapRWST func (TestDefM rwst) = TestDefM $
   flip mapRWST rwst $ \inner -> do

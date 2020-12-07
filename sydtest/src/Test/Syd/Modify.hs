@@ -15,6 +15,7 @@ module Test.Syd.Modify
     modifyMaxSize,
     modifyMaxShrinks,
     modifyRunSettings,
+    TestRunSettings (..),
 
     -- * Declaring parallelism
     sequential,

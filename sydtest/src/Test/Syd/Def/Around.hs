@@ -23,29 +23,29 @@ import Test.Syd.Run
 import Test.Syd.SpecDef
 import UnliftIO
 
--- | Run a custom action before every spec item.
+-- | Run a custom action before every spec item, to set up an inner resource 'c'.
 before :: IO c -> TestDefM a c e -> TestDefM a () e
 before action = around (action >>=)
 
--- | Run a custom action before every spec item.
+-- | Run a custom action before every spec item without setting up any inner resources.
 before_ :: IO () -> TestDefM a c e -> TestDefM a c e
 before_ action = around_ (action >>)
 
--- | Run a custom action after every spec item.
+-- | Run a custom action after every spec item, using the inner resource 'c'.
 after :: (c -> IO ()) -> TestDefM a c e -> TestDefM a c e
 after action = aroundWith $ \e x -> e x `finally` action x
 
--- | Run a custom action after every spec item.
+-- | Run a custom action after every spec item without using any inner resources.
 after_ :: IO () -> TestDefM a c e -> TestDefM a c e
 after_ action = after $ \_ -> action
 
--- | Run a custom action before and/or after every spec item, to provide access to a resource 'c'.
+-- | Run a custom action before and/or after every spec item, to provide access to an inner resource 'c'.
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
 around :: ((c -> IO ()) -> IO ()) -> TestDefM a c e -> TestDefM a () e
 around action = aroundWith $ \e () -> action e
 
--- | Run a custom action before and/or after every spec item without accessing any resources
+-- | Run a custom action before and/or after every spec item without accessing any inner resources.
 --
 -- It is important that the wrapper function that you provide runs the action that it gets _exactly once_.
 --
@@ -54,7 +54,6 @@ around action = aroundWith $ \e () -> action e
 -- This combinator gives the programmer a lot of power.
 -- In fact, it gives the programmer enough power to break the test framework.
 -- Indeed, you can provide a wrapper function that just _doesn't_ run the function like this:
--- The same problem exists when using 'Test.Syd.Def.Around.aroundAll_'.
 --
 -- > spec :: Spec
 -- > spec = do
@@ -66,6 +65,8 @@ around action = aroundWith $ \e () -> action e
 -- During execution, you'll then get an error like this:
 --
 -- > thread blocked indefinitely in an MVar operation
+--
+-- The same problem exists when using 'Test.Syd.Def.Around.aroundAll_'.
 --
 -- The same thing will go wrong if you run the given action more than once like this:
 --
@@ -81,7 +82,7 @@ around action = aroundWith $ \e () -> action e
 around_ :: (IO () -> IO ()) -> TestDefM a c e -> TestDefM a c e
 around_ action = aroundWith $ \e a -> action (e a)
 
--- | Run a custom action before and/or after every spec item, to provide access to a resource 'c' while using a resource 'd'.
+-- | Run a custom action before and/or after every spec item, to provide access to an inner resource 'c' while using the inner resource 'd'.
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
 aroundWith :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
@@ -92,6 +93,7 @@ aroundWith func =
      d ->
         func (\c -> takeAC a c) d
 
+-- | Run a custom action before and/or after every spec item, to provide access to an inner resource 'c' while using the inner resource 'd' and any outer resource available.
 aroundWith' :: forall a c d r (u :: [*]). HContains u a => ((a -> c -> IO ()) -> (a -> d -> IO ())) -> TestDefM u c r -> TestDefM u d r
 aroundWith' func (TestDefM rwst) = TestDefM $
   flip mapRWST rwst $ \inner -> do

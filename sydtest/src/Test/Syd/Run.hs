@@ -21,40 +21,40 @@ import Test.Syd.HList
 import UnliftIO
 
 class IsTest e where
-  type Arg1 e
-  type Arg2 e
+  type OuterArgs e
+  type InnerArg e
   runTest ::
     e ->
     TestRunSettings ->
-    ((Arg1 e -> Arg2 e -> IO ()) -> IO ()) ->
+    ((OuterArgs e -> InnerArg e -> IO ()) -> IO ()) ->
     IO TestRunResult
 
 instance IsTest Bool where
-  type Arg1 Bool = HList '[] -- The argument from 'aroundAll'
-  type Arg2 Bool = () -- The argument from 'around'
+  type OuterArgs Bool = HList '[] -- The argument from 'aroundAll'
+  type InnerArg Bool = () -- The argument from 'around'
   runTest func = runTest (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> Bool) where
-  type Arg1 (arg -> Bool) = HList '[]
-  type Arg2 (arg -> Bool) = arg
+  type OuterArgs (arg -> Bool) = HList '[]
+  type InnerArg (arg -> Bool) = arg
   runTest func = runTest (\(HNil :: HList '[]) arg -> func arg)
 
-instance IsTest (arg1 -> arg2 -> Bool) where
-  type Arg1 (arg1 -> arg2 -> Bool) = arg1
-  type Arg2 (arg1 -> arg2 -> Bool) = arg2
+instance IsTest (outerArgs -> innerArg -> Bool) where
+  type OuterArgs (outerArgs -> innerArg -> Bool) = outerArgs
+  type InnerArg (outerArgs -> innerArg -> Bool) = innerArg
   runTest = runPureTestWithArg
 
 runPureTestWithArg ::
-  (arg1 -> arg2 -> Bool) ->
+  (outerArgs -> innerArg -> Bool) ->
   TestRunSettings ->
-  ((arg1 -> arg2 -> IO ()) -> IO ()) ->
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
 runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
   (testRunResultExecutionTime, resultBool) <- timeItT $
     liftIO $
       applyWrapper2 wrapper $
-        \arg1 arg2 -> (Right <$> evaluate (computeBool arg1 arg2)) `catches` exceptionHandlers
+        \outerArgs innerArg -> (Right <$> evaluate (computeBool outerArgs innerArg)) `catches` exceptionHandlers
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
@@ -63,35 +63,35 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
 
 applyWrapper2 ::
   MonadIO m =>
-  ((arg1 -> arg2 -> m ()) -> m ()) ->
-  (arg1 -> arg2 -> m r) ->
+  ((outerArgs -> innerArg -> m ()) -> m ()) ->
+  (outerArgs -> innerArg -> m r) ->
   m r
 applyWrapper2 wrapper func = do
   var <- liftIO $ newEmptyMVar
-  wrapper $ \arg1 arg2 -> do
-    res <- func arg1 arg2
+  wrapper $ \outerArgs innerArg -> do
+    res <- func outerArgs innerArg
     liftIO $ putMVar var res
   liftIO $ readMVar var
 
 instance IsTest (IO a) where
-  type Arg1 (IO a) = HList '[]
-  type Arg2 (IO a) = ()
+  type OuterArgs (IO a) = HList '[]
+  type InnerArg (IO a) = ()
   runTest func = runTest (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> IO a) where
-  type Arg1 (arg -> IO a) = HList '[]
-  type Arg2 (arg -> IO a) = arg
+  type OuterArgs (arg -> IO a) = HList '[]
+  type InnerArg (arg -> IO a) = arg
   runTest func = runTest (\(HNil :: HList '[]) -> func)
 
-instance IsTest (arg1 -> arg2 -> IO a) where
-  type Arg1 (arg1 -> arg2 -> IO a) = arg1
-  type Arg2 (arg1 -> arg2 -> IO a) = arg2
+instance IsTest (outerArgs -> innerArg -> IO a) where
+  type OuterArgs (outerArgs -> innerArg -> IO a) = outerArgs
+  type InnerArg (outerArgs -> innerArg -> IO a) = innerArg
   runTest = runIOTestWithArg
 
 runIOTestWithArg ::
-  (arg1 -> arg2 -> IO a) ->
+  (outerArgs -> innerArg -> IO a) ->
   TestRunSettings ->
-  ((arg1 -> arg2 -> IO ()) -> IO ()) ->
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
 runIOTestWithArg func TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
@@ -99,9 +99,9 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
     timeItT $
       liftIO $
         applyWrapper2 wrapper $
-          \arg1 arg2 -> do
+          \outerArgs innerArg -> do
             result <-
-              (liftIO (() <$ func arg1 arg2) >>= (evaluate . (`seq` Right TestPassed)))
+              (liftIO (() <$ func outerArgs innerArg) >>= (evaluate . (`seq` Right TestPassed)))
                 `catches` exceptionHandlers
             evaluate $ case result of
               Left ex -> (TestFailed, Just ex)
@@ -110,24 +110,24 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
   pure TestRunResult {..}
 
 instance IsTest Property where
-  type Arg1 Property = HList '[]
-  type Arg2 Property = ()
+  type OuterArgs Property = HList '[]
+  type InnerArg Property = ()
   runTest func = runTest (\(HNil :: HList '[]) () -> func)
 
 instance IsTest (arg -> Property) where
-  type Arg1 (arg -> Property) = HList '[]
-  type Arg2 (arg -> Property) = arg
+  type OuterArgs (arg -> Property) = HList '[]
+  type InnerArg (arg -> Property) = arg
   runTest func = runTest (\(HNil :: HList '[]) -> func)
 
-instance IsTest (arg1 -> arg2 -> Property) where
-  type Arg1 (arg1 -> arg2 -> Property) = arg1
-  type Arg2 (arg1 -> arg2 -> Property) = arg2
+instance IsTest (outerArgs -> innerArg -> Property) where
+  type OuterArgs (outerArgs -> innerArg -> Property) = outerArgs
+  type InnerArg (outerArgs -> innerArg -> Property) = innerArg
   runTest = runPropertyTestWithArg
 
 runPropertyTestWithArg ::
-  (arg1 -> arg2 -> Property) ->
+  (outerArgs -> innerArg -> Property) ->
   TestRunSettings ->
-  ((arg1 -> arg2 -> IO ()) -> IO ()) ->
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
 runPropertyTestWithArg p TestRunSettings {..} wrapper = do
   let args =
@@ -142,8 +142,8 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
   liftIO $ do
     (testRunResultExecutionTime, result) <-
       timeItT $
-        applyWrapper2 wrapper $ \arg1 arg2 -> do
-          liftIO $ quickCheckWithResult args (p arg1 arg2)
+        applyWrapper2 wrapper $ \outerArgs innerArg -> do
+          liftIO $ quickCheckWithResult args (p outerArgs innerArg)
     testRunResultStatus <- pure $ case result of
       Success {} -> TestPassed
       GaveUp {} -> TestFailed

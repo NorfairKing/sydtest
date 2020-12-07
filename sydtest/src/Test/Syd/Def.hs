@@ -108,7 +108,7 @@ describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 -- ===== IO property test
 --
 -- TODO example with system temp dir
-it :: forall test. (HasCallStack, IsTest test, Arg1 test ~ HList '[]) => String -> test -> TestDefM '[] (Arg2 test) ()
+it :: forall test. (HasCallStack, IsTest test, OuterArgs test ~ HList '[]) => String -> test -> TestDefM '[] (InnerArg test) ()
 it s t = do
   sets <- ask
   let testDef =
@@ -123,7 +123,7 @@ it s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
-itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (OuterArgs test ': l) (InnerArg test) ()
 itWithOuter s t = do
   sets <- ask
   let testDef =
@@ -132,12 +132,12 @@ itWithOuter s t = do
               runTest
                 t
                 sets
-                (\func -> supplyArgs $ \(HCons arg1 _) arg2 -> func arg1 arg2),
+                (\func -> supplyArgs $ \(HCons outerArgs _) innerArg -> func outerArgs innerArg),
             testDefCallStack = callStack
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
-itWithAllOuter :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+itWithAllOuter :: (HasCallStack, IsTest test, OuterArgs test ~ HList l) => String -> test -> TestDefM l (InnerArg test) ()
 itWithAllOuter s t = do
   sets <- ask
   let testDef =
@@ -152,13 +152,13 @@ itWithAllOuter s t = do
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
 -- | A synonym for 'it'
-specify :: (HasCallStack, IsTest test, Arg1 test ~ HList '[]) => String -> test -> TestDefM '[] (Arg2 test) ()
+specify :: (HasCallStack, IsTest test, OuterArgs test ~ HList '[]) => String -> test -> TestDefM '[] (InnerArg test) ()
 specify = it
 
 -- | A synonym for 'itWithOuter'
-specifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+specifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (OuterArgs test ': l) (InnerArg test) ()
 specifyWithOuter = itWithOuter
 
 -- | A synonym for 'itWithAllOuter'
-specifyWithAllOuter :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+specifyWithAllOuter :: (HasCallStack, IsTest test, OuterArgs test ~ HList l) => String -> test -> TestDefM l (InnerArg test) ()
 specifyWithAllOuter = itWithAllOuter

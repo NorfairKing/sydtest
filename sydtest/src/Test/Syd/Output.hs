@@ -85,10 +85,10 @@ outputSpecifyLines level treeWidth specifyText (TestDef (TestRunResult {..}) _) 
       executionTimeText = T.pack (printf (" %10.2f ms") t)
       withTimingColour =
         if
-            | t < 1 -> fore green
-            | t >= 10 && t <= 1000 -> fore yellow
-            | t >= 1000 && t <= 10000 -> fore red
-            | otherwise -> id
+            | True && t < 10 -> fore green
+            | t >= 10 && t < 100 -> id
+            | t >= 100 && t < 1000 -> fore yellow
+            | otherwise -> fore red
 
       withStatusColour = fore (statusColour testRunResultStatus)
    in filter

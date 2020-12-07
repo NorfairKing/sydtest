@@ -85,6 +85,7 @@ runner nbThreads handleForest = do
            in func (\b -> goForest p (HCons b a) sdf) x
         DefAfterAllNode func sdf -> goForest p a sdf `finally` func a
         DefParallelismNode p' sdf -> goForest p' a sdf
+        DefRandomisationNode _ sdf -> goForest p a sdf
   goForest Parallel HNil handleForest
 
 printer :: HandleForest '[] () -> IO ResultForest
@@ -115,6 +116,7 @@ printer handleForest = do
         DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAfterAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefRandomisationNode _ sdf -> SubForestNode <$> goForest level sdf
       goForest :: Int -> HandleForest a b -> IO ResultForest
       goForest level = mapM (goTree level)
   mapM_ outputLine $ outputTestsHeader
@@ -139,6 +141,7 @@ waiter handleForest = do
         DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
         DefAfterAllNode _ sdf -> SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefRandomisationNode _ sdf -> SubForestNode <$> goForest level sdf
       goForest :: Int -> HandleForest a b -> IO ResultForest
       goForest level = mapM (goTree level)
   goForest 0 handleForest

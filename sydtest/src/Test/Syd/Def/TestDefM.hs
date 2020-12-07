@@ -15,12 +15,15 @@
 
 module Test.Syd.Def.TestDefM where
 
+import Control.Monad
 import Control.Monad.RWS.Strict
+import Control.Monad.Random
 import Data.DList (DList)
 import qualified Data.DList as DList
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
+import System.Random.Shuffle
 import Test.QuickCheck.IO ()
 import Test.Syd.OptParse
 import Test.Syd.Run
@@ -57,7 +60,11 @@ runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
   (a, _, testForest) <- runRWST func (toTestRunSettings sets) () -- TODO allow passing in settings from the command-line
   let testForest' = filterTestForest (settingFilter sets) testForest
-  pure (a, testForest')
+  let testForest'' =
+        if settingRandomiseExecutionOrder sets
+          then evalRand (randomiseTestForest testForest') (mkStdGen (settingSeed sets))
+          else testForest'
+  pure (a, testForest'')
 
 toTestRunSettings :: Settings -> TestRunSettings
 toTestRunSettings Settings {..} =
@@ -92,3 +99,24 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
+      DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest dl sdf
+
+randomiseTestForest :: MonadRandom m => SpecDefForest a b c -> m (SpecDefForest a b c)
+randomiseTestForest = goForest
+  where
+    goForest :: MonadRandom m => SpecDefForest a b c -> m (SpecDefForest a b c)
+    goForest = traverse goTree >=> shuffleM
+    goTree :: MonadRandom m => SpecDefTree a b c -> m (SpecDefTree a b c)
+    goTree = \case
+      DefSpecifyNode t td e -> pure $ DefSpecifyNode t td e
+      DefDescribeNode t sdf -> DefDescribeNode t <$> goForest sdf
+      DefWrapNode func sdf -> DefWrapNode func <$> goForest sdf
+      DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest sdf
+      DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest sdf
+      DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest sdf
+      DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest sdf
+      DefParallelismNode func sdf -> DefParallelismNode func <$> goForest sdf
+      DefRandomisationNode eor sdf ->
+        DefRandomisationNode eor <$> case eor of
+          RandomiseExecutionOrder -> goForest sdf
+          DoNotRandomiseExecutionOrder -> pure sdf

@@ -33,6 +33,8 @@ getSettings = do
 data Settings = Settings
   { -- | The seed to use for deterministic randomness
     settingSeed :: !Int,
+    -- | Randomise the execution order of the tests in the test suite
+    settingRandomiseExecutionOrder :: !Bool,
     -- | How parallel to run the test suite
     settingThreads :: !Threads,
     -- | How many examples to run a property test with
@@ -53,6 +55,7 @@ defaultSettings =
   let d func = func defaultTestRunSettings
    in Settings
         { settingSeed = d testRunSettingSeed,
+          settingRandomiseExecutionOrder = True,
           settingThreads = ByCapabilities,
           settingMaxSuccess = d testRunSettingMaxSuccess,
           settingMaxSize = d testRunSettingMaxSize,
@@ -77,6 +80,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
   pure
     Settings
       { settingSeed = fromMaybe (d settingSeed) $ flagSeed <|> envSeed <|> mc configSeed,
+        settingRandomiseExecutionOrder = fromMaybe (d settingRandomiseExecutionOrder) $ flagRandomiseExecutionOrder <|> envRandomiseExecutionOrder <|> mc configRandomiseExecutionOrder,
         settingThreads = fromMaybe (d settingThreads) $ flagThreads <|> envThreads <|> mc configThreads,
         settingMaxSuccess = fromMaybe (d settingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess,
         settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
@@ -96,6 +100,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
 -- Use 'YamlParse.readConfigFile' or 'YamlParse.readFirstConfigFile' to read a configuration.
 data Configuration = Configuration
   { configSeed :: !(Maybe Int),
+    configRandomiseExecutionOrder :: !(Maybe Bool),
     configThreads :: !(Maybe Threads),
     configMaxSize :: !(Maybe Int),
     configMaxSuccess :: !(Maybe Int),
@@ -114,6 +119,7 @@ instance YamlSchema Configuration where
     objectParser "Configuration" $
       Configuration
         <$> optionalField "seed" "Seed for random generation of test cases"
+        <*> optionalField "randomise-execution-order" "Randomise the execution order of the tests in the test suite"
         <*> optionalField "parallelism" "How parallel to execute the tests"
         <*> optionalField "max-success" "Number of quickcheck examples to run"
         <*> optionalField "max-size" "Maximum size parameter to pass to generators"
@@ -155,6 +161,7 @@ defaultConfigFile = do
 data Environment = Environment
   { envConfigFile :: Maybe FilePath,
     envSeed :: !(Maybe Int),
+    envRandomiseExecutionOrder :: !(Maybe Bool),
     envThreads :: !(Maybe Threads),
     envMaxSize :: !(Maybe Int),
     envMaxSuccess :: !(Maybe Int),
@@ -174,6 +181,7 @@ environmentParser =
     Environment
       <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (mE <> Env.help "Config file")
       <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
+      <*> Env.var (fmap Just . Env.auto) "RANDOMISE_EXECUTION_ORDER" (mE <> Env.help "Randomise the execution order of the tests in the test suite")
       <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
       <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
       <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
@@ -217,14 +225,15 @@ flagsParser =
 
 -- | The flags that are common across commands.
 data Flags = Flags
-  { flagConfigFile :: Maybe FilePath,
-    flagSeed :: Maybe Int,
-    flagThreads :: Maybe Threads,
-    flagMaxSuccess :: Maybe Int,
-    flagMaxSize :: Maybe Int,
-    flagMaxDiscard :: Maybe Int,
-    flagMaxShrinks :: Maybe Int,
-    flagFilter :: Maybe Text
+  { flagConfigFile :: !(Maybe FilePath),
+    flagSeed :: !(Maybe Int),
+    flagRandomiseExecutionOrder :: !(Maybe Bool),
+    flagThreads :: !(Maybe Threads),
+    flagMaxSuccess :: !(Maybe Int),
+    flagMaxSize :: !(Maybe Int),
+    flagMaxDiscard :: !(Maybe Int),
+    flagMaxShrinks :: !(Maybe Int),
+    flagFilter :: !(Maybe Text)
   }
   deriving (Show, Eq, Generic)
 
@@ -247,6 +256,17 @@ parseFlags =
                   ( mconcat
                       [ long "seed",
                         help "Seed for random generation of test cases"
+                      ]
+                  )
+              )
+          )
+      <*> ( optional
+              ( flag
+                  True
+                  False
+                  ( mconcat
+                      [ long "no-randomise-execution-order",
+                        help "Randomise the execution order of the tests in the test suite"
                       ]
                   )
               )

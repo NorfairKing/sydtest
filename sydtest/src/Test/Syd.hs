@@ -56,6 +56,12 @@ module Test.Syd
     withParallelism,
     Parallelism (..),
 
+    -- *** Declaring randomisation order
+    randomiseExecutionOrder,
+    doNotRandomiseExecutionOrder,
+    withExecutionOrderRandomisation,
+    ExecutionOrderRandomisation (..),
+
     -- *** Doing IO during test definition
     runIO,
 

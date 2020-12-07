@@ -22,6 +22,12 @@ module Test.Syd.Modify
     parallel,
     withParallelism,
     Parallelism (..),
+
+    -- * Declaring randomisation order
+    randomiseExecutionOrder,
+    doNotRandomiseExecutionOrder,
+    withExecutionOrderRandomisation,
+    ExecutionOrderRandomisation (..),
   )
 where
 
@@ -56,3 +62,12 @@ parallel = withParallelism Parallel
 
 withParallelism :: Parallelism -> TestDefM a b c -> TestDefM a b c
 withParallelism p = censor ((: []) . DefParallelismNode p)
+
+randomiseExecutionOrder :: TestDefM a b c -> TestDefM a b c
+randomiseExecutionOrder = withExecutionOrderRandomisation RandomiseExecutionOrder
+
+doNotRandomiseExecutionOrder :: TestDefM a b c -> TestDefM a b c
+doNotRandomiseExecutionOrder = withExecutionOrderRandomisation DoNotRandomiseExecutionOrder
+
+withExecutionOrderRandomisation :: ExecutionOrderRandomisation -> TestDefM a b c -> TestDefM a b c
+withExecutionOrderRandomisation p = censor ((: []) . DefRandomisationNode p)

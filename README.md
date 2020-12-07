@@ -55,11 +55,13 @@ This project chooses best practices as defaults:
 | Aquire and release a resource once for an entire test group (`beforeAll` and `afterAll`)  | ✔️       | ✔️                                                           | ✔️                                                                |
 | Wrap a single test to use a `withResource`-like function (`around`)                       | ✔️       | ✔️                                                           | ✖️                                                                |
 | Wrap a test group to use a `withResource`-like function (`aroundAll`)                     | ✔️       | ✖️                                                           | ✖️                                                                |
-| Randomising execution order                                                               | 🚧      | ✔️                                                           | ?                                                                |
-| Randomised execution order by default                                                     | 🚧      | ✖️                                                           | ?                                                                |
+| Randomising execution order                                                               | ✔️       | ✔️                                                           | ?                                                                |
+| Randomised execution order by default                                                     | ✔️       | ✖️                                                           | ?                                                                |
+| Deterministic randomness for randomised execution                                         | ✔️       | ✖️                                                           | ?                                                                |
+| Deterministic randomness for randomised execution order by default                        | ✔️       | ✖️                                                           | ?                                                                |
 | Deterministic randomness                                                                  | ✔️       | ✔️                                                           | ✔️                                                                |
 | Deterministic randomness by default                                                       | ✔️       | ✖️                                                           | ✖️                                                                |
-| Deterministic randomness instructions for rerunning tests                                 | ✔️       | ✔️                                                           | ?                                                                |
+| Deterministic randomness instructions for rerunning tests                                 | 🚧      | ✔️                                                           | ?                                                                |
 | Nice process by default                                                                   | ✔️       | ✖️                                                           | ✖️                                                                |
 | Hiding process arguments from tests                                                       | 🚧      | ✔️                                                           | ?                                                                |
 | Declaring that an individual test should fail                                             | 🚧      | ✖️                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
@@ -118,3 +120,15 @@ The timing information is shown in such a way that it is easily compared: All in
 It is also colour-coded so that slow tests really stick out in the report.
 
 ![Individual test execution timing](assets/individual-timing.png)
+
+### Randomised execution order
+
+The execution order of tests is randomised by default.
+This randomisation uses deterministic randomness based on the same seed that is used for deterministic randomness.
+This ensures that there are no inter-test ordering dependencies.
+
+You can control whether subsections of your test suite may be randomised using the `randomiseExecutionOrder` and `doNotRandomiseExecutionOrder` combinators.
+You can also turn this randomisation off globally using `--no-randomise-execution-order`.
+
+Randomisation happens at the test group level. The ordering of the tests within a test group is randomised and the ordering of test groups is randomised, but the ordering is not randomised _across_ test groups.
+This is because resource setups happen at the test group level, and we don't want multiple resource setups to happen concurrently if they were not meant to.

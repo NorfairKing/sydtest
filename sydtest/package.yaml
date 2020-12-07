@@ -13,6 +13,7 @@ library:
   source-dirs: src
   dependencies:
   - Diff
+  - MonadRandom
   - QuickCheck
   - aeson
   - async
@@ -28,6 +29,8 @@ library:
   - pretty-show
   - quickcheck-io
   - rainbow
+  - random
+  - random-shuffle
   - safe
   - split
   - text

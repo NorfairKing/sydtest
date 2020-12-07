@@ -131,6 +131,13 @@ This test will fail, but the test suite will continue to be executed.
 Tests are executed with as many threads as you have capabilities by default.
 You can use `-j` or `--jobs` to set the number of threads to use.
 
+### Parallel or sequential test-group execution
+
+You can specify, as part of the test suite definition, whether tests in a given test group are allowed to be run in parallel with other tests.
+You can use the `parallel` combinator to declare that tests may be run in parallel.
+You can use the and `sequential` combinator to declare that tests must be run sequentially.
+When using `sequential`, it is guaranteed that each test in the group will be the only one running during its execution.
+
 ### Test Suite Filtering
 
 Test suites can be filtered using the `--match` or `--filter` flags.

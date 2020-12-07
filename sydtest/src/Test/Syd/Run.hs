@@ -229,5 +229,6 @@ timeItT func = do
   where
     diffSystemTime :: SystemTime -> SystemTime -> Double
     diffSystemTime (MkSystemTime s1 ns1) (MkSystemTime s2 ns2) =
-      let diffNanoseconds = fromIntegral (s1 - s2) * 1_000_000_000 + fromIntegral (ns1 - ns2) :: Integer
-       in realToFrac diffNanoseconds / 1_000_000_000
+      let nanosecondsInASecond = 1_000_000_000 :: Integer
+          diffNanoseconds = (fromIntegral (s1 - s2) * nanosecondsInASecond) + fromIntegral (ns1 - ns2) :: Integer
+       in realToFrac diffNanoseconds / fromIntegral nanosecondsInASecond

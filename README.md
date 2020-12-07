@@ -11,7 +11,8 @@ This project chooses best practices as defaults:
 
 - A fixed seed for deterministic randomness
 - Pretty show for output
-- Bounded shrinking by default
+- Bounded shrinking
+- Randomised test suite execution order
 
 ## Advanced testing features
 

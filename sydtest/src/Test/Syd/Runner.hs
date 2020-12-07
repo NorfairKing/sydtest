@@ -17,6 +17,7 @@ module Test.Syd.Runner
 where
 
 import Control.Concurrent (getNumCapabilities)
+import System.Environment
 import Test.Syd.Def
 import Test.Syd.OptParse
 import Test.Syd.Runner.Asynchronous
@@ -26,10 +27,11 @@ import Test.Syd.SpecDef
 sydTestResult :: Settings -> TestDefM '[] () r -> IO ResultForest
 sydTestResult sets spec = do
   specForest <- execTestDefM sets spec
-  case settingThreads sets of
-    Synchronous -> runSpecForestInterleavedWithOutputSynchronously specForest
-    ByCapabilities -> do
-      i <- getNumCapabilities
-      runSpecForestInterleavedWithOutputAsynchronously i specForest
-    Asynchronous i ->
-      runSpecForestInterleavedWithOutputAsynchronously i specForest
+  withArgs [] $ do
+    case settingThreads sets of
+      Synchronous -> runSpecForestInterleavedWithOutputSynchronously specForest
+      ByCapabilities -> do
+        i <- getNumCapabilities
+        runSpecForestInterleavedWithOutputAsynchronously i specForest
+      Asynchronous i ->
+        runSpecForestInterleavedWithOutputAsynchronously i specForest

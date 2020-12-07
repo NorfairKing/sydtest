@@ -63,7 +63,7 @@ This project chooses best practices as defaults:
 | Deterministic randomness by default                                                       | ✔️       | ✖️                                                           | ✖️                                                                |
 | Deterministic randomness instructions for rerunning tests                                 | 🚧      | ✔️                                                           | ?                                                                |
 | Nice process by default                                                                   | ✔️       | ✖️                                                           | ✖️                                                                |
-| Hiding process arguments from tests                                                       | 🚧      | ✔️                                                           | ?                                                                |
+| Hiding process arguments from tests                                                       | ✔️       | ✔️                                                           | ?                                                                |
 | Declaring that an individual test should fail                                             | 🚧      | ✖️                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Declaring that at least one in a test group should fail                                   | 🚧      | C                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Using scarce resources across tests                                                       | 🚧      | C                                                           | ?                                                                |
@@ -155,6 +155,11 @@ You can also turn this randomisation off globally using `--no-randomise-executio
 
 Randomisation happens at the test group level. The ordering of the tests within a test group is randomised and the ordering of test groups is randomised, but the ordering is not randomised _across_ test groups.
 This is because resource setups happen at the test group level, and we don't want multiple resource setups to happen concurrently if they were not meant to.
+
+
+### Hiding process arguments from tests
+
+The process arguments are hidden during test suite execution (but not during definition) using `withArgs` so that tests cannot depend on command-line arguments.
 
 ### Configurable in three ways
 

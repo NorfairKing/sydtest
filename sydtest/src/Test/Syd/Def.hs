@@ -123,6 +123,7 @@ it s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
+-- | Declare a test that uses an outer resource
 itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (OuterArgs test ': l) (InnerArg test) ()
 itWithOuter s t = do
   sets <- ask
@@ -137,6 +138,10 @@ itWithOuter s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
+-- | Declare a test that uses all outer resources
+--
+-- Note that this will alwast require a type annotation, along with the @GADTs@ and @ScopedTypeVariables@ extensions.
+-- TODO check if this is still true after we change the OuterArgs kind to [*]
 itWithAllOuter :: (HasCallStack, IsTest test, OuterArgs test ~ HList l) => String -> test -> TestDefM l (InnerArg test) ()
 itWithAllOuter s t = do
   sets <- ask

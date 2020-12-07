@@ -16,14 +16,22 @@ import Text.Show.Pretty
 shouldBe :: (HasCallStack, Show a, Eq a) => a -> a -> IO ()
 shouldBe actual expected = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
 
+infix 1 `shouldBe`
+
 -- | Assert that two values are not equal according to `==`.
 shouldNotBe :: (HasCallStack, Show a, Eq a) => a -> a -> IO ()
 shouldNotBe actual expected = unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected)
+
+infix 1 `shouldNotBe`
 
 -- | Assert that a value satisfies the given predicate.
 shouldSatisfy :: (HasCallStack, Show a, Eq a) => a -> (a -> Bool) -> IO ()
 shouldSatisfy actual p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual)
 
+infix 1 `shouldSatisfy`
+
 -- | Assert that a value does not satisfy the given predicate.
 shouldNotSatisfy :: (HasCallStack, Show a, Eq a) => a -> (a -> Bool) -> IO ()
 shouldNotSatisfy actual p = unless (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual)
+
+infix 1 `shouldNotSatisfy`

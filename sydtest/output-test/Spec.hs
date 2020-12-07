@@ -28,6 +28,8 @@ main = do
   _ <- runSpecForestInterleavedWithOutputAsynchronously 8 testForest
   rf1 <- runSpecForestSynchronously testForest
   printOutputSpecForest rf1
+  rf2 <- runSpecForestAsynchronously 8 testForest
+  printOutputSpecForest rf2
   pure ()
 
 spec :: Spec

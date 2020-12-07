@@ -25,7 +25,14 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import UnliftIO
 
--- This fails miserably when silencing is used.
+runSpecForestAsynchronously :: Int -> TestForest '[] () -> IO ResultForest
+runSpecForestAsynchronously nbThreads testForest = do
+  handleForest <- makeHandleForest testForest
+  let runRunner = runner nbThreads handleForest
+      runPrinter = liftIO $ waiter handleForest
+  ((), resultForest) <- concurrently runRunner runPrinter
+  pure resultForest
+
 runSpecForestInterleavedWithOutputAsynchronously :: Int -> TestForest '[] () -> IO ResultForest
 runSpecForestInterleavedWithOutputAsynchronously nbThreads testForest = do
   handleForest <- makeHandleForest testForest
@@ -115,3 +122,23 @@ printer handleForest = do
   outputLine $ [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
   pure resultForest
+
+waiter :: HandleForest '[] () -> IO ResultForest
+waiter handleForest = do
+  let goTree :: Int -> HandleTree a b -> IO ResultTree
+      goTree level = \case
+        DefDescribeNode t sf -> do
+          DescribeNode t <$> goForest (succ level) sf
+        DefSpecifyNode t td var -> do
+          result <- takeMVar var
+          let td' = td {testDefVal = result}
+          pure $ SpecifyNode t td'
+        DefWrapNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefBeforeAllNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefAroundAllNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefAroundAllWithNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefAfterAllNode _ sdf -> SubForestNode <$> goForest level sdf
+        DefParallelismNode _ sdf -> SubForestNode <$> goForest level sdf
+      goForest :: Int -> HandleForest a b -> IO ResultForest
+      goForest level = mapM (goTree level)
+  goForest 0 handleForest

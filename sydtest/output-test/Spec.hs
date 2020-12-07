@@ -26,6 +26,8 @@ main = do
   testForest <- execTestDefM sets spec
   _ <- runSpecForestInterleavedWithOutputSynchronously testForest
   _ <- runSpecForestInterleavedWithOutputAsynchronously 8 testForest
+  rf1 <- runSpecForestSynchronously testForest
+  printOutputSpecForest rf1
   pure ()
 
 spec :: Spec

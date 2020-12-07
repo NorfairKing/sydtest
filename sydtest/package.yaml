@@ -19,6 +19,7 @@ library:
   - async
   - bytestring
   - compact
+  - containers
   - dlist
   - envparse
   - interprocess

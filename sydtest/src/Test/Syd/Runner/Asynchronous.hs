@@ -11,10 +11,12 @@
 -- | This module defines how to run a test suite
 module Test.Syd.Runner.Asynchronous where
 
-import Control.Concurrent.QSem
+import Control.Concurrent.QSemN
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
+import Data.Set (Set)
+import qualified Data.Set as S
 import qualified Data.Text as T
 import Rainbow
 import Test.QuickCheck.IO ()
@@ -53,7 +55,14 @@ makeHandleForest = traverse $
 
 runner :: Int -> HandleForest '[] () -> IO ()
 runner nbThreads handleForest = do
-  sem <- liftIO $ newQSem nbThreads
+  sem <- liftIO $ newQSemN nbThreads
+  jobs <- newIORef (S.empty :: Set (Async ()))
+  -- This is used to make sure that the 'after' part of the resources actually happens after the tests are done, not just when they are started.
+  let waitForCurrentlyRunning :: IO ()
+      waitForCurrentlyRunning = do
+        as <- readIORef jobs
+        mapM_ wait as
+        writeIORef jobs S.empty
   let goForest :: Parallelism -> HList a -> HandleForest a () -> IO ()
       goForest p a = mapM_ (goTree p a)
       goTree :: Parallelism -> HList a -> HandleTree a () -> IO ()
@@ -61,29 +70,32 @@ runner nbThreads handleForest = do
         DefDescribeNode _ sdf -> goForest p a sdf
         DefSpecifyNode _ td var -> do
           let runNow = timeItT $ testDefVal td (\f -> f a ())
-          case p of
-            Parallel -> do
-              liftIO $ waitQSem sem
-              let job :: IO ()
-                  job = do
-                    result <- runNow
-                    putMVar var result
-                    liftIO $ signalQSem sem
-              jobAsync <- async job
-              link jobAsync
-            Sequential -> do
-              result <- runNow
-              putMVar var result
-        DefWrapNode func sdf -> func (goForest p a sdf)
+          let quantity = case p of
+                -- When the test wants to be executed sequentially, we take n locks because we must make sure that
+                -- 1. no more other tests are still running.
+                -- 2. no other tests are started during execution.
+                Sequential -> nbThreads
+                Parallel -> 1
+          -- Wait before spawning a thread so that we don't spawn too many threads
+          liftIO $ waitQSemN sem quantity
+          let job :: IO ()
+              job = do
+                result <- runNow
+                putMVar var result
+                liftIO $ signalQSemN sem quantity
+          jobAsync <- async job
+          modifyIORef jobs (S.insert jobAsync)
+          link jobAsync
+        DefWrapNode func sdf -> func (goForest p a sdf >> waitForCurrentlyRunning)
         DefBeforeAllNode func sdf -> do
           b <- func
           goForest p (HCons b a) sdf
         DefAroundAllNode func sdf ->
-          func (\b -> goForest p (HCons b a) sdf)
+          func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning)
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
-           in func (\b -> goForest p (HCons b a) sdf) x
-        DefAfterAllNode func sdf -> goForest p a sdf `finally` func a
+           in func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning) x
+        DefAfterAllNode func sdf -> goForest p a sdf `finally` (waitForCurrentlyRunning >> func a)
         DefParallelismNode p' sdf -> goForest p' a sdf
         DefRandomisationNode _ sdf -> goForest p a sdf
   goForest Parallel HNil handleForest

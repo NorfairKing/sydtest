@@ -148,6 +148,7 @@ describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 --
 --
 -- === __Technical note__
+--
 -- We _could_ make the output type 'TestDefM l (InnerArg test) ()' instead, so that you can declare tests that do not use any outer resources inside a test suite that requires outer resources.
 -- However we have opted _not_ to make this change because it may lead to someone forgetting to use the outer resource when they should be using it.
 -- On the other hand it is also very easy to just put the test that does not use the outer resources outside the group that does.
@@ -167,6 +168,55 @@ it s t = do
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
 -- | Declare a test that uses an outer resource
+--
+-- Note that the test must necessarily also access the inner resource for the types to work.
+--
+-- === Example usage:
+--
+-- ==== Tests with an inner resource
+--
+-- ===== Pure test
+--
+-- This is quite a rare use-case but here is an example anyway:
+--
+-- > beforeAll (pure 3) $ describe "addition" $
+-- >     it "adds 3 to 5 to result in 8" $ \i () ->
+-- >         i + 5 == 8
+--
+--
+-- ===== IO test
+--
+-- This test sets up a temporary directory as an inner resource, and makes it available to each test in the group below.
+--
+-- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
+-- > in aroundAll setUpTempDir describe "readFile and writeFile" $
+-- >     it "reads back what it wrote for this example" $ \tempDir () -> do
+-- >         let cts = "hello world"
+-- >         let fp = tempDir </> "test.txt"
+-- >         writeFile fp cts
+-- >         cts' <- readFile fp
+-- >         cts' `shouldBe` cts
+--
+--
+-- ===== Pure property test
+--
+-- This is quite a rare use-case but here is an example anyway:
+--
+-- > beforeAll (pure 3) $ describe "multiplication" $
+-- >     it "is commutative for 5" $ \i () ->
+-- >         i * 5 == 5 * 3
+--
+--
+-- ===== IO property test
+--
+-- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
+-- > in aroundAll setUpTempDir describe "readFile and writeFile" $
+-- >     it "reads back what it wrote for this example" $ \tempDir () ->
+-- >         property $ \cts -> do
+-- >             let fp = tempDir </> "test.txt"
+-- >             writeFile fp cts
+-- >             cts' <- readFile fp
+-- >             cts' `shouldBe` cts
 itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (OuterArgs test ': l) (InnerArg test) ()
 itWithOuter s t = do
   sets <- ask
@@ -183,7 +233,15 @@ itWithOuter s t = do
 
 -- | Declare a test that uses all outer resources
 --
+-- You will most likely never need this function, but in case you do:
 -- Note that this will alwast require a type annotation, along with the @GADTs@ and @ScopedTypeVariables@ extensions.
+--
+-- === Example usage
+--
+-- > beforeAll (pure 'a') $ beforeAll (pure 5) $
+-- >     itWithAllOuter "example" $
+-- >         \(HCons c (HCons i HNil) :: HList '[Char, Int]) () ->
+-- >             (c, i) `shouldeBe` ('a', 5)
 itWithAllOuter :: (HasCallStack, IsTest test, OuterArgs test ~ HList l) => String -> test -> TestDefM l (InnerArg test) ()
 itWithAllOuter s t = do
   sets <- ask

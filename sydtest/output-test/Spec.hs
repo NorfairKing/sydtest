@@ -34,26 +34,26 @@ main = do
 
 spec :: Spec
 spec = do
-  it "Passes" $ (pure () :: IO ())
+  it "Passes" (pure () :: IO ())
   describe "error" $ do
-    it "Pure error" $ (pure (error "foobar") :: IO ())
-    it "Impure error" $ (error "foobar" :: IO ())
+    it "Pure error" (pure (error "foobar") :: IO ())
+    it "Impure error" (error "foobar" :: IO ())
   describe "undefined" $ do
-    it "Pure undefined" $ (pure undefined :: IO ())
-    it "Impure undefined" $ (undefined :: IO ())
+    it "Pure undefined" (pure undefined :: IO ())
+    it "Impure undefined" (undefined :: IO ())
   it "Exit code" $ exitWith $ ExitFailure 1
   describe "exceptions" $ do
-    it "Record construction error" $ (throw $ RecConError "test" :: IO ())
+    it "Record construction error" (throw $ RecConError "test" :: IO ())
     exceptionTest "Record construction error" $ let c = Cons1 {} in field c
-    it "Record selection error" $ (throw $ RecSelError "test" :: IO ())
+    it "Record selection error" (throw $ RecSelError "test" :: IO ())
     exceptionTest "Record selection error" $ let c = Cons2 in field c
-    it "Record update error" $ (throw $ RecUpdError "test" :: IO ())
+    it "Record update error" (throw $ RecUpdError "test" :: IO ())
     exceptionTest "Record update error" $ let c = Cons2 in c {field = "this will throw"}
-    it "Pattern matching error" $ (throw $ PatternMatchFail "test" :: IO ())
+    it "Pattern matching error" (throw $ PatternMatchFail "test" :: IO ())
     exceptionTest "Pattern matching error" $ let Cons1 s = Cons2 in s
-    it "ArithException" $ (throw Underflow :: IO ())
+    it "ArithException" (throw Underflow :: IO ())
     exceptionTest "Pattern matching error" $ 1 `div` (0 :: Int)
-    it "NoMethodError" $ (throw (NoMethodError "test") :: IO ())
+    it "NoMethodError" (throw (NoMethodError "test") :: IO ())
     exceptionTest "Pattern matching error" $ toUnit (5 :: Int)
   describe "Printing" $ do
     it "print" $ print "hi"
@@ -97,6 +97,6 @@ spec = do
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do
-  it "fails in IO, as the result" $ (pure (seq a ()) :: IO ())
-  it "fails in IO, as the action" $ (seq a (pure ()) :: IO ())
+  it "fails in IO, as the result" (pure (seq a ()) :: IO ())
+  it "fails in IO, as the action" (seq a (pure ()) :: IO ())
   it "fails in pure code" $ seq a True

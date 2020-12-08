@@ -18,7 +18,6 @@ library:
   - aeson
   - async
   - bytestring
-  - compact
   - containers
   - dlist
   - envparse
@@ -44,6 +43,7 @@ tests:
   sydtest-test:
     main: Spec.hs
     source-dirs: test
+    build-tools: sydtest-discover
     ghc-options:
     - -threaded
     - -rtsopts

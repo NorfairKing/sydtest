@@ -1,13 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.Runner.Wrappers where
 
@@ -35,7 +31,7 @@ applySimpleWrapper ::
   (a -> m r) ->
   (b -> m r)
 applySimpleWrapper takeTakeA takeA b = do
-  var <- liftIO $ newEmptyMVar
+  var <- liftIO newEmptyMVar
   takeTakeA
     ( \a -> do
         r <- takeA a
@@ -50,7 +46,7 @@ applySimpleWrapper' ::
   (a -> m r) ->
   m r
 applySimpleWrapper' takeTakeA takeA = do
-  var <- liftIO $ newEmptyMVar
+  var <- liftIO newEmptyMVar
   takeTakeA
     ( \a -> do
         r <- takeA a
@@ -65,7 +61,7 @@ applySimpleWrapper'' ::
   m r ->
   m r
 applySimpleWrapper'' wrapper produceResult = do
-  var <- liftIO $ newEmptyMVar
+  var <- liftIO newEmptyMVar
   wrapper $ do
     r <- produceResult
     liftIO $ putMVar var r
@@ -78,7 +74,7 @@ applySimpleWrapper2 ::
   (a -> b -> m r) ->
   (c -> d -> m r)
 applySimpleWrapper2 takeTakeAB takeAB c d = do
-  var <- liftIO $ newEmptyMVar
+  var <- liftIO newEmptyMVar
   takeTakeAB
     ( \a b -> do
         r <- takeAB a b

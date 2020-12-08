@@ -83,11 +83,11 @@ outputDescribeLine t = [fore yellow $ chunk t]
 outputSpecifyLines :: Int -> Int -> Text -> TestDef (Timed TestRunResult) -> [[Chunk]]
 outputSpecifyLines level treeWidth specifyText (TestDef (Timed TestRunResult {..} executionTime) _) =
   let t = fromIntegral executionTime / 1_000_000 :: Double -- milliseconds
-      executionTimeText = T.pack (printf (" %10.2f ms") t)
+      executionTimeText = T.pack (printf "%10.2f ms" t)
       withTimingColour =
         if
-            | True && t < 10 -> fore green
-            | t >= 10 && t < 1000 -> fore yellow
+            | t < 10 -> fore green
+            | t < 1000 && t >= 10 -> fore yellow
             | otherwise -> fore red
 
       withStatusColour = fore (statusColour testRunResultStatus)
@@ -99,8 +99,8 @@ outputSpecifyLines level treeWidth specifyText (TestDef (Timed TestRunResult {..
             withTimingColour $ chunk executionTimeText
           ],
           [ chunk (T.pack (printf "  (passed for all of %d inputs)" w))
-            | w <- maybeToList testRunResultNumTests,
-              testRunResultStatus == TestPassed
+            | testRunResultStatus == TestPassed,
+              w <- maybeToList testRunResultNumTests
           ]
         ]
 
@@ -134,7 +134,7 @@ outputFailures rf =
           concat $
             indexed failures $ \w (ts, TestDef (Timed TestRunResult {..} _) cs) ->
               concat
-                [ [ [ (fore cyan) $
+                [ [ [ fore cyan $
                         chunk $
                           T.pack $
                             replicate 2 ' '
@@ -178,12 +178,12 @@ outputEqualityAssertionFailed actual expected =
   let diff = getDiff actual expected
       splitLines = splitWhen ((== "\n") . _yarn)
       actualChunks = splitLines $
-        flip mapMaybe diff $ \d -> case d of
+        flip mapMaybe diff $ \case
           Both a _ -> Just $ chunk (T.singleton a)
           First a -> Just $ fore red $ chunk (T.singleton a)
           _ -> Nothing
       expectedChunks = splitLines $
-        flip mapMaybe diff $ \d -> case d of
+        flip mapMaybe diff $ \case
           Both a _ -> Just $ chunk (T.singleton a)
           Second a -> Just $ fore green $ chunk (T.singleton a)
           _ -> Nothing
@@ -193,7 +193,7 @@ outputEqualityAssertionFailed actual expected =
         cs -> [header] : cs
    in concat
         [ [[chunk "Expected these values to be equal:"]],
-          chunksLinesWithHeader (fore blue $ "Actual:   ") actualChunks,
+          chunksLinesWithHeader (fore blue "Actual:   ") actualChunks,
           chunksLinesWithHeader (fore blue "Expected: ") expectedChunks
         ]
 
@@ -206,8 +206,8 @@ outputNotEqualAssertionFailed actual notExpected =
       ]
     else
       [ [chunk "These two values were considered equal but should not have been equal:"],
-        [fore blue $ "Actual      : ", chunk (T.pack actual)],
-        [fore blue $ "Not Expected: ", chunk (T.pack notExpected)]
+        [fore blue "Actual      : ", chunk (T.pack actual)],
+        [fore blue "Not Expected: ", chunk (T.pack notExpected)]
       ]
 
 outputPredicateSuccessAssertionFailed :: String -> [[Chunk]]

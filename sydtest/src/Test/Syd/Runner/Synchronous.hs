@@ -1,13 +1,9 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 
 -- | This module defines how to run a test suite
 module Test.Syd.Runner.Synchronous where
@@ -112,6 +108,6 @@ runSpecForestInterleavedWithOutputSynchronously failFast testForest = do
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level a sdf
   mapM_ outputLine outputTestsHeader
   resultForest <- extractNext <$> goForest 0 HNil testForest
-  outputLine $ [chunk " "]
+  outputLine [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
   pure resultForest

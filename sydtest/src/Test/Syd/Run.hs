@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -67,7 +66,7 @@ applyWrapper2 ::
   (outerArgs -> innerArg -> m r) ->
   m r
 applyWrapper2 wrapper func = do
-  var <- liftIO $ newEmptyMVar
+  var <- liftIO newEmptyMVar
   wrapper $ \outerArgs innerArg -> do
     res <- func outerArgs innerArg
     liftIO $ putMVar var res
@@ -142,11 +141,11 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
     result <-
       applyWrapper2 wrapper $ \outerArgs innerArg -> do
         liftIO $ quickCheckWithResult args (p outerArgs innerArg)
-    testRunResultStatus <- pure $ case result of
-      Success {} -> TestPassed
-      GaveUp {} -> TestFailed
-      Failure {} -> TestFailed
-      NoExpectedFailure {} -> TestFailed
+    let testRunResultStatus = case result of
+          Success {} -> TestPassed
+          GaveUp {} -> TestFailed
+          Failure {} -> TestFailed
+          NoExpectedFailure {} -> TestFailed
     let testRunResultNumTests = Just $ fromIntegral $ numTests result
     let testRunResultNumShrinks = case result of
           Failure {} -> Just $ fromIntegral $ numShrinks result

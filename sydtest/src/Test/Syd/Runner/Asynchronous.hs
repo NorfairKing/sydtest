@@ -1,12 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 
 -- | This module defines how to run a test suite
 module Test.Syd.Runner.Asynchronous where
@@ -52,9 +49,8 @@ type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunResult))
 
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
 makeHandleForest = traverse $
-  traverse $ \() -> do
-    var <- newEmptyMVar
-    pure var
+  traverse $ \() ->
+    newEmptyMVar
 
 runner :: Bool -> Int -> MVar () -> HandleForest '[] () -> IO ()
 runner failFast nbThreads failFastVar handleForest = do
@@ -154,9 +150,9 @@ printer failFastVar handleForest = do
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level sdf
-  mapM_ outputLine $ outputTestsHeader
+  mapM_ outputLine outputTestsHeader
   resultForest <- fromMaybe [] <$> goForest 0 handleForest
-  outputLine $ [chunk " "]
+  outputLine [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
   pure resultForest
 

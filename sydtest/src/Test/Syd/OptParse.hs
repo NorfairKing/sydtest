@@ -259,90 +259,82 @@ parseFlags =
               ]
           )
       )
-      <*> ( optional
-              ( option
-                  auto
-                  ( mconcat
-                      [ long "seed",
-                        help "Seed for random generation of test cases"
-                      ]
-                  )
-              )
+    <*> optional
+      ( option
+          auto
+          ( mconcat
+              [ long "seed",
+                help "Seed for random generation of test cases"
+              ]
           )
-      <*> ( optional
-              ( flag
-                  True
-                  False
-                  ( mconcat
-                      [ long "no-randomise-execution-order",
-                        help "Randomise the execution order of the tests in the test suite"
-                      ]
-                  )
-              )
+      )
+    <*> optional
+      ( flag
+          True
+          False
+          ( mconcat
+              [ long "no-randomise-execution-order",
+                help "Randomise the execution order of the tests in the test suite"
+              ]
           )
-      <*> optional
-        ( ( \case
-              1 -> Synchronous
-              i -> Asynchronous i
-          )
-            <$> option auto (mconcat [short 'j', long "jobs", help "How parallel to execute the tests"])
+      )
+    <*> optional
+      ( ( \case
+            1 -> Synchronous
+            i -> Asynchronous i
         )
-      <*> ( optional
-              ( option
-                  auto
-                  ( mconcat
-                      [ long "max-success",
-                        help "Number of quickcheck examples to run"
-                      ]
-                  )
-              )
+          <$> option auto (mconcat [short 'j', long "jobs", help "How parallel to execute the tests"])
+      )
+    <*> optional
+      ( option
+          auto
+          ( mconcat
+              [ long "max-success",
+                help "Number of quickcheck examples to run"
+              ]
           )
-      <*> ( optional
-              ( option
-                  auto
-                  ( mconcat
-                      [ long "max-size",
-                        help "Maximum size parameter to pass to generators"
-                      ]
-                  )
-              )
+      )
+    <*> optional
+      ( option
+          auto
+          ( mconcat
+              [ long "max-size",
+                help "Maximum size parameter to pass to generators"
+              ]
           )
-      <*> ( optional
-              ( option
-                  auto
-                  ( mconcat
-                      [ long "max-discard",
-                        help "Maximum number of discarded tests per successful test before giving up"
-                      ]
-                  )
-              )
+      )
+    <*> optional
+      ( option
+          auto
+          ( mconcat
+              [ long "max-discard",
+                help "Maximum number of discarded tests per successful test before giving up"
+              ]
           )
-      <*> ( optional
-              ( option
-                  auto
-                  ( mconcat
-                      [ long "max-shrinks",
-                        help "Maximum number of shrinks of a failing test input"
-                      ]
-                  )
-              )
+      )
+    <*> optional
+      ( option
+          auto
+          ( mconcat
+              [ long "max-shrinks",
+                help "Maximum number of shrinks of a failing test input"
+              ]
           )
-      <*> ( optional
-              ( strOption
-                  ( mconcat
-                      [ long "filter",
-                        long "match",
-                        help "Filter to select which parts of the test tree to run"
-                      ]
-                  )
-              )
+      )
+    <*> optional
+      ( strOption
+          ( mconcat
+              [ long "filter",
+                long "match",
+                help "Filter to select which parts of the test tree to run"
+              ]
           )
-      <*> ( optional
-              ( switch
-                  ( mconcat
-                      [ long "fail-fast",
-                        help "Whether to stop upon the first test failure"
-                      ]
-                  )
-              )
+      )
+    <*> optional
+      ( switch
+          ( mconcat
+              [ long "fail-fast",
+                help "Whether to stop upon the first test failure"
+              ]
           )
+      )

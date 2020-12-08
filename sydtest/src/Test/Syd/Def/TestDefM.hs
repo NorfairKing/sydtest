@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -11,7 +10,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.Def.TestDefM where
 
@@ -89,7 +87,7 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       DefSpecifyNode t td e -> do
         let tl = DList.toList (DList.snoc dl t)
         guard $ case mf of
-          Just f -> f `T.isInfixOf` (T.intercalate "." tl)
+          Just f -> f `T.isInfixOf` T.intercalate "." tl
           Nothing -> True
         pure $ DefSpecifyNode t td e
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf

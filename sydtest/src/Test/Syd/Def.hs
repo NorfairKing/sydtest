@@ -21,10 +21,12 @@ module Test.Syd.Def
     describe,
     it,
     itWithOuter,
-    itWithAllOuter,
+    itWithBoth,
+    itWithAll,
     specify,
     specifyWithOuter,
-    specifyWithAllOuter,
+    specifyWithBoth,
+    specifyWithAll,
 
     -- ** Rexports
     module Test.Syd.Def.TestDefM,
@@ -145,14 +147,7 @@ describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 -- >             writeFile fp cts
 -- >             cts' <- readFile fp
 -- >             cts' `shouldBe` cts
---
---
--- === __Technical note__
---
--- We _could_ make the output type 'TestDefM l (InnerArg test) ()' instead, so that you can declare tests that do not use any outer resources inside a test suite that requires outer resources.
--- However we have opted _not_ to make this change because it may lead to someone forgetting to use the outer resource when they should be using it.
--- On the other hand it is also very easy to just put the test that does not use the outer resources outside the group that does.
-it :: forall test. (HasCallStack, IsTest test, OuterArgs test ~ HList '[]) => String -> test -> TestDefM '[] (InnerArg test) ()
+it :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
 it s t = do
   sets <- ask
   let testDef =
@@ -161,7 +156,7 @@ it s t = do
               runTest
                 t
                 sets
-                ( \func -> supplyArgs func
+                ( \func -> supplyArgs (\_ arg2 -> func () arg2)
                 ),
             testDefCallStack = callStack
           }
@@ -169,18 +164,16 @@ it s t = do
 
 -- | Declare a test that uses an outer resource
 --
--- Note that the test must necessarily also access the inner resource for the types to work.
---
 -- === Example usage:
 --
--- ==== Tests with an inner resource
+-- ==== Tests with an outer resource
 --
--- ===== Pure test
+-- ===== __Pure test__
 --
 -- This is quite a rare use-case but here is an example anyway:
 --
 -- > beforeAll (pure 3) $ describe "addition" $
--- >     it "adds 3 to 5 to result in 8" $ \i () ->
+-- >     itWithBoth "adds 3 to 5 to result in 8" $ \i ->
 -- >         i + 5 == 8
 --
 --
@@ -190,7 +183,7 @@ it s t = do
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
 -- > in aroundAll setUpTempDir describe "readFile and writeFile" $
--- >     it "reads back what it wrote for this example" $ \tempDir () -> do
+-- >     itWithBoth "reads back what it wrote for this example" $ \tempDir -> do
 -- >         let cts = "hello world"
 -- >         let fp = tempDir </> "test.txt"
 -- >         writeFile fp cts
@@ -198,12 +191,12 @@ it s t = do
 -- >         cts' `shouldBe` cts
 --
 --
--- ===== Pure property test
+-- ===== __Pure property test__
 --
 -- This is quite a rare use-case but here is an example anyway:
 --
 -- > beforeAll (pure 3) $ describe "multiplication" $
--- >     it "is commutative for 5" $ \i () ->
+-- >     itWithBoth "is commutative for 5" $ \i ->
 -- >         i * 5 == 5 * 3
 --
 --
@@ -211,14 +204,75 @@ it s t = do
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
 -- > in aroundAll setUpTempDir describe "readFile and writeFile" $
--- >     it "reads back what it wrote for this example" $ \tempDir () ->
+-- >     itWithBoth "reads back what it wrote for this example" $ \tempDir ->
 -- >         property $ \cts -> do
 -- >             let fp = tempDir </> "test.txt"
 -- >             writeFile fp cts
 -- >             cts' <- readFile fp
 -- >             cts' `shouldBe` cts
-itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (OuterArgs test ': l) (InnerArg test) ()
+itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
 itWithOuter s t = do
+  sets <- ask
+  let testDef =
+        TestDef
+          { testDefVal = \supplyArgs ->
+              runTest
+                t
+                sets
+                (\func -> supplyArgs $ \(HCons outerArgs _) innerArg -> func innerArg outerArgs),
+            testDefCallStack = callStack
+          }
+  tell [DefSpecifyNode (T.pack s) testDef ()]
+
+-- | Declare a test that uses both an inner and an outer resource
+--
+-- === Example usage:
+--
+-- ==== Tests with both an inner and an outer resource
+--
+-- ===== __Pure test__
+--
+-- This is quite a rare use-case but here is an example anyway:
+--
+-- > beforeAll (pure 3) $ before (pure 5) $ describe "addition" $
+-- >     itWithBoth "adds 3 to 5 to result in 8" $ \i j ->
+-- >         i + j == 8
+--
+--
+-- ===== IO test
+--
+-- This test sets up a temporary directory as an inner resource, and makes it available to each test in the group below.
+--
+-- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
+-- > in aroundAll setUpTempDir describe "readFile and writeFile" $ before (pure "hello world") $
+-- >     itWithBoth "reads back what it wrote for this example" $ \tempDir cts -> do
+-- >         let fp = tempDir </> "test.txt"
+-- >         writeFile fp cts
+-- >         cts' <- readFile fp
+-- >         cts' `shouldBe` cts
+--
+--
+-- ===== __Pure property test__
+--
+-- This is quite a rare use-case but here is an example anyway:
+--
+-- > beforeAll (pure 3) $ before (pure 5) $ describe "multiplication" $
+-- >     itWithBoth "is commutative" $ \i j ->
+-- >         i * j == 5 * 3
+--
+--
+-- ===== IO property test
+--
+-- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
+-- > in aroundAll setUpTempDir describe "readFile and writeFile" $ before (pure "test.txt") $
+-- >     itWithBoth "reads back what it wrote for this example" $ \tempDir fileName ->
+-- >         property $ \cts -> do
+-- >             let fp = tempDir </> fileName
+-- >             writeFile fp cts
+-- >             cts' <- readFile fp
+-- >             cts' `shouldBe` cts
+itWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+itWithBoth s t = do
   sets <- ask
   let testDef =
         TestDef
@@ -239,11 +293,11 @@ itWithOuter s t = do
 -- === Example usage
 --
 -- > beforeAll (pure 'a') $ beforeAll (pure 5) $
--- >     itWithAllOuter "example" $
+-- >     itWithAll "example" $
 -- >         \(HCons c (HCons i HNil) :: HList '[Char, Int]) () ->
 -- >             (c, i) `shouldeBe` ('a', 5)
-itWithAllOuter :: (HasCallStack, IsTest test, OuterArgs test ~ HList l) => String -> test -> TestDefM l (InnerArg test) ()
-itWithAllOuter s t = do
+itWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+itWithAll s t = do
   sets <- ask
   let testDef =
         TestDef
@@ -257,13 +311,17 @@ itWithAllOuter s t = do
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
 -- | A synonym for 'it'
-specify :: (HasCallStack, IsTest test, OuterArgs test ~ HList '[]) => String -> test -> TestDefM '[] (InnerArg test) ()
+specify :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
 specify = it
 
 -- | A synonym for 'itWithOuter'
-specifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (OuterArgs test ': l) (InnerArg test) ()
+specifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
 specifyWithOuter = itWithOuter
 
--- | A synonym for 'itWithAllOuter'
-specifyWithAllOuter :: (HasCallStack, IsTest test, OuterArgs test ~ HList l) => String -> test -> TestDefM l (InnerArg test) ()
-specifyWithAllOuter = itWithAllOuter
+-- | A synonym for 'itWithBoth'
+specifyWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+specifyWithBoth = itWithBoth
+
+-- | A synonym for 'itWithAll'
+specifyWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+specifyWithAll = itWithAll

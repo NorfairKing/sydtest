@@ -36,9 +36,9 @@ spec = sequential $
         aroundAllWith incrementAroundWith $
           around incrementAround $
             aroundWith' incrementAroundWith2 $ do
-              itWithOuter "reads correctly" $
+              itWithBoth "reads correctly" $
                 \i k ->
                   (i, k) `shouldBe` (3, 3)
-              itWithOuter "reads correctly" $
+              itWithBoth "reads correctly" $
                 \i k ->
                   (i, k) `shouldBe` (3, 7)

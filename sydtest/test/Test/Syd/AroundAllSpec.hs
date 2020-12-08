@@ -14,8 +14,8 @@ spec = sequential $ do
     let readAndIncrement :: IO Int
         readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
     beforeAll readAndIncrement $ do
-      let t :: Int -> () -> IO ()
-          t i () = i `shouldBe` 1
+      let t :: Int -> IO ()
+          t i = i `shouldBe` 1
       itWithOuter "reads 1" t
       itWithOuter "reads 1" t
 
@@ -44,8 +44,8 @@ spec = sequential $ do
           pure (i + j)
     beforeAll readAndIncrement $ do
       beforeAllWith incrementBeforeAndAfterWith $ do
-        let t :: Int -> () -> IO ()
-            t i () = i `shouldBe` 3
+        let t :: Int -> IO ()
+            t i = i `shouldBe` 3
         itWithOuter "reads 3" t
         itWithOuter "reads 3" t
 
@@ -57,8 +57,8 @@ spec = sequential $ do
         addExtra i = atomically $ modifyTVar var (+ i)
     beforeAll readAndIncrement $
       afterAll addExtra $ do
-        let t :: Int -> () -> IO ()
-            t i () = i `shouldBe` 1
+        let t :: Int -> IO ()
+            t i = i `shouldBe` 1
         itWithOuter "reads 1" t
         itWithOuter "reads 1" t
 
@@ -70,8 +70,8 @@ spec = sequential $ do
         addExtra (HCons i HNil) = atomically $ modifyTVar var (+ i)
     beforeAll readAndIncrement $
       afterAll' addExtra $ do
-        let t :: Int -> () -> IO ()
-            t i () = i `shouldBe` 1
+        let t :: Int -> IO ()
+            t i = i `shouldBe` 1
         itWithOuter "reads 1" t
         itWithOuter "reads 1" t
 
@@ -99,8 +99,8 @@ spec = sequential $ do
           func i
           increment
     aroundAll incrementBeforeAndAfter $ do
-      let t :: Int -> () -> IO ()
-          t i () = i `shouldBe` 1
+      let t :: Int -> IO ()
+          t i = i `shouldBe` 1
       itWithOuter "reads 1" t
       itWithOuter "reads 1" t
 
@@ -139,7 +139,7 @@ spec = sequential $ do
           increment
     aroundAll incrementBeforeAndAfter $
       aroundAllWith incrementBeforeAndAfterWith $ do
-        let t :: Int -> () -> IO ()
-            t i () = i `shouldBe` 3
+        let t :: Int -> IO ()
+            t i = i `shouldBe` 3
         itWithOuter "reads correctly" t
         itWithOuter "reads correctly" t

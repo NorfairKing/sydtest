@@ -18,31 +18,30 @@ import GHC.Generics (Generic)
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
-import Test.Syd.HList
 import UnliftIO
 
 class IsTest e where
-  type OuterArgs e
-  type InnerArg e
+  type Arg1 e
+  type Arg2 e
   runTest ::
     e ->
     TestRunSettings ->
-    ((OuterArgs e -> InnerArg e -> IO ()) -> IO ()) ->
+    ((Arg1 e -> Arg2 e -> IO ()) -> IO ()) ->
     IO TestRunResult
 
 instance IsTest Bool where
-  type OuterArgs Bool = HList '[] -- The argument from 'aroundAll'
-  type InnerArg Bool = () -- The argument from 'around'
-  runTest func = runTest (\(HNil :: HList '[]) () -> func)
+  type Arg1 Bool = () -- The argument from 'aroundAll'
+  type Arg2 Bool = () -- The argument from 'around'
+  runTest func = runTest (\() () -> func)
 
 instance IsTest (arg -> Bool) where
-  type OuterArgs (arg -> Bool) = HList '[]
-  type InnerArg (arg -> Bool) = arg
-  runTest func = runTest (\(HNil :: HList '[]) arg -> func arg)
+  type Arg1 (arg -> Bool) = ()
+  type Arg2 (arg -> Bool) = arg
+  runTest func = runTest (\() arg -> func arg)
 
 instance IsTest (outerArgs -> innerArg -> Bool) where
-  type OuterArgs (outerArgs -> innerArg -> Bool) = outerArgs
-  type InnerArg (outerArgs -> innerArg -> Bool) = innerArg
+  type Arg1 (outerArgs -> innerArg -> Bool) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> Bool) = innerArg
   runTest = runPureTestWithArg
 
 runPureTestWithArg ::
@@ -75,18 +74,18 @@ applyWrapper2 wrapper func = do
   liftIO $ readMVar var
 
 instance IsTest (IO a) where
-  type OuterArgs (IO a) = HList '[]
-  type InnerArg (IO a) = ()
-  runTest func = runTest (\(HNil :: HList '[]) () -> func)
+  type Arg1 (IO a) = ()
+  type Arg2 (IO a) = ()
+  runTest func = runTest (\() () -> func)
 
 instance IsTest (arg -> IO a) where
-  type OuterArgs (arg -> IO a) = HList '[]
-  type InnerArg (arg -> IO a) = arg
-  runTest func = runTest (\(HNil :: HList '[]) -> func)
+  type Arg1 (arg -> IO a) = ()
+  type Arg2 (arg -> IO a) = arg
+  runTest func = runTest (\() -> func)
 
 instance IsTest (outerArgs -> innerArg -> IO a) where
-  type OuterArgs (outerArgs -> innerArg -> IO a) = outerArgs
-  type InnerArg (outerArgs -> innerArg -> IO a) = innerArg
+  type Arg1 (outerArgs -> innerArg -> IO a) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> IO a) = innerArg
   runTest = runIOTestWithArg
 
 runIOTestWithArg ::
@@ -110,18 +109,18 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
   pure TestRunResult {..}
 
 instance IsTest Property where
-  type OuterArgs Property = HList '[]
-  type InnerArg Property = ()
-  runTest func = runTest (\(HNil :: HList '[]) () -> func)
+  type Arg1 Property = ()
+  type Arg2 Property = ()
+  runTest func = runTest (\() () -> func)
 
 instance IsTest (arg -> Property) where
-  type OuterArgs (arg -> Property) = HList '[]
-  type InnerArg (arg -> Property) = arg
-  runTest func = runTest (\(HNil :: HList '[]) -> func)
+  type Arg1 (arg -> Property) = ()
+  type Arg2 (arg -> Property) = arg
+  runTest func = runTest (\() -> func)
 
 instance IsTest (outerArgs -> innerArg -> Property) where
-  type OuterArgs (outerArgs -> innerArg -> Property) = outerArgs
-  type InnerArg (outerArgs -> innerArg -> Property) = innerArg
+  type Arg1 (outerArgs -> innerArg -> Property) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> Property) = innerArg
   runTest = runPropertyTestWithArg
 
 runPropertyTestWithArg ::

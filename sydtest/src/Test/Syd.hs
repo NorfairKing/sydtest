@@ -18,7 +18,13 @@ module Test.Syd
     -- * Declaring tests
     describe,
     it,
+    itWithOuter,
+    itWithBoth,
+    itWithAll,
     specify,
+    specifyWithOuter,
+    specifyWithBoth,
+    specifyWithAll,
 
     -- ** Declaring test dependencies
 

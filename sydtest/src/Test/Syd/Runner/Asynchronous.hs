@@ -71,27 +71,27 @@ runner failFast nbThreads failFastVar handleForest = do
       goTree :: Parallelism -> HList a -> HandleTree a () -> IO ()
       goTree p a = \case
         DefSpecifyNode _ td var -> do
-          let runNow = timeItT $ testDefVal td (\f -> f a ())
-          let quantity = case p of
-                -- When the test wants to be executed sequentially, we take n locks because we must make sure that
-                -- 1. no more other tests are still running.
-                -- 2. no other tests are started during execution.
-                Sequential -> nbThreads
-                Parallel -> 1
-          -- Wait before spawning a thread so that we don't spawn too many threads
-          liftIO $ waitQSemN sem quantity
-          let job :: IO ()
-              job = do
-                result <- runNow
-                putMVar var result
-                when (failFast && testRunResultStatus (timedValue result) == TestFailed) $ do
-                  as <- readIORef jobs
-                  mapM_ cancel as
-                  putMVar failFastVar ()
-                liftIO $ signalQSemN sem quantity
           mDone <- tryReadMVar failFastVar
           case mDone of
             Nothing -> do
+              let runNow = timeItT $ testDefVal td (\f -> f a ())
+              -- Wait before spawning a thread so that we don't spawn too many threads
+              let quantity = case p of
+                    -- When the test wants to be executed sequentially, we take n locks because we must make sure that
+                    -- 1. no more other tests are still running.
+                    -- 2. no other tests are started during execution.
+                    Sequential -> nbThreads
+                    Parallel -> 1
+              liftIO $ waitQSemN sem quantity
+              let job :: IO ()
+                  job = do
+                    result <- runNow
+                    putMVar var result
+                    when (failFast && testRunResultStatus (timedValue result) == TestFailed) $ do
+                      putMVar failFastVar ()
+                      as <- readIORef jobs
+                      mapM_ cancel as
+                    liftIO $ signalQSemN sem quantity
               jobAsync <- async job
               modifyIORef jobs (S.insert jobAsync)
               link jobAsync

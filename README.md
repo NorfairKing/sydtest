@@ -68,7 +68,7 @@ This project chooses best practices as defaults:
 | Declaring that an individual test should fail                                             | 🚧      | ✖️                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Declaring that at least one in a test group should fail                                   | 🚧      | C                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Using scarce resources across tests                                                       | 🚧      | C                                                           | ?                                                                |
-| A way to fail the test suite as soon as one test fails (`--fail-fast`)                    | 🚧      | ✔️                                                           | ?                                                                |
+| A way to fail the test suite as soon as one test fails (`--fail-fast`)                    | ✔️       | ✔️                                                           | ?                                                                |
 | Fully configurable via flags                                                              | ✔️       | ✔️                                                           | ✔️                                                                |
 | Fully configurable via environment variables                                              | ✔️       | ✔️                                                           | ✔️                                                                |
 | Fully configurable via configuration file                                                 | ✔️       | ✔️                                                           | ✖️                                                                |
@@ -168,6 +168,15 @@ This is because resource setups happen at the test group level, and we don't wan
 ### Hiding process arguments from tests
 
 The process arguments are hidden during test suite execution (but not during definition) using `withArgs` so that tests cannot depend on command-line arguments.
+
+
+### Fast failures
+
+By default, tests run until completion.
+With the `--fail-fast` flag, the tests will stop executing as soon as a failure occurs.
+When using the asynchronous runner, it could be that multiple failures have already occurred between the first failure and the cancelling of the other tests.
+In that case all of those failures are reported.
+
 
 ### Configurable in three ways
 

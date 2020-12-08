@@ -1,0 +1,35 @@
+name: "Nix Build"
+on:
+  pull_request:
+  push:
+    branches:
+      - development
+      - master
+
+jobs:
+  hooks:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: cachix/install-nix-action@v12
+    - uses: cachix/cachix-action@v8
+      with:
+        name: habit
+        extraPullNames: validity, mergeful, cursor, yamlparse
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+    - run: nix-build ci.nix -A pre-commit-check
+
+  build:
+    name: CI Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: cachix/install-nix-action@v12
+    - uses: cachix/cachix-action@v8
+      with:
+        name: habit
+        extraPullNames: validity, mergeful, cursor, yamlparse
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+    - run: nix-build ci.nix -A release
+

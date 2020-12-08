@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
@@ -11,7 +12,22 @@
 module Test.Syd.Runner.Wrappers where
 
 import Control.Monad.Reader
+import Test.Syd.Run
+import Test.Syd.SpecDef
 import UnliftIO
+
+data Next a = Continue a | Stop a
+  deriving (Functor)
+
+extractNext :: Next a -> a
+extractNext (Continue a) = a
+extractNext (Stop a) = a
+
+failFastNext :: Bool -> TestDef (Timed TestRunResult) -> Next (TestDef (Timed TestRunResult))
+failFastNext b td@(TestDef (Timed trr _) _) =
+  if b && testRunResultStatus trr == TestFailed
+    then Stop td
+    else Continue td
 
 applySimpleWrapper ::
   MonadIO m =>

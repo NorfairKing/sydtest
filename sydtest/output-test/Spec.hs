@@ -24,11 +24,11 @@ main :: IO ()
 main = do
   sets <- getSettings
   testForest <- execTestDefM sets spec
-  _ <- runSpecForestInterleavedWithOutputSynchronously testForest
-  _ <- runSpecForestInterleavedWithOutputAsynchronously 8 testForest
-  rf1 <- runSpecForestSynchronously testForest
+  _ <- runSpecForestInterleavedWithOutputSynchronously (settingFailFast sets) testForest
+  _ <- runSpecForestInterleavedWithOutputAsynchronously (settingFailFast sets) 8 testForest
+  rf1 <- runSpecForestSynchronously (settingFailFast sets) testForest
   printOutputSpecForest rf1
-  rf2 <- runSpecForestAsynchronously 8 testForest
+  rf2 <- runSpecForestAsynchronously (settingFailFast sets) 8 testForest
   printOutputSpecForest rf2
   pure ()
 

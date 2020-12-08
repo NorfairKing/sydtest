@@ -46,7 +46,9 @@ data Settings = Settings
     -- | The maximum number of tries to use while shrinking a counterexample.
     settingMaxShrinks :: !Int,
     -- | The filter to use to select which tests to run
-    settingFilter :: !(Maybe Text)
+    settingFilter :: !(Maybe Text),
+    -- | Whether to stop upon the first test failure
+    settingFailFast :: !Bool
   }
   deriving (Show, Eq, Generic)
 
@@ -61,7 +63,8 @@ defaultSettings =
           settingMaxSize = d testRunSettingMaxSize,
           settingMaxDiscard = d testRunSettingMaxDiscardRatio,
           settingMaxShrinks = d testRunSettingMaxShrinks,
-          settingFilter = Nothing
+          settingFilter = Nothing,
+          settingFailFast = False
         }
 
 data Threads
@@ -86,7 +89,8 @@ combineToSettings Flags {..} Environment {..} mConf = do
         settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
         settingMaxDiscard = fromMaybe (d settingMaxDiscard) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
         settingMaxShrinks = fromMaybe (d settingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks,
-        settingFilter = flagFilter <|> envFilter <|> mc configFilter
+        settingFilter = flagFilter <|> envFilter <|> mc configFilter,
+        settingFailFast = fromMaybe (d settingFailFast) $ flagFailFast <|> envFailFast <|> mc configFailFast
       }
   where
     mc :: (Configuration -> Maybe a) -> Maybe a
@@ -106,7 +110,8 @@ data Configuration = Configuration
     configMaxSuccess :: !(Maybe Int),
     configMaxDiscard :: !(Maybe Int),
     configMaxShrinks :: !(Maybe Int),
-    configFilter :: !(Maybe Text)
+    configFilter :: !(Maybe Text),
+    configFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -126,6 +131,7 @@ instance YamlSchema Configuration where
         <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
+        <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
 
 instance YamlSchema Threads where
   yamlSchema = flip fmap yamlSchema $ \case
@@ -167,7 +173,8 @@ data Environment = Environment
     envMaxSuccess :: !(Maybe Int),
     envMaxDiscard :: !(Maybe Int),
     envMaxShrinks :: !(Maybe Int),
-    envFilter :: !(Maybe Text)
+    envFilter :: !(Maybe Text),
+    envFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -180,14 +187,15 @@ environmentParser =
   Env.prefixed "SYDTEST_" $
     Environment
       <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (mE <> Env.help "Config file")
-      <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
-      <*> Env.var (fmap Just . Env.auto) "RANDOMISE_EXECUTION_ORDER" (mE <> Env.help "Randomise the execution order of the tests in the test suite")
-      <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
-      <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
-      <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
-      <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
-      <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
-      <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
+        <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
+        <*> Env.var (fmap Just . Env.auto) "RANDOMISE_EXECUTION_ORDER" (mE <> Env.help "Randomise the execution order of the tests in the test suite")
+        <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
+        <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
+        <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
+        <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
+        <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
+        <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
+        <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (mE <> Env.help "Whether to stop executing upon the first test failure")
   where
     parseThreads :: Int -> Either e Threads
     parseThreads 1 = Right Synchronous
@@ -233,7 +241,8 @@ data Flags = Flags
     flagMaxSize :: !(Maybe Int),
     flagMaxDiscard :: !(Maybe Int),
     flagMaxShrinks :: !(Maybe Int),
-    flagFilter :: !(Maybe Text)
+    flagFilter :: !(Maybe Text),
+    flagFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -324,6 +333,15 @@ parseFlags =
                       [ long "filter",
                         long "match",
                         help "Filter to select which parts of the test tree to run"
+                      ]
+                  )
+              )
+          )
+      <*> ( optional
+              ( switch
+                  ( mconcat
+                      [ long "fail-fast",
+                        help "Whether to stop upon the first test failure"
                       ]
                   )
               )

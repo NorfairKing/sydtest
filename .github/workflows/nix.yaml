@@ -15,8 +15,8 @@ jobs:
     - uses: cachix/install-nix-action@v12
     - uses: cachix/cachix-action@v8
       with:
-        name: habit
-        extraPullNames: validity, mergeful, cursor, yamlparse
+        name: sydtest
+        extraPullNames: yamlparse
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: nix-build ci.nix -A pre-commit-check
 
@@ -28,8 +28,8 @@ jobs:
     - uses: cachix/install-nix-action@v12
     - uses: cachix/cachix-action@v8
       with:
-        name: habit
-        extraPullNames: validity, mergeful, cursor, yamlparse
+        name: sydtest
+        extraPullNames: yamlparse
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: nix-build ci.nix -A release
 

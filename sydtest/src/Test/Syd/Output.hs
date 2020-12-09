@@ -30,10 +30,13 @@ import Text.Printf
 printOutputSpecForest :: Timed ResultForest -> IO ()
 printOutputSpecForest results = do
   byteStringMaker <- byteStringMakerFromEnvironment
-  let bytestrings = map (chunksToByteStrings byteStringMaker) (outputResultReport results) :: [[ByteString]]
+  let bytestrings = outputSpecForestByteString byteStringMaker results
   forM_ bytestrings $ \bs -> do
     mapM_ SB.putStr bs
     SB8.putStrLn ""
+
+outputSpecForestByteString :: (Chunk -> [ByteString] -> [ByteString]) -> Timed ResultForest -> [[ByteString]]
+outputSpecForestByteString byteStringMaker results = map (chunksToByteStrings byteStringMaker) (outputResultReport results)
 
 outputResultReport :: Timed ResultForest -> [[Chunk]]
 outputResultReport trf@(Timed rf _) =

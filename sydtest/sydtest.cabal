@@ -92,6 +92,7 @@ test-suite sydtest-test
       Test.Syd.AroundCombinationSpec
       Test.Syd.AroundSpec
       Test.Syd.FootgunSpec
+      Test.Syd.GoldenSpec
       Test.Syd.Specify.AllOuterSpec
       Test.Syd.SpecifySpec
       Test.Syd.TimingSpec
@@ -104,6 +105,8 @@ test-suite sydtest-test
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , bytestring
+    , rainbow
     , stm
     , sydtest
   default-language: Haskell2010

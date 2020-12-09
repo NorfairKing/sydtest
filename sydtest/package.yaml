@@ -49,6 +49,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - QuickCheck
+    - bytestring
+    - rainbow
     - stm
     - sydtest
 

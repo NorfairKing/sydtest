@@ -7,6 +7,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -110,6 +111,56 @@ data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecu
 type ResultForest = SpecForest (TestDef (Timed TestRunResult))
 
 type ResultTree = SpecTree (TestDef (Timed TestRunResult))
+
+computeTestSuiteStats :: ResultForest -> TestSuiteStats
+computeTestSuiteStats = goF
+  where
+    goF :: ResultForest -> TestSuiteStats
+    goF = foldMap goT
+    goT :: ResultTree -> TestSuiteStats
+    goT = \case
+      SpecifyNode _ (TestDef (Timed TestRunResult {..} _) _) ->
+        TestSuiteStats
+          { testSuiteStatSuccesses = case testRunResultStatus of
+              TestPassed -> 1
+              TestFailed -> 0,
+            testSuiteStatFailures = case testRunResultStatus of
+              TestPassed -> 0
+              TestFailed -> 1,
+            testSuiteStatPending = 0
+          }
+      PendingNode _ _ ->
+        TestSuiteStats
+          { testSuiteStatSuccesses = 0,
+            testSuiteStatFailures = 0,
+            testSuiteStatPending = 1
+          }
+      DescribeNode _ sf -> goF sf
+      SubForestNode sf -> goF sf
+
+data TestSuiteStats = TestSuiteStats
+  { testSuiteStatSuccesses :: !Word,
+    testSuiteStatFailures :: !Word,
+    testSuiteStatPending :: !Word
+  }
+  deriving (Show, Eq)
+
+instance Semigroup TestSuiteStats where
+  (<>) tss1 tss2 =
+    TestSuiteStats
+      { testSuiteStatSuccesses = testSuiteStatSuccesses tss1 + testSuiteStatSuccesses tss2,
+        testSuiteStatFailures = testSuiteStatFailures tss1 + testSuiteStatFailures tss2,
+        testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2
+      }
+
+instance Monoid TestSuiteStats where
+  mappend = (<>)
+  mempty =
+    TestSuiteStats
+      { testSuiteStatSuccesses = 0,
+        testSuiteStatFailures = 0,
+        testSuiteStatPending = 0
+      }
 
 shouldExitFail :: ResultForest -> Bool
 shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . timedValue . testDefVal))

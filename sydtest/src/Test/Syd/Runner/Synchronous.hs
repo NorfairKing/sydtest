@@ -114,4 +114,8 @@ runSpecForestInterleavedWithOutputSynchronously failFast testForest = do
   resultForest <- extractNext <$> goForest 0 HNil testForest
   outputLine [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
+  outputLine [chunk " "]
+  mapM_ outputLine $ outputStats (computeTestSuiteStats resultForest)
+  outputLine [chunk " "]
+
   pure resultForest

@@ -158,6 +158,9 @@ printer failFastVar handleForest = do
   resultForest <- fromMaybe [] <$> goForest 0 handleForest
   outputLine [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading resultForest
+  outputLine [chunk " "]
+  mapM_ outputLine $ outputStats (computeTestSuiteStats resultForest)
+  outputLine [chunk " "]
   pure resultForest
 
 waiter :: MVar () -> HandleForest '[] () -> IO ResultForest

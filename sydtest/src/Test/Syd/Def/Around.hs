@@ -113,7 +113,7 @@ aroundWith' func (TestDefM rwst) = TestDefM $
         modifyTree :: forall x e. HContains x a => SpecDefTree x c e -> SpecDefTree x d e
         modifyTree = \case
           DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
-          DefPendingNode t -> DefPendingNode t
+          DefPendingNode t mr -> DefPendingNode t mr
           DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
           DefWrapNode f sdf -> DefWrapNode f $ modifyForest sdf
           DefBeforeAllNode f sdf -> DefBeforeAllNode f $ modifyForest sdf

@@ -35,3 +35,4 @@ spec = sequential $ do
 
   describe "pending tests" $ do
     pending "this is a pending test"
+    pendingWith "this is another pending test" "with this reason"

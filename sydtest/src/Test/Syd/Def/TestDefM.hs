@@ -94,10 +94,10 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
         let tl = DList.snoc dl t
         guard $ filterGuard tl
         pure $ DefSpecifyNode t td e
-      DefPendingNode t -> do
+      DefPendingNode t mr -> do
         let tl = DList.snoc dl t
         guard $ filterGuard tl
-        pure $ DefPendingNode t
+        pure $ DefPendingNode t mr
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
@@ -115,7 +115,7 @@ randomiseTestForest = goForest
     goTree :: MonadRandom m => SpecDefTree a b c -> m (SpecDefTree a b c)
     goTree = \case
       DefSpecifyNode t td e -> pure $ DefSpecifyNode t td e
-      DefPendingNode t -> pure $ DefPendingNode t
+      DefPendingNode t mr -> pure $ DefPendingNode t mr
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest sdf

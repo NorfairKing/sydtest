@@ -25,6 +25,7 @@ module Test.Syd.Def
 
     -- ** Pending tests
     pending,
+    pendingWith,
 
     -- ** Rexports
     module Test.Syd.Def.TestDefM,
@@ -324,5 +325,10 @@ specifyWithBoth = itWithBoth
 specifyWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
 specifyWithAll = itWithAll
 
+-- | Declare a test that has not been written yet.
 pending :: String -> TestDefM a b ()
-pending s = tell [DefPendingNode (T.pack s)]
+pending s = tell [DefPendingNode (T.pack s) Nothing]
+
+-- | Declare a test that has not been written yet for the given reason.
+pendingWith :: String -> String -> TestDefM a b ()
+pendingWith s reason = tell [DefPendingNode (T.pack s) (Just (T.pack reason))]

@@ -36,7 +36,7 @@ data SpecDefTree (a :: [*]) c e where -- a: input from 'aroundAll', c: input fro
     TestDef (((HList a -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
     e ->
     SpecDefTree a c e -- A test with its description
-  DefPendingNode :: Text -> SpecDefTree a c e
+  DefPendingNode :: Text -> Maybe Text -> SpecDefTree a c e
   DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
   DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
   DefBeforeAllNode :: IO a -> SpecDefForest (a ': l) c e -> SpecDefTree l c e
@@ -59,7 +59,7 @@ instance Functor (SpecDefTree a c) where
         goF = map (fmap f)
      in \case
           DefDescribeNode t sdf -> DefDescribeNode t $ goF sdf
-          DefPendingNode t -> DefPendingNode t
+          DefPendingNode t mr -> DefPendingNode t mr
           DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
           DefWrapNode func sdf -> DefWrapNode func $ goF sdf
           DefBeforeAllNode func sdf -> DefBeforeAllNode func $ goF sdf
@@ -76,7 +76,7 @@ instance Foldable (SpecDefTree a c) where
         goF = foldMap (foldMap f)
      in \case
           DefDescribeNode _ sdf -> goF sdf
-          DefPendingNode _ -> mempty
+          DefPendingNode _ _ -> mempty
           DefSpecifyNode _ _ e -> f e
           DefWrapNode _ sdf -> goF sdf
           DefBeforeAllNode _ sdf -> goF sdf
@@ -93,7 +93,7 @@ instance Traversable (SpecDefTree a c) where
         goF = traverse (traverse f)
      in \case
           DefDescribeNode t sdf -> DefDescribeNode t <$> goF sdf
-          DefPendingNode t -> pure $ DefPendingNode t
+          DefPendingNode t mr -> pure $ DefPendingNode t mr
           DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
           DefWrapNode func sdf -> DefWrapNode func <$> goF sdf
           DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goF sdf

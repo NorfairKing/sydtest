@@ -23,6 +23,10 @@ module Test.Syd
     specifyWithBoth,
     specifyWithAll,
 
+    -- ** Pending tests
+    pending,
+    pendingWith,
+
     -- ** Declaring test dependencies
 
     -- *** Dependencies around all of a group of tests

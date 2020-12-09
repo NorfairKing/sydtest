@@ -92,7 +92,7 @@ runner failFast nbThreads failFastVar handleForest = do
               modifyIORef jobs (S.insert jobAsync)
               link jobAsync
             Just () -> pure ()
-        DefPendingNode _ -> pure ()
+        DefPendingNode _ _ -> pure ()
         DefDescribeNode _ sdf -> goForest p a sdf
         DefWrapNode func sdf -> func (goForest p a sdf >> waitForCurrentlyRunning)
         DefBeforeAllNode func sdf -> do
@@ -137,9 +137,9 @@ printer failFastVar handleForest = do
               let td' = td {testDefVal = result}
               mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
               pure $ Just $ SpecifyNode t td'
-        DefPendingNode t -> do
-          outputLine $ pad level $ outputPendingLine t
-          pure $ Just $ PendingNode t
+        DefPendingNode t mr -> do
+          mapM_ (outputLine . pad level) $ outputPendingLines t mr
+          pure $ Just $ PendingNode t mr
         DefDescribeNode t sf -> do
           mDone <- tryReadMVar failFastVar
           case mDone of
@@ -176,7 +176,7 @@ waiter failFastVar handleForest = do
             Right result -> do
               let td' = td {testDefVal = result}
               pure $ Just $ SpecifyNode t td'
-        DefPendingNode t -> pure $ Just $ PendingNode t
+        DefPendingNode t mr -> pure $ Just $ PendingNode t mr
         DefDescribeNode t sf -> do
           fmap (DescribeNode t) <$> goForest (succ level) sf
         DefWrapNode _ sdf -> fmap SubForestNode <$> goForest level sdf

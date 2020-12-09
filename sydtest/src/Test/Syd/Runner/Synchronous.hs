@@ -40,7 +40,7 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
         let td' = td {testDefVal = result}
         let r = failFastNext failFast td'
         pure $ SpecifyNode t <$> r
-      DefPendingNode t -> pure $ Continue $ PendingNode t
+      DefPendingNode t mr -> pure $ Continue $ PendingNode t mr
       DefDescribeNode t sdf -> fmap (DescribeNode t) <$> goForest l sdf
       DefWrapNode func sdf -> fmap SubForestNode <$> applySimpleWrapper'' func (goForest l sdf)
       DefBeforeAllNode func sdf -> do
@@ -89,9 +89,9 @@ runSpecForestInterleavedWithOutputSynchronously failFast testForest = do
           mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
           let r = failFastNext failFast td'
           pure $ SpecifyNode t <$> r
-        DefPendingNode t -> do
-          outputLine $ pad level $ outputPendingLine t
-          pure $ Continue $ PendingNode t
+        DefPendingNode t mr -> do
+          mapM_ (outputLine . pad level) $ outputPendingLines t mr
+          pure $ Continue $ PendingNode t mr
         DefDescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
           fmap (DescribeNode t) <$> goForest (succ level) a sf

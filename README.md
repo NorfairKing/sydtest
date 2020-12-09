@@ -192,5 +192,6 @@ You can declare that some tests are still missing like so:
 spec :: Spec
 spec = do
   describe "myFunction" $ do
-    pending "has no tests yet because frankly we don't care"
+    pending "has no tests yet"
+    pendingWith "has no tests yet" "because, frankly, we don't care"
 ```

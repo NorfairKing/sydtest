@@ -27,7 +27,7 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Printf
 
-printOutputSpecForest :: ResultForest -> IO ()
+printOutputSpecForest :: Timed ResultForest -> IO ()
 printOutputSpecForest results = do
   byteStringMaker <- byteStringMakerFromEnvironment
   let bytestrings = map (chunksToByteStrings byteStringMaker) (outputResultReport results) :: [[ByteString]]
@@ -35,8 +35,8 @@ printOutputSpecForest results = do
     mapM_ SB.putStr bs
     SB8.putStrLn ""
 
-outputResultReport :: ResultForest -> [[Chunk]]
-outputResultReport rf =
+outputResultReport :: Timed ResultForest -> [[Chunk]]
+outputResultReport trf@(Timed rf _) =
   concat
     [ outputTestsHeader,
       outputSpecForest 0 (resultForestWidth rf) rf,
@@ -45,7 +45,7 @@ outputResultReport rf =
       ],
       outputFailuresWithHeading rf,
       [[chunk ""]],
-      outputStats (computeTestSuiteStats rf),
+      outputStats (computeTestSuiteStats <$> trf),
       [[chunk ""]]
     ]
 
@@ -62,43 +62,31 @@ outputFailuresWithHeading rf =
         ]
     else []
 
-outputStatsHeader :: [[Chunk]]
-outputStatsHeader = outputHeader "Stats:"
-
-outputStats :: TestSuiteStats -> [[Chunk]]
-outputStats TestSuiteStats {..} =
-  concat
-    [ outputStatsHeader,
-      map (padding :) $
-        concat
-          [ [ map
-                (fore green)
-                [ chunk "Passed: ",
-                  chunk (T.pack (show testSuiteStatSuccesses))
-                ]
-            ],
-            [ if testSuiteStatFailures > 0
-                then
-                  map
-                    (fore red)
-                    [ chunk "Failed: ",
-                      chunk (T.pack (show testSuiteStatFailures))
-                    ]
-                else
-                  map
-                    (fore green)
-                    [ chunk "Failed: 0"
-                    ]
-            ],
-            [ map
-                (fore magenta)
-                [ chunk "Pending: ",
-                  chunk (T.pack (show testSuiteStatPending))
-                ]
-              | testSuiteStatPending > 0
-            ]
+outputStats :: Timed TestSuiteStats -> [[Chunk]]
+outputStats (Timed TestSuiteStats {..} timing) =
+  map (padding :) $
+    concat
+      [ [ [ chunk "Passed:      ",
+            fore green $ chunk (T.pack (show testSuiteStatSuccesses))
+          ],
+          [ chunk "Failed:      ",
+            ( if testSuiteStatFailures > 0
+                then fore red
+                else fore green
+            )
+              $ chunk (T.pack (show testSuiteStatFailures))
           ]
-    ]
+        ],
+        [ [ chunk "Pending:     ",
+            fore magenta $ chunk (T.pack (show testSuiteStatPending))
+          ]
+          | testSuiteStatPending > 0
+        ],
+        [ [ chunk "Took",
+            fore yellow $ chunk $ T.pack (printf "%13.2f seconds" (fromIntegral timing / 1_000_000_000 :: Double))
+          ]
+        ]
+      ]
 
 outputTestsHeader :: [[Chunk]]
 outputTestsHeader = outputHeader "Tests:"

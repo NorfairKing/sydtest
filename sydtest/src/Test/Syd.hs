@@ -137,7 +137,7 @@ sydTest spec = do
 sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
   resultForest <- sydTestResult sets spec
-  when (shouldExitFail resultForest) (exitWith (ExitFailure 1))
+  when (shouldExitFail (timedValue resultForest)) (exitWith (ExitFailure 1))
 
 runIO :: IO e -> TestDefM a b e
 runIO = liftIO

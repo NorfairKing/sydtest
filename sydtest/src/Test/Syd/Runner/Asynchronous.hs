@@ -34,7 +34,7 @@ runSpecForestAsynchronously failFast nbThreads testForest = do
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-runSpecForestInterleavedWithOutputAsynchronously :: Bool -> Int -> TestForest '[] () -> IO ResultForest
+runSpecForestInterleavedWithOutputAsynchronously :: Bool -> Int -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputAsynchronously failFast nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
@@ -108,7 +108,7 @@ runner failFast nbThreads failFastVar handleForest = do
         DefRandomisationNode _ sdf -> goForest p a sdf
   goForest Parallel HNil handleForest
 
-printer :: MVar () -> HandleForest '[] () -> IO ResultForest
+printer :: MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
 printer failFastVar handleForest = do
   byteStringMaker <- liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> IO ()
@@ -155,11 +155,11 @@ printer failFastVar handleForest = do
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level sdf
   mapM_ outputLine outputTestsHeader
-  resultForest <- fromMaybe [] <$> goForest 0 handleForest
+  resultForest <- timeItT $ fromMaybe [] <$> goForest 0 handleForest
   outputLine [chunk " "]
-  mapM_ outputLine $ outputFailuresWithHeading resultForest
+  mapM_ outputLine $ outputFailuresWithHeading (timedValue resultForest)
   outputLine [chunk " "]
-  mapM_ outputLine $ outputStats (computeTestSuiteStats resultForest)
+  mapM_ outputLine $ outputStats (computeTestSuiteStats <$> resultForest)
   outputLine [chunk " "]
   pure resultForest
 

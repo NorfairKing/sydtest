@@ -38,7 +38,7 @@ This project chooses best practices as defaults:
 | Source location annotations for tests in test output                                      | ✔️       | ✔️                                                           | ✖️                                                                |
 | Test suite filtering to select which tests to run                                         | ✔️       | ✔️                                                           | ✔️                                                                |
 | Individual test execution timing                                                          | ✔️       | [Lib](http://hackage.haskell.org/package/hspec-slow)        | [Lib](https://hackage.haskell.org/package/tasty-stats)           |
-| Test suite execution timing                                                               | 🚧      | ✔️                                                           | ✖️                                                                |
+| Test suite execution timing                                                               | ✔️       | ✔️                                                           | ✖️                                                                |
 | Helpful output to find slow tests                                                         | ✔️       | [Lib](http://hackage.haskell.org/package/hspec-slow)        | C
 | Coloured output                                                                           | ✔️       | ✔️                                                           | ✔️                                                                |
 | Colourless output                                                                         | 🚧      | ✔️                                                           | ✔️                                                                |
@@ -152,6 +152,12 @@ The timing information is shown in such a way that it is easily compared: All in
 It is also colour-coded so that slow tests really stick out in the report.
 
 ![Individual test execution timing](assets/individual-timing.png)
+
+### Test suite execution timing
+
+Every test suite comes with a short summary that includes how long it took to run the tests.
+
+![Test suite execution timing](assets/suite-timing.png)
 
 ### Randomised execution order
 

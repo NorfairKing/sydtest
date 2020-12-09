@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
@@ -228,4 +229,4 @@ data Timed a = Timed
     -- | In nanoseconds
     timedTime :: !Word64
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Functor)

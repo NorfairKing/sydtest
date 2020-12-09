@@ -58,7 +58,7 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
       DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest l sdf -- Ignore, it's synchronous anyway
       DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest l sdf
 
-runSpecForestInterleavedWithOutputSynchronously :: Bool -> TestForest '[] () -> IO ResultForest
+runSpecForestInterleavedWithOutputSynchronously :: Bool -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputSynchronously failFast testForest = do
   byteStringMaker <- liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> IO ()
@@ -111,11 +111,11 @@ runSpecForestInterleavedWithOutputSynchronously failFast testForest = do
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level a sdf
   mapM_ outputLine outputTestsHeader
-  resultForest <- extractNext <$> goForest 0 HNil testForest
+  resultForest <- timeItT $ extractNext <$> goForest 0 HNil testForest
   outputLine [chunk " "]
-  mapM_ outputLine $ outputFailuresWithHeading resultForest
+  mapM_ outputLine $ outputFailuresWithHeading (timedValue resultForest)
   outputLine [chunk " "]
-  mapM_ outputLine $ outputStats (computeTestSuiteStats resultForest)
+  mapM_ outputLine $ outputStats (computeTestSuiteStats <$> resultForest)
   outputLine [chunk " "]
 
   pure resultForest

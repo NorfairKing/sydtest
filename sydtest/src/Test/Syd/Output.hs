@@ -73,8 +73,9 @@ outputSpecForest level treeWidth = concatMap (outputSpecTree level treeWidth)
 
 outputSpecTree :: Int -> Int -> ResultTree -> [[Chunk]]
 outputSpecTree level treeWidth = \case
-  DescribeNode t sf -> outputDescribeLine t : map (padding :) (outputSpecForest (level + 1) treeWidth sf)
   SpecifyNode t td -> outputSpecifyLines level treeWidth t td
+  PendingNode t -> [outputPendingLine t]
+  DescribeNode t sf -> outputDescribeLine t : map (padding :) (outputSpecForest (level + 1) treeWidth sf)
   SubForestNode sf -> outputSpecForest level treeWidth sf
 
 outputDescribeLine :: Text -> [Chunk]
@@ -103,6 +104,9 @@ outputSpecifyLines level treeWidth specifyText (TestDef (Timed TestRunResult {..
               w <- maybeToList testRunResultNumTests
           ]
         ]
+
+outputPendingLine :: Text -> [Chunk]
+outputPendingLine specifyText = [fore magenta $ chunk specifyText]
 
 -- The chunk for spacing between the description and the timing
 --
@@ -248,6 +252,7 @@ resultForestWidth = goF 0
     goT :: Int -> SpecTree a -> Int
     goT level = \case
       SpecifyNode t _ -> T.length t + level * paddingSize
+      PendingNode t -> T.length t + level * paddingSize
       DescribeNode _ sdf -> goF (succ level) sdf
       SubForestNode sdf -> goF level sdf
 
@@ -261,6 +266,7 @@ specForestWidth = goF 0
     goT :: Int -> SpecDefTree a b c -> Int
     goT level = \case
       DefSpecifyNode t _ _ -> T.length t + level * paddingSize
+      DefPendingNode t -> T.length t + level * paddingSize
       DefDescribeNode _ sdf -> goF (succ level) sdf
       DefWrapNode _ sdf -> goF level sdf
       DefBeforeAllNode _ sdf -> goF level sdf

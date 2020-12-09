@@ -32,3 +32,6 @@ spec = sequential $ do
         i * j `shouldBe` 1 * j
       itWithBoth "property test function (both inner and outer)" $ \i () -> property $ \j ->
         i * j `shouldBe` 1 * j
+
+  describe "pending tests" $ do
+    pending "this is a pending test"

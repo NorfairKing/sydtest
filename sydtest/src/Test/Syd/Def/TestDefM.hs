@@ -82,14 +82,22 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       let sdf' = mapMaybe (goTree ts) sdf
       guard $ not $ null sdf'
       pure sdf'
+
+    filterGuard :: DList Text -> Bool
+    filterGuard dl = case mf of
+      Just f -> f `T.isInfixOf` T.intercalate "." (DList.toList dl)
+      Nothing -> True
+
     goTree :: DList Text -> SpecDefTree a b c -> Maybe (SpecDefTree a b c)
     goTree dl = \case
       DefSpecifyNode t td e -> do
-        let tl = DList.toList (DList.snoc dl t)
-        guard $ case mf of
-          Just f -> f `T.isInfixOf` T.intercalate "." tl
-          Nothing -> True
+        let tl = DList.snoc dl t
+        guard $ filterGuard tl
         pure $ DefSpecifyNode t td e
+      DefPendingNode t -> do
+        let tl = DList.snoc dl t
+        guard $ filterGuard tl
+        pure $ DefPendingNode t
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
@@ -107,6 +115,7 @@ randomiseTestForest = goForest
     goTree :: MonadRandom m => SpecDefTree a b c -> m (SpecDefTree a b c)
     goTree = \case
       DefSpecifyNode t td e -> pure $ DefSpecifyNode t td e
+      DefPendingNode t -> pure $ DefPendingNode t
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest sdf
       DefWrapNode func sdf -> DefWrapNode func <$> goForest sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest sdf

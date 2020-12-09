@@ -21,7 +21,6 @@ library:
   - containers
   - dlist
   - envparse
-  - interprocess
   - mtl
   - optparse-applicative
   - path

@@ -23,6 +23,9 @@ module Test.Syd.Def
     specifyWithBoth,
     specifyWithAll,
 
+    -- ** Pending tests
+    pending,
+
     -- ** Rexports
     module Test.Syd.Def.TestDefM,
     module Test.Syd.Def.Around,
@@ -320,3 +323,6 @@ specifyWithBoth = itWithBoth
 -- | A synonym for 'itWithAll'
 specifyWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
 specifyWithAll = itWithAll
+
+pending :: String -> TestDefM a b ()
+pending s = tell [DefPendingNode (T.pack s)]

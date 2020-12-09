@@ -1,0 +1,109 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest
+version:        0.0.0.0
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+copyright:      Copyright (c) 2020 Tom Sydney Kerckhove
+license:        AllRightsReserved
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd
+      Test.Syd.Def
+      Test.Syd.Def.Around
+      Test.Syd.Def.AroundAll
+      Test.Syd.Def.TestDefM
+      Test.Syd.Expectation
+      Test.Syd.HList
+      Test.Syd.Modify
+      Test.Syd.OptParse
+      Test.Syd.Output
+      Test.Syd.Run
+      Test.Syd.Runner
+      Test.Syd.Runner.Asynchronous
+      Test.Syd.Runner.Synchronous
+      Test.Syd.Runner.Wrappers
+      Test.Syd.SpecDef
+      Test.Syd.SpecForest
+  other-modules:
+      Paths_sydtest
+  hs-source-dirs:
+      src
+  build-depends:
+      Diff
+    , MonadRandom
+    , QuickCheck
+    , aeson
+    , async
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , dlist
+    , envparse
+    , mtl
+    , optparse-applicative
+    , path
+    , path-io
+    , pretty-show
+    , quickcheck-io
+    , rainbow
+    , random
+    , random-shuffle
+    , safe
+    , split
+    , text
+    , unix
+    , unliftio
+    , yaml
+    , yamlparse-applicative
+  default-language: Haskell2010
+
+test-suite sydtest-output-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_sydtest
+  hs-source-dirs:
+      output-test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , base >=4.7 && <5
+    , sydtest
+  default-language: Haskell2010
+
+test-suite sydtest-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Test.Syd.AroundAllSpec
+      Test.Syd.AroundCombinationSpec
+      Test.Syd.AroundSpec
+      Test.Syd.FootgunSpec
+      Test.Syd.Specify.AllOuterSpec
+      Test.Syd.SpecifySpec
+      Test.Syd.TimingSpec
+      Paths_sydtest
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      QuickCheck
+    , base >=4.7 && <5
+    , stm
+    , sydtest
+  default-language: Haskell2010

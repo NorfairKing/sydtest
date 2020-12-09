@@ -63,7 +63,7 @@ This project chooses best practices as defaults:
 | Deterministic randomness                                                                  | ✔️       | ✔️                                                           | ✔️                                                                |
 | Deterministic randomness by default                                                       | ✔️       | ✖️                                                           | ✖️                                                                |
 | Deterministic randomness instructions for rerunning tests                                 | 🚧      | ✔️                                                           | ?                                                                |
-| Nice process by default                                                                   | ✔️       | ✖️                                                           | ✖️                                                                |
+| Nice process by default                                                                   | 🚧      | ✖️                                                           | ✖️                                                                |
 | Hiding process arguments from tests                                                       | ✔️       | ✔️                                                           | ?                                                                |
 | Declaring that an individual test should fail                                             | 🚧      | ✖️                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Declaring that at least one in a test group should fail                                   | 🚧      | C                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
@@ -72,6 +72,7 @@ This project chooses best practices as defaults:
 | Fully configurable via flags                                                              | ✔️       | ✔️                                                           | ✔️                                                                |
 | Fully configurable via environment variables                                              | ✔️       | ✔️                                                           | ✔️                                                                |
 | Fully configurable via configuration file                                                 | ✔️       | ✔️                                                           | ✖️                                                                |
+| Pending tests                                                                             | ✔️       | ✔️                                                           | ✖️                                                                |
 
 * ✔️: Supported 
 * Lib: Possible with an extra library
@@ -182,3 +183,14 @@ In that case all of those failures are reported.
 
 You can configure a test suite using flags, environment variables and configuration files.
 Try running your test suite with `--help` to see how that works.
+
+### Pending tests
+
+You can declare that some tests are still missing like so:
+
+```
+spec :: Spec
+spec = do
+  describe "myFunction" $ do
+    pending "has no tests yet because frankly we don't care"
+```

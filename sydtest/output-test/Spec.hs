@@ -94,6 +94,7 @@ spec = do
     it "shouldNotBe" $ 3 `shouldNotBe` (3 :: Int)
     it "shouldSatisfy" $ (3 :: Int) `shouldSatisfy` even
     it "shouldNotSatisfy" $ (3 :: Int) `shouldNotSatisfy` odd
+  pending "pending test"
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

@@ -27,6 +27,14 @@ module Test.Syd
     pending,
     pendingWith,
 
+    -- ** Golden tests
+
+    -- *** Single files
+    pureGoldenByteStringFile,
+    goldenByteStringFile,
+    pureGoldenTextFile,
+    goldenTextFile,
+
     -- ** Declaring test dependencies
 
     -- *** Dependencies around all of a group of tests

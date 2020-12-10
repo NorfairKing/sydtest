@@ -26,9 +26,9 @@ main = do
   testForest <- execTestDefM sets spec
   _ <- runSpecForestInterleavedWithOutputSynchronously (settingFailFast sets) testForest
   _ <- runSpecForestInterleavedWithOutputAsynchronously (settingFailFast sets) 8 testForest
-  rf1 <- runSpecForestSynchronously (settingFailFast sets) testForest
+  rf1 <- timeItT $ runSpecForestSynchronously (settingFailFast sets) testForest
   printOutputSpecForest rf1
-  rf2 <- runSpecForestAsynchronously (settingFailFast sets) 8 testForest
+  rf2 <- timeItT $ runSpecForestAsynchronously (settingFailFast sets) 8 testForest
   printOutputSpecForest rf2
   pure ()
 

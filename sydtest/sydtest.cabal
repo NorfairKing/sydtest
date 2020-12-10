@@ -46,7 +46,6 @@ library
       Diff
     , MonadRandom
     , QuickCheck
-    , aeson
     , async
     , base >=4.7 && <5
     , bytestring
@@ -60,12 +59,10 @@ library
     , pretty-show
     , quickcheck-io
     , rainbow
-    , random
     , random-shuffle
     , safe
     , split
     , text
-    , unix
     , unliftio
     , yaml
     , yamlparse-applicative

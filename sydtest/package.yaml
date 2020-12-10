@@ -12,31 +12,28 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - Diff
-  - MonadRandom
-  - QuickCheck
-  - aeson
-  - async
-  - bytestring
-  - containers
-  - dlist
-  - envparse
-  - mtl
-  - optparse-applicative
-  - path
-  - path-io
-  - pretty-show
-  - quickcheck-io
-  - rainbow
-  - random
-  - random-shuffle
-  - safe
-  - split
-  - text
-  - unix
-  - unliftio
-  - yaml
-  - yamlparse-applicative
+    - Diff
+    - MonadRandom
+    - QuickCheck
+    - async
+    - bytestring
+    - containers
+    - dlist
+    - envparse
+    - mtl
+    - optparse-applicative
+    - path
+    - path-io
+    - pretty-show
+    - quickcheck-io
+    - rainbow
+    - random-shuffle
+    - safe
+    - split
+    - text
+    - unliftio
+    - yaml
+    - yamlparse-applicative
 
 tests:
   sydtest-test:

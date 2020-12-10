@@ -53,9 +53,8 @@ runPureTestWithArg ::
 runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
   resultBool <-
-    liftIO $
-      applyWrapper2 wrapper $
-        \outerArgs innerArg -> (Right <$> evaluate (computeBool outerArgs innerArg)) `catches` exceptionHandlers
+    applyWrapper2 wrapper $
+      \outerArgs innerArg -> evaluate (computeBool outerArgs innerArg)
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
@@ -64,16 +63,21 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   pure TestRunResult {..}
 
 applyWrapper2 ::
-  MonadIO m =>
+  forall r m outerArgs innerArg.
+  MonadUnliftIO m =>
   ((outerArgs -> innerArg -> m ()) -> m ()) ->
   (outerArgs -> innerArg -> m r) ->
-  m r
+  m (Either (Either String Assertion) r)
 applyWrapper2 wrapper func = do
   var <- liftIO newEmptyMVar
-  wrapper $ \outerArgs innerArg -> do
-    res <- func outerArgs innerArg
-    liftIO $ putMVar var res
-  liftIO $ readMVar var
+  r <- (`catches` exceptionHandlers) $
+    fmap Right $
+      wrapper $ \outerArgs innerArg -> do
+        res <- (Right <$> (func outerArgs innerArg >>= evaluate)) `catches` exceptionHandlers
+        liftIO $ putMVar var res
+  case r of
+    Right () -> liftIO $ readMVar var
+    Left e -> pure (Left e :: Either (Either String Assertion) r)
 
 instance IsTest (IO ()) where
   type Arg1 (IO ()) = ()
@@ -97,16 +101,13 @@ runIOTestWithArg ::
   IO TestRunResult
 runIOTestWithArg func TestRunSettings {..} wrapper = do
   let testRunResultNumTests = Nothing
-  (testRunResultStatus, testRunResultException) <-
-    liftIO $
-      applyWrapper2 wrapper $
-        \outerArgs innerArg -> do
-          result <-
-            (liftIO (func outerArgs innerArg) >>= (evaluate . (`seq` Right TestPassed)))
-              `catches` exceptionHandlers
-          evaluate $ case result of
-            Left ex -> (TestFailed, Just ex)
-            Right r -> (r, Nothing)
+  result <- liftIO $
+    applyWrapper2 wrapper $
+      \outerArgs innerArg ->
+        func outerArgs innerArg >>= evaluate
+  let (testRunResultStatus, testRunResultException) = case result of
+        Left ex -> (TestFailed, Just ex)
+        Right () -> (TestPassed, Nothing)
   let testRunResultNumShrinks = Nothing
   let testRunResultGoldenCase = Nothing
   pure TestRunResult {..}
@@ -143,24 +144,24 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           }
   result <-
     applyWrapper2 wrapper $ \outerArgs innerArg -> do
-      quickCheckWithResult args (p outerArgs innerArg)
-  let testRunResultStatus = case result of
-        Success {} -> TestPassed
-        GaveUp {} -> TestFailed
-        Failure {} -> TestFailed
-        NoExpectedFailure {} -> TestFailed
-  let testRunResultNumTests = Just $ fromIntegral $ numTests result
-  let testRunResultNumShrinks = case result of
-        Failure {} -> Just $ fromIntegral $ numShrinks result
-        _ -> Nothing
+      quickCheckWithResult args (p outerArgs innerArg) >>= evaluate
+  let (testRunResultStatus, testRunResultException, testRunResultNumTests, testRunResultNumShrinks) = case result of
+        Left ex -> (TestFailed, Just ex, Nothing, Nothing)
+        Right r -> case r of
+          Success {} -> (TestPassed, Nothing, Just $ fromIntegral $ numTests r, Nothing)
+          GaveUp {} -> (TestFailed, Nothing, Just $ fromIntegral $ numTests r, Nothing)
+          Failure {} ->
+            ( TestFailed,
+              do
+                se <- theException r
+                pure $ case fromException se of
+                  Just a -> Right a
+                  Nothing -> Left $ displayException se,
+              Just $ fromIntegral $ numTests r,
+              Just $ fromIntegral $ numShrinks r
+            )
+          NoExpectedFailure {} -> (TestFailed, Nothing, Just $ fromIntegral $ numTests r, Nothing)
   let testRunResultGoldenCase = Nothing
-  let testRunResultException = case result of
-        Failure {} -> do
-          se <- theException result
-          pure $ case fromException se of
-            Just a -> Right a
-            Nothing -> Left $ displayException se
-        _ -> Nothing
   pure TestRunResult {..}
 
 data GoldenTest a = GoldenTest
@@ -207,7 +208,7 @@ runGoldenTestWithArg ::
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
 runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
-  errOrTrip <- applyWrapper2 wrapper $ \outerArgs innerArgs -> ((`catches` exceptionHandlers) . fmap Right) $ do
+  errOrTrip <- applyWrapper2 wrapper $ \outerArgs innerArgs -> do
     GoldenTest {..} <- createGolden outerArgs innerArgs
     mGolden <- goldenTestRead
     case mGolden of

@@ -148,6 +148,47 @@ spec = do
                 SB.writeFile (fromAbsFile goldenFile) actual,
               goldenTestCompare = (==)
             }
+  doNotRandomiseExecutionOrder $
+    describe "Around" $ do
+      describe "before" $ do
+        before (() <$ throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
+      describe "before_" $ do
+        before_ (throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
+      describe "after" $ do
+        after (\_ -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
+      describe "after_" $ do
+        after_ (throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
+      describe "around" $ do
+        around (\_ -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
+      describe "around_" $ do
+        around_ (\_ -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
+      describe "aroundWith" $ do
+        aroundWith (\_ () -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
+      describe "aroundWith'" $ do
+        aroundWith' (\_ () () -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

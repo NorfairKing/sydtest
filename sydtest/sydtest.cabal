@@ -106,6 +106,8 @@ test-suite sydtest-test
       QuickCheck
     , base >=4.7 && <5
     , bytestring
+    , path
+    , path-io
     , rainbow
     , stm
     , sydtest

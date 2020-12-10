@@ -50,6 +50,8 @@ tests:
     dependencies:
     - QuickCheck
     - bytestring
+    - path
+    - path-io
     - rainbow
     - stm
     - sydtest

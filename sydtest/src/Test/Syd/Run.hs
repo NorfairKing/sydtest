@@ -231,7 +231,6 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
   let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
         Left e -> (TestFailed, Nothing, Just e)
         Right trip -> trip
-  -- TODO exception handling
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}

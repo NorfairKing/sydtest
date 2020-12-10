@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -164,13 +163,8 @@ getConfiguration Flags {..} Environment {..} =
       YamlParse.readConfigFile afp
 
 -- | Where to get the configuration file by default.
---
--- This uses the XDG base directory specifictation:
--- https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
 defaultConfigFile :: IO (Path Abs File)
-defaultConfigFile = do
-  xdgConfigDir <- getXdgDir XdgConfig (Just [reldir|optparse-template|])
-  resolveFile xdgConfigDir "config.yaml"
+defaultConfigFile = resolveFile' ".sydtest.yaml"
 
 -- | What we find in the configuration variable.
 --

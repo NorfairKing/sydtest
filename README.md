@@ -34,7 +34,7 @@ This project chooses best practices as defaults:
 | First-class support for property tests with QuickCheck                                    | ✔️       | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-quickcheck)      |
 | First-class support for property tests with Hedgehog                                      | 🚧      | [Lib](https://hackage.haskell.org/package/hspec-hedgehog)   | [Lib](https://hackage.haskell.org/package/tasty-hedgehog)        |
 | First-class support for property tests with Smallcheck                                    | 🚧      | [Lib](https://hackage.haskell.org/package/hspec-smallcheck) | [Lib](https://hackage.haskell.org/package/tasty-smallcheck)      |
-| First-class support for golden tests                                                      | 🚧      | [Lib](https://hackage.haskell.org/package/hspec-golden)     | [Lib](https://hackage.haskell.org/package/tasty-golden)          |
+| First-class support for golden tests                                                      | ✔️       | [Lib](https://hackage.haskell.org/package/hspec-golden)     | [Lib](https://hackage.haskell.org/package/tasty-golden)          |
 | Source location annotations for tests in test output                                      | ✔️       | ✔️                                                           | ✖️                                                                |
 | Test suite filtering to select which tests to run                                         | ✔️       | ✔️                                                           | ✔️                                                                |
 | Individual test execution timing                                                          | ✔️       | [Lib](http://hackage.haskell.org/package/hspec-slow)        | [Lib](https://hackage.haskell.org/package/tasty-stats)           |
@@ -127,6 +127,12 @@ spec = do
 ```
 
 This test will fail, but the test suite will continue to be executed.
+
+### Golden tests
+
+Golden tests are a core feature of Sydtest.
+Golden output is created automatically if none is found.
+You can use `--golden-reset` to reset golden tests if they fail.
 
 ### Parallel test execution
 

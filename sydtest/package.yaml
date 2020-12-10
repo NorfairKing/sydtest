@@ -65,5 +65,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - QuickCheck
+    - bytestring
+    - path
+    - path-io
+    - rainbow
     - sydtest
-

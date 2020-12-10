@@ -7,7 +7,12 @@ module Main where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import qualified Data.ByteString as SB
+import qualified Data.ByteString.Char8 as SB8
 import Data.List
+import Path
+import Path.IO
+import Rainbow
 import System.Exit
 import Test.QuickCheck
 import Test.Syd
@@ -41,7 +46,8 @@ spec = do
   describe "undefined" $ do
     it "Pure undefined" (pure undefined :: IO ())
     it "Impure undefined" (undefined :: IO ())
-  it "Exit code" $ exitWith $ ExitFailure 1
+  it "Exit code" $ do
+    exitWith $ ExitFailure 1 :: IO ()
   describe "exceptions" $ do
     it "Record construction error" (throw $ RecConError "test" :: IO ())
     exceptionTest "Record construction error" $ let c = Cons1 {} in field c
@@ -95,6 +101,53 @@ spec = do
     it "shouldSatisfy" $ (3 :: Int) `shouldSatisfy` even
     it "shouldNotSatisfy" $ (3 :: Int) `shouldNotSatisfy` odd
   pending "pending test"
+  describe "Golden" $ do
+    it "does not fail the suite when an exception happens while reading" $
+      GoldenTest
+        { goldenTestRead = die "test",
+          goldenTestProduce = pure (),
+          goldenTestWrite = \() -> do
+            pure (),
+          goldenTestCompare = (==)
+        }
+    it "does not fail the suite when an exception happens while producing" $
+      GoldenTest
+        { goldenTestRead = pure Nothing,
+          goldenTestProduce = die "test",
+          goldenTestWrite = \() -> do
+            pure (),
+          goldenTestCompare = (==)
+        }
+    it "does not fail the suite when an exception happens while writing" $
+      GoldenTest
+        { goldenTestRead = pure Nothing,
+          goldenTestProduce = pure (),
+          goldenTestWrite = \() -> die "test",
+          goldenTestCompare = (==)
+        }
+    it "does not fail the suite when an exception happens while checking for equality" $
+      GoldenTest
+        { goldenTestRead = pure (Just ()),
+          goldenTestProduce = pure (),
+          goldenTestWrite = \() -> pure (),
+          goldenTestCompare = \actual expected -> case 1 `div` (0 :: Int) of
+            1 -> False
+            _ -> actual == expected
+        }
+
+    describe "outputResultForest" $ do
+      it "outputs the same as last time" $ do
+        let goldenFileName = "test_resources/output.golden"
+        goldenFile <- resolveFile' goldenFileName :: IO (Path Abs File)
+        pure $
+          GoldenTest
+            { goldenTestRead = forgivingAbsence $ SB.readFile $ fromAbsFile goldenFile,
+              goldenTestProduce = pure $ SB8.intercalate (SB8.pack "\n") $ map SB.concat $ outputSpecForestByteString toByteStringsColors256 (Timed [] 0),
+              goldenTestWrite = \actual -> do
+                ensureDir $ parent goldenFile
+                SB.writeFile (fromAbsFile goldenFile) actual,
+              goldenTestCompare = (==)
+            }
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

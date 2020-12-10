@@ -207,7 +207,7 @@ runGoldenTestWithArg ::
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
 runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
-  (testRunResultStatus, testRunResultGoldenCase, testRunResultException) <- applyWrapper2 wrapper $ \outerArgs innerArgs -> do
+  errOrTrip <- applyWrapper2 wrapper $ \outerArgs innerArgs -> ((`catches` exceptionHandlers) . fmap Right) $ do
     GoldenTest {..} <- createGolden outerArgs innerArgs
     mGolden <- goldenTestRead
     case mGolden of
@@ -227,7 +227,10 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
               then do
                 goldenTestWrite actual
                 pure (TestPassed, Just GoldenReset, Nothing)
-              else pure $ (TestFailed, Nothing, Just $ Right $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow golden))
+              else pure (TestFailed, Nothing, Just $ Right $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow golden))
+  let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
+        Left e -> (TestFailed, Nothing, Just e)
+        Right trip -> trip
   -- TODO exception handling
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing

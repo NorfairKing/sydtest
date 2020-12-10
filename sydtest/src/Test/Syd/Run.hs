@@ -10,7 +10,9 @@
 -- | This module defines the 'IsTest' class and the different instances for it.
 module Test.Syd.Run where
 
-import Control.Exception hiding (Handler, catches, evaluate)
+import Control.Concurrent
+import Control.Exception
+import Control.Monad.IO.Class
 import Data.Typeable
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
@@ -19,7 +21,6 @@ import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
 import Text.Show.Pretty
-import UnliftIO
 
 class IsTest e where
   type Arg1 e
@@ -63,11 +64,10 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   pure TestRunResult {..}
 
 applyWrapper2 ::
-  forall r m outerArgs innerArg.
-  MonadUnliftIO m =>
-  ((outerArgs -> innerArg -> m ()) -> m ()) ->
-  (outerArgs -> innerArg -> m r) ->
-  m (Either (Either String Assertion) r)
+  forall r outerArgs innerArg.
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
+  (outerArgs -> innerArg -> IO r) ->
+  IO (Either (Either String Assertion) r)
 applyWrapper2 wrapper func = do
   var <- liftIO newEmptyMVar
   r <- (`catches` exceptionHandlers) $
@@ -236,7 +236,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
   let testRunResultNumShrinks = Nothing
   pure TestRunResult {..}
 
-exceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
+exceptionHandlers :: [Handler (Either (Either String Assertion) a)]
 exceptionHandlers =
   [ -- Re-throw AsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
     Handler (\e -> throw (e :: AsyncException)),

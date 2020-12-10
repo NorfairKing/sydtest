@@ -31,7 +31,6 @@ library:
     - safe
     - split
     - text
-    - unliftio
     - yaml
     - yamlparse-applicative
 

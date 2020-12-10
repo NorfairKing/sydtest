@@ -178,7 +178,7 @@ Any `IO ()` value is considered a test.
 spec :: Spec
 spec = 
   describe "main" $
-    it "it does not crash" $ (main :: IO ())
+    it "does not crash" $ (main :: IO ())
 ```
 
 ### First-class support for property tests with quickcheck

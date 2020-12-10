@@ -10,13 +10,13 @@
 
 module Test.Syd.Def.Around where
 
+import Control.Exception
 import Control.Monad.RWS.Strict
 import Test.QuickCheck.IO ()
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 import Test.Syd.Run
 import Test.Syd.SpecDef
-import UnliftIO
 
 -- | Run a custom action before every spec item, to set up an inner resource 'c'.
 before :: IO c -> TestDefM a c e -> TestDefM a () e

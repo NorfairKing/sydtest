@@ -8,6 +8,8 @@
 -- | This module defines how to run a test suite
 module Test.Syd.Runner.Synchronous where
 
+import Control.Exception
+import Control.Monad.IO.Class
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.Text as T
@@ -18,7 +20,6 @@ import Test.Syd.Run
 import Test.Syd.Runner.Wrappers
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
-import UnliftIO
 
 runSpecForestSynchronously :: Bool -> TestForest '[] () -> IO ResultForest
 runSpecForestSynchronously failFast = fmap extractNext . goForest HNil

@@ -7,10 +7,10 @@
 
 module Test.Syd.Runner.Wrappers where
 
-import Control.Monad.Reader
+import Control.Concurrent
+import Control.Monad.IO.Class
 import Test.Syd.Run
 import Test.Syd.SpecDef
-import UnliftIO
 
 data Next a = Continue a | Stop a
   deriving (Functor)

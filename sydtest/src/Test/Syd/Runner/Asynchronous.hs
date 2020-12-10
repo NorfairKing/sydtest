@@ -8,10 +8,13 @@
 -- | This module defines how to run a test suite
 module Test.Syd.Runner.Asynchronous where
 
-import Control.Concurrent.QSemN
+import Control.Concurrent
+import Control.Concurrent.Async
+import Control.Exception
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
+import Data.IORef
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as S
@@ -23,7 +26,6 @@ import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
-import UnliftIO
 
 runSpecForestAsynchronously :: Bool -> Int -> TestForest '[] () -> IO ResultForest
 runSpecForestAsynchronously failFast nbThreads testForest = do

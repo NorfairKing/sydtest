@@ -44,11 +44,11 @@ This project chooses best practices as defaults:
 | Colourless output                                                                         | 🚧      | ✔️                                                           | ✔️                                                                |
 | `ppShow` instead of `show` for counterexample output                                      | ✔️       | ✖️                                                           | ✖️                                                                |
 | `show` for counterexample output                                                          | 🚧      | ✔️                                                           | ✔️                                                                |
-| multi-line diffing                                                                        | ✔️       | ✖️                                                           | ✖️                                                                |
-| Coloured diffing                                                                          | ✔️       | ✔️                                                           | ✖️                                                                |
-| Assertion-specific output with explanation                                                | ✔️       | ✔️                                                           | ?                                                                |
 | Fancy Unicode output                                                                      | ✔️       | ✖️                                                           | ✖️                                                                |
 | Unicode-free output                                                                       | 🚧      | ✖️                                                           | ✔️                                                                |
+| Assertion-specific output with explanation                                                | ✔️       | ✔️                                                           | ?                                                                |
+| Coloured diffing                                                                          | ✔️       | ✔️                                                           | ✖️                                                                |
+| multi-line diffing                                                                        | ✔️       | ✖️                                                           | ✖️                                                                |
 | Inter-test progress output during test suite execution                                    | ✔️       | ✔️                                                           | ?                                                                |
 | Intra-test progress output during test suite execution                                    | 🚧      | ✔️                                                           | ?                                                                |
 | Optional standard output and standard error suppression [2]                               | ✖️       | ✖️                                                           | ✖️                                                                |
@@ -128,12 +128,6 @@ spec = do
 
 This test will fail, but the test suite will continue to be executed.
 
-### Golden tests
-
-Golden tests are a core feature of Sydtest.
-Golden output is created automatically if none is found.
-You can use `--golden-reset` to reset golden tests if they fail.
-
 ### Parallel test execution
 
 Tests are executed with as many threads as you have capabilities by default.
@@ -145,6 +139,69 @@ You can specify, as part of the test suite definition, whether tests in a given 
 You can use the `parallel` combinator to declare that tests may be run in parallel.
 You can use the and `sequential` combinator to declare that tests must be run sequentially.
 When using `sequential`, it is guaranteed that each test in the group will be the only one running during its execution.
+
+### Automatic test discovery
+
+The `sydtest-discover` tool can discover and consolidate your tests.
+
+In order to use it, give the `Spec.hs` entrypoint for your test suite the following contents:
+
+``` haskell
+{-# OPTIONS_GHC -F -pgmF sydtest-discover #-}
+```
+
+You can also only generate a top-level `spec :: Spec` and write the main function yourself like this:
+
+``` haskell
+{-# OPTIONS_GHC -F -pgmF sydtest-discover -optF --no-main #-}
+```
+
+### First-class support for pure tests
+
+Any `Bool` value is considered a test.
+
+```
+spec :: Spec
+spec = 
+  describe "True" $
+    it "is True" $ True
+```
+
+### First-class support for integration tests
+
+Any `IO ()` value is considered a test.
+
+```
+spec :: Spec
+spec = 
+  describe "main" $
+    it "it does not crash" $ (main :: IO ())
+```
+
+### First-class support for property tests with quickcheck
+
+Any `Property` value is considered a test.
+
+```
+spec :: Spec
+spec = 
+  describe "reverse" $
+    specify "reversing twice is the same as not reversing" $ 
+      property $ \ls ->
+        reverse (reverse ls) `shouldBe` ls
+```
+
+### First-class support for golden tests
+
+Golden tests are a core feature of Sydtest.
+Golden output is created automatically if none is found.
+You can use `--golden-reset` to reset golden tests if they fail.
+
+### Test suite filtering to select which tests to run
+
+Every test failure is annotated with a source location of the test code that produced it.
+
+![Source location](assets/source-location.png)
 
 ### Test Suite Filtering
 
@@ -165,6 +222,74 @@ Every test suite comes with a short summary that includes how long it took to ru
 
 ![Test suite execution timing](assets/suite-timing.png)
 
+### Coloured output
+
+The results report is nice and colourful.
+See the screenshots in this file.
+
+### Pretty show
+
+Output uses `ppShow` from the `pretty-show` instead of the regular `show` so that output looks nicer and uses multiple lines.
+
+![Pretty show](assets/pretty-show.png)
+
+### Fancy Unicode output
+
+Tests are annotated with a nice unicode checkmark.
+
+![Fancy Unicode output](assets/unicode.png)
+
+### Assertion-specific output
+
+The `Test.Syd.Expectation` module contains common assertions like `shouldBe` and `shouldSatisfy`.
+The `sydtest` framework knows about these and shows nice output when they fail.
+
+![Assertion-specific output](assets/specific-assertion.png)
+
+### Multi-line coloured diffing
+
+When two values are expected to be equal, the differences are shown in colour, across multiple lines, in linear time.
+
+![Multi-line coloured diffing](assets/coloured-diff.png)
+
+### Inter-test progress output during test suite execution
+
+The test suite report is printed bit by bit, after every test run.
+
+### The `before`, `after` and `around` combinators
+
+You can acquire resources for use, every time, around every test in a group, see the `Test.Syd.Def.Around` module for more details:
+
+``` haskell
+spec :: Spec
+spec = around withMyServer $ 
+  it "does not crash" $ \_ -> (pure () :: IO ())
+  it "returns 200 OK for the home" $ \cenv -> getHome cenv `shouldBe` 200
+
+withMyServer :: (ClientEnv -> IO ()) -> IO ()
+withMyServer = undefined
+
+getHome :: ClientEnv -> IO Int
+getHome = undefined
+```
+
+### The `beforeAll`, `afterAll` and `aroundAll` combinators
+
+You can acquire resources for use, once, around all tests in a group, see the `Test.Syd.Def.AroundAll` module for more details:
+
+``` haskell
+spec :: Spec
+spec = aroundAll withMyServer $ 
+  itWithOuter "does not crash" $ \_ -> (pure () :: IO ())
+  itWithOuter "returns 200 OK for the home" $ \cenv -> getHome cenv `shouldBe` 200
+
+withMyServer :: (ClientEnv -> IO ()) -> IO ()
+withMyServer = undefined
+
+getHome :: ClientEnv -> IO Int
+getHome = undefined
+```
+
 ### Randomised execution order
 
 The execution order of tests is randomised by default.
@@ -176,6 +301,12 @@ You can also turn this randomisation off globally using `--no-randomise-executio
 
 Randomisation happens at the test group level. The ordering of the tests within a test group is randomised and the ordering of test groups is randomised, but the ordering is not randomised _across_ test groups.
 This is because resource setups happen at the test group level, and we don't want multiple resource setups to happen concurrently if they were not meant to.
+
+
+### Deterministic randomness
+
+Property tests are executed with a fixed seed by default, to prevent flakiness.
+You can change the seed using the `--seed` option.
 
 
 ### Hiding process arguments from tests

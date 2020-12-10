@@ -163,7 +163,7 @@ You can also only generate a top-level `spec :: Spec` and write the main functio
 
 Any `Bool` value is considered a test.
 
-```
+``` haskell
 spec :: Spec
 spec = 
   describe "True" $
@@ -174,7 +174,7 @@ spec =
 
 Any `IO ()` value is considered a test.
 
-```
+``` haskell
 spec :: Spec
 spec = 
   describe "main" $
@@ -185,7 +185,7 @@ spec =
 
 Any `Property` value is considered a test.
 
-```
+``` haskell
 spec :: Spec
 spec = 
   describe "reverse" $
@@ -334,7 +334,7 @@ Try running your test suite with `--help` to see how that works.
 
 You can declare that some tests are still missing like so:
 
-```
+``` haskell
 spec :: Spec
 spec = do
   describe "myFunction" $ do

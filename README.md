@@ -5,16 +5,19 @@ An experimental testing framework for Haskell with good defaults and advanced te
 Sydtest aims to make the common easy and the hard possible.
 
 
-## The devil is in the defaults
+## In short
+
+### The devil is in the defaults
 
 This project chooses best practices as defaults:
 
 - A fixed seed for deterministic randomness
 - Pretty show for output
+- Multi-line coloured diffs
 - Bounded shrinking
 - Randomised test suite execution order
 
-## Advanced testing features
+### Advanced testing features
 
 - Multi-line coloured diff for equality assertion failures
 - Wrap a test group to use a `withResource`-like function (`aroundAll`)

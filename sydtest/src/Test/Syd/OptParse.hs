@@ -45,6 +45,10 @@ data Settings = Settings
     settingMaxDiscard :: !Int,
     -- | The maximum number of tries to use while shrinking a counterexample.
     settingMaxShrinks :: !Int,
+    -- | Whether to write golden tests if they do not exist yet
+    settingGoldenStart :: !Bool,
+    -- | Whether to overwrite golden tests instead of having them fail
+    settingGoldenReset :: !Bool,
     -- | The filter to use to select which tests to run
     settingFilter :: !(Maybe Text),
     -- | Whether to stop upon the first test failure
@@ -63,6 +67,8 @@ defaultSettings =
           settingMaxSize = d testRunSettingMaxSize,
           settingMaxDiscard = d testRunSettingMaxDiscardRatio,
           settingMaxShrinks = d testRunSettingMaxShrinks,
+          settingGoldenStart = d testRunSettingGoldenStart,
+          settingGoldenReset = d testRunSettingGoldenReset,
           settingFilter = Nothing,
           settingFailFast = False
         }
@@ -89,6 +95,8 @@ combineToSettings Flags {..} Environment {..} mConf = do
         settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
         settingMaxDiscard = fromMaybe (d settingMaxDiscard) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
         settingMaxShrinks = fromMaybe (d settingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks,
+        settingGoldenStart = fromMaybe (d settingGoldenStart) $ flagGoldenStart <|> envGoldenStart <|> mc configGoldenStart,
+        settingGoldenReset = fromMaybe (d settingGoldenReset) $ flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
         settingFilter = flagFilter <|> envFilter <|> mc configFilter,
         settingFailFast = fromMaybe (d settingFailFast) $ flagFailFast <|> envFailFast <|> mc configFailFast
       }
@@ -110,6 +118,8 @@ data Configuration = Configuration
     configMaxSuccess :: !(Maybe Int),
     configMaxDiscard :: !(Maybe Int),
     configMaxShrinks :: !(Maybe Int),
+    configGoldenStart :: !(Maybe Bool),
+    configGoldenReset :: !(Maybe Bool),
     configFilter :: !(Maybe Text),
     configFailFast :: !(Maybe Bool)
   }
@@ -130,6 +140,8 @@ instance YamlSchema Configuration where
         <*> optionalField "max-size" "Maximum size parameter to pass to generators"
         <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
+        <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet"
+        <*> optionalField "golden-reset" "Whether to overwrite golden tests instead of having them fail"
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
 
@@ -173,6 +185,8 @@ data Environment = Environment
     envMaxSuccess :: !(Maybe Int),
     envMaxDiscard :: !(Maybe Int),
     envMaxShrinks :: !(Maybe Int),
+    envGoldenStart :: !(Maybe Bool),
+    envGoldenReset :: !(Maybe Bool),
     envFilter :: !(Maybe Text),
     envFailFast :: !(Maybe Bool)
   }
@@ -194,6 +208,8 @@ environmentParser =
         <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
         <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
         <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
+        <*> Env.var (fmap Just . Env.auto) "GOLDEN_START" (mE <> Env.help "Whether to write golden tests if they do not exist yet")
+        <*> Env.var (fmap Just . Env.auto) "GOLDEN_RESET" (mE <> Env.help "Whether to overwrite golden tests instead of having them fail")
         <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (mE <> Env.help "Whether to stop executing upon the first test failure")
   where
@@ -241,6 +257,8 @@ data Flags = Flags
     flagMaxSize :: !(Maybe Int),
     flagMaxDiscard :: !(Maybe Int),
     flagMaxShrinks :: !(Maybe Int),
+    flagGoldenStart :: !(Maybe Bool),
+    flagGoldenReset :: !(Maybe Bool),
     flagFilter :: !(Maybe Text),
     flagFailFast :: !(Maybe Bool)
   }
@@ -318,6 +336,26 @@ parseFlags =
           ( mconcat
               [ long "max-shrinks",
                 help "Maximum number of shrinks of a failing test input"
+              ]
+          )
+      )
+    <*> optional
+      ( flag
+          True
+          False
+          ( mconcat
+              [ long "no-golden-start",
+                help "Whether to write golden tests if they do not exist yet"
+              ]
+          )
+      )
+    <*> optional
+      ( flag
+          False
+          True
+          ( mconcat
+              [ long "golden-reset",
+                help "Whether to overwrite golden tests instead of having them fail"
               ]
           )
       )

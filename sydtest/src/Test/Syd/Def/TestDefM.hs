@@ -71,7 +71,9 @@ toTestRunSettings Settings {..} =
       testRunSettingMaxSuccess = settingMaxSuccess,
       testRunSettingMaxSize = settingMaxSize,
       testRunSettingMaxDiscardRatio = settingMaxDiscard,
-      testRunSettingMaxShrinks = settingMaxShrinks
+      testRunSettingMaxShrinks = settingMaxShrinks,
+      testRunSettingGoldenStart = settingGoldenStart,
+      testRunSettingGoldenReset = settingGoldenReset
     }
 
 filterTestForest :: Maybe Text -> SpecDefForest a b c -> SpecDefForest a b c

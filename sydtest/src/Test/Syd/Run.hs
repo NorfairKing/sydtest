@@ -18,6 +18,7 @@ import GHC.Generics (Generic)
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
+import Text.Show.Pretty
 import UnliftIO
 
 class IsTest e where
@@ -59,6 +60,7 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
   let testRunResultNumShrinks = Nothing
+  let testRunResultGoldenCase = Nothing
   pure TestRunResult {..}
 
 applyWrapper2 ::
@@ -73,23 +75,23 @@ applyWrapper2 wrapper func = do
     liftIO $ putMVar var res
   liftIO $ readMVar var
 
-instance IsTest (IO a) where
-  type Arg1 (IO a) = ()
-  type Arg2 (IO a) = ()
+instance IsTest (IO ()) where
+  type Arg1 (IO ()) = ()
+  type Arg2 (IO ()) = ()
   runTest func = runTest (\() () -> func)
 
-instance IsTest (arg -> IO a) where
-  type Arg1 (arg -> IO a) = ()
-  type Arg2 (arg -> IO a) = arg
+instance IsTest (arg -> IO ()) where
+  type Arg1 (arg -> IO ()) = ()
+  type Arg2 (arg -> IO ()) = arg
   runTest func = runTest (\() -> func)
 
-instance IsTest (outerArgs -> innerArg -> IO a) where
-  type Arg1 (outerArgs -> innerArg -> IO a) = outerArgs
-  type Arg2 (outerArgs -> innerArg -> IO a) = innerArg
+instance IsTest (outerArgs -> innerArg -> IO ()) where
+  type Arg1 (outerArgs -> innerArg -> IO ()) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> IO ()) = innerArg
   runTest = runIOTestWithArg
 
 runIOTestWithArg ::
-  (outerArgs -> innerArg -> IO a) ->
+  (outerArgs -> innerArg -> IO ()) ->
   TestRunSettings ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
@@ -100,12 +102,13 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
       applyWrapper2 wrapper $
         \outerArgs innerArg -> do
           result <-
-            (liftIO (() <$ func outerArgs innerArg) >>= (evaluate . (`seq` Right TestPassed)))
+            (liftIO (func outerArgs innerArg) >>= (evaluate . (`seq` Right TestPassed)))
               `catches` exceptionHandlers
           evaluate $ case result of
             Left ex -> (TestFailed, Just ex)
             Right r -> (r, Nothing)
   let testRunResultNumShrinks = Nothing
+  let testRunResultGoldenCase = Nothing
   pure TestRunResult {..}
 
 instance IsTest Property where
@@ -138,27 +141,97 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
             maxSize = testRunSettingMaxSize,
             maxShrinks = testRunSettingMaxShrinks
           }
-  liftIO $ do
-    result <-
-      applyWrapper2 wrapper $ \outerArgs innerArg -> do
-        liftIO $ quickCheckWithResult args (p outerArgs innerArg)
-    let testRunResultStatus = case result of
-          Success {} -> TestPassed
-          GaveUp {} -> TestFailed
-          Failure {} -> TestFailed
-          NoExpectedFailure {} -> TestFailed
-    let testRunResultNumTests = Just $ fromIntegral $ numTests result
-    let testRunResultNumShrinks = case result of
-          Failure {} -> Just $ fromIntegral $ numShrinks result
-          _ -> Nothing
-    let testRunResultException = case result of
-          Failure {} -> do
-            se <- theException result
-            pure $ case fromException se of
-              Just a -> Right a
-              Nothing -> Left $ displayException se
-          _ -> Nothing
-    pure TestRunResult {..}
+  result <-
+    applyWrapper2 wrapper $ \outerArgs innerArg -> do
+      quickCheckWithResult args (p outerArgs innerArg)
+  let testRunResultStatus = case result of
+        Success {} -> TestPassed
+        GaveUp {} -> TestFailed
+        Failure {} -> TestFailed
+        NoExpectedFailure {} -> TestFailed
+  let testRunResultNumTests = Just $ fromIntegral $ numTests result
+  let testRunResultNumShrinks = case result of
+        Failure {} -> Just $ fromIntegral $ numShrinks result
+        _ -> Nothing
+  let testRunResultGoldenCase = Nothing
+  let testRunResultException = case result of
+        Failure {} -> do
+          se <- theException result
+          pure $ case fromException se of
+            Just a -> Right a
+            Nothing -> Left $ displayException se
+        _ -> Nothing
+  pure TestRunResult {..}
+
+data GoldenTest a = GoldenTest
+  { goldenTestRead :: IO (Maybe a),
+    goldenTestProduce :: IO a,
+    goldenTestWrite :: a -> IO (),
+    goldenTestCompare :: a -> a -> Bool
+  }
+
+instance Show a => IsTest (GoldenTest a) where
+  type Arg1 (GoldenTest a) = ()
+  type Arg2 (GoldenTest a) = ()
+  runTest gt = runTest (\() () -> gt)
+
+instance Show a => IsTest (arg -> GoldenTest a) where
+  type Arg1 (arg -> GoldenTest a) = ()
+  type Arg2 (arg -> GoldenTest a) = arg
+  runTest gt = runTest (\() -> gt)
+
+instance Show a => IsTest (outerArgs -> innerArg -> GoldenTest a) where
+  type Arg1 (outerArgs -> innerArg -> GoldenTest a) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> GoldenTest a) = innerArg
+  runTest func = runTest (\outerArgs innerArg -> pure (func outerArgs innerArg) :: IO (GoldenTest a))
+
+instance Show a => IsTest (IO (GoldenTest a)) where
+  type Arg1 (IO (GoldenTest a)) = ()
+  type Arg2 (IO (GoldenTest a)) = ()
+  runTest func = runTest (\() () -> func)
+
+instance Show a => IsTest (arg -> IO (GoldenTest a)) where
+  type Arg1 (arg -> IO (GoldenTest a)) = ()
+  type Arg2 (arg -> IO (GoldenTest a)) = arg
+  runTest func = runTest (\() -> func)
+
+instance Show a => IsTest (outerArgs -> innerArg -> IO (GoldenTest a)) where
+  type Arg1 (outerArgs -> innerArg -> IO (GoldenTest a)) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> IO (GoldenTest a)) = innerArg
+  runTest = runGoldenTestWithArg
+
+runGoldenTestWithArg ::
+  Show a =>
+  (outerArgs -> innerArg -> IO (GoldenTest a)) ->
+  TestRunSettings ->
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
+  IO TestRunResult
+runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
+  (testRunResultStatus, testRunResultGoldenCase, testRunResultException) <- applyWrapper2 wrapper $ \outerArgs innerArgs -> do
+    GoldenTest {..} <- createGolden outerArgs innerArgs
+    mGolden <- goldenTestRead
+    case mGolden of
+      Nothing ->
+        if testRunSettingGoldenStart
+          then do
+            actual <- goldenTestProduce
+            goldenTestWrite actual
+            pure (TestPassed, Just GoldenStarted, Nothing)
+          else pure (TestFailed, Just GoldenNotFound, Nothing)
+      Just golden -> do
+        actual <- goldenTestProduce
+        if goldenTestCompare actual golden
+          then pure (TestPassed, Nothing, Nothing)
+          else
+            if testRunSettingGoldenReset
+              then do
+                goldenTestWrite actual
+                pure (TestPassed, Just GoldenReset, Nothing)
+              else pure $ (TestFailed, Nothing, Just $ Right $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow golden))
+  -- TODO exception handling
+  let testRunResultNumTests = Nothing
+  let testRunResultNumShrinks = Nothing
+  pure TestRunResult {..}
 
 exceptionHandlers :: MonadUnliftIO m => [Handler m (Either (Either String Assertion) a)]
 exceptionHandlers =
@@ -177,7 +250,9 @@ data TestRunSettings = TestRunSettings
     testRunSettingMaxSuccess :: Int,
     testRunSettingMaxSize :: Int,
     testRunSettingMaxDiscardRatio :: Int,
-    testRunSettingMaxShrinks :: Int
+    testRunSettingMaxShrinks :: Int,
+    testRunSettingGoldenStart :: Bool,
+    testRunSettingGoldenReset :: Bool
   }
   deriving (Show, Generic)
 
@@ -188,14 +263,17 @@ defaultTestRunSettings =
       testRunSettingMaxSuccess = maxSuccess stdArgs,
       testRunSettingMaxSize = maxSize stdArgs,
       testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,
-      testRunSettingMaxShrinks = 100 -- This is different from what quickcheck does so that test suites are more likely to finish
+      testRunSettingMaxShrinks = 100, -- This is different from what quickcheck does so that test suites are more likely to finish
+      testRunSettingGoldenStart = True,
+      testRunSettingGoldenReset = False
     }
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,
     testRunResultException :: !(Maybe (Either String Assertion)),
     testRunResultNumTests :: !(Maybe Word),
-    testRunResultNumShrinks :: !(Maybe Word)
+    testRunResultNumShrinks :: !(Maybe Word),
+    testRunResultGoldenCase :: !(Maybe GoldenCase)
   }
   deriving (Show, Eq, Generic)
 
@@ -210,6 +288,12 @@ data Assertion
   deriving (Show, Eq, Typeable, Generic)
 
 instance Exception Assertion
+
+data GoldenCase
+  = GoldenNotFound
+  | GoldenStarted
+  | GoldenReset
+  deriving (Show, Eq, Typeable, Generic)
 
 -- | Time an action and return the result as well as how long it took in seconds.
 --

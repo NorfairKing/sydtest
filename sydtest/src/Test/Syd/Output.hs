@@ -124,18 +124,23 @@ outputSpecifyLines level treeWidth specifyText (TestDef (Timed TestRunResult {..
             | otherwise -> fore red
 
       withStatusColour = fore (statusColour testRunResultStatus)
+      pad = (chunk (T.pack (replicate paddingSize ' ')) :)
    in filter
         (not . null)
-        [ [ withStatusColour $ chunk (statusCheckMark testRunResultStatus),
-            withStatusColour $ chunk specifyText,
-            spacingChunk level specifyText executionTimeText treeWidth,
-            withTimingColour $ chunk executionTimeText
-          ],
-          [ chunk (T.pack (printf "  (passed for all of %d inputs)" w))
-            | testRunResultStatus == TestPassed,
-              w <- maybeToList testRunResultNumTests
+        $ concat
+          [ [ [ withStatusColour $ chunk (statusCheckMark testRunResultStatus),
+                withStatusColour $ chunk specifyText,
+                spacingChunk level specifyText executionTimeText treeWidth,
+                withTimingColour $ chunk executionTimeText
+              ]
+            ],
+            [ pad
+                [chunk (T.pack (printf "  (passed for all of %d inputs)" w))]
+              | testRunResultStatus == TestPassed,
+                w <- maybeToList testRunResultNumTests
+            ],
+            [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
           ]
-        ]
 
 outputPendingLines :: Text -> Maybe Text -> [[Chunk]]
 outputPendingLines specifyText mReason =
@@ -146,6 +151,12 @@ outputPendingLines specifyText mReason =
         Nothing -> []
         Just reason -> [padding, chunk reason]
     ]
+
+outputGoldenCase :: GoldenCase -> [Chunk]
+outputGoldenCase = \case
+  GoldenNotFound -> [fore red $ chunk "Golden output not found"]
+  GoldenStarted -> [fore cyan $ chunk "Golden output created"]
+  GoldenReset -> [fore cyan $ chunk "Golden output reset"]
 
 -- The chunk for spacing between the description and the timing
 --
@@ -171,7 +182,8 @@ outputFailures rf =
   let failures = filter testFailed $ flattenSpecForest rf
       nbDigitsInFailureCount :: Int
       nbDigitsInFailureCount = ceiling (logBase 10 (genericLength failures) :: Double)
-      pad = (chunk (T.replicate (nbDigitsInFailureCount + 3) " ") :)
+      pad = (chunk (T.pack (replicate (nbDigitsInFailureCount + 3) ' ')) :)
+      padFailureDetails = (chunk (T.pack (replicate (1 + nbDigitsInFailureCount + 3) ' ')) :)
    in map (padding :) $
         filter (not . null) $
           concat $
@@ -203,16 +215,18 @@ outputFailures rf =
                       (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
                       (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
                       (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
-                  map pad $ case testRunResultException of
-                    Nothing -> []
-                    Just (Left s) ->
-                      let ls = lines s
-                       in map ((: []) . chunk . T.pack) ls
-                    Just (Right a) -> case a of
-                      NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
-                      EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
-                      PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
-                      PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual,
+                  map pad $
+                    case testRunResultException of
+                      Nothing -> []
+                      Just (Left s) ->
+                        let ls = lines s
+                         in map ((: []) . chunk . T.pack) ls
+                      Just (Right a) -> case a of
+                        NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
+                        EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
+                        PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
+                        PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual,
+                  [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
                   [[chunk ""]]
                 ]
 

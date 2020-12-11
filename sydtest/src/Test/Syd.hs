@@ -34,6 +34,10 @@ module Test.Syd
     goldenByteStringFile,
     pureGoldenTextFile,
     goldenTextFile,
+    pureGoldenStringFile,
+    goldenStringFile,
+    goldenShowInstance,
+    goldenPrettyShowInstance,
 
     -- ** Declaring test dependencies
 

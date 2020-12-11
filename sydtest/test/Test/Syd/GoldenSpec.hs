@@ -14,3 +14,5 @@ spec = do
       pureGoldenByteStringFile
         "test_resources/output.golden"
         (SB8.intercalate "\n" $ map SB.concat $ outputSpecForestByteString toByteStringsColors256 (Timed [] 0))
+  describe "defaultSettings" $ do
+    it "is the same thing as last time" $ goldenPrettyShowInstance "test_resources/defaultSettings-show.golden" defaultSettings

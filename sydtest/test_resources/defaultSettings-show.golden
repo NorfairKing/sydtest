@@ -1,0 +1,14 @@
+Settings
+  { settingSeed = 42
+  , settingRandomiseExecutionOrder = True
+  , settingThreads = ByCapabilities
+  , settingMaxSuccess = 100
+  , settingMaxSize = 100
+  , settingMaxDiscard = 10
+  , settingMaxShrinks = 100
+  , settingGoldenStart = True
+  , settingGoldenReset = False
+  , settingColour = Nothing
+  , settingFilter = Nothing
+  , settingFailFast = False
+  }

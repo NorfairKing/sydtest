@@ -1,12 +1,12 @@
+{ pkgsf ? import (import ./nixpkgs.nix { }) }:
 let
-  pkgsv = import (import ./nixpkgs.nix);
-  pkgs = pkgsv { };
+  pkgs = pkgsf { };
   yamlparse-applicative-overlay =
     import (
       pkgs.fetchFromGitHub (import ./yamlparse-applicative-version.nix) + "/nix/overlay.nix"
     );
   sydtestPkgs =
-    pkgsv {
+    pkgsf {
       overlays =
         [
           yamlparse-applicative-overlay

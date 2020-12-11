@@ -26,9 +26,9 @@ sydTestResult sets spec = do
   specForest <- execTestDefM sets spec
   withArgs [] $ do
     case settingThreads sets of
-      Synchronous -> runSpecForestInterleavedWithOutputSynchronously (settingFailFast sets) specForest
+      Synchronous -> runSpecForestInterleavedWithOutputSynchronously (settingColour sets) (settingFailFast sets) specForest
       ByCapabilities -> do
         i <- getNumCapabilities
-        runSpecForestInterleavedWithOutputAsynchronously (settingFailFast sets) i specForest
+        runSpecForestInterleavedWithOutputAsynchronously (settingColour sets) (settingFailFast sets) i specForest
       Asynchronous i ->
-        runSpecForestInterleavedWithOutputAsynchronously (settingFailFast sets) i specForest
+        runSpecForestInterleavedWithOutputAsynchronously (settingColour sets) (settingFailFast sets) i specForest

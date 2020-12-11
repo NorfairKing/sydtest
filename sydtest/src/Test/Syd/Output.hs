@@ -27,9 +27,12 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Printf
 
-printOutputSpecForest :: Timed ResultForest -> IO ()
-printOutputSpecForest results = do
-  byteStringMaker <- byteStringMakerFromEnvironment
+printOutputSpecForest :: Maybe Bool -> Timed ResultForest -> IO ()
+printOutputSpecForest mColour results = do
+  byteStringMaker <- case mColour of
+    Just False -> pure toByteStringsColors0
+    Just True -> pure toByteStringsColors256
+    Nothing -> liftIO byteStringMakerFromEnvironment
   let bytestrings = outputSpecForestByteString byteStringMaker results
   forM_ bytestrings $ \bs -> do
     mapM_ SB.putStr bs

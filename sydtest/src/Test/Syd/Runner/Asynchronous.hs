@@ -36,12 +36,12 @@ runSpecForestAsynchronously failFast nbThreads testForest = do
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-runSpecForestInterleavedWithOutputAsynchronously :: Bool -> Int -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputAsynchronously failFast nbThreads testForest = do
+runSpecForestInterleavedWithOutputAsynchronously :: Maybe Bool -> Bool -> Int -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputAsynchronously mColour failFast nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
   let runRunner = runner failFast nbThreads failFastVar handleForest
-      runPrinter = liftIO $ printer failFastVar handleForest
+      runPrinter = liftIO $ printer mColour failFastVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
@@ -110,9 +110,12 @@ runner failFast nbThreads failFastVar handleForest = do
         DefRandomisationNode _ sdf -> goForest p a sdf
   goForest Parallel HNil handleForest
 
-printer :: MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
-printer failFastVar handleForest = do
-  byteStringMaker <- liftIO byteStringMakerFromEnvironment
+printer :: Maybe Bool -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
+printer mColour failFastVar handleForest = do
+  byteStringMaker <- case mColour of
+    Just False -> pure toByteStringsColors0
+    Just True -> pure toByteStringsColors256
+    Nothing -> liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = do
         let bss = chunksToByteStrings byteStringMaker lineChunks

@@ -59,9 +59,12 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
       DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest l sdf -- Ignore, it's synchronous anyway
       DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest l sdf
 
-runSpecForestInterleavedWithOutputSynchronously :: Bool -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputSynchronously failFast testForest = do
-  byteStringMaker <- liftIO byteStringMakerFromEnvironment
+runSpecForestInterleavedWithOutputSynchronously :: Maybe Bool -> Bool -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputSynchronously mColour failFast testForest = do
+  byteStringMaker <- case mColour of
+    Just False -> pure toByteStringsColors0
+    Just True -> pure toByteStringsColors256
+    Nothing -> liftIO byteStringMakerFromEnvironment
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = do
         let bss = chunksToByteStrings byteStringMaker lineChunks

@@ -44,7 +44,7 @@ This project chooses best practices as defaults:
 | Test suite execution timing                                                               | ✔️       | ✔️                                                           | ✖️                                                                |
 | Helpful output to find slow tests                                                         | ✔️       | [Lib](http://hackage.haskell.org/package/hspec-slow)        | C
 | Coloured output                                                                           | ✔️       | ✔️                                                           | ✔️                                                                |
-| Colourless output                                                                         | 🚧      | ✔️                                                           | ✔️                                                                |
+| Colourless output                                                                         | ✔️       | ✔️                                                           | ✔️                                                                |
 | `ppShow` instead of `show` for counterexample output                                      | ✔️       | ✖️                                                           | ✖️                                                                |
 | `show` for counterexample output                                                          | 🚧      | ✔️                                                           | ✔️                                                                |
 | Fancy Unicode output                                                                      | ✔️       | ✖️                                                           | ✖️                                                                |
@@ -229,6 +229,7 @@ Every test suite comes with a short summary that includes how long it took to ru
 
 The results report is nice and colourful.
 See the screenshots in this file.
+You can use `--no-colour` to turn off colours.
 
 ### Pretty show
 

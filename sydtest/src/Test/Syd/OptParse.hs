@@ -48,6 +48,8 @@ data Settings = Settings
     settingGoldenStart :: !Bool,
     -- | Whether to overwrite golden tests instead of having them fail
     settingGoldenReset :: !Bool,
+    -- | Whether to use colour in the output
+    settingColour :: !(Maybe Bool),
     -- | The filter to use to select which tests to run
     settingFilter :: !(Maybe Text),
     -- | Whether to stop upon the first test failure
@@ -68,6 +70,7 @@ defaultSettings =
           settingMaxShrinks = d testRunSettingMaxShrinks,
           settingGoldenStart = d testRunSettingGoldenStart,
           settingGoldenReset = d testRunSettingGoldenReset,
+          settingColour = Nothing,
           settingFilter = Nothing,
           settingFailFast = False
         }
@@ -96,6 +99,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
         settingMaxShrinks = fromMaybe (d settingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks,
         settingGoldenStart = fromMaybe (d settingGoldenStart) $ flagGoldenStart <|> envGoldenStart <|> mc configGoldenStart,
         settingGoldenReset = fromMaybe (d settingGoldenReset) $ flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
+        settingColour = flagColour <|> envColour <|> mc configColour,
         settingFilter = flagFilter <|> envFilter <|> mc configFilter,
         settingFailFast = fromMaybe (d settingFailFast) $ flagFailFast <|> envFailFast <|> mc configFailFast
       }
@@ -119,6 +123,7 @@ data Configuration = Configuration
     configMaxShrinks :: !(Maybe Int),
     configGoldenStart :: !(Maybe Bool),
     configGoldenReset :: !(Maybe Bool),
+    configColour :: !(Maybe Bool),
     configFilter :: !(Maybe Text),
     configFailFast :: !(Maybe Bool)
   }
@@ -141,6 +146,7 @@ instance YamlSchema Configuration where
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
         <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet"
         <*> optionalField "golden-reset" "Whether to overwrite golden tests instead of having them fail"
+        <*> optionalField "colour" "Whether to use coloured output"
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
 
@@ -181,6 +187,7 @@ data Environment = Environment
     envMaxShrinks :: !(Maybe Int),
     envGoldenStart :: !(Maybe Bool),
     envGoldenReset :: !(Maybe Bool),
+    envColour :: !(Maybe Bool),
     envFilter :: !(Maybe Text),
     envFailFast :: !(Maybe Bool)
   }
@@ -204,6 +211,7 @@ environmentParser =
         <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
         <*> Env.var (fmap Just . Env.auto) "GOLDEN_START" (mE <> Env.help "Whether to write golden tests if they do not exist yet")
         <*> Env.var (fmap Just . Env.auto) "GOLDEN_RESET" (mE <> Env.help "Whether to overwrite golden tests instead of having them fail")
+        <*> Env.var (fmap Just . Env.auto) "COLOUR" (mE <> Env.help "Whether to use coloured output")
         <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (mE <> Env.help "Whether to stop executing upon the first test failure")
   where
@@ -253,6 +261,7 @@ data Flags = Flags
     flagMaxShrinks :: !(Maybe Int),
     flagGoldenStart :: !(Maybe Bool),
     flagGoldenReset :: !(Maybe Bool),
+    flagColour :: !(Maybe Bool),
     flagFilter :: !(Maybe Text),
     flagFailFast :: !(Maybe Bool)
   }
@@ -352,6 +361,10 @@ parseFlags =
                 help "Whether to overwrite golden tests instead of having them fail"
               ]
           )
+      )
+    <*> optional
+      ( flag' True (mconcat [long "colour", long "color", help "Always use colour in output"])
+          <|> flag' False (mconcat [long "no-colour", long "no-color", help "Never use colour in output"])
       )
     <*> optional
       ( strOption

@@ -90,6 +90,40 @@ Please let me know if I made a mistake anywhere, and feel free to fill in the qu
 * [2]: It turns out that this is surprisingly difficult, due to [forkProcess' interaction with `MVar`s](https://www.reddit.com/r/haskell/comments/jsap9r/how_dangerous_is_forkprocess/) but I'm still looking for a way to make it happen. The answer may lie in [the way `weigh` does it](https://github.com/fpco/weigh/blob/bfcf4415144d7d2817dfcb91b6f9a6dfd7236de7/src/Weigh.hs#L373)
 
 
+## Migrating from `hspec`
+
+Migrating from `hspec` to `sydtest` has been made relatively easy.
+In most cases, the following should suffice:
+
+```
+sed 's/Test.Hspec/Test.Syd/g' -i test/*.hs
+```
+
+If you are using `hspec-discover`, the following change is to be made in your test entrypoint:
+
+``` diff
+-{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
++{-# OPTIONS_GHC -F -pgmF sydtest-discover #-}
+```
+
+### Pending tests
+
+Pending tests are only a little less easy to migrate.
+
+`hspec`:
+``` haskell
+it "works" pending
+```
+
+`sydtest`:
+``` haskell
+pending "works"
+```
+
+### `beforeAll` and `afterAll`
+
+The `*All` resource functions from hspec will still work, but inside them you will need to use `itWithOuter` instead of `it.
+
 ## Features in detail
 
 ### Declarative test definition

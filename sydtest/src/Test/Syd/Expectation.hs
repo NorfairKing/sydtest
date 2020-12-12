@@ -23,16 +23,20 @@ shouldNotBe actual expected = unless (actual /= expected) $ throwIO $ EqualButSh
 infix 1 `shouldNotBe`
 
 -- | Assert that a value satisfies the given predicate.
-shouldSatisfy :: (HasCallStack, Show a, Eq a) => a -> (a -> Bool) -> IO ()
+shouldSatisfy :: (HasCallStack, Show a) => a -> (a -> Bool) -> IO ()
 shouldSatisfy actual p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual)
 
 infix 1 `shouldSatisfy`
 
 -- | Assert that a value does not satisfy the given predicate.
-shouldNotSatisfy :: (HasCallStack, Show a, Eq a) => a -> (a -> Bool) -> IO ()
+shouldNotSatisfy :: (HasCallStack, Show a) => a -> (a -> Bool) -> IO ()
 shouldNotSatisfy actual p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual)
 
 infix 1 `shouldNotSatisfy`
 
+-- | Make a test fail
 expectationFailure :: String -> IO ()
 expectationFailure = throwIO . ExpectationFailed
+
+-- | For easy hspec migration
+type Expectation = IO ()

@@ -10,9 +10,7 @@ with final.haskell.lib;
           addBuildDepend
             (
               failOnAllWarnings (
-                disableLibraryProfiling (
-                  final.haskellPackages.callCabal2nixWithOptions name (final.gitignoreSource (../. + "/${name}")) "--no-hpack" { }
-                )
+                final.haskellPackages.callCabal2nixWithOptions name (final.gitignoreSource (../. + "/${name}")) "--no-hpack" { }
               )
             )
             (final.haskellPackages.autoexporter)

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -84,11 +85,21 @@ isHiddenIn curdir ad =
     Nothing -> False
     Just rp -> "." `isPrefixOf` toFilePath rp
 
+#if MIN_VERSION_path(0,7,0)
 isHaskellFile :: Path Rel File -> Bool
-isHaskellFile p = case fileExtension p of
-  Just ".hs" -> True
-  Just ".lhs" -> True
-  _ -> False
+isHaskellFile p =
+  case fileExtension p of
+    Just ".hs" -> True
+    Just ".lhs" -> True
+    _ -> False
+#else
+isHaskellFile :: Path Rel File -> Bool
+isHaskellFile p =
+  case fileExtension p of
+    ".hs" -> True
+    ".lhs" -> True
+    _ -> False
+#endif
 
 data SpecModule = SpecModule
   { specModulePath :: Path Rel File,

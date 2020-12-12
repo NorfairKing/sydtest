@@ -288,6 +288,7 @@ data Assertion
   | EqualButShouldNotHaveBeenEqual String String
   | PredicateSucceededButShouldHaveFailed String
   | PredicateFailedButShouldHaveSucceeded String
+  | ExpectationFailed String
   deriving (Show, Eq, Typeable, Generic)
 
 instance Exception Assertion

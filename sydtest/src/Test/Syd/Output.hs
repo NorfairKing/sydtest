@@ -228,7 +228,8 @@ outputFailures rf =
                         NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
                         EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
                         PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
-                        PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual,
+                        PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual
+                        ExpectationFailed e -> [[chunk $ T.pack e]],
                   [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
                   [[chunk ""]]
                 ]

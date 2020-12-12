@@ -12,6 +12,7 @@ module Test.Syd.Def.Around where
 
 import Control.Exception
 import Control.Monad.RWS.Strict
+import Data.Kind
 import Test.QuickCheck.IO ()
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
@@ -89,7 +90,7 @@ aroundWith func =
         func (\c -> takeAC a c) d
 
 -- | Run a custom action before and/or after every spec item, to provide access to an inner resource 'c' while using the inner resource 'd' and any outer resource available.
-aroundWith' :: forall a c d r (u :: [*]). HContains u a => ((a -> c -> IO ()) -> (a -> d -> IO ())) -> TestDefM u c r -> TestDefM u d r
+aroundWith' :: forall a c d r (u :: [Type]). HContains u a => ((a -> c -> IO ()) -> (a -> d -> IO ())) -> TestDefM u c r -> TestDefM u d r
 aroundWith' func (TestDefM rwst) = TestDefM $
   flip mapRWST rwst $ \inner -> do
     (res, s, forest) <- inner

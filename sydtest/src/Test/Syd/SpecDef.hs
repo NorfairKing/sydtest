@@ -15,6 +15,7 @@
 -- | This module defines all the functions you will use to define your test suite.
 module Test.Syd.SpecDef where
 
+import Data.Kind
 import Data.Text (Text)
 import GHC.Stack
 import Test.QuickCheck.IO ()
@@ -29,9 +30,9 @@ type TestForest a c = SpecDefForest a c ()
 
 type TestTree a c = SpecDefTree a c ()
 
-type SpecDefForest (a :: [*]) c e = [SpecDefTree a c e]
+type SpecDefForest (a :: [Type]) c e = [SpecDefTree a c e]
 
-data SpecDefTree (a :: [*]) c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
+data SpecDefTree (a :: [Type]) c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
   DefSpecifyNode ::
     Text ->
     TestDef (((HList a -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->

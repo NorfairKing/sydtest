@@ -8,11 +8,13 @@
 
 module Test.Syd.HList where
 
-data HList (r :: [*]) where
+import Data.Kind
+
+data HList (r :: [Type]) where
   HNil :: HList '[]
   HCons :: e -> HList l -> HList (e ': l)
 
-class HContains (l :: [*]) a where
+class HContains (l :: [Type]) a where
   getElem :: HList l -> a
 
 instance HContains '[] () where
@@ -24,7 +26,7 @@ instance HContains l (HList l) where
 instance HContains '[a] a where
   getElem (HCons a _) = a
 
-instance HContains l a => HContains (a ': l) a where
+instance HContains (a ': l) a where
   getElem (HCons a _) = a
 
 instance HContains l a => HContains (b ': l) a where

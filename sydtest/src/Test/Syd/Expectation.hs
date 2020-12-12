@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
+
 -- | This module defines all the functions you will use to define your tests
 module Test.Syd.Expectation where
 
@@ -28,6 +30,9 @@ infix 1 `shouldSatisfy`
 
 -- | Assert that a value does not satisfy the given predicate.
 shouldNotSatisfy :: (HasCallStack, Show a, Eq a) => a -> (a -> Bool) -> IO ()
-shouldNotSatisfy actual p = unless (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual)
+shouldNotSatisfy actual p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual)
 
 infix 1 `shouldNotSatisfy`
+
+expectationFailure :: String -> IO ()
+expectationFailure = throwIO . ExpectationFailed

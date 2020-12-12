@@ -70,29 +70,51 @@ outputFailuresWithHeading rf =
 
 outputStats :: Timed TestSuiteStats -> [[Chunk]]
 outputStats (Timed TestSuiteStats {..} timing) =
-  map (padding :) $
-    concat
-      [ [ [ chunk "Passed:      ",
-            fore green $ chunk (T.pack (show testSuiteStatSuccesses))
-          ],
-          [ chunk "Failed:      ",
-            ( if testSuiteStatFailures > 0
-                then fore red
-                else fore green
-            )
-              $ chunk (T.pack (show testSuiteStatFailures))
+  let totalTimeSeconds :: Double
+      totalTimeSeconds = fromIntegral timing / 1_000_000_000
+   in map (padding :) $
+        concat
+          [ [ [ chunk "Passed:                   ",
+                fore green $ chunk (T.pack (show testSuiteStatSuccesses))
+              ],
+              [ chunk "Failed:                   ",
+                ( if testSuiteStatFailures > 0
+                    then fore red
+                    else fore green
+                )
+                  $ chunk (T.pack (show testSuiteStatFailures))
+              ]
+            ],
+            [ [ chunk "Pending:                  ",
+                fore magenta $ chunk (T.pack (show testSuiteStatPending))
+              ]
+              | testSuiteStatPending > 0
+            ],
+            [ let longestTimeSeconds :: Double
+                  longestTimeSeconds = fromIntegral longest / 1_000_000_000
+                  longestTimePercentage :: Double
+                  longestTimePercentage = 100 * longestTimeSeconds / totalTimeSeconds
+                  withLongestTimePercentageColour =
+                    if
+                        | longestTimePercentage < 20 -> fore yellow
+                        | longestTimePercentage < 35 -> fore orange
+                        | longestTimePercentage < 50 -> fore red
+                        | otherwise -> fore darkRed
+               in concat
+                    [ [ chunk "Longest test took",
+                        fore yellow $ chunk $ T.pack (printf "%13.2f seconds" longestTimeSeconds)
+                      ],
+                      [ withLongestTimePercentageColour $ chunk $ T.pack (printf ", which is %.2f%% of total runtime" longestTimePercentage)
+                        | longestTimePercentage > 10
+                      ]
+                    ]
+              | longest <- maybeToList testSuiteStatLongestTime
+            ],
+            [ [ chunk "Test suite took  ",
+                fore yellow $ chunk $ T.pack (printf "%13.2f seconds" totalTimeSeconds)
+              ]
+            ]
           ]
-        ],
-        [ [ chunk "Pending:     ",
-            fore magenta $ chunk (T.pack (show testSuiteStatPending))
-          ]
-          | testSuiteStatPending > 0
-        ],
-        [ [ chunk "Took",
-            fore yellow $ chunk $ T.pack (printf "%13.2f seconds" (fromIntegral timing / 1_000_000_000 :: Double))
-          ]
-        ]
-      ]
 
 outputTestsHeader :: [[Chunk]]
 outputTestsHeader = outputHeader "Tests:"
@@ -123,8 +145,10 @@ outputSpecifyLines level treeWidth specifyText (TestDef (Timed TestRunResult {..
       withTimingColour =
         if
             | t < 10 -> fore green
-            | t < 1000 && t >= 10 -> fore yellow
-            | otherwise -> fore red
+            | t < 100 -> fore yellow
+            | t < 1000 -> fore orange
+            | t < 10000 -> fore red
+            | otherwise -> fore darkRed
 
       withStatusColour = fore (statusColour testRunResultStatus)
       pad = (chunk (T.pack (replicate paddingSize ' ')) :)
@@ -338,3 +362,9 @@ padding = chunk $ T.replicate paddingSize " "
 
 paddingSize :: Int
 paddingSize = 2
+
+orange :: Radiant
+orange = color256 166
+
+darkRed :: Radiant
+darkRed = color256 160

@@ -17,6 +17,7 @@ module Test.Syd.SpecDef where
 
 import Data.Kind
 import Data.Text (Text)
+import Data.Word
 import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
@@ -120,7 +121,7 @@ computeTestSuiteStats = goF
     goF = foldMap goT
     goT :: ResultTree -> TestSuiteStats
     goT = \case
-      SpecifyNode _ (TestDef (Timed TestRunResult {..} _) _) ->
+      SpecifyNode _ (TestDef (Timed TestRunResult {..} t) _) ->
         TestSuiteStats
           { testSuiteStatSuccesses = case testRunResultStatus of
               TestPassed -> 1
@@ -128,13 +129,15 @@ computeTestSuiteStats = goF
             testSuiteStatFailures = case testRunResultStatus of
               TestPassed -> 0
               TestFailed -> 1,
-            testSuiteStatPending = 0
+            testSuiteStatPending = 0,
+            testSuiteStatLongestTime = Just t
           }
       PendingNode _ _ ->
         TestSuiteStats
           { testSuiteStatSuccesses = 0,
             testSuiteStatFailures = 0,
-            testSuiteStatPending = 1
+            testSuiteStatPending = 1,
+            testSuiteStatLongestTime = Nothing
           }
       DescribeNode _ sf -> goF sf
       SubForestNode sf -> goF sf
@@ -142,7 +145,8 @@ computeTestSuiteStats = goF
 data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
     testSuiteStatFailures :: !Word,
-    testSuiteStatPending :: !Word
+    testSuiteStatPending :: !Word,
+    testSuiteStatLongestTime :: !(Maybe Word64)
   }
   deriving (Show, Eq)
 
@@ -151,7 +155,12 @@ instance Semigroup TestSuiteStats where
     TestSuiteStats
       { testSuiteStatSuccesses = testSuiteStatSuccesses tss1 + testSuiteStatSuccesses tss2,
         testSuiteStatFailures = testSuiteStatFailures tss1 + testSuiteStatFailures tss2,
-        testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2
+        testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2,
+        testSuiteStatLongestTime = case (testSuiteStatLongestTime tss1, testSuiteStatLongestTime tss2) of
+          (Nothing, Nothing) -> Nothing
+          (Just t1, Nothing) -> Just t1
+          (Nothing, Just t2) -> Just t2
+          (Just t1, Just t2) -> Just (max t1 t2)
       }
 
 instance Monoid TestSuiteStats where
@@ -160,7 +169,8 @@ instance Monoid TestSuiteStats where
     TestSuiteStats
       { testSuiteStatSuccesses = 0,
         testSuiteStatFailures = 0,
-        testSuiteStatPending = 0
+        testSuiteStatPending = 0,
+        testSuiteStatLongestTime = Nothing
       }
 
 shouldExitFail :: ResultForest -> Bool

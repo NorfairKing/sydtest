@@ -39,6 +39,14 @@ module Test.Syd
     goldenShowInstance,
     goldenPrettyShowInstance,
 
+    -- ** Expectations
+    shouldBe,
+    shouldNotBe,
+    shouldSatisfy,
+    shouldNotSatisfy,
+    shouldReturn,
+    shouldNotReturn,
+
     -- ** Declaring test dependencies
 
     -- *** Dependencies around all of a group of tests

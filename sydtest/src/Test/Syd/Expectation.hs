@@ -34,6 +34,22 @@ shouldNotSatisfy actual p = when (p actual) $ throwIO $ PredicateSucceededButSho
 
 infix 1 `shouldNotSatisfy`
 
+-- | Assert that computation returns the given value (according to `==`).
+shouldReturn :: (HasCallStack, Show a, Eq a) => IO a -> a -> IO ()
+shouldReturn computeActual expected = do
+  actual <- computeActual
+  unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
+
+infix 1 `shouldReturn`
+
+-- | Assert that computation returns the given value (according to `==`).
+shouldNotReturn :: (HasCallStack, Show a, Eq a) => IO a -> a -> IO ()
+shouldNotReturn computeActual expected = do
+  actual <- computeActual
+  unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected)
+
+infix 1 `shouldNotReturn`
+
 -- | Make a test fail
 expectationFailure :: String -> IO ()
 expectationFailure = throwIO . ExpectationFailed

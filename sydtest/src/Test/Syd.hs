@@ -6,9 +6,6 @@ module Test.Syd
   ( -- * Top level API functions
     sydTest,
     sydTestWith,
-    Settings (..),
-    defaultSettings,
-    Threads (..),
 
     -- * Defining a test suite
 

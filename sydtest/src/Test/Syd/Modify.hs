@@ -41,10 +41,10 @@ modifyMaxDiscardRatio :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
 modifyMaxDiscardRatio func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
 
 modifyMaxSize :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
-modifyMaxSize func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
+modifyMaxSize func = modifyRunSettings $ \trs -> trs {testRunSettingMaxSize = func (testRunSettingMaxSize trs)}
 
 modifyMaxShrinks :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
-modifyMaxShrinks func = modifyRunSettings $ \trs -> trs {testRunSettingMaxDiscardRatio = func (testRunSettingMaxDiscardRatio trs)}
+modifyMaxShrinks func = modifyRunSettings $ \trs -> trs {testRunSettingMaxShrinks = func (testRunSettingMaxShrinks trs)}
 
 -- | Declare that all tests below must be run sequentially
 sequential :: TestDefM a b c -> TestDefM a b c

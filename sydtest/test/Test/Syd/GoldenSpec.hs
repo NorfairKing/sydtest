@@ -6,6 +6,7 @@ import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import Rainbow
 import Test.Syd
+import Test.Syd.OptParse
 
 spec :: Spec
 spec = do

@@ -7,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
 -- | This module defines all the functions you will use to define your test suite.
 module Test.Syd.Def
@@ -22,6 +23,17 @@ module Test.Syd.Def
     specifyWithOuter,
     specifyWithBoth,
     specifyWithAll,
+
+    -- ** Declaring commented-out tests
+    xdescribe,
+    xit,
+    xitWithOuter,
+    xitWithBoth,
+    xitWithAll,
+    xspecify,
+    xspecifyWithOuter,
+    xspecifyWithBoth,
+    xspecifyWithAll,
 
     -- ** Pending tests
     pending,
@@ -56,8 +68,12 @@ import Test.Syd.SpecDef
 -- >         3 + 5 `shouldBe` 8
 -- >     it "adds 4 to 7 to result in 11" $
 -- >         4 + 7 `shouldBe` 11
-describe :: String -> TestDefM a b c -> TestDefM a b c
+describe :: String -> TestDefM a b () -> TestDefM a b ()
 describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
+
+-- TODO maybe we want to keep all tests below but replace them with a "Pending" instead.
+xdescribe :: String -> TestDefM a b () -> TestDefM a b ()
+xdescribe s _ = pending s
 
 -- | Declare a test
 --
@@ -163,6 +179,9 @@ it s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
+xit :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
+xit s _ = pending s
+
 -- | Declare a test that uses an outer resource
 --
 -- === Example usage:
@@ -225,6 +244,9 @@ itWithOuter s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
+xitWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
+xitWithOuter s _ = pending s
+
 -- | Declare a test that uses both an inner and an outer resource
 --
 -- === Example usage:
@@ -286,6 +308,9 @@ itWithBoth s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
+xitWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+xitWithBoth s _ = pending s
+
 -- | Declare a test that uses all outer resources
 --
 -- You will most likely never need this function, but in case you do:
@@ -311,21 +336,36 @@ itWithAll s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
+xitWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+xitWithAll s _ = pending s
+
 -- | A synonym for 'it'
 specify :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
 specify = it
+
+xspecify :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
+xspecify = xit
 
 -- | A synonym for 'itWithOuter'
 specifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
 specifyWithOuter = itWithOuter
 
+xspecifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
+xspecifyWithOuter = xitWithOuter
+
 -- | A synonym for 'itWithBoth'
 specifyWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
 specifyWithBoth = itWithBoth
 
+xspecifyWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+xspecifyWithBoth = xitWithBoth
+
 -- | A synonym for 'itWithAll'
 specifyWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
 specifyWithAll = itWithAll
+
+xspecifyWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+xspecifyWithAll = xitWithAll
 
 -- | Declare a test that has not been written yet.
 pending :: String -> TestDefM a b ()

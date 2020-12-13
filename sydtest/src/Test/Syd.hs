@@ -23,6 +23,17 @@ module Test.Syd
     specifyWithBoth,
     specifyWithAll,
 
+    -- ** Commented-out tests
+    xdescribe,
+    xit,
+    xitWithOuter,
+    xitWithBoth,
+    xitWithAll,
+    xspecify,
+    xspecifyWithOuter,
+    xspecifyWithBoth,
+    xspecifyWithAll,
+
     -- ** Pending tests
     pending,
     pendingWith,

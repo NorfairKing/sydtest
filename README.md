@@ -98,6 +98,7 @@ In most cases, the following should suffice:
 find */test -name "*.hs" -exec sed -i 's/Test.Hspec/Test.Syd/g' {} +
 find */test -name "*.hs" -exec sed -i 's/hspec-discover/sydtest-discover/g' {} +
 find * -name "package.yaml" -exec sed -i 's/hspec/sydtest/g' {} +
+find */test -name "*.hs" -exec sed -i 's/Test.Validity/Test.Syd.Validity/g' {} +
 ```
 
 If you are using `hspec-discover`, the following change is to be made in your test entrypoint:

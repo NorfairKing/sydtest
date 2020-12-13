@@ -153,8 +153,11 @@ specDeclaration :: [SpecModule] -> String
 specDeclaration fs =
   unlines $
     "spec :: Spec" :
-    "spec = do" :
-    map moduleSpecLine fs
+    if null fs
+      then ["spec = pure ()"]
+      else
+        "spec = do" :
+        map moduleSpecLine fs
 
 moduleSpecLine :: SpecModule -> String
 moduleSpecLine rf = unwords [" ", "describe", "\"" <> specModuleModuleName rf <> "\"", specFunctionName rf]

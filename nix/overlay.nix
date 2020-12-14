@@ -24,6 +24,7 @@ with final.haskell.lib;
     {
       "sydtest" = sydtestPkg "sydtest";
       "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";
+      "sydtest-yesod" = sydtestPkg "sydtest-yesod";
     };
 
   sydtestRelease =

@@ -1,0 +1,38 @@
+name:                sydtest-yesod
+version:             0.0.0.0
+github:              "NorfairKing/sydtest"
+license:             AllRightsReserved
+author:              "Tom Sydney Kerckhove"
+maintainer:          "syd@cs-syd.eu"
+copyright:           "Copyright (c) 2020 Tom Sydney Kerckhove"
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+    - bytestring
+    - http-client
+    - http-types
+    - mtl
+    - sydtest
+    - text
+    - wai
+    - warp
+    - yesod-core
+
+tests:
+  sydtest-yesod-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - http-types
+    - sydtest
+    - sydtest-yesod
+    - yesod

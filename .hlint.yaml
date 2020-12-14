@@ -14,3 +14,5 @@
     name: "Eta reduce"
 - ignore:
     name: "Use first"
+- ignore:
+    name: "Avoid lambda using `infix`"

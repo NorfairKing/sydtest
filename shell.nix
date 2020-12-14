@@ -4,6 +4,9 @@ let
 in
 pkgs.haskell.lib.buildStackProject {
   name = "sydtest";
+  buildInputs = with pkgs; [
+    zlib
+  ];
   shellHook = ''
     ${pre-commit-check.shellHook}
   '';

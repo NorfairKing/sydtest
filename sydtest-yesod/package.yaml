@@ -13,6 +13,7 @@ library:
   source-dirs: src
   dependencies:
     - bytestring
+    - containers
     - http-client
     - http-types
     - mtl

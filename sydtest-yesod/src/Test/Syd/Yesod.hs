@@ -31,6 +31,8 @@ module Test.Syd.Yesod
 
     -- * Making requests
     get,
+    post,
+    performMethod,
 
     -- ** Reexports
     module Network.HTTP.Types,
@@ -40,6 +42,7 @@ where
 
 import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as LB
+import qualified Data.Map as M
 import qualified Data.Text as T
 import GHC.Stack
 import Network.HTTP.Client
@@ -48,6 +51,7 @@ import Network.HTTP.Types
 import Network.Wai.Handler.Warp as Warp
 import Test.Syd
 import Yesod.Core as Yesod
+import Yesod.Core.Unsafe
 
 -- | Run a test suite using the given 'site'.
 --
@@ -110,7 +114,7 @@ data YesodClient site = YesodClient
 --
 -- This has access to a 'YesodClient site'.
 newtype YesodClientM site a = YesodClientM {unYesodClientM :: ReaderT (YesodClient site) IO a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader (YesodClient site))
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader (YesodClient site), MonadFail)
 
 -- | For backward compatibility
 type YesodExample site a = YesodClientM site a
@@ -128,10 +132,23 @@ ydescribe :: String -> YesodSpec site -> YesodSpec site
 ydescribe = describe
 
 -- | Make a @GET@ request for the given route
-get :: Yesod site => Route site -> YesodClientM site (Response LB.ByteString)
-get route = do
+get :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site (Response LB.ByteString)
+get = performMethod methodGet
+
+-- | Make a @POST@ request for the given route
+post :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site (Response LB.ByteString)
+post = performMethod methodPost
+
+performMethod :: (Yesod site, RedirectUrl site url) => Method -> url -> YesodClientM site (Response LB.ByteString)
+performMethod method route = do
   YesodClient {..} <- ask
-  let uri = yesodRender yesodClientSite "http://localhost" route []
+  Right uri <-
+    fmap ("http://localhost" <>)
+      <$> Yesod.Core.Unsafe.runFakeHandler
+        M.empty
+        (const $ error "Yesod.Test: No logger available")
+        yesodClientSite
+        (toTextUrl route)
   liftIO $ do
     req <- parseRequest $ T.unpack uri
-    httpLbs (req {port = yesodClientSitePort}) yesodClientManager
+    httpLbs (req {method = method, port = yesodClientSitePort}) yesodClientManager

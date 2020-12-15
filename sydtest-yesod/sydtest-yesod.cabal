@@ -28,6 +28,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , http-client
     , http-types
     , mtl

@@ -5,7 +5,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
 module Test.Syd.Yesod
@@ -95,7 +94,7 @@ yesodSpecWithFunc func man site =
      in func man client
 
 -- | For backward compatibility with yesod-test
-type YesodSpec site = forall l. TestDefM (HTTP.Manager ': l) (YesodClient site) ()
+type YesodSpec site = TestDefM '[HTTP.Manager] (YesodClient site) ()
 
 -- | A client environment to call a Yesod app.
 data YesodClient site = YesodClient
@@ -114,7 +113,7 @@ newtype YesodClientM site a = YesodClientM {unYesodClientM :: ReaderT (YesodClie
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader (YesodClient site))
 
 -- | For backward compatibility
-type YesodExample site = YesodClientM site ()
+type YesodExample site a = YesodClientM site a
 
 -- | Run a YesodClientM site using a YesodClient site
 runYesodClientM :: YesodClient site -> YesodClientM site a -> IO a

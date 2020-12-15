@@ -101,6 +101,7 @@ find * -name "package.yaml" -exec sed -i 's/hspec/sydtest/g' {} +
 find */test -name "*.hs" -exec sed -i 's/Test.Validity/Test.Syd.Validity/g' {} +
 find */test -name "*.hs" -exec sed -i 's/import Test.Syd.QuickCheck//g' {} +
 find */test -name "*.hs" -exec sed -i 's/Test.Syd.Validity.Optics/Test.Syd.Validity.Lens/g' {} +
+find */test -name "*.hs" -exec sed -i 's/Yesod.Test/Test.Syd.Yesod/g' {} +
 ```
 
 If you are using `hspec-discover`, the following change is to be made in your test entrypoint:

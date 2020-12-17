@@ -28,7 +28,10 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , case-insensitive
     , containers
+    , cookie
+    , exceptions
     , http-client
     , http-types
     , mtl
@@ -56,5 +59,6 @@ test-suite sydtest-yesod-test
     , http-types
     , sydtest
     , sydtest-yesod
+    , text
     , yesod
   default-language: Haskell2010

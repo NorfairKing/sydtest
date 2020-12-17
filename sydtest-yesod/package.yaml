@@ -14,11 +14,14 @@ library:
   dependencies:
     - bytestring
     - containers
+    - exceptions
     - http-client
     - http-types
     - mtl
     - sydtest
     - text
+    - case-insensitive
+    - cookie
     - wai
     - warp
     - yesod-core
@@ -36,4 +39,5 @@ tests:
     - http-types
     - sydtest
     - sydtest-yesod
+    - text
     - yesod

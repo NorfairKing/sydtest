@@ -33,28 +33,51 @@ module Test.Syd.Yesod
     get,
     post,
     performMethod,
+    performRequest,
+
+    -- ** Using the request builder
+    request,
+    setUrl,
+    setMethod,
+    addPostParam,
+    RequestBuilder (..),
+    runRequestBuilder,
+    getLocation,
+
+    -- *** Token
+    addToken,
+    addToken_,
+    addTokenFromCookie,
+    addTokenFromCookieNamedToHeaderNamed,
 
     -- * Declaring assertions
     statusIs,
 
     -- ** Reexports
-    module Network.HTTP.Types,
-    module Network.HTTP.Client,
+    module HTTP,
   )
 where
 
+import Control.Monad.Catch
 import Control.Monad.Reader
-import Control.Monad.State (MonadState, StateT (..), evalStateT)
+import Control.Monad.State (MonadState, StateT (..), evalStateT, execStateT)
 import qualified Control.Monad.State as State
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as SB8
 import qualified Data.ByteString.Lazy as LB
+import Data.CaseInsensitive (CI)
+import qualified Data.CaseInsensitive as CI
+import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Stack
-import Network.HTTP.Client
+import Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Client as HTTP
-import Network.HTTP.Types
+import Network.HTTP.Types as HTTP
 import Network.Wai.Handler.Warp as Warp
 import Test.Syd
+import Web.Cookie as Cookie
 import Yesod.Core as Yesod
 import Yesod.Core.Unsafe
 
@@ -108,21 +131,25 @@ type YesodSpec site = TestDefM '[HTTP.Manager] (YesodClient site) ()
 -- | A client environment to call a Yesod app.
 data YesodClient site = YesodClient
   { -- | The site itself
-    yesodClientSite :: site,
+    yesodClientSite :: !site,
     -- | The 'HTTP.Manager' to make the requests
-    yesodClientManager :: HTTP.Manager,
+    yesodClientManager :: !HTTP.Manager,
     -- | The port that the site is running on, using @warp@
-    yesodClientSitePort :: Int
+    yesodClientSitePort :: !Int
   }
 
 data YesodClientState site = YesodClientState
-  { yesodClientStateLastResponse :: Maybe (Response LB.ByteString)
+  { -- | The last response received
+    yesodClientStateLastResponse :: !(Maybe (Response LB.ByteString)),
+    -- | The cookies to pass along
+    yesodClientStateCookies :: !Cookies
   }
 
 initYesodClientState :: YesodClientState site
 initYesodClientState =
   YesodClientState
-    { yesodClientStateLastResponse = Nothing
+    { yesodClientStateLastResponse = Nothing,
+      yesodClientStateCookies = []
     }
 
 -- | A monad to call a Yesod app.
@@ -138,7 +165,8 @@ newtype YesodClientM site a = YesodClientM
       MonadIO,
       MonadReader (YesodClient site),
       MonadState (YesodClientState site),
-      MonadFail
+      MonadFail,
+      MonadThrow
     )
 
 -- | For backward compatibility
@@ -165,19 +193,9 @@ post :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
 post = performMethod methodPost
 
 performMethod :: (Yesod site, RedirectUrl site url) => Method -> url -> YesodClientM site ()
-performMethod method route = do
-  YesodClient {..} <- ask
-  Right uri <-
-    fmap ("http://localhost" <>)
-      <$> Yesod.Core.Unsafe.runFakeHandler
-        M.empty
-        (const $ error "Yesod.Test: No logger available")
-        yesodClientSite
-        (toTextUrl route)
-  resp <- liftIO $ do
-    req <- parseRequest $ T.unpack uri
-    httpLbs (req {method = method, port = yesodClientSitePort}) yesodClientManager
-  State.modify' (\s -> s {yesodClientStateLastResponse = Just resp})
+performMethod method route = request $ do
+  setUrl route
+  setMethod method
 
 statusIs :: HasCallStack => Int -> YesodClientM site ()
 statusIs i = do
@@ -185,3 +203,152 @@ statusIs i = do
   liftIO $ case mLastResp of
     Nothing -> expectationFailure "No request made yet."
     Just r -> statusCode (responseStatus r) `shouldBe` i
+
+newtype RequestBuilder site a = RequestBuilder {unRequestBuilder :: StateT Request (ReaderT (YesodClient site) IO) a}
+  deriving
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadReader (YesodClient site),
+      MonadState Request,
+      MonadFail,
+      MonadThrow
+    )
+
+runRequestBuilder :: RequestBuilder site a -> YesodClientM site Request
+runRequestBuilder (RequestBuilder func) = do
+  client <- ask
+  p <- asks yesodClientSitePort
+  liftIO $
+    runReaderT
+      ( execStateT
+          func
+          ( defaultRequest
+              { port = p
+              }
+          )
+      )
+      client
+
+request :: RequestBuilder site a -> YesodClientM site ()
+request rb = do
+  req <- runRequestBuilder rb
+  performRequest req
+
+setUrl :: (Yesod site, RedirectUrl site url) => url -> RequestBuilder site ()
+setUrl route = do
+  site <- asks yesodClientSite
+  Right uri <-
+    fmap ("http://localhost" <>)
+      <$> Yesod.Core.Unsafe.runFakeHandler
+        M.empty
+        (const $ error "Test.Syd.Yesod: No logger available")
+        site
+        (toTextUrl route)
+  req <- parseRequest $ T.unpack uri
+  State.modify'
+    ( \oldReq ->
+        oldReq
+          { method = method req,
+            host = host req,
+            secure = secure req,
+            path = path req,
+            queryString = queryString req
+          }
+    )
+
+addRequestHeader :: HTTP.Header -> RequestBuilder site ()
+addRequestHeader h = State.modify' (\r -> r {requestHeaders = h : requestHeaders r})
+
+addPostParam :: Text -> Text -> RequestBuilder site ()
+addPostParam = undefined
+
+addGetParam :: Text -> Text -> RequestBuilder site ()
+addGetParam = undefined
+
+-- | Look up the CSRF token from the given form data and add it to the request header
+addToken_ :: HasCallStack => Query -> RequestBuilder site ()
+addToken_ scope = undefined
+
+-- | Look up the CSRF token from the only form data and add it to the request header
+addToken :: HasCallStack => RequestBuilder site ()
+addToken = undefined -- addToken_ ""
+
+-- | Look up the CSRF token from the cookie with name 'defaultCsrfCookieName' and add it to the request header with name 'defaultCsrfHeaderName'.
+addTokenFromCookie :: HasCallStack => RequestBuilder site ()
+addTokenFromCookie = addTokenFromCookieNamedToHeaderNamed defaultCsrfCookieName defaultCsrfHeaderName
+
+-- | Looks up the CSRF token stored in the cookie with the given name and adds it to the given request header.
+addTokenFromCookieNamedToHeaderNamed ::
+  HasCallStack =>
+  -- | The name of the cookie
+  ByteString ->
+  -- | The name of the header
+  CI ByteString ->
+  RequestBuilder site ()
+addTokenFromCookieNamedToHeaderNamed cookieName headerName = do
+  cookies <- getRequestCookies
+  case lookup cookieName cookies of
+    Just csrfCookie -> addRequestHeader (headerName, csrfCookie)
+    Nothing ->
+      liftIO $
+        expectationFailure $
+          concat
+            [ "addTokenFromCookieNamedToHeaderNamed failed to lookup CSRF cookie with name: ",
+              show cookieName,
+              ". Cookies were: ",
+              show cookies
+            ]
+
+setMethod :: Method -> RequestBuilder site ()
+setMethod m = State.modify' (\r -> r {method = m})
+
+performRequest :: Request -> YesodClientM site ()
+performRequest req = do
+  man <- asks yesodClientManager
+  resp <- liftIO $ httpLbs req man
+  State.modify' (\s -> s {yesodClientStateLastResponse = Just resp})
+
+getRequestCookies :: RequestBuilder site Cookies
+getRequestCookies = undefined
+
+getResponse :: YesodClientM site (Maybe (Response LB.ByteString))
+getResponse = State.gets yesodClientStateLastResponse
+
+-- | Query the last response using CSS selectors, returns a list of matched fragments
+htmlQuery :: HasCallStack => Query -> YesodExample site [LB.ByteString]
+htmlQuery = undefined
+
+-- -- | Query the last response using CSS selectors, returns a list of matched fragments
+-- htmlQuery' ::
+--   HasCallStack =>
+--   (state -> Maybe (Response LB.ByteString)) ->
+--   [Text] ->
+--   Query ->
+--   SIO state [HtmlLBS]
+-- htmlQuery' getter errTrace query = withResponse' getter ("Tried to invoke htmlQuery' in order to read HTML of a previous response." : errTrace) $ \res ->
+--   case findBySelector (simpleBody res) query of
+--     Left err -> failure $ query <> " did not parse: " <> T.pack (show err)
+--     Right matches -> return $ map (encodeUtf8 . TL.pack) matches
+
+-- | Use HXT to parse a value from an HTML tag.
+-- Check for usage examples in this module's source.
+-- parseHTML :: HtmlLBS -> Cursor
+-- parseHTML html = fromDocument $ HD.parseLBS html
+getLocation :: ParseRoute site => YesodExample site (Either Text (Route site))
+getLocation = do
+  mr <- getResponse
+  case mr of
+    Nothing -> return $ Left "getLocation called, but there was no previous response, so no Location header"
+    Just r -> case lookup "Location" (responseHeaders r) of
+      Nothing -> return $ Left "getLocation called, but the previous response has no Location header"
+      Just h -> case parseRoute $ decodePath h of
+        Nothing -> return $ Left "getLocation called, but couldn’t parse it into a route"
+        Just l -> return $ Right l
+  where
+    decodePath b =
+      let (x, y) = SB8.break (== '?') b
+       in (HTTP.decodePathSegments x, unJust <$> HTTP.parseQueryText y)
+    unJust (a, Just b) = (a, b)
+    unJust (a, Nothing) = (a, mempty)

@@ -39,6 +39,7 @@ module Test.Syd.Yesod
     request,
     setUrl,
     setMethod,
+    addRequestHeader,
     addPostParam,
     RequestBuilder (..),
     runRequestBuilder,
@@ -58,6 +59,7 @@ module Test.Syd.Yesod
   )
 where
 
+import qualified Blaze.ByteString.Builder as Builder
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.State (MonadState, StateT (..), evalStateT, execStateT)
@@ -65,12 +67,14 @@ import qualified Control.Monad.State as State
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.ByteString.Lazy as LB
+import qualified Data.ByteString.Lazy.Char8 as LB8
 import Data.CaseInsensitive (CI)
 import qualified Data.CaseInsensitive as CI
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import GHC.Stack
 import Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Client as HTTP
@@ -204,32 +208,67 @@ statusIs i = do
     Nothing -> expectationFailure "No request made yet."
     Just r -> statusCode (responseStatus r) `shouldBe` i
 
-newtype RequestBuilder site a = RequestBuilder {unRequestBuilder :: StateT Request (ReaderT (YesodClient site) IO) a}
+newtype RequestBuilder site a = RequestBuilder
+  { unRequestBuilder ::
+      StateT
+        (RequestBuilderData site)
+        (ReaderT (YesodClient site) IO)
+        a
+  }
   deriving
     ( Functor,
       Applicative,
       Monad,
       MonadIO,
       MonadReader (YesodClient site),
-      MonadState Request,
+      MonadState (RequestBuilderData site),
       MonadFail,
       MonadThrow
     )
+
+data RequestBuilderData site = RequestBuilderData
+  { requestBuilderDataMethod :: !Method,
+    requestBuilderDataUrl :: !Text,
+    requestBuilderDataHeaders :: !HTTP.RequestHeaders,
+    requestBuilderDataPostData :: !PostData
+  }
+
+data PostData
+  = MultipleItemsPostData [RequestPart]
+  | BinaryPostData ByteString
+
+data RequestPart
+  = ReqKvPart Text Text
+  | ReqFilePart Text FilePath ByteString Text
+
+initialRequestBuilderData :: RequestBuilderData site
+initialRequestBuilderData =
+  RequestBuilderData
+    { requestBuilderDataMethod = "GET",
+      requestBuilderDataUrl = "",
+      requestBuilderDataHeaders = [],
+      requestBuilderDataPostData = MultipleItemsPostData []
+    }
 
 runRequestBuilder :: RequestBuilder site a -> YesodClientM site Request
 runRequestBuilder (RequestBuilder func) = do
   client <- ask
   p <- asks yesodClientSitePort
-  liftIO $
-    runReaderT
-      ( execStateT
-          func
-          ( defaultRequest
-              { port = p
-              }
-          )
-      )
-      client
+  RequestBuilderData {..} <-
+    liftIO $
+      runReaderT
+        ( execStateT
+            func
+            initialRequestBuilderData
+        )
+        client
+  req <- liftIO $ parseRequest $ T.unpack requestBuilderDataUrl
+  pure $
+    req
+      { port = p,
+        method = requestBuilderDataMethod,
+        requestHeaders = requestBuilderDataHeaders
+      }
 
 request :: RequestBuilder site a -> YesodClientM site ()
 request rb = do
@@ -239,30 +278,30 @@ request rb = do
 setUrl :: (Yesod site, RedirectUrl site url) => url -> RequestBuilder site ()
 setUrl route = do
   site <- asks yesodClientSite
-  Right uri <-
+  Right url <-
     fmap ("http://localhost" <>)
       <$> Yesod.Core.Unsafe.runFakeHandler
         M.empty
         (const $ error "Test.Syd.Yesod: No logger available")
         site
         (toTextUrl route)
-  req <- parseRequest $ T.unpack uri
   State.modify'
     ( \oldReq ->
         oldReq
-          { method = method req,
-            host = host req,
-            secure = secure req,
-            path = path req,
-            queryString = queryString req
+          { requestBuilderDataUrl = url
           }
     )
 
 addRequestHeader :: HTTP.Header -> RequestBuilder site ()
-addRequestHeader h = State.modify' (\r -> r {requestHeaders = h : requestHeaders r})
+addRequestHeader h = State.modify' (\r -> r {requestBuilderDataHeaders = h : requestBuilderDataHeaders r})
 
 addPostParam :: Text -> Text -> RequestBuilder site ()
-addPostParam = undefined
+addPostParam name value =
+  State.modify' $ \r -> r {requestBuilderDataPostData = addPostData (requestBuilderDataPostData r)}
+  where
+    addPostData (BinaryPostData _) = error "Trying to add post param to binary content."
+    addPostData (MultipleItemsPostData posts) =
+      MultipleItemsPostData $ ReqKvPart name value : posts
 
 addGetParam :: Text -> Text -> RequestBuilder site ()
 addGetParam = undefined
@@ -302,7 +341,7 @@ addTokenFromCookieNamedToHeaderNamed cookieName headerName = do
             ]
 
 setMethod :: Method -> RequestBuilder site ()
-setMethod m = State.modify' (\r -> r {method = m})
+setMethod m = State.modify' (\r -> r {requestBuilderDataMethod = m})
 
 performRequest :: Request -> YesodClientM site ()
 performRequest req = do

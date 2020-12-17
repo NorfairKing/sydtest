@@ -31,3 +31,13 @@ spec = yesodSpec App $ do
   yit "responds 200 OK to POST /" $ do
     post ("/" :: Text)
     statusIs 200
+  yit "is able to add a header" $ do
+    request $ do
+      setUrl ExpectsHeaderR
+      addRequestHeader ("TEST_HEADER", "test")
+    statusIs 200
+  yit "is able to add a post param" $ do
+    request $ do
+      setUrl ExpectsHeaderR
+      addPostParam "TEST_HEADER" "test"
+    statusIs 200

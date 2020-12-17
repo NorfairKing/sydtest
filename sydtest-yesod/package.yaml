@@ -12,16 +12,17 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+    - blaze-builder
     - bytestring
+    - case-insensitive
     - containers
+    - cookie
     - exceptions
     - http-client
     - http-types
     - mtl
     - sydtest
     - text
-    - case-insensitive
-    - cookie
     - wai
     - warp
     - yesod-core

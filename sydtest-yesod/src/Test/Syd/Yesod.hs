@@ -34,6 +34,9 @@ module Test.Syd.Yesod
     post,
     performMethod,
 
+    -- * Declaring assertions
+    statusIs,
+
     -- ** Reexports
     module Network.HTTP.Types,
     module Network.HTTP.Client,
@@ -41,6 +44,8 @@ module Test.Syd.Yesod
 where
 
 import Control.Monad.Reader
+import Control.Monad.State (MonadState, StateT (..), evalStateT)
+import qualified Control.Monad.State as State
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map as M
 import qualified Data.Text as T
@@ -110,18 +115,38 @@ data YesodClient site = YesodClient
     yesodClientSitePort :: Int
   }
 
+data YesodClientState site = YesodClientState
+  { yesodClientStateLastResponse :: Maybe (Response LB.ByteString)
+  }
+
+initYesodClientState :: YesodClientState site
+initYesodClientState =
+  YesodClientState
+    { yesodClientStateLastResponse = Nothing
+    }
+
 -- | A monad to call a Yesod app.
 --
 -- This has access to a 'YesodClient site'.
-newtype YesodClientM site a = YesodClientM {unYesodClientM :: ReaderT (YesodClient site) IO a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader (YesodClient site), MonadFail)
+newtype YesodClientM site a = YesodClientM
+  { unYesodClientM :: StateT (YesodClientState site) (ReaderT (YesodClient site) IO) a
+  }
+  deriving
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadReader (YesodClient site),
+      MonadState (YesodClientState site),
+      MonadFail
+    )
 
 -- | For backward compatibility
 type YesodExample site a = YesodClientM site a
 
 -- | Run a YesodClientM site using a YesodClient site
 runYesodClientM :: YesodClient site -> YesodClientM site a -> IO a
-runYesodClientM cenv (YesodClientM rFunc) = runReaderT rFunc cenv
+runYesodClientM cenv (YesodClientM func) = runReaderT (evalStateT func initYesodClientState) cenv
 
 -- | Define a test in the 'YesodClientM site' monad instead of 'IO'.
 yit :: forall site. HasCallStack => String -> YesodClientM site () -> YesodSpec site
@@ -132,14 +157,14 @@ ydescribe :: String -> YesodSpec site -> YesodSpec site
 ydescribe = describe
 
 -- | Make a @GET@ request for the given route
-get :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site (Response LB.ByteString)
+get :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
 get = performMethod methodGet
 
 -- | Make a @POST@ request for the given route
-post :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site (Response LB.ByteString)
+post :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
 post = performMethod methodPost
 
-performMethod :: (Yesod site, RedirectUrl site url) => Method -> url -> YesodClientM site (Response LB.ByteString)
+performMethod :: (Yesod site, RedirectUrl site url) => Method -> url -> YesodClientM site ()
 performMethod method route = do
   YesodClient {..} <- ask
   Right uri <-
@@ -149,6 +174,14 @@ performMethod method route = do
         (const $ error "Yesod.Test: No logger available")
         yesodClientSite
         (toTextUrl route)
-  liftIO $ do
+  resp <- liftIO $ do
     req <- parseRequest $ T.unpack uri
     httpLbs (req {method = method, port = yesodClientSitePort}) yesodClientManager
+  State.modify' (\s -> s {yesodClientStateLastResponse = Just resp})
+
+statusIs :: HasCallStack => Int -> YesodClientM site ()
+statusIs i = do
+  mLastResp <- State.gets yesodClientStateLastResponse
+  liftIO $ case mLastResp of
+    Nothing -> expectationFailure "No request made yet."
+    Just r -> statusCode (responseStatus r) `shouldBe` i

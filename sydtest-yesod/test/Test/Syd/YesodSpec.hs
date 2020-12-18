@@ -38,6 +38,19 @@ spec = yesodSpec App $ do
     statusIs 200
   yit "is able to add a post param" $ do
     request $ do
-      setUrl ExpectsHeaderR
-      addPostParam "TEST_HEADER" "test"
+      setUrl ExpectsPostParamR
+      setMethod "POST"
+      addPostParam "TEST_PARAM" "test"
+    statusIs 200
+  yit "is able to add a raw post body" $ do
+    request $ do
+      setUrl ExpectsPostBodyR
+      setMethod "POST"
+      setRequestBody "test"
+    statusIs 200
+  yit "is able to add a post file" $ do
+    request $ do
+      setUrl ExpectsPostFileR
+      setMethod "POST"
+      addFileWith "TEST_HEADER" "filename" "test" (Just "text/plain")
     statusIs 200

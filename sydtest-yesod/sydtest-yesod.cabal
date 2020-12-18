@@ -39,6 +39,7 @@ library
     , http-client
     , http-types
     , mtl
+    , pretty-show
     , sydtest
     , text
     , wai
@@ -60,7 +61,10 @@ test-suite sydtest-yesod-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
+    , bytestring
+    , conduit
     , http-types
+    , resourcet
     , sydtest
     , sydtest-yesod
     , text

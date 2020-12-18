@@ -5,6 +5,9 @@
 
 module Test.Syd.Yesod.App where
 
+import Conduit
+import Control.Monad
+import qualified Data.ByteString as SB
 import Yesod
 
 data App = App
@@ -15,7 +18,9 @@ mkYesod
     / HomeR GET POST
 
     /expects-header ExpectsHeaderR GET
-    /expects-post-param ExpectsPostParamR GET
+    /expects-post-param ExpectsPostParamR POST
+    /expects-post-body ExpectsPostBodyR   POST
+    /expects-post-file ExpectsPostFileR   POST
 |]
 
 instance Yesod App
@@ -33,9 +38,28 @@ getExpectsHeaderR = do
     Nothing -> notFound
     Just _ -> pure "ok!"
 
-getExpectsPostParamR :: Handler Html
-getExpectsPostParamR = do
-  mh <- lookupPostParam "TEST_HEADER"
+postExpectsPostParamR :: Handler Html
+postExpectsPostParamR = do
+  mh <- lookupPostParam "TEST_PARAM"
   case mh of
     Nothing -> notFound
     Just _ -> pure "ok!"
+
+postExpectsPostBodyR :: Handler Html
+postExpectsPostBodyR = do
+  body <- SB.concat <$> runConduit (rawRequestBody .| sinkList)
+  case body of
+    "test" -> pure "ok!"
+    _ -> notFound
+
+postExpectsPostFileR :: Handler Html
+postExpectsPostFileR = do
+  mh <- lookupFile "TEST_HEADER"
+  case mh of
+    Nothing -> notFound
+    Just fi -> do
+      unless (fileName fi == "filename") $ invalidArgs ["incorrect filename"]
+      unless (fileContentType fi == "text/plain") $ invalidArgs ["incorrect content type"]
+      contents <- runResourceT $ fileSourceByteString fi
+      unless (contents == "test") $ invalidArgs ["incorrect body"]
+      pure "ok!"

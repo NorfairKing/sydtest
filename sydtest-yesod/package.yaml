@@ -21,6 +21,7 @@ library:
     - http-client
     - http-types
     - mtl
+    - pretty-show
     - sydtest
     - text
     - wai
@@ -37,7 +38,10 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - bytestring
+    - conduit
     - http-types
+    - resourcet
     - sydtest
     - sydtest-yesod
     - text

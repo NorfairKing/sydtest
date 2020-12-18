@@ -38,15 +38,22 @@ module Test.Syd.Yesod
     setMethod,
     addRequestHeader,
     addPostParam,
+    addFile,
+    addFileWith,
+    setRequestBody,
+
+    -- *** Types
     RequestBuilder (..),
     runRequestBuilder,
-    getLocation,
 
     -- *** Token
     addToken,
     addToken_,
     addTokenFromCookie,
     addTokenFromCookieNamedToHeaderNamed,
+
+    -- *** Queries
+    getLocation,
 
     -- * Declaring assertions
     statusIs,

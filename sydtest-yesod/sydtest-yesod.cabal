@@ -21,6 +21,7 @@ source-repository head
 library
   exposed-modules:
       Test.Syd.Yesod
+      Test.Syd.Yesod.Client
   other-modules:
       Paths_sydtest_yesod
   hs-source-dirs:

@@ -16,6 +16,7 @@ import Control.Monad.State (MonadState, StateT (..), execStateT)
 import qualified Control.Monad.State as State
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
+import qualified Data.ByteString.Builder as SBB
 import qualified Data.ByteString.Lazy as LB
 import Data.CaseInsensitive (CI)
 import Data.Functor.Identity
@@ -83,7 +84,8 @@ data RequestBuilderData site = RequestBuilderData
   { requestBuilderDataMethod :: !Method,
     requestBuilderDataUrl :: !Text,
     requestBuilderDataHeaders :: !HTTP.RequestHeaders,
-    requestBuilderDataPostData :: !PostData
+    requestBuilderDataPostData :: !PostData,
+    requestBuilderDataCookies :: !Cookies
   }
 
 data PostData
@@ -100,7 +102,8 @@ initialRequestBuilderData =
     { requestBuilderDataMethod = "GET",
       requestBuilderDataUrl = "",
       requestBuilderDataHeaders = [],
-      requestBuilderDataPostData = MultipleItemsPostData []
+      requestBuilderDataPostData = MultipleItemsPostData [],
+      requestBuilderDataCookies = []
     }
 
 isFile :: RequestPart -> Bool
@@ -112,12 +115,13 @@ runRequestBuilder :: RequestBuilder site a -> YesodClientM site Request
 runRequestBuilder (RequestBuilder func) = do
   client <- ask
   p <- asks yesodClientSitePort
+  cookies <- State.gets yesodClientStateCookies
   RequestBuilderData {..} <-
     liftIO $
       runReaderT
         ( execStateT
             func
-            initialRequestBuilderData
+            (initialRequestBuilderData {requestBuilderDataCookies = cookies})
         )
         client
   req <- liftIO $ parseRequest $ T.unpack requestBuilderDataUrl
@@ -151,7 +155,12 @@ runRequestBuilder (RequestBuilder func) = do
     req
       { port = p,
         method = requestBuilderDataMethod,
-        requestHeaders = requestBuilderDataHeaders ++ [("Content-Type", cth) | cth <- maybeToList contentTypeHeader],
+        requestHeaders =
+          concat
+            [ requestBuilderDataHeaders,
+              [("Content-Type", cth) | cth <- maybeToList contentTypeHeader],
+              [("Cookie", LB.toStrict $ SBB.toLazyByteString $ renderCookies requestBuilderDataCookies) | not (null requestBuilderDataCookies)]
+            ],
         requestBody = body
       }
 
@@ -267,7 +276,7 @@ performRequest req = do
   State.modify' (\s -> s {yesodClientStateLastResponse = Just resp})
 
 getRequestCookies :: RequestBuilder site Cookies
-getRequestCookies = undefined
+getRequestCookies = State.gets requestBuilderDataCookies
 
 -- | Query the last response using CSS selectors, returns a list of matched fragments
 htmlQuery :: HasCallStack => Query -> YesodExample site [LB.ByteString]

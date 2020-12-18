@@ -17,7 +17,6 @@ import qualified Data.ByteString.Lazy as LB
 import Data.Text (Text)
 import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
-import Web.Cookie as Cookie
 import Yesod.Core as Yesod
 
 -- | A client environment to call a Yesod app.
@@ -34,14 +33,14 @@ data YesodClientState site = YesodClientState
   { -- | The last response received
     yesodClientStateLastResponse :: !(Maybe (Response LB.ByteString)),
     -- | The cookies to pass along
-    yesodClientStateCookies :: !Cookies
+    yesodClientStateCookies :: !CookieJar
   }
 
 initYesodClientState :: YesodClientState site
 initYesodClientState =
   YesodClientState
     { yesodClientStateLastResponse = Nothing,
-      yesodClientStateCookies = []
+      yesodClientStateCookies = createCookieJar []
     }
 
 -- | A monad to call a Yesod app.

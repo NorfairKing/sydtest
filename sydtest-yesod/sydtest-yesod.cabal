@@ -42,6 +42,7 @@ library
     , pretty-show
     , sydtest
     , text
+    , time
     , wai
     , warp
     , yesod-core

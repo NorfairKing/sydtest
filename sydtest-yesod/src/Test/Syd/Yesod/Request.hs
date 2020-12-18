@@ -16,15 +16,16 @@ import Control.Monad.State (MonadState, StateT (..), execStateT)
 import qualified Control.Monad.State as State
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
-import qualified Data.ByteString.Builder as SBB
 import qualified Data.ByteString.Lazy as LB
 import Data.CaseInsensitive (CI)
 import Data.Functor.Identity
+import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Data.Time
 import GHC.Stack
 import Network.HTTP.Client as HTTP
 import Network.HTTP.Client.MultipartFormData
@@ -85,7 +86,7 @@ data RequestBuilderData site = RequestBuilderData
     requestBuilderDataUrl :: !Text,
     requestBuilderDataHeaders :: !HTTP.RequestHeaders,
     requestBuilderDataPostData :: !PostData,
-    requestBuilderDataCookies :: !Cookies
+    requestBuilderDataCookies :: !CookieJar
   }
 
 data PostData
@@ -96,14 +97,14 @@ data RequestPart
   = ReqKvPart Text Text
   | ReqFilePart Text FilePath ByteString (Maybe Text)
 
-initialRequestBuilderData :: RequestBuilderData site
-initialRequestBuilderData =
+initialRequestBuilderData :: CookieJar -> RequestBuilderData site
+initialRequestBuilderData cj =
   RequestBuilderData
     { requestBuilderDataMethod = "GET",
       requestBuilderDataUrl = "",
       requestBuilderDataHeaders = [],
       requestBuilderDataPostData = MultipleItemsPostData [],
-      requestBuilderDataCookies = []
+      requestBuilderDataCookies = cj
     }
 
 isFile :: RequestPart -> Bool
@@ -115,13 +116,13 @@ runRequestBuilder :: RequestBuilder site a -> YesodClientM site Request
 runRequestBuilder (RequestBuilder func) = do
   client <- ask
   p <- asks yesodClientSitePort
-  cookies <- State.gets yesodClientStateCookies
+  cj <- State.gets yesodClientStateCookies
   RequestBuilderData {..} <-
     liftIO $
       runReaderT
         ( execStateT
             func
-            (initialRequestBuilderData {requestBuilderDataCookies = cookies})
+            (initialRequestBuilderData cj)
         )
         client
   req <- liftIO $ parseRequest $ T.unpack requestBuilderDataUrl
@@ -151,18 +152,24 @@ runRequestBuilder (RequestBuilder func) = do
                 Just "application/x-www-form-urlencoded"
               )
         BinaryPostData sb -> (RequestBodyBS sb, Nothing)
-  pure $
-    req
-      { port = p,
-        method = requestBuilderDataMethod,
-        requestHeaders =
-          concat
-            [ requestBuilderDataHeaders,
-              [("Content-Type", cth) | cth <- maybeToList contentTypeHeader],
-              [("Cookie", LB.toStrict $ SBB.toLazyByteString $ renderCookies requestBuilderDataCookies) | not (null requestBuilderDataCookies)]
-            ],
-        requestBody = body
-      }
+  now <- liftIO getCurrentTime
+  let (req', cj') =
+        insertCookiesIntoRequest
+          ( req
+              { port = p,
+                method = requestBuilderDataMethod,
+                requestHeaders =
+                  concat
+                    [ requestBuilderDataHeaders,
+                      [("Content-Type", cth) | cth <- maybeToList contentTypeHeader]
+                    ],
+                requestBody = body
+              }
+          )
+          cj
+          now
+  State.modify' (\s -> s {yesodClientStateCookies = cj'})
+  pure req'
 
 request :: RequestBuilder site a -> YesodClientM site ()
 request rb = do
@@ -254,8 +261,8 @@ addTokenFromCookieNamedToHeaderNamed ::
   RequestBuilder site ()
 addTokenFromCookieNamedToHeaderNamed cookieName headerName = do
   cookies <- getRequestCookies
-  case lookup cookieName cookies of
-    Just csrfCookie -> addRequestHeader (headerName, csrfCookie)
+  case M.lookup cookieName cookies of
+    Just csrfCookie -> addRequestHeader (headerName, setCookieValue csrfCookie)
     Nothing ->
       liftIO $
         expectationFailure $
@@ -273,10 +280,20 @@ performRequest :: Request -> YesodClientM site ()
 performRequest req = do
   man <- asks yesodClientManager
   resp <- liftIO $ httpLbs req man
-  State.modify' (\s -> s {yesodClientStateLastResponse = Just resp})
+  cj <- State.gets yesodClientStateCookies
+  now <- liftIO getCurrentTime
+  let (cj', _) = updateCookieJar resp req now cj
+  State.modify'
+    ( \s ->
+        s
+          { yesodClientStateLastResponse = Just resp,
+            yesodClientStateCookies = cj'
+          }
+    )
 
-getRequestCookies :: RequestBuilder site Cookies
-getRequestCookies = State.gets requestBuilderDataCookies
+-- | For backward compatibiilty, you can use the 'MonadState' constraint to get access to the 'CookieJar' directly.
+getRequestCookies :: RequestBuilder site (Map ByteString Cookie.SetCookie)
+getRequestCookies = undefined
 
 -- | Query the last response using CSS selectors, returns a list of matched fragments
 htmlQuery :: HasCallStack => Query -> YesodExample site [LB.ByteString]

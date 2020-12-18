@@ -6,32 +6,12 @@
 
 module Test.Syd.Yesod.Def where
 
-import qualified Blaze.ByteString.Builder as Builder
-import Control.Monad.Catch
-import Control.Monad.Reader
-import Control.Monad.State (MonadState, StateT (..), evalStateT, execStateT)
-import qualified Control.Monad.State as State
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as SB8
-import qualified Data.ByteString.Lazy as LB
-import qualified Data.ByteString.Lazy.Char8 as LB8
-import Data.CaseInsensitive (CI)
-import qualified Data.CaseInsensitive as CI
-import Data.Map (Map)
-import qualified Data.Map as M
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import GHC.Stack
 import Network.HTTP.Client as HTTP
-import qualified Network.HTTP.Client as HTTP
-import Network.HTTP.Types as HTTP
 import Network.Wai.Handler.Warp as Warp
 import Test.Syd
 import Test.Syd.Yesod.Client
-import Web.Cookie as Cookie
 import Yesod.Core as Yesod
-import Yesod.Core.Unsafe
 
 -- | Run a test suite using the given 'site'.
 --
@@ -68,12 +48,12 @@ yesodSpecWithSiteSupplierWith func = aroundWith func . beforeAll (newManager def
 -- | Turn a function that takes a 'YesodClient site' into a function that only takes a 'site'.
 yesodSpecWithFunc :: YesodDispatch site => (HTTP.Manager -> YesodClient site -> IO ()) -> (HTTP.Manager -> site -> IO ())
 yesodSpecWithFunc func man site =
-  Warp.testWithApplication (Yesod.toWaiAppPlain site) $ \port ->
+  Warp.testWithApplication (Yesod.toWaiAppPlain site) $ \p ->
     let client =
           YesodClient
             { yesodClientManager = man,
               yesodClientSite = site,
-              yesodClientSitePort = port
+              yesodClientSitePort = p
             }
      in func man client
 

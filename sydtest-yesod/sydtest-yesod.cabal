@@ -23,6 +23,7 @@ library
       Test.Syd.Yesod
       Test.Syd.Yesod.Client
       Test.Syd.Yesod.Def
+      Test.Syd.Yesod.Request
   other-modules:
       Paths_sydtest_yesod
   hs-source-dirs:

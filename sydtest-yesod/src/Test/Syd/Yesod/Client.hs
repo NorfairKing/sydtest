@@ -8,31 +8,17 @@
 
 module Test.Syd.Yesod.Client where
 
-import qualified Blaze.ByteString.Builder as Builder
 import Control.Monad.Catch
 import Control.Monad.Reader
-import Control.Monad.State (MonadState, StateT (..), evalStateT, execStateT)
+import Control.Monad.State
 import qualified Control.Monad.State as State
-import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.ByteString.Lazy as LB
-import qualified Data.ByteString.Lazy.Char8 as LB8
-import Data.CaseInsensitive (CI)
-import qualified Data.CaseInsensitive as CI
-import Data.Map (Map)
-import qualified Data.Map as M
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
-import GHC.Stack
 import Network.HTTP.Client as HTTP
-import qualified Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
-import Network.Wai.Handler.Warp as Warp
-import Test.Syd
 import Web.Cookie as Cookie
 import Yesod.Core as Yesod
-import Yesod.Core.Unsafe
 
 -- | A client environment to call a Yesod app.
 data YesodClient site = YesodClient
@@ -92,11 +78,11 @@ getLocation = do
     Nothing -> return $ Left "getLocation called, but there was no previous response, so no Location header"
     Just r -> case lookup "Location" (responseHeaders r) of
       Nothing -> return $ Left "getLocation called, but the previous response has no Location header"
-      Just h -> case parseRoute $ decodePath h of
+      Just h -> case parseRoute $ decodePath' h of
         Nothing -> return $ Left "getLocation called, but couldn’t parse it into a route"
         Just l -> return $ Right l
   where
-    decodePath b =
+    decodePath' b =
       let (x, y) = SB8.break (== '?') b
        in (HTTP.decodePathSegments x, unJust <$> HTTP.parseQueryText y)
     unJust (a, Just b) = (a, b)

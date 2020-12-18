@@ -52,6 +52,7 @@ This project chooses best practices as defaults:
 | Assertion-specific output with explanation                                                | ✔️       | ✔️                                                           | ?                                                                |
 | Coloured diffing                                                                          | ✔️       | ✔️                                                           | ✖️                                                                |
 | multi-line diffing                                                                        | ✔️       | ✖️                                                           | ✖️                                                                |
+| Contextual failures                                                                       | ✔️       | ✖️                                                           | ✖️                                                                |
 | Inter-test progress output during test suite execution                                    | ✔️       | ✔️                                                           | ?                                                                |
 | Intra-test progress output during test suite execution                                    | 🚧      | ✔️                                                           | ?                                                                |
 | Optional standard output and standard error suppression [2]                               | ✖️       | ✖️                                                           | ✖️                                                                |
@@ -294,6 +295,13 @@ The `sydtest` framework knows about these and shows nice output when they fail.
 When two values are expected to be equal, the differences are shown in colour, across multiple lines, in linear time.
 
 ![Multi-line coloured diffing](assets/coloured-diff.png)
+
+### Contextual failures
+
+When a test fails, the failure can contain a context.
+This way you can see a nice diff, but also any additional data that you may want to see.
+
+![Contextual Failures](assets/contextual-failures.png)
 
 ### Inter-test progress output during test suite execution
 

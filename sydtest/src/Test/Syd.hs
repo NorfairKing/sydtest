@@ -49,11 +49,17 @@ module Test.Syd
 
     -- ** Expectations
     shouldBe,
+    shouldBeWith,
     shouldNotBe,
+    shouldNotBeWith,
     shouldSatisfy,
+    shouldSatisfyWith,
     shouldNotSatisfy,
+    shouldNotSatisfyWith,
     shouldReturn,
+    shouldReturnWith,
     shouldNotReturn,
+    shouldNotReturnWith,
 
     -- ** Declaring test dependencies
 

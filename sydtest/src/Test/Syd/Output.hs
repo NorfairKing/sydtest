@@ -208,8 +208,8 @@ outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =
   let failures = filter testFailed $ flattenSpecForest rf
       nbDigitsInFailureCount :: Int
-      nbDigitsInFailureCount = ceiling (logBase 10 (genericLength failures) :: Double)
-      pad = (chunk (T.pack (replicate (nbDigitsInFailureCount + 3) ' ')) :)
+      nbDigitsInFailureCount = floor (logBase 10 (genericLength failures) :: Double)
+      pad = (chunk (T.pack (replicate (nbDigitsInFailureCount + 4) ' ')) :)
       padFailureDetails = (chunk (T.pack (replicate (1 + nbDigitsInFailureCount + 3) ' ')) :)
    in map (padding :) $
         filter (not . null) $
@@ -245,23 +245,19 @@ outputFailures rf =
                   map pad $
                     case testRunResultException of
                       Nothing -> []
-                      Just (Left s) ->
-                        let ls = lines s
-                         in map ((: []) . chunk . T.pack) ls
+                      Just (Left s) -> stringChunks s
                       Just (Right a) -> case a of
-                        NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
-                        EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
-                        PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
-                        PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual
-                        ExpectationFailed s ->
-                          let ls = lines s
-                           in map ((: []) . chunk . T.pack) ls,
+                        NotEqualButShouldHaveBeenEqual actual expected mContext -> outputEqualityAssertionFailed actual expected mContext
+                        EqualButShouldNotHaveBeenEqual actual notExpected mContext -> outputNotEqualAssertionFailed actual notExpected mContext
+                        PredicateFailedButShouldHaveSucceeded actual mContext -> outputPredicateSuccessAssertionFailed actual mContext
+                        PredicateSucceededButShouldHaveFailed actual mContext -> outputPredicateFailAssertionFailed actual mContext
+                        ExpectationFailed s -> stringChunks s,
                   [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
                   [[chunk ""]]
                 ]
 
-outputEqualityAssertionFailed :: String -> String -> [[Chunk]]
-outputEqualityAssertionFailed actual expected =
+outputEqualityAssertionFailed :: String -> String -> Maybe String -> [[Chunk]]
+outputEqualityAssertionFailed actual expected mContext =
   let diff = getDiff actual expected
       splitLines = splitWhen ((== "\n") . _yarn)
       actualChunks = splitLines $
@@ -281,33 +277,46 @@ outputEqualityAssertionFailed actual expected =
    in concat
         [ [[chunk "Expected these values to be equal:"]],
           chunksLinesWithHeader (fore blue "Actual:   ") actualChunks,
-          chunksLinesWithHeader (fore blue "Expected: ") expectedChunks
+          chunksLinesWithHeader (fore blue "Expected: ") expectedChunks,
+          mContextChunks mContext
         ]
 
-outputNotEqualAssertionFailed :: String -> String -> [[Chunk]]
-outputNotEqualAssertionFailed actual notExpected =
-  if actual == notExpected -- String equality
-    then
-      [ [chunk "Did not expect equality of this value:"],
-        [chunk (T.pack actual)]
-      ]
-    else
-      [ [chunk "These two values were considered equal but should not have been equal:"],
-        [fore blue "Actual      : ", chunk (T.pack actual)],
-        [fore blue "Not Expected: ", chunk (T.pack notExpected)]
-      ]
+outputNotEqualAssertionFailed :: String -> String -> Maybe String -> [[Chunk]]
+outputNotEqualAssertionFailed actual notExpected mContext =
+  ( if actual == notExpected -- String equality
+      then
+        [ [chunk "Did not expect equality of the values but both were:"],
+          [chunk (T.pack actual)]
+        ]
+      else
+        [ [chunk "These two values were considered equal but should not have been equal:"],
+          [fore blue "Actual      : ", chunk (T.pack actual)],
+          [fore blue "Not Expected: ", chunk (T.pack notExpected)]
+        ]
+  )
+    ++ mContextChunks mContext
 
-outputPredicateSuccessAssertionFailed :: String -> [[Chunk]]
-outputPredicateSuccessAssertionFailed actual =
+outputPredicateSuccessAssertionFailed :: String -> Maybe String -> [[Chunk]]
+outputPredicateSuccessAssertionFailed actual mContext =
   [ [chunk "Predicate failed, but should have succeeded, on this value:"],
     [chunk (T.pack actual)]
   ]
+    ++ mContextChunks mContext
 
-outputPredicateFailAssertionFailed :: String -> [[Chunk]]
-outputPredicateFailAssertionFailed actual =
+outputPredicateFailAssertionFailed :: String -> Maybe String -> [[Chunk]]
+outputPredicateFailAssertionFailed actual mContext =
   [ [chunk "Predicate succeeded, but should have failed, on this value:"],
     [chunk (T.pack actual)]
   ]
+    ++ mContextChunks mContext
+
+mContextChunks :: Maybe String -> [[Chunk]]
+mContextChunks = maybe [] stringChunks
+
+stringChunks :: String -> [[Chunk]]
+stringChunks s =
+  let ls = lines s
+   in map ((: []) . chunk . T.pack) ls
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls

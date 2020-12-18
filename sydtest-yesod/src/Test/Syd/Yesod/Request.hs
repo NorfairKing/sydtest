@@ -55,15 +55,11 @@ statusIs i = do
     Nothing -> expectationFailure "No request made yet."
     Just r ->
       let c = statusCode (responseStatus r)
-       in unless (c == i) $
-            expectationFailure $
-              unlines
-                [ "Incorrect status code",
-                  "actual:   " <> show c,
-                  "expected: " <> show c,
-                  "full response:",
-                  ppShow r
-                ]
+       in shouldBeWith c i $
+            unlines
+              [ "full response:",
+                ppShow r
+              ]
 
 newtype RequestBuilder site a = RequestBuilder
   { unRequestBuilder ::

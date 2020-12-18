@@ -228,7 +228,9 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
               then do
                 goldenTestWrite actual
                 pure (TestPassed, Just GoldenReset, Nothing)
-              else pure (TestFailed, Nothing, Just $ Right $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow golden))
+              else
+                pure
+                  (TestFailed, Nothing, Just $ Right $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow golden) Nothing)
   let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
         Left e -> (TestFailed, Nothing, Just e)
         Right trip -> trip
@@ -284,10 +286,10 @@ data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
 
 data Assertion
-  = NotEqualButShouldHaveBeenEqual String String
-  | EqualButShouldNotHaveBeenEqual String String
-  | PredicateSucceededButShouldHaveFailed String
-  | PredicateFailedButShouldHaveSucceeded String
+  = NotEqualButShouldHaveBeenEqual String String (Maybe String)
+  | EqualButShouldNotHaveBeenEqual String String (Maybe String)
+  | PredicateSucceededButShouldHaveFailed String (Maybe String)
+  | PredicateFailedButShouldHaveSucceeded String (Maybe String)
   | ExpectationFailed String
   deriving (Show, Eq, Typeable, Generic)
 

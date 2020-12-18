@@ -22,6 +22,7 @@ library
   exposed-modules:
       Test.Syd.Yesod
       Test.Syd.Yesod.Client
+      Test.Syd.Yesod.Def
   other-modules:
       Paths_sydtest_yesod
   hs-source-dirs:

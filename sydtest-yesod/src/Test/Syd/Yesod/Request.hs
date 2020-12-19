@@ -246,7 +246,7 @@ setRequestBody :: ByteString -> RequestBuilder site ()
 setRequestBody body = State.modify' $ \r -> r {requestBuilderDataPostData = BinaryPostData body}
 
 -- | Look up the CSRF token from the given form data and add it to the request header
-addToken_ :: HasCallStack => Query -> RequestBuilder site ()
+addToken_ :: HasCallStack => HTTP.Query -> RequestBuilder site ()
 addToken_ = undefined
 
 -- | Look up the CSRF token from the only form data and add it to the request header
@@ -298,8 +298,18 @@ performRequest req = do
     )
 
 -- | For backward compatibiilty, you can use the 'MonadState' constraint to get access to the 'CookieJar' directly.
-getRequestCookies :: RequestBuilder site (Map ByteString Cookie.SetCookie)
-getRequestCookies = undefined
+getRequestCookies :: RequestBuilder site (Map ByteString SetCookie)
+getRequestCookies = do
+  cj <- State.gets requestBuilderDataCookies
+  pure $
+    M.fromList $
+      flip map (destroyCookieJar cj) $ \Cookie {..} ->
+        ( cookie_name,
+          defaultSetCookie
+            { setCookieName = cookie_name,
+              setCookieValue = cookie_value
+            }
+        )
 
 -- | Query the last response using CSS selectors, returns a list of matched fragments
 htmlQuery :: HasCallStack => Query -> YesodExample site [LB.ByteString]

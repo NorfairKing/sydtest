@@ -71,4 +71,5 @@ test-suite sydtest-yesod-test
     , sydtest-yesod
     , text
     , yesod
+    , yesod-form
   default-language: Haskell2010

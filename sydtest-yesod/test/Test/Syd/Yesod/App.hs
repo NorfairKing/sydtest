@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -16,6 +17,7 @@ data App = App
 mkYesod
   "App"
   [parseRoutes|
+
     / HomeR GET POST
 
     /expects-header ExpectsHeaderR GET
@@ -26,9 +28,14 @@ mkYesod
 
     /set-cookie SetCookieR GET
     /expects-cookie ExpectsCookieR GET
+
+    /form FormR GET POST
 |]
 
 instance Yesod App
+
+instance RenderMessage App FormMessage where
+  renderMessage _ _ = defaultFormMessage
 
 getHomeR :: Handler Html
 getHomeR = pure "Hello, world! (GET)"
@@ -84,3 +91,18 @@ getExpectsCookieR = do
   case mc of
     Nothing -> notFound
     Just _ -> pure ()
+
+getFormR :: Handler Html
+getFormR = do
+  (widget, enctype) <- generateFormPost $ renderDivs $ areq textField "testKey" Nothing
+  defaultLayout
+    [whamlet|
+        <form method=post action=@{FormR} enctype=#{enctype}>
+            ^{widget}
+            <button>Submit
+            |]
+
+postFormR :: Handler ()
+postFormR = do
+  tv <- runInputPost $ ireq textField "testKey"
+  unless (tv == "testVal") $ invalidArgs ["incorrect value"]

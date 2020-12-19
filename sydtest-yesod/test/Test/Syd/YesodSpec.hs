@@ -64,3 +64,12 @@ spec = yesodSpec App $ do
     statusIs 200
     get ExpectsCookieR
     statusIs 200
+  yit "can do forms" $ do
+    get FormR
+    statusIs 200
+    request $ do
+      setUrl FormR
+      setMethod "POST"
+      addToken
+      addPostParam "testKey" "testVal"
+    statusIs 200

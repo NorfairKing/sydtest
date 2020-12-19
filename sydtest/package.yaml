@@ -66,3 +66,4 @@ tests:
     - path-io
     - rainbow
     - sydtest
+    - text

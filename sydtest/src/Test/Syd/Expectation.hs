@@ -5,6 +5,8 @@ module Test.Syd.Expectation where
 
 import Control.Exception
 import Control.Monad.Reader
+import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.Run
@@ -77,6 +79,22 @@ shouldNotReturnWith :: (HasCallStack, Show a, Eq a) => IO a -> a -> String -> IO
 shouldNotReturnWith computeActual expected context = do
   actual <- computeActual
   unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected) (Just context)
+
+-- | Assert that two 'String's are equal according to `==`.
+stringShouldBe :: HasCallStack => String -> String -> IO ()
+stringShouldBe actual expected = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual actual expected Nothing
+
+-- | Assert that two 'String's are equal according to `==`, with a context.
+stringShouldBeWith :: HasCallStack => String -> String -> String -> IO ()
+stringShouldBeWith actual expected context = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual actual expected (Just context)
+
+-- | Assert that two 'Text's are equal according to `==`.
+textShouldBe :: HasCallStack => Text -> Text -> IO ()
+textShouldBe actual expected = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual (T.unpack actual) (T.unpack expected) Nothing
+
+-- | Assert that two 'Text's are equal according to `==`, with a context.
+textShouldBeWith :: HasCallStack => Text -> Text -> String -> IO ()
+textShouldBeWith actual expected context = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual (T.unpack actual) (T.unpack expected) (Just context)
 
 -- | Make a test fail
 --

@@ -61,6 +61,12 @@ module Test.Syd
     shouldNotReturn,
     shouldNotReturnWith,
 
+    -- *** String expectations
+    stringShouldBe,
+    stringShouldBeWith,
+    textShouldBe,
+    textShouldBeWith,
+
     -- ** Declaring test dependencies
 
     -- *** Dependencies around all of a group of tests

@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields -fno-warn-missing-methods -fno-warn-partial-fields -fno-warn-incomplete-uni-patterns -fno-warn-incomplete-record-updates #-}
 
@@ -7,9 +8,11 @@ module Main where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import Data.List
+import Data.Text (Text)
 import Path
 import Path.IO
 import Rainbow
@@ -62,7 +65,7 @@ spec = do
     it "NoMethodError" (throw (NoMethodError "test") :: IO ())
     exceptionTest "Pattern matching error" $ toUnit (5 :: Int)
   describe "Printing" $ do
-    it "print" $ print "hi"
+    it "print" $ print 'a'
     it "putStrLn" $ putStrLn "hi"
   modifyMaxSuccess (`div` 10) $
     modifyMaxSize (`div` 1) $
@@ -92,9 +95,9 @@ spec = do
           threadDelay 100_000
   describe "Diff" $ do
     it "shows nice multi-line diffs" $
-      ("foo", replicate 7 "quux", "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")
+      ("foo", replicate 7 "quux", "bar") `shouldBe` (("foofoo", replicate 6 "quux", "baz") :: (String, [String], String))
     it "shows nice multi-line diffs" $
-      ("foo", [], "bar") `shouldBe` ("foofoo", replicate 6 "quux", "baz")
+      ("foo", [], "bar") `shouldBe` (("foofoo", replicate 6 "quux", "baz") :: (String, [String], String))
   describe "assertions" $ do
     it "shouldBe" $ 3 `shouldBe` (4 :: Int)
     it "shouldNotBe" $ 3 `shouldNotBe` (3 :: Int)
@@ -191,6 +194,12 @@ spec = do
             it "does not kill the test suite" $ \() ->
               pure () :: IO ()
   it "expectationFailure" (expectationFailure "fails" :: IO ())
+  describe "String" $ do
+    it "compares strings" $ ("foo\nbar\tquux " :: String) `shouldBe` "foq\nbaz\tqex"
+    it "compares strings" $ ("foo\nbar\tquux " :: String) `stringShouldBe` "foq\nbaz\tqex"
+    it "compares texts" $ ("foo\nbar\tquux " :: Text) `shouldBe` "foq\nbaz\tqex"
+    it "compares texts" $ ("foo\nbar\tquux " :: Text) `textShouldBe` "foq\nbaz\tqex"
+    it "compares bytestrings" $ ("foo\nbar\tquux " :: ByteString) `shouldBe` "foq\nbaz\tqex"
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

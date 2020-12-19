@@ -8,6 +8,7 @@ module Test.Syd.Yesod.App where
 import Conduit
 import Control.Monad
 import qualified Data.ByteString as SB
+import Web.Cookie
 import Yesod
 
 data App = App
@@ -22,6 +23,9 @@ mkYesod
     /expects-post-param ExpectsPostParamR POST
     /expects-post-body ExpectsPostBodyR   POST
     /expects-post-file ExpectsPostFileR   POST
+
+    /set-cookie SetCookieR GET
+    /expects-cookie ExpectsCookieR GET
 |]
 
 instance Yesod App
@@ -32,37 +36,37 @@ getHomeR = pure "Hello, world! (GET)"
 postHomeR :: Handler Html
 postHomeR = pure "Hello, world! (POST)"
 
-getExpectsHeaderR :: Handler Html
+getExpectsHeaderR :: Handler ()
 getExpectsHeaderR = do
   mh <- lookupHeader "TEST_HEADER"
   case mh of
     Nothing -> notFound
-    Just _ -> pure "ok!"
+    Just _ -> pure ()
 
-getExpectsGetParamR :: Handler Html
+getExpectsGetParamR :: Handler ()
 getExpectsGetParamR = do
   mh <- lookupGetParam "TEST_PARAM"
   case mh of
     Nothing -> notFound
-    Just _ -> pure "ok!"
+    Just _ -> pure ()
 
-postExpectsPostParamR :: Handler Html
+postExpectsPostParamR :: Handler ()
 postExpectsPostParamR = do
   mh <- lookupPostParam "TEST_PARAM"
   case mh of
     Nothing -> notFound
-    Just _ -> pure "ok!"
+    Just _ -> pure ()
 
-postExpectsPostBodyR :: Handler Html
+postExpectsPostBodyR :: Handler ()
 postExpectsPostBodyR = do
   body <- SB.concat <$> runConduit (rawRequestBody .| sinkList)
   case body of
-    "test" -> pure "ok!"
+    "test" -> pure ()
     _ -> notFound
 
-postExpectsPostFileR :: Handler Html
+postExpectsPostFileR :: Handler ()
 postExpectsPostFileR = do
-  mh <- lookupFile "TEST_HEADER"
+  mh <- lookupFile "TEST_PARAM"
   case mh of
     Nothing -> notFound
     Just fi -> do
@@ -70,4 +74,13 @@ postExpectsPostFileR = do
       unless (fileContentType fi == "text/plain") $ invalidArgs ["incorrect content type"]
       contents <- runResourceT $ fileSourceByteString fi
       unless (contents == "test") $ invalidArgs ["incorrect body"]
-      pure "ok!"
+
+getSetCookieR :: Handler ()
+getSetCookieR = setCookie (defaultSetCookie {setCookieName = "TEST_COOKIE"})
+
+getExpectsCookieR :: Handler ()
+getExpectsCookieR = do
+  mc <- lookupCookie "TEST_COOKIE"
+  case mc of
+    Nothing -> notFound
+    Just _ -> pure ()

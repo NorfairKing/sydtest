@@ -64,6 +64,7 @@ test-suite sydtest-yesod-test
       base >=4.7 && <5
     , bytestring
     , conduit
+    , cookie
     , http-types
     , resourcet
     , sydtest

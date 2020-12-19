@@ -57,5 +57,10 @@ spec = yesodSpec App $ do
     request $ do
       setUrl ExpectsPostFileR
       setMethod "POST"
-      addFileWith "TEST_HEADER" "filename" "test" (Just "text/plain")
+      addFileWith "TEST_PARAM" "filename" "test" (Just "text/plain")
+    statusIs 200
+  yit "retains cookies" $ do
+    get SetCookieR
+    statusIs 200
+    get ExpectsCookieR
     statusIs 200

@@ -41,9 +41,11 @@ tests:
     dependencies:
     - bytestring
     - conduit
+    - cookie
     - http-types
     - resourcet
     - sydtest
     - sydtest-yesod
     - text
     - yesod
+    - yesod-form

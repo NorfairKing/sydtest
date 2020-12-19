@@ -94,18 +94,12 @@ outputStats (Timed TestSuiteStats {..} timing) =
                   longestTimeSeconds = fromIntegral longest / 1_000_000_000
                   longestTimePercentage :: Double
                   longestTimePercentage = 100 * longestTimeSeconds / totalTimeSeconds
-                  withLongestTimePercentageColour =
-                    if
-                        | longestTimePercentage < 20 -> fore yellow
-                        | longestTimePercentage < 35 -> fore orange
-                        | longestTimePercentage < 50 -> fore red
-                        | otherwise -> fore darkRed
                in concat
                     [ [ chunk "Longest test took",
                         fore yellow $ chunk $ T.pack (printf "%13.2f seconds" longestTimeSeconds)
                       ],
-                      [ withLongestTimePercentageColour $ chunk $ T.pack (printf ", which is %.2f%% of total runtime" longestTimePercentage)
-                        | longestTimePercentage > 10
+                      [ chunk $ T.pack (printf ", which is %.2f%% of total runtime" longestTimePercentage)
+                        | longestTimePercentage > 50
                       ]
                     ]
               | longest <- maybeToList testSuiteStatLongestTime

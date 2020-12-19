@@ -79,7 +79,10 @@ shouldNotReturnWith computeActual expected context = do
   unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected) (Just context)
 
 -- | Make a test fail
-expectationFailure :: String -> IO ()
+--
+-- Note that this is mostly backward compatible, but it has return type 'a' instead of '()' because execution will not continue beyond this function.
+-- In this way it is not entirely backward compatible with hspec because now there could be an ambiguous type error.
+expectationFailure :: String -> IO a
 expectationFailure = throwIO . ExpectationFailed
 
 -- | For easy hspec migration

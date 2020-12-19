@@ -33,9 +33,12 @@ import Network.HTTP.Types as HTTP
 import Test.Syd
 import Test.Syd.Yesod.Client
 import Text.Show.Pretty
+import qualified Text.XML.Cursor as C
 import Web.Cookie as Cookie
 import Yesod.Core as Yesod
 import Yesod.Core.Unsafe
+import qualified Yesod.Test as YesodTest
+import Yesod.Test.TransversingCSS as CSS
 
 -- | Make a @GET@ request for the given route
 get :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
@@ -69,7 +72,7 @@ newtype RequestBuilder site a = RequestBuilder
   { unRequestBuilder ::
       StateT
         (RequestBuilderData site)
-        (ReaderT (YesodClient site) IO)
+        (YesodClientM site)
         a
   }
   deriving
@@ -83,13 +86,15 @@ newtype RequestBuilder site a = RequestBuilder
       MonadThrow
     )
 
+liftClient :: YesodClientM site a -> RequestBuilder site a
+liftClient = RequestBuilder . lift
+
 data RequestBuilderData site = RequestBuilderData
   { requestBuilderDataMethod :: !Method,
     requestBuilderDataUrl :: !Text,
     requestBuilderDataHeaders :: !HTTP.RequestHeaders,
     requestBuilderDataGetParams :: !HTTP.Query,
-    requestBuilderDataPostData :: !PostData,
-    requestBuilderDataCookies :: !CookieJar
+    requestBuilderDataPostData :: !PostData
   }
 
 data PostData
@@ -100,15 +105,14 @@ data RequestPart
   = ReqKvPart Text Text
   | ReqFilePart Text FilePath ByteString (Maybe Text)
 
-initialRequestBuilderData :: CookieJar -> RequestBuilderData site
-initialRequestBuilderData cj =
+initialRequestBuilderData :: RequestBuilderData site
+initialRequestBuilderData =
   RequestBuilderData
     { requestBuilderDataMethod = "GET",
       requestBuilderDataUrl = "",
       requestBuilderDataHeaders = [],
       requestBuilderDataGetParams = [],
-      requestBuilderDataPostData = MultipleItemsPostData [],
-      requestBuilderDataCookies = cj
+      requestBuilderDataPostData = MultipleItemsPostData []
     }
 
 isFile :: RequestPart -> Bool
@@ -118,17 +122,9 @@ isFile = \case
 
 runRequestBuilder :: RequestBuilder site a -> YesodClientM site Request
 runRequestBuilder (RequestBuilder func) = do
-  client <- ask
   p <- asks yesodClientSitePort
   cj <- State.gets yesodClientStateCookies
-  RequestBuilderData {..} <-
-    liftIO $
-      runReaderT
-        ( execStateT
-            func
-            (initialRequestBuilderData cj)
-        )
-        client
+  RequestBuilderData {..} <- execStateT func initialRequestBuilderData
   req <- liftIO $ parseRequest $ T.unpack requestBuilderDataUrl
   boundary <- liftIO webkitBoundary
   let (body, contentTypeHeader) = case requestBuilderDataPostData of
@@ -247,7 +243,12 @@ setRequestBody body = State.modify' $ \r -> r {requestBuilderDataPostData = Bina
 
 -- | Look up the CSRF token from the given form data and add it to the request header
 addToken_ :: HasCallStack => Text -> RequestBuilder site ()
-addToken_ = undefined
+addToken_ scope = do
+  matches <- liftClient $ htmlQuery $ scope <> " input[name=_token][type=hidden][value]"
+  case matches of
+    [] -> liftIO $ expectationFailure "No CSRF token found in the current page"
+    [element] -> addPostParam "_token" $ head $ C.attribute "value" $ YesodTest.parseHTML element
+    _ -> liftIO $ expectationFailure "More than one CSRF token found in the page"
 
 -- | Look up the CSRF token from the only form data and add it to the request header
 addToken :: HasCallStack => RequestBuilder site ()
@@ -300,7 +301,7 @@ performRequest req = do
 -- | For backward compatibiilty, you can use the 'MonadState' constraint to get access to the 'CookieJar' directly.
 getRequestCookies :: RequestBuilder site (Map ByteString SetCookie)
 getRequestCookies = do
-  cj <- State.gets requestBuilderDataCookies
+  cj <- liftClient $ State.gets yesodClientStateCookies
   pure $
     M.fromList $
       flip map (destroyCookieJar cj) $ \Cookie {..} ->
@@ -312,5 +313,11 @@ getRequestCookies = do
         )
 
 -- | Query the last response using CSS selectors, returns a list of matched fragments
-htmlQuery :: HasCallStack => Query -> YesodExample site [LB.ByteString]
-htmlQuery = undefined
+htmlQuery :: HasCallStack => CSS.Query -> YesodExample site [CSS.HtmlLBS]
+htmlQuery query = do
+  mResp <- getResponse
+  case mResp of
+    Nothing -> liftIO $ expectationFailure "No request made yet."
+    Just resp -> case CSS.findBySelector (responseBody resp) query of
+      Left err -> liftIO $ expectationFailure $ show query <> " did not parse: " <> show err
+      Right matches -> pure $ map (LB.fromStrict . TE.encodeUtf8 . T.pack) matches

@@ -27,7 +27,9 @@ library:
     - time
     - wai
     - warp
+    - xml-conduit
     - yesod-core
+    - yesod-test
 
 tests:
   sydtest-yesod-test:

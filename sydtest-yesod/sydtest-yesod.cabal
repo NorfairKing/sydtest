@@ -45,7 +45,9 @@ library
     , time
     , wai
     , warp
+    , xml-conduit
     , yesod-core
+    , yesod-test
   default-language: Haskell2010
 
 test-suite sydtest-yesod-test

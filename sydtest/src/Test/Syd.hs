@@ -67,6 +67,12 @@ module Test.Syd
     textShouldBe,
     textShouldBeWith,
 
+    -- *** For throwing raw assertions
+    stringsNotEqualButShouldHaveBeenEqual,
+    textsNotEqualButShouldHaveBeenEqual,
+    bytestringsNotEqualButShouldHaveBeenEqual,
+    Assertion (..),
+
     -- ** Declaring test dependencies
 
     -- *** Dependencies around all of a group of tests
@@ -136,7 +142,8 @@ module Test.Syd
     SpecWith,
     SpecM,
 
-    -- * Defining tests
+    -- * Utilities
+    ppShow,
 
     -- * Reexports
     module Test.Syd.Def,
@@ -166,6 +173,7 @@ import Test.Syd.Run
 import Test.Syd.Runner
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
+import Text.Show.Pretty (ppShow)
 
 -- | Evaluate a test suite definition and then run it, with default 'Settings'
 sydTest :: Spec -> IO ()

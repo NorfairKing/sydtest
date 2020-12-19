@@ -33,7 +33,6 @@ import Network.HTTP.Client.MultipartFormData
 import Network.HTTP.Types as HTTP
 import Test.Syd
 import Test.Syd.Yesod.Client
-import Text.Show.Pretty
 import qualified Text.XML.Cursor as C
 import Web.Cookie as Cookie
 import Yesod.Core as Yesod

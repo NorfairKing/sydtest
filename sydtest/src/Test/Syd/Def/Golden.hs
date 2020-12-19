@@ -7,6 +7,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Path
 import Path.IO
+import Test.Syd.Expectation
 import Test.Syd.Run
 import Text.Show.Pretty
 
@@ -26,7 +27,10 @@ goldenByteStringFile fp produceBS =
         resolvedFile <- resolveFile' fp
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) actual,
-      goldenTestCompare = (==)
+      goldenTestCompare = \actual expected ->
+        if actual == expected
+          then Nothing
+          else Just $ bytestringsNotEqualButShouldHaveBeenEqual actual expected (Just fp)
     }
 
 -- | Test that the given text is the same as what we find in the given golden file.
@@ -45,7 +49,10 @@ goldenTextFile fp produceBS =
         resolvedFile <- resolveFile' fp
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) (TE.encodeUtf8 actual),
-      goldenTestCompare = (==)
+      goldenTestCompare = \actual expected ->
+        if actual == expected
+          then Nothing
+          else Just $ textsNotEqualButShouldHaveBeenEqual actual expected (Just fp)
     }
 
 -- | Test that the given string is the same as what we find in the given golden file.
@@ -64,7 +71,10 @@ goldenStringFile fp produceBS =
         resolvedFile <- resolveFile' fp
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) (TE.encodeUtf8 (T.pack actual)),
-      goldenTestCompare = (==)
+      goldenTestCompare = \actual expected ->
+        if actual == expected
+          then Nothing
+          else Just $ stringsNotEqualButShouldHaveBeenEqual actual expected (Just fp)
     }
 
 -- | Test that the show instance has not changed for the given value.

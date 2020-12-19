@@ -5,6 +5,7 @@ module Test.Syd.Expectation where
 
 import Control.Exception
 import Control.Monad.Reader
+import Data.ByteString (ByteString)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Stack
@@ -82,19 +83,31 @@ shouldNotReturnWith computeActual expected context = do
 
 -- | Assert that two 'String's are equal according to `==`.
 stringShouldBe :: HasCallStack => String -> String -> IO ()
-stringShouldBe actual expected = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual actual expected Nothing
+stringShouldBe actual expected = unless (actual == expected) $ throwIO $ stringsNotEqualButShouldHaveBeenEqual actual expected Nothing
 
 -- | Assert that two 'String's are equal according to `==`, with a context.
 stringShouldBeWith :: HasCallStack => String -> String -> String -> IO ()
-stringShouldBeWith actual expected context = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual actual expected (Just context)
+stringShouldBeWith actual expected context = unless (actual == expected) $ throwIO $ stringsNotEqualButShouldHaveBeenEqual actual expected (Just context)
 
 -- | Assert that two 'Text's are equal according to `==`.
 textShouldBe :: HasCallStack => Text -> Text -> IO ()
-textShouldBe actual expected = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual (T.unpack actual) (T.unpack expected) Nothing
+textShouldBe actual expected = unless (actual == expected) $ throwIO $ textsNotEqualButShouldHaveBeenEqual actual expected Nothing
 
 -- | Assert that two 'Text's are equal according to `==`, with a context.
 textShouldBeWith :: HasCallStack => Text -> Text -> String -> IO ()
 textShouldBeWith actual expected context = unless (actual == expected) $ throwIO $ NotEqualButShouldHaveBeenEqual (T.unpack actual) (T.unpack expected) (Just context)
+
+-- | An assertion that says two 'String's should have been equal according to `==`.
+stringsNotEqualButShouldHaveBeenEqual :: String -> String -> Maybe String -> Assertion
+stringsNotEqualButShouldHaveBeenEqual actual expected mContext = NotEqualButShouldHaveBeenEqual actual expected mContext
+
+-- | An assertion that says two 'Text's should have been equal according to `==`.
+textsNotEqualButShouldHaveBeenEqual :: Text -> Text -> Maybe String -> Assertion
+textsNotEqualButShouldHaveBeenEqual actual expected mContext = NotEqualButShouldHaveBeenEqual (T.unpack actual) (T.unpack expected) mContext
+
+-- | An assertion that says two 'ByteString's should have been equal according to `==`.
+bytestringsNotEqualButShouldHaveBeenEqual :: ByteString -> ByteString -> Maybe String -> Assertion
+bytestringsNotEqualButShouldHaveBeenEqual actual expected mContext = NotEqualButShouldHaveBeenEqual (show actual) (show expected) mContext
 
 -- | Make a test fail
 --

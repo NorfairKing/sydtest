@@ -20,7 +20,6 @@ import GHC.Generics (Generic)
 import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.QuickCheck.Random
-import Text.Show.Pretty
 
 class IsTest e where
   type Arg1 e
@@ -168,41 +167,40 @@ data GoldenTest a = GoldenTest
   { goldenTestRead :: IO (Maybe a),
     goldenTestProduce :: IO a,
     goldenTestWrite :: a -> IO (),
-    goldenTestCompare :: a -> a -> Bool
+    goldenTestCompare :: a -> a -> Maybe Assertion
   }
 
-instance Show a => IsTest (GoldenTest a) where
+instance IsTest (GoldenTest a) where
   type Arg1 (GoldenTest a) = ()
   type Arg2 (GoldenTest a) = ()
   runTest gt = runTest (\() () -> gt)
 
-instance Show a => IsTest (arg -> GoldenTest a) where
+instance IsTest (arg -> GoldenTest a) where
   type Arg1 (arg -> GoldenTest a) = ()
   type Arg2 (arg -> GoldenTest a) = arg
   runTest gt = runTest (\() -> gt)
 
-instance Show a => IsTest (outerArgs -> innerArg -> GoldenTest a) where
+instance IsTest (outerArgs -> innerArg -> GoldenTest a) where
   type Arg1 (outerArgs -> innerArg -> GoldenTest a) = outerArgs
   type Arg2 (outerArgs -> innerArg -> GoldenTest a) = innerArg
   runTest func = runTest (\outerArgs innerArg -> pure (func outerArgs innerArg) :: IO (GoldenTest a))
 
-instance Show a => IsTest (IO (GoldenTest a)) where
+instance IsTest (IO (GoldenTest a)) where
   type Arg1 (IO (GoldenTest a)) = ()
   type Arg2 (IO (GoldenTest a)) = ()
   runTest func = runTest (\() () -> func)
 
-instance Show a => IsTest (arg -> IO (GoldenTest a)) where
+instance IsTest (arg -> IO (GoldenTest a)) where
   type Arg1 (arg -> IO (GoldenTest a)) = ()
   type Arg2 (arg -> IO (GoldenTest a)) = arg
   runTest func = runTest (\() -> func)
 
-instance Show a => IsTest (outerArgs -> innerArg -> IO (GoldenTest a)) where
+instance IsTest (outerArgs -> innerArg -> IO (GoldenTest a)) where
   type Arg1 (outerArgs -> innerArg -> IO (GoldenTest a)) = outerArgs
   type Arg2 (outerArgs -> innerArg -> IO (GoldenTest a)) = innerArg
   runTest = runGoldenTestWithArg
 
 runGoldenTestWithArg ::
-  Show a =>
   (outerArgs -> innerArg -> IO (GoldenTest a)) ->
   TestRunSettings ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
@@ -221,16 +219,14 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
           else pure (TestFailed, Just GoldenNotFound, Nothing)
       Just golden -> do
         actual <- goldenTestProduce
-        if goldenTestCompare actual golden
-          then pure (TestPassed, Nothing, Nothing)
-          else
+        case goldenTestCompare actual golden of
+          Nothing -> pure (TestPassed, Nothing, Nothing)
+          Just assertion ->
             if testRunSettingGoldenReset
               then do
                 goldenTestWrite actual
                 pure (TestPassed, Just GoldenReset, Nothing)
-              else
-                pure
-                  (TestFailed, Nothing, Just $ Right $ NotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow golden) Nothing)
+              else pure (TestFailed, Nothing, Just $ Right assertion)
   let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
         Left e -> (TestFailed, Nothing, Just e)
         Right trip -> trip

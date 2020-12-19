@@ -246,12 +246,12 @@ setRequestBody :: ByteString -> RequestBuilder site ()
 setRequestBody body = State.modify' $ \r -> r {requestBuilderDataPostData = BinaryPostData body}
 
 -- | Look up the CSRF token from the given form data and add it to the request header
-addToken_ :: HasCallStack => HTTP.Query -> RequestBuilder site ()
+addToken_ :: HasCallStack => Text -> RequestBuilder site ()
 addToken_ = undefined
 
 -- | Look up the CSRF token from the only form data and add it to the request header
 addToken :: HasCallStack => RequestBuilder site ()
-addToken = undefined -- addToken_ ""
+addToken = addToken_ ""
 
 -- | Look up the CSRF token from the cookie with name 'defaultCsrfCookieName' and add it to the request header with name 'defaultCsrfHeaderName'.
 addTokenFromCookie :: HasCallStack => RequestBuilder site ()

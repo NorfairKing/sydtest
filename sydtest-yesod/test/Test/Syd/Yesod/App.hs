@@ -18,6 +18,7 @@ mkYesod
     / HomeR GET POST
 
     /expects-header ExpectsHeaderR GET
+    /expects-get-param ExpectsGetParamR GET
     /expects-post-param ExpectsPostParamR POST
     /expects-post-body ExpectsPostBodyR   POST
     /expects-post-file ExpectsPostFileR   POST
@@ -34,6 +35,13 @@ postHomeR = pure "Hello, world! (POST)"
 getExpectsHeaderR :: Handler Html
 getExpectsHeaderR = do
   mh <- lookupHeader "TEST_HEADER"
+  case mh of
+    Nothing -> notFound
+    Just _ -> pure "ok!"
+
+getExpectsGetParamR :: Handler Html
+getExpectsGetParamR = do
+  mh <- lookupGetParam "TEST_PARAM"
   case mh of
     Nothing -> notFound
     Just _ -> pure "ok!"

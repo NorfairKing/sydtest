@@ -52,15 +52,17 @@ performMethod method route = request $ do
 
 statusIs :: HasCallStack => Int -> YesodClientM site ()
 statusIs i = do
-  mLastResp <- State.gets yesodClientStateLastResponse
-  liftIO $ case mLastResp of
+  mLast <- State.gets yesodClientStateLast
+  liftIO $ case mLast of
     Nothing -> expectationFailure "No request made yet."
-    Just r ->
-      let c = statusCode (responseStatus r)
+    Just (req, resp) ->
+      let c = statusCode (responseStatus resp)
        in shouldBeWith c i $
             unlines
-              [ "full response:",
-                ppShow r
+              [ "last request:",
+                ppShow req,
+                "full response:",
+                ppShow resp
               ]
 
 newtype RequestBuilder site a = RequestBuilder
@@ -85,6 +87,7 @@ data RequestBuilderData site = RequestBuilderData
   { requestBuilderDataMethod :: !Method,
     requestBuilderDataUrl :: !Text,
     requestBuilderDataHeaders :: !HTTP.RequestHeaders,
+    requestBuilderDataGetParams :: !HTTP.Query,
     requestBuilderDataPostData :: !PostData,
     requestBuilderDataCookies :: !CookieJar
   }
@@ -103,6 +106,7 @@ initialRequestBuilderData cj =
     { requestBuilderDataMethod = "GET",
       requestBuilderDataUrl = "",
       requestBuilderDataHeaders = [],
+      requestBuilderDataGetParams = [],
       requestBuilderDataPostData = MultipleItemsPostData [],
       requestBuilderDataCookies = cj
     }
@@ -128,6 +132,7 @@ runRequestBuilder (RequestBuilder func) = do
   req <- liftIO $ parseRequest $ T.unpack requestBuilderDataUrl
   boundary <- liftIO webkitBoundary
   let (body, contentTypeHeader) = case requestBuilderDataPostData of
+        MultipleItemsPostData [] -> (RequestBodyBS SB.empty, Nothing)
         MultipleItemsPostData dat ->
           if any isFile dat
             then
@@ -163,7 +168,8 @@ runRequestBuilder (RequestBuilder func) = do
                     [ requestBuilderDataHeaders,
                       [("Content-Type", cth) | cth <- maybeToList contentTypeHeader]
                     ],
-                requestBody = body
+                requestBody = body,
+                queryString = HTTP.renderQuery False requestBuilderDataGetParams
               }
           )
           cj
@@ -197,7 +203,7 @@ addRequestHeader :: HTTP.Header -> RequestBuilder site ()
 addRequestHeader h = State.modify' (\r -> r {requestBuilderDataHeaders = h : requestBuilderDataHeaders r})
 
 addGetParam :: Text -> Text -> RequestBuilder site ()
-addGetParam = undefined
+addGetParam k v = State.modify' (\r -> r {requestBuilderDataGetParams = (TE.encodeUtf8 k, Just $ TE.encodeUtf8 v) : requestBuilderDataGetParams r})
 
 addPostParam :: Text -> Text -> RequestBuilder site ()
 addPostParam name value =
@@ -286,7 +292,7 @@ performRequest req = do
   State.modify'
     ( \s ->
         s
-          { yesodClientStateLastResponse = Just resp,
+          { yesodClientStateLast = Just (req, resp),
             yesodClientStateCookies = cj'
           }
     )

@@ -37,6 +37,7 @@ module Test.Syd.Yesod
     setUrl,
     setMethod,
     addRequestHeader,
+    addGetParam,
     addPostParam,
     addFile,
     addFileWith,

@@ -30,8 +30,8 @@ data YesodClient site = YesodClient
   }
 
 data YesodClientState site = YesodClientState
-  { -- | The last response received
-    yesodClientStateLastResponse :: !(Maybe (Response LB.ByteString)),
+  { -- | The last request and response pair
+    yesodClientStateLast :: !(Maybe (Request, Response LB.ByteString)),
     -- | The cookies to pass along
     yesodClientStateCookies :: !CookieJar
   }
@@ -39,7 +39,7 @@ data YesodClientState site = YesodClientState
 initYesodClientState :: YesodClientState site
 initYesodClientState =
   YesodClientState
-    { yesodClientStateLastResponse = Nothing,
+    { yesodClientStateLast = Nothing,
       yesodClientStateCookies = createCookieJar []
     }
 
@@ -67,8 +67,14 @@ type YesodExample site a = YesodClientM site a
 runYesodClientM :: YesodClient site -> YesodClientM site a -> IO a
 runYesodClientM cenv (YesodClientM func) = runReaderT (evalStateT func initYesodClientState) cenv
 
+getRequest :: YesodClientM site (Maybe Request)
+getRequest = State.gets (fmap fst . yesodClientStateLast)
+
 getResponse :: YesodClientM site (Maybe (Response LB.ByteString))
-getResponse = State.gets yesodClientStateLastResponse
+getResponse = State.gets (fmap snd . yesodClientStateLast)
+
+getLast :: YesodClientM site (Maybe (Request, Response LB.ByteString))
+getLast = State.gets yesodClientStateLast
 
 getLocation :: ParseRoute site => YesodClientM site (Either Text (Route site))
 getLocation = do

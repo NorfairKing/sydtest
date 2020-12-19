@@ -36,6 +36,11 @@ spec = yesodSpec App $ do
       setUrl ExpectsHeaderR
       addRequestHeader ("TEST_HEADER", "test")
     statusIs 200
+  yit "is able to add a get param" $ do
+    request $ do
+      setUrl ExpectsGetParamR
+      addGetParam "TEST_PARAM" "test"
+    statusIs 200
   yit "is able to add a post param" $ do
     request $ do
       setUrl ExpectsPostParamR

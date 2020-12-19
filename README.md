@@ -4,6 +4,14 @@ An experimental testing framework for Haskell with good defaults and advanced te
 
 Sydtest aims to make the common easy and the hard possible.
 
+**Not ready for use in production yet.**
+
+
+## License
+
+Copyright (c) 2020 Tom Sydney Kerckhove
+
+All Rights Reserved
 
 ## In short
 
@@ -389,3 +397,12 @@ spec = do
     pending "has no tests yet"
     pendingWith "has no tests yet" "because, frankly, we don't care"
 ```
+
+
+### Acknowledgements
+
+The sydtest and sydtest-yesod APIs are backward compatible with the `hspec` and `yesod-test` APIs respectively.
+This is in accordance with their licenses, which you can find here:
+
+- [`hspec`](https://hackage.haskell.org/package/hspec/src/LICENSE)
+- [`yesod-test`](https://hackage.haskell.org/package/yesod-test/src/LICENSE)

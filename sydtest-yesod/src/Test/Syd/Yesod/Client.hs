@@ -12,9 +12,10 @@ import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Control.Monad.State as State
-import qualified Data.ByteString.Char8 as SB8
+import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 import Data.Text (Text)
+import qualified Data.Text as T
 import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
 import Yesod.Core as Yesod
@@ -84,11 +85,12 @@ getLocation = do
     Just r -> case lookup "Location" (responseHeaders r) of
       Nothing -> return $ Left "getLocation called, but the previous response has no Location header"
       Just h -> case parseRoute $ decodePath' h of
-        Nothing -> return $ Left "getLocation called, but couldn’t parse it into a route"
+        Nothing -> return $ Left $ "getLocation called, but couldn’t parse it into a route: " <> T.pack (show h)
         Just l -> return $ Right l
   where
+    decodePath' :: ByteString -> ([Text], [(Text, Text)])
     decodePath' b =
-      let (x, y) = SB8.break (== '?') b
-       in (HTTP.decodePathSegments x, unJust <$> HTTP.parseQueryText y)
+      let (ss, q) = decodePath $ extractPath b
+       in (ss, map unJust $ queryToQueryText q)
     unJust (a, Just b) = (a, b)
     unJust (a, Nothing) = (a, mempty)

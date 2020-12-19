@@ -28,6 +28,7 @@ import qualified Data.Text.Encoding as TE
 import Data.Time
 import GHC.Stack
 import Network.HTTP.Client as HTTP
+import Network.HTTP.Client.Internal (httpRaw)
 import Network.HTTP.Client.MultipartFormData
 import Network.HTTP.Types as HTTP
 import Test.Syd
@@ -286,7 +287,7 @@ setMethod m = State.modify' (\r -> r {requestBuilderDataMethod = m})
 performRequest :: Request -> YesodClientM site ()
 performRequest req = do
   man <- asks yesodClientManager
-  resp <- liftIO $ httpLbs req man
+  resp <- liftIO $ httpRaw req man >>= traverse (fmap LB.fromChunks . brConsume)
   cj <- State.gets yesodClientStateCookies
   now <- liftIO getCurrentTime
   let (cj', _) = updateCookieJar resp req now cj

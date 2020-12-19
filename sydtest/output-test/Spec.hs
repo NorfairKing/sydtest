@@ -190,7 +190,7 @@ spec = do
           aroundWith' (\_ () () -> throwIO (userError "test")) $
             it "does not kill the test suite" $ \() ->
               pure () :: IO ()
-  it "expectationFailure" $ expectationFailure "fails"
+  it "expectationFailure" (expectationFailure "fails" :: IO ())
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

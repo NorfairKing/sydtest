@@ -252,26 +252,41 @@ outputFailures rf =
 
 outputEqualityAssertionFailed :: String -> String -> Maybe String -> [[Chunk]]
 outputEqualityAssertionFailed actual expected mContext =
-  let diff = getDiff actual expected
+  let diff = getDiff actual expected -- TODO use 'getGroupedDiff' instead, but then we need to fix the 'splitWhen' below
       splitLines = splitWhen ((== "\n") . _yarn)
-      actualChunks = splitLines $
-        flip mapMaybe diff $ \case
-          Both a _ -> Just $ chunk (T.singleton a)
-          First a -> Just $ fore red $ chunk (T.singleton a)
-          _ -> Nothing
-      expectedChunks = splitLines $
-        flip mapMaybe diff $ \case
-          Both a _ -> Just $ chunk (T.singleton a)
-          Second a -> Just $ fore green $ chunk (T.singleton a)
-          _ -> Nothing
       chunksLinesWithHeader :: Chunk -> [[Chunk]] -> [[Chunk]]
       chunksLinesWithHeader header = \case
         [cs] -> [header : cs]
         cs -> [header] : cs
+      actualChunks :: [[Chunk]]
+      actualChunks = chunksLinesWithHeader (fore blue "Actual:   ") $
+        splitLines $
+          flip mapMaybe diff $ \case
+            First a -> Just $ fore red $ chunk (T.singleton a)
+            Second _ -> Nothing
+            Both a _ -> Just $ chunk (T.singleton a)
+      expectedChunks :: [[Chunk]]
+      expectedChunks = chunksLinesWithHeader (fore blue "Expected: ") $
+        splitLines $
+          flip mapMaybe diff $ \case
+            First _ -> Nothing
+            Second a -> Just $ fore green $ chunk (T.singleton a)
+            Both a _ -> Just $ chunk (T.singleton a)
+      inlineDiffChunks :: [[Chunk]]
+      inlineDiffChunks =
+        if length (lines actual) == 1 && length (lines expected) == 1
+          then []
+          else chunksLinesWithHeader (fore blue "Inline diff: ") $
+            splitLines $
+              flip map diff $ \case
+                First a -> fore red $ chunk (T.singleton a)
+                Second a -> fore green $ chunk (T.singleton a)
+                Both a _ -> chunk (T.singleton a)
    in concat
         [ [[chunk "Expected these values to be equal:"]],
-          chunksLinesWithHeader (fore blue "Actual:   ") actualChunks,
-          chunksLinesWithHeader (fore blue "Expected: ") expectedChunks,
+          actualChunks,
+          expectedChunks,
+          inlineDiffChunks,
           mContextChunks mContext
         ]
 

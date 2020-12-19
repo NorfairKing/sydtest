@@ -30,7 +30,7 @@ goldenByteStringFile fp produceBS =
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing
-          else Just $ bytestringsNotEqualButShouldHaveBeenEqual actual expected (Just fp)
+          else Just $ bytestringsNotEqualButShouldHaveBeenEqual actual expected (Just $ goldenContext fp)
     }
 
 -- | Test that the given text is the same as what we find in the given golden file.
@@ -52,7 +52,7 @@ goldenTextFile fp produceBS =
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing
-          else Just $ textsNotEqualButShouldHaveBeenEqual actual expected (Just fp)
+          else Just $ textsNotEqualButShouldHaveBeenEqual actual expected (Just $ goldenContext fp)
     }
 
 -- | Test that the given string is the same as what we find in the given golden file.
@@ -74,7 +74,7 @@ goldenStringFile fp produceBS =
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing
-          else Just $ stringsNotEqualButShouldHaveBeenEqual actual expected (Just fp)
+          else Just $ stringsNotEqualButShouldHaveBeenEqual actual expected (Just $ goldenContext fp)
     }
 
 -- | Test that the show instance has not changed for the given value.
@@ -84,3 +84,6 @@ goldenShowInstance fp a = pureGoldenStringFile fp (show a)
 -- | Test that the show instance has not changed for the given value, via `ppShow`.
 goldenPrettyShowInstance :: Show a => FilePath -> a -> GoldenTest String
 goldenPrettyShowInstance fp a = pureGoldenStringFile fp (ppShow a)
+
+goldenContext :: FilePath -> String
+goldenContext fp = "The golden results are in: " <> fp

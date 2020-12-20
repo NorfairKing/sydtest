@@ -6,6 +6,8 @@ import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 
 -- | A function that can provide an 'a' given a 'b'.
+--
+-- You can think of this as a potentially-resource-aware version of 'b -> IO a'.
 newtype SetupFunc b a = SetupFunc
   { unSetupFunc :: (a -> IO ()) -> (b -> IO ())
   }
@@ -68,17 +70,10 @@ composeSetupFunc (SetupFunc provideAWithB) (SetupFunc provideBWithC) = SetupFunc
 
 -- | Connect two setup functions.
 --
--- This is basically 'flip (.)' but for 'SetupFunc's
-connectSetupFunc :: SetupFunc b a -> SetupFunc c b -> SetupFunc c a
-connectSetupFunc (SetupFunc provideAWithB) (SetupFunc provideBWithC) = SetupFunc $ \takeA c ->
-  provideBWithC
-    ( \b ->
-        provideAWithB
-          ( \a -> takeA a
-          )
-          b
-    )
-    c
+-- This is basically 'flip (.)' but for 'SetupFunc's.
+-- It's exactly 'flip composeSetupFunc'.
+connectSetupFunc :: SetupFunc c b -> SetupFunc b a -> SetupFunc c a
+connectSetupFunc = flip composeSetupFunc
 
 -- | Use 'around' with a 'SetupFunc'
 setupAround :: SetupFunc () c -> TestDefM a c e -> TestDefM a () e

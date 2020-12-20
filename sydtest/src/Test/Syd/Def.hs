@@ -42,6 +42,7 @@ module Test.Syd.Def
     -- ** Rexports
     module Test.Syd.Def.Around,
     module Test.Syd.Def.AroundAll,
+    module Test.Syd.Def.SetupFunc,
     module Test.Syd.Def.Golden,
     module Test.Syd.Def.TestDefM,
   )
@@ -54,6 +55,7 @@ import Test.QuickCheck.IO ()
 import Test.Syd.Def.Around
 import Test.Syd.Def.AroundAll
 import Test.Syd.Def.Golden
+import Test.Syd.Def.SetupFunc
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 import Test.Syd.Run

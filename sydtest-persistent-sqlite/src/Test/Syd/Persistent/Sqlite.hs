@@ -3,6 +3,7 @@
 module Test.Syd.Persistent.Sqlite
   ( persistSqliteSpec,
     withConnectionPool,
+    connectionPoolSetupFunc,
     runSqlPool,
     runSqliteTest,
   )
@@ -21,11 +22,14 @@ persistSqliteSpec migration = aroundWith $ \func _ -> withConnectionPool migrati
 
 -- | Set up a sqlite connection and migrate it to run the given function.
 withConnectionPool :: Migration -> (ConnectionPool -> IO ()) -> IO ()
-withConnectionPool migration func = do
+withConnectionPool = flip $ unSetupFunc connectionPoolSetupFunc
+
+connectionPoolSetupFunc :: SetupFunc Migration ConnectionPool
+connectionPoolSetupFunc = SetupFunc $ \takeConnectionPool migration ->
   runNoLoggingT $
     withSqlitePool ":memory:" 1 $ \pool -> do
       _ <- flip runSqlPool pool $ runMigrationQuiet migration
-      liftIO $ func pool
+      liftIO $ takeConnectionPool pool
 
 -- | A flipped version of 'runSqlPool' to run your tests
 runSqliteTest :: ConnectionPool -> SqlPersistT IO a -> IO a

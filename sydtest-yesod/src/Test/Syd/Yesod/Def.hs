@@ -47,7 +47,10 @@ yesodSpecWithSiteSupplierWith func = aroundWith func . beforeAll (newManager def
 
 -- | Turn a function that takes a 'YesodClient site' into a function that only takes a 'site'.
 yesodSpecWithFunc :: YesodDispatch site => (HTTP.Manager -> YesodClient site -> IO ()) -> (HTTP.Manager -> site -> IO ())
-yesodSpecWithFunc func man site =
+yesodSpecWithFunc func man = unSetupFunc (yesodSetupFunc man) (func man)
+
+yesodSetupFunc :: YesodDispatch site => HTTP.Manager -> SetupFunc site (YesodClient site)
+yesodSetupFunc man = SetupFunc $ \takeClient site ->
   Warp.testWithApplication (Yesod.toWaiAppPlain site) $ \p ->
     let client =
           YesodClient
@@ -55,7 +58,7 @@ yesodSpecWithFunc func man site =
               yesodClientSite = site,
               yesodClientSitePort = p
             }
-     in func man client
+     in takeClient client
 
 -- | For backward compatibility with yesod-test
 type YesodSpec site = TestDefM '[HTTP.Manager] (YesodClient site) ()

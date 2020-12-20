@@ -95,6 +95,13 @@ module Test.Syd
     around_,
     aroundWith,
 
+    -- **** Setup functions
+    SetupFunc (..),
+    setupAroundWith,
+    connectSetupFunc,
+    wrapSetupFunc,
+    unwrapSetupFunc,
+
     -- *** Declaring different test settings
     modifyMaxSuccess,
     modifyMaxDiscardRatio,

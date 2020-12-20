@@ -1,0 +1,34 @@
+name:                sydtest-persistent-sqlite
+version:             0.0.0.0
+github:              "NorfairKing/sydtest"
+author:              "Tom Sydney Kerckhove"
+maintainer:          "syd@cs-syd.eu"
+copyright:           "Copyright (c) 2020 Tom Sydney Kerckhove"
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - monad-logger
+  - persistent
+  - persistent-sqlite
+  - persistent-template
+  - sydtest
+
+tests:
+  sydtest-persistent-sqlite-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - persistent
+    - persistent-sqlite
+    - persistent-template
+    - sydtest
+    - sydtest-persistent-sqlite

@@ -2,6 +2,7 @@ resolver: lts-15.15
 packages:
 - sydtest
 - sydtest-discover
+- sydtest-persistent-sqlite
 - sydtest-yesod
 extra-deps:
 - envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842

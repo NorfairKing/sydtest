@@ -329,11 +329,13 @@ parseFlags =
           )
       )
     <*> optional
-      ( ( \case
-            1 -> Synchronous
-            i -> Asynchronous i
+      ( ( ( \case
+              1 -> Synchronous
+              i -> Asynchronous i
+          )
+            <$> option auto (mconcat [short 'j', long "jobs", help "How parallel to execute the tests"])
         )
-          <$> option auto (mconcat [short 'j', long "jobs", help "How parallel to execute the tests"])
+          <|> flag ByCapabilities Synchronous (mconcat [long "synchronous", help "execute tests synchronously"])
       )
     <*> optional
       ( option

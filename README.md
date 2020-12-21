@@ -84,6 +84,7 @@ This project chooses best practices as defaults:
 | Fully configurable via environment variables                                              | ✔️       | ✔️                                                           | ✔️                                                                |
 | Fully configurable via configuration file                                                 | ✔️       | ✔️                                                           | ✖️                                                                |
 | Pending tests                                                                             | ✔️       | ✔️                                                           | ✖️                                                                |
+| Iterative testing to diagnose flakiness                                                   | ✔️       | ✖️                                                           | ?                                                                |
 
 * ✔️: Supported 
 * Lib: Possible with an extra library
@@ -183,7 +184,7 @@ This test will fail, but the test suite will continue to be executed.
 ### Parallel test execution
 
 Tests are executed with as many threads as you have capabilities by default.
-You can use `-j` or `--jobs` to set the number of threads to use.
+You can use `-j` or `--jobs` to set the number of threads to use or `--synchronous` to run synchronously.
 
 ### Parallel or sequential test-group execution
 
@@ -399,11 +400,17 @@ spec = do
     pendingWith "has no tests yet" "because, frankly, we don't care"
 ```
 
+### Iterative testing to diagnose flakiness
 
-### Acknowledgements
+To see if a test suite may be flaky, you can run it multiple times (with different, but still deterministic, randomness for each run) to diagnose the flakiness.
+You can use `--iterations 10` to run a test suite up to 10 times, or `--continuous` to run it over and over until failure.
+
+
+## Acknowledgements
 
 The sydtest and sydtest-yesod APIs are backward compatible with the `hspec` and `yesod-test` APIs respectively.
 This is in accordance with their licenses, which you can find here:
 
 - [`hspec`](https://hackage.haskell.org/package/hspec/src/LICENSE)
 - [`yesod-test`](https://hackage.haskell.org/package/yesod-test/src/LICENSE)
+

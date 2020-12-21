@@ -11,4 +11,5 @@ Settings
   , settingColour = Nothing
   , settingFilter = Nothing
   , settingFailFast = False
+  , settingIterations = OneIteration
   }

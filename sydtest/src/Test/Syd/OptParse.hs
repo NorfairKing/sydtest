@@ -53,7 +53,9 @@ data Settings = Settings
     -- | The filter to use to select which tests to run
     settingFilter :: !(Maybe Text),
     -- | Whether to stop upon the first test failure
-    settingFailFast :: !Bool
+    settingFailFast :: !Bool,
+    -- | How many iterations to use to look diagnose flakiness
+    settingIterations :: Iterations
   }
   deriving (Show, Eq, Generic)
 
@@ -72,7 +74,8 @@ defaultSettings =
           settingGoldenReset = d testRunSettingGoldenReset,
           settingColour = Nothing,
           settingFilter = Nothing,
-          settingFailFast = False
+          settingFailFast = False,
+          settingIterations = OneIteration
         }
 
 data Threads
@@ -82,6 +85,15 @@ data Threads
     ByCapabilities
   | -- | A given number of threads
     Asynchronous Int
+  deriving (Show, Eq, Generic)
+
+data Iterations
+  = -- | Run the test suite once, the default
+    OneIteration
+  | -- | Run the test suite for the given number of iterations, or until we can find flakiness
+    Iterations Int
+  | -- | Run the test suite over and over, until we can find some flakiness
+    Continuous
   deriving (Show, Eq, Generic)
 
 -- | Combine everything to 'Settings'
@@ -101,7 +113,8 @@ combineToSettings Flags {..} Environment {..} mConf = do
         settingGoldenReset = fromMaybe (d settingGoldenReset) $ flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
         settingColour = flagColour <|> envColour <|> mc configColour,
         settingFilter = flagFilter <|> envFilter <|> mc configFilter,
-        settingFailFast = fromMaybe (d settingFailFast) $ flagFailFast <|> envFailFast <|> mc configFailFast
+        settingFailFast = fromMaybe (d settingFailFast) $ flagFailFast <|> envFailFast <|> mc configFailFast,
+        settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations
       }
   where
     mc :: (Configuration -> Maybe a) -> Maybe a
@@ -125,7 +138,8 @@ data Configuration = Configuration
     configGoldenReset :: !(Maybe Bool),
     configColour :: !(Maybe Bool),
     configFilter :: !(Maybe Text),
-    configFailFast :: !(Maybe Bool)
+    configFailFast :: !(Maybe Bool),
+    configIterations :: !(Maybe Iterations)
   }
   deriving (Show, Eq, Generic)
 
@@ -149,12 +163,20 @@ instance YamlSchema Configuration where
         <*> optionalField "colour" "Whether to use coloured output"
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
+        <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness"
 
 instance YamlSchema Threads where
   yamlSchema = flip fmap yamlSchema $ \case
     Nothing -> ByCapabilities
     Just 1 -> Synchronous
     Just n -> Asynchronous n
+
+instance YamlSchema Iterations where
+  yamlSchema = flip fmap yamlSchema $ \case
+    Nothing -> OneIteration
+    Just 0 -> Continuous
+    Just 1 -> OneIteration
+    Just n -> Iterations n
 
 -- | Get the configuration
 --
@@ -189,7 +211,8 @@ data Environment = Environment
     envGoldenReset :: !(Maybe Bool),
     envColour :: !(Maybe Bool),
     envFilter :: !(Maybe Text),
-    envFailFast :: !(Maybe Bool)
+    envFailFast :: !(Maybe Bool),
+    envIterations :: !(Maybe Iterations)
   }
   deriving (Show, Eq, Generic)
 
@@ -214,10 +237,15 @@ environmentParser =
         <*> Env.var (fmap Just . Env.auto) "COLOUR" (mE <> Env.help "Whether to use coloured output")
         <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (mE <> Env.help "Whether to stop executing upon the first test failure")
+        <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (mE <> Env.help "How many iterations to use to look diagnose flakiness")
   where
     parseThreads :: Int -> Either e Threads
     parseThreads 1 = Right Synchronous
     parseThreads i = Right (Asynchronous i)
+    parseIterations :: Int -> Either e Iterations
+    parseIterations 0 = Right Continuous
+    parseIterations 1 = Right OneIteration
+    parseIterations i = Right (Iterations i)
     mE = Env.def Nothing
 
 -- | Get the command-line flags
@@ -263,7 +291,8 @@ data Flags = Flags
     flagGoldenReset :: !(Maybe Bool),
     flagColour :: !(Maybe Bool),
     flagFilter :: !(Maybe Text),
-    flagFailFast :: !(Maybe Bool)
+    flagFailFast :: !(Maybe Bool),
+    flagIterations :: !(Maybe Iterations)
   }
   deriving (Show, Eq, Generic)
 
@@ -311,6 +340,7 @@ parseFlags =
           auto
           ( mconcat
               [ long "max-success",
+                long "qc-max-success",
                 help "Number of quickcheck examples to run"
               ]
           )
@@ -320,6 +350,7 @@ parseFlags =
           auto
           ( mconcat
               [ long "max-size",
+                long "qc-max-size",
                 help "Maximum size parameter to pass to generators"
               ]
           )
@@ -329,6 +360,7 @@ parseFlags =
           auto
           ( mconcat
               [ long "max-discard",
+                long "qc-max-discard",
                 help "Maximum number of discarded tests per successful test before giving up"
               ]
           )
@@ -338,6 +370,7 @@ parseFlags =
           auto
           ( mconcat
               [ long "max-shrinks",
+                long "qc-max-shrinks",
                 help "Maximum number of shrinks of a failing test input"
               ]
           )
@@ -382,4 +415,27 @@ parseFlags =
                 help "Whether to stop upon the first test failure"
               ]
           )
+      )
+    <*> optional
+      ( ( ( \case
+              0 -> Continuous
+              1 -> OneIteration
+              i -> Iterations i
+          )
+            <$> option
+              auto
+              ( mconcat
+                  [ long "iterations",
+                    help "How many iterations to use to look diagnose flakiness"
+                  ]
+              )
+        )
+          <|> flag
+            OneIteration
+            Continuous
+            ( mconcat
+                [ long "continuous",
+                  help "Run the test suite over and over again until it fails, to diagnose flakiness"
+                ]
+            )
       )

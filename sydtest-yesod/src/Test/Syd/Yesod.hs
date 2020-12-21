@@ -12,15 +12,16 @@ module Test.Syd.Yesod
     yesodSpecWithSiteSupplier,
     yesodSpecWithSiteSupplierWith,
 
+    -- *** Setup functions
+    yesodSpecWithFunc,
+    yesodSetupFunc,
+
     -- ** Core
     YesodSpec,
     YesodClient (..),
     YesodClientM (..),
     runYesodClientM,
     YesodExample,
-
-    -- ** Helper functions in case you want to do something fancy
-    yesodSpecWithFunc,
 
     -- * Helper functions to define tests
     yit,

@@ -19,8 +19,8 @@ extractNext :: Next a -> a
 extractNext (Continue a) = a
 extractNext (Stop a) = a
 
-failFastNext :: Bool -> TestDef (Timed TestRunResult) -> Next (TestDef (Timed TestRunResult))
-failFastNext b td@(TestDef (Timed trr _) _) =
+failFastNext :: Bool -> TDef (Timed TestRunResult) -> Next (TDef (Timed TestRunResult))
+failFastNext b td@(TDef (Timed trr _) _) =
   if b && testRunResultStatus trr == TestFailed
     then Stop td
     else Continue td

@@ -170,7 +170,7 @@ it :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String 
 it s t = do
   sets <- ask
   let testDef =
-        TestDef
+        TDef
           { testDefVal = \supplyArgs ->
               runTest
                 t
@@ -236,7 +236,7 @@ itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 t
 itWithOuter s t = do
   sets <- ask
   let testDef =
-        TestDef
+        TDef
           { testDefVal = \supplyArgs ->
               runTest
                 t
@@ -300,7 +300,7 @@ itWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 te
 itWithBoth s t = do
   sets <- ask
   let testDef =
-        TestDef
+        TDef
           { testDefVal = \supplyArgs ->
               runTest
                 t
@@ -328,7 +328,7 @@ itWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test 
 itWithAll s t = do
   sets <- ask
   let testDef =
-        TestDef
+        TDef
           { testDefVal = \supplyArgs ->
               runTest
                 t

@@ -43,6 +43,14 @@ instance MonadIO (SetupFunc c) where
   liftIO ioFunc = SetupFunc $ \takeA _ -> do
     ioFunc >>= takeA
 
+-- | Turn a simple provider function into a 'SetupFunc'.
+makeSimpleSetupFunc :: ((a -> IO ()) -> IO ()) -> SetupFunc () a
+makeSimpleSetupFunc provideA = SetupFunc $ \takeA () -> provideA $ \a -> takeA a
+
+-- | Use a 'SetupFunc ()' as a simple provider function.
+useSimpleSetupFunc :: SetupFunc () a -> ((a -> IO ()) -> IO ())
+useSimpleSetupFunc (SetupFunc provideAWithUnit) takeA = provideAWithUnit (\a -> takeA a) ()
+
 -- | Unwrap a 'SetupFunc' into a function that produces a 'SetupFunc'
 unwrapSetupFunc :: SetupFunc b a -> (b -> SetupFunc () a)
 unwrapSetupFunc (SetupFunc provideAWithB) b = SetupFunc $ \takeA () ->

@@ -36,6 +36,9 @@ type SpecWith a = SpecM a ()
 -- | A synonym for easy migration from hspec
 type SpecM a b = TestDefM '[] a b
 
+-- | A synonym for a test suite definition
+type TestDef a b = TestDefM a b ()
+
 -- | The test definition monad
 --
 -- This type has three parameters:

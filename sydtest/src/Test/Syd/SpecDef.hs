@@ -24,7 +24,7 @@ import Test.Syd.HList
 import Test.Syd.Run
 import Test.Syd.SpecForest
 
-data TestDef v = TestDef {testDefVal :: v, testDefCallStack :: CallStack}
+data TDef v = TDef {testDefVal :: v, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)
 
 type TestForest a c = SpecDefForest a c ()
@@ -36,7 +36,7 @@ type SpecDefForest (a :: [Type]) c e = [SpecDefTree a c e]
 data SpecDefTree (a :: [Type]) c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
   DefSpecifyNode ::
     Text ->
-    TestDef (((HList a -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
+    TDef (((HList a -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
     e ->
     SpecDefTree a c e -- A test with its description
   DefPendingNode :: Text -> Maybe Text -> SpecDefTree a c e
@@ -110,9 +110,9 @@ data Parallelism = Parallel | Sequential
 
 data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecutionOrder
 
-type ResultForest = SpecForest (TestDef (Timed TestRunResult))
+type ResultForest = SpecForest (TDef (Timed TestRunResult))
 
-type ResultTree = SpecTree (TestDef (Timed TestRunResult))
+type ResultTree = SpecTree (TDef (Timed TestRunResult))
 
 computeTestSuiteStats :: ResultForest -> TestSuiteStats
 computeTestSuiteStats = goF
@@ -121,7 +121,7 @@ computeTestSuiteStats = goF
     goF = foldMap goT
     goT :: ResultTree -> TestSuiteStats
     goT = \case
-      SpecifyNode _ (TestDef (Timed TestRunResult {..} t) _) ->
+      SpecifyNode _ (TDef (Timed TestRunResult {..} t) _) ->
         TestSuiteStats
           { testSuiteStatSuccesses = case testRunResultStatus of
               TestPassed -> 1

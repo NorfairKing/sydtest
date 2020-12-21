@@ -130,11 +130,12 @@ module Test.Syd
 
     -- ** Test definition types
     TestDefM (..),
+    TestDef,
     execTestDefM,
     runTestDefM,
 
     -- ** Test suite types
-    TestDef (..),
+    TDef (..),
     TestForest,
     TestTree,
     SpecDefForest,

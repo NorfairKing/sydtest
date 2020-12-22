@@ -60,6 +60,7 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
   let testRunResultNumShrinks = Nothing
   let testRunResultGoldenCase = Nothing
+  let testRunResultFailingInputs = []
   pure TestRunResult {..}
 
 applyWrapper2 ::
@@ -109,6 +110,7 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
         Right () -> (TestPassed, Nothing)
   let testRunResultNumShrinks = Nothing
   let testRunResultGoldenCase = Nothing
+  let testRunResultFailingInputs = []
   pure TestRunResult {..}
 
 instance IsTest Property where
@@ -142,26 +144,48 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
             maxShrinks = testRunSettingMaxShrinks
           }
   result <-
-    applyWrapper2 wrapper $ \outerArgs innerArg -> do
+    applyWrapper2 wrapper $ \outerArgs innerArg ->
       quickCheckWithResult args (p outerArgs innerArg) >>= evaluate
-  let (testRunResultStatus, testRunResultException, testRunResultNumTests, testRunResultNumShrinks) = case result of
-        Left ex -> (TestFailed, Just ex, Nothing, Nothing)
-        Right r -> case r of
-          Success {} -> (TestPassed, Nothing, Just $ fromIntegral $ numTests r, Nothing)
-          GaveUp {} -> (TestFailed, Nothing, Just $ fromIntegral $ numTests r, Nothing)
-          Failure {} ->
-            ( TestFailed,
-              do
-                se <- theException r
+  let testRunResultGoldenCase = Nothing
+  case result of
+    Left ex -> do
+      let testRunResultStatus = TestFailed
+      let testRunResultException = Just ex
+      let testRunResultNumTests = Nothing
+      let testRunResultNumShrinks = Nothing
+      let testRunResultFailingInputs = []
+      pure TestRunResult {..}
+    Right qcr -> do
+      let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
+      case qcr of
+        Success {} -> do
+          let testRunResultStatus = TestPassed
+          let testRunResultException = Nothing
+          let testRunResultNumShrinks = Nothing
+          let testRunResultFailingInputs = []
+          pure TestRunResult {..}
+        GaveUp {} -> do
+          let testRunResultStatus = TestFailed
+          let testRunResultException = Nothing
+          let testRunResultNumShrinks = Nothing
+          let testRunResultFailingInputs = []
+          pure TestRunResult {..}
+        Failure {} -> do
+          let testRunResultStatus = TestFailed
+          let testRunResultException = do
+                se <- theException qcr
                 pure $ case fromException se of
                   Just a -> Right a
-                  Nothing -> Left $ displayException se,
-              Just $ fromIntegral $ numTests r,
-              Just $ fromIntegral $ numShrinks r
-            )
-          NoExpectedFailure {} -> (TestFailed, Nothing, Just $ fromIntegral $ numTests r, Nothing)
-  let testRunResultGoldenCase = Nothing
-  pure TestRunResult {..}
+                  Nothing -> Left $ displayException se
+          let testRunResultNumShrinks = Just $ fromIntegral $ numShrinks qcr
+          let testRunResultFailingInputs = failingTestCase qcr
+          pure TestRunResult {..}
+        NoExpectedFailure {} -> do
+          let testRunResultStatus = TestFailed
+          let testRunResultException = Nothing
+          let testRunResultNumShrinks = Nothing
+          let testRunResultFailingInputs = []
+          pure TestRunResult {..}
 
 data GoldenTest a = GoldenTest
   { goldenTestRead :: IO (Maybe a),
@@ -232,6 +256,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
         Right trip -> trip
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing
+  let testRunResultFailingInputs = []
   pure TestRunResult {..}
 
 exceptionHandlers :: [Handler (Either (Either String Assertion) a)]
@@ -274,6 +299,7 @@ data TestRunResult = TestRunResult
     testRunResultException :: !(Maybe (Either String Assertion)),
     testRunResultNumTests :: !(Maybe Word),
     testRunResultNumShrinks :: !(Maybe Word),
+    testRunResultFailingInputs :: [String],
     testRunResultGoldenCase :: !(Maybe GoldenCase)
   }
   deriving (Show, Eq, Generic)

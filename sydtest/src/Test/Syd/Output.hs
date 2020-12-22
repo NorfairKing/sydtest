@@ -236,6 +236,7 @@ outputFailures rf =
                       (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
                       (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
                       (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
+                  map (pad . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
                   map pad $
                     case testRunResultException of
                       Nothing -> []

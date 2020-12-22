@@ -193,6 +193,14 @@ spec = do
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `shouldBe` "foq\nbaz\tqex"
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `textShouldBe` "foq\nbaz\tqex"
     it "compares bytestrings" $ ("foo\nbar\tquux " :: ByteString) `shouldBe` "foq\nbaz\tqex"
+  describe "Property" $
+    it "shows many generated values too" $
+      property $ \i ->
+        property $ \j ->
+          property $ \k ->
+            property $ \l ->
+              property $ \m ->
+                i + j + k + l + m `shouldBe` m + l + k + j + i + (1 :: Int)
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

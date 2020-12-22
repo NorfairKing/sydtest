@@ -14,6 +14,7 @@ where
 
 import Control.Concurrent (getNumCapabilities)
 import System.Environment
+import System.Mem (performGC)
 import Test.Syd.Def
 import Test.Syd.OptParse
 import Test.Syd.Output
@@ -51,10 +52,12 @@ sydTestIterations totalIterations sets spec =
 
     let runOnce sets_ = do
           specForest <- execTestDefM sets_ spec
-          timeItT $ case settingThreads sets_ of
+          r <- timeItT $ case settingThreads sets_ of
             Synchronous -> runSpecForestSynchronously (settingFailFast sets_) specForest
             ByCapabilities -> runSpecForestAsynchronously (settingFailFast sets_) nbCapabilities specForest
             Asynchronous i -> runSpecForestAsynchronously (settingFailFast sets_) i specForest
+          performGC -- Just to be sure that nothing dangerous is lurking around in memory anywhere
+          pure r
 
     let go iteration = do
           let newSeed = settingSeed sets + iteration

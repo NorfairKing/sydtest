@@ -313,6 +313,39 @@ This way you can see a nice diff, but also any additional data that you may want
 
 ![Contextual Failures](assets/contextual-failures.png)
 
+This is specifically helpful when you compare multiple values to the same expected value:
+
+```
+it "are both 5" $ 
+  thing1 `shouldBe` 5
+  thing2 `shouldBe` 5
+```
+
+If you now see a failure like this:
+
+```
+Actual: 6
+Expected: 5
+```
+
+... then you don't know which one was not 5.
+
+With `sydtest` you can write that test with contexts:
+
+```
+it "are both 5" $
+  context "thing1" $ thing1 `shouldBe` 5
+  context "thing2" $ thing2 `shouldBe` 5
+```
+
+and see a failure like this:
+
+```
+Actual: 6
+Expected: 5
+thing2
+```
+
 ### Inter-test progress output during test suite execution
 
 The test suite report is printed bit by bit, after every test run.

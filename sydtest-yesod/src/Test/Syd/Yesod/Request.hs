@@ -60,13 +60,14 @@ statusIs i = do
     Nothing -> expectationFailure "No request made yet."
     Just (req, resp) ->
       let c = statusCode (responseStatus resp)
-       in shouldBeWith c i $
+          ctx =
             unlines
               [ "last request:",
                 ppShow req,
                 "full response:",
                 ppShow resp
               ]
+       in context ctx $ c `shouldBe` i
 
 newtype RequestBuilder site a = RequestBuilder
   { unRequestBuilder ::

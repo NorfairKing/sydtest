@@ -332,19 +332,23 @@ outputFailures rf =
                     case testRunResultException of
                       Nothing -> []
                       Just (Left s) -> stringChunks s
-                      Just (Right a) -> case a of
-                        NotEqualButShouldHaveBeenEqual actual expected mContext -> outputEqualityAssertionFailed actual expected mContext
-                        EqualButShouldNotHaveBeenEqual actual notExpected mContext -> outputNotEqualAssertionFailed actual notExpected mContext
-                        PredicateFailedButShouldHaveSucceeded actual mContext -> outputPredicateSuccessAssertionFailed actual mContext
-                        PredicateSucceededButShouldHaveFailed actual mContext -> outputPredicateFailAssertionFailed actual mContext
-                        ExpectationFailed s -> stringChunks s,
+                      Just (Right a) -> outputAssertion a,
                   [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
                   concat [map padFailureDetails $ stringChunks ei | ei <- maybeToList testRunResultExtraInfo],
                   [[chunk ""]]
                 ]
 
-outputEqualityAssertionFailed :: String -> String -> Maybe String -> [[Chunk]]
-outputEqualityAssertionFailed actual expected mContext =
+outputAssertion :: Assertion -> [[Chunk]]
+outputAssertion = \case
+  NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
+  EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
+  PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
+  PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual
+  ExpectationFailed s -> stringChunks s
+  Context a' context -> outputAssertion a' ++ stringChunks context
+
+outputEqualityAssertionFailed :: String -> String -> [[Chunk]]
+outputEqualityAssertionFailed actual expected =
   let diff = getDiff actual expected -- TODO use 'getGroupedDiff' instead, but then we need to fix the 'splitWhen' below
       splitLines = splitWhen ((== "\n") . _yarn)
       chunksLinesWithHeader :: Chunk -> [[Chunk]] -> [[Chunk]]
@@ -379,38 +383,33 @@ outputEqualityAssertionFailed actual expected mContext =
         [ [[chunk "Expected these values to be equal:"]],
           actualChunks,
           expectedChunks,
-          inlineDiffChunks,
-          mContextChunks mContext
+          inlineDiffChunks
         ]
 
-outputNotEqualAssertionFailed :: String -> String -> Maybe String -> [[Chunk]]
-outputNotEqualAssertionFailed actual notExpected mContext =
-  ( if actual == notExpected -- String equality
-      then
-        [ [chunk "Did not expect equality of the values but both were:"],
-          [chunk (T.pack actual)]
-        ]
-      else
-        [ [chunk "These two values were considered equal but should not have been equal:"],
-          [fore blue "Actual      : ", chunk (T.pack actual)],
-          [fore blue "Not Expected: ", chunk (T.pack notExpected)]
-        ]
-  )
-    ++ mContextChunks mContext
+outputNotEqualAssertionFailed :: String -> String -> [[Chunk]]
+outputNotEqualAssertionFailed actual notExpected =
+  if actual == notExpected -- String equality
+    then
+      [ [chunk "Did not expect equality of the values but both were:"],
+        [chunk (T.pack actual)]
+      ]
+    else
+      [ [chunk "These two values were considered equal but should not have been equal:"],
+        [fore blue "Actual      : ", chunk (T.pack actual)],
+        [fore blue "Not Expected: ", chunk (T.pack notExpected)]
+      ]
 
-outputPredicateSuccessAssertionFailed :: String -> Maybe String -> [[Chunk]]
-outputPredicateSuccessAssertionFailed actual mContext =
+outputPredicateSuccessAssertionFailed :: String -> [[Chunk]]
+outputPredicateSuccessAssertionFailed actual =
   [ [chunk "Predicate failed, but should have succeeded, on this value:"],
     [chunk (T.pack actual)]
   ]
-    ++ mContextChunks mContext
 
-outputPredicateFailAssertionFailed :: String -> Maybe String -> [[Chunk]]
-outputPredicateFailAssertionFailed actual mContext =
+outputPredicateFailAssertionFailed :: String -> [[Chunk]]
+outputPredicateFailAssertionFailed actual =
   [ [chunk "Predicate succeeded, but should have failed, on this value:"],
     [chunk (T.pack actual)]
   ]
-    ++ mContextChunks mContext
 
 mContextChunks :: Maybe String -> [[Chunk]]
 mContextChunks = maybe [] stringChunks

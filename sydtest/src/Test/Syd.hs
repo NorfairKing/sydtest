@@ -49,23 +49,17 @@ module Test.Syd
 
     -- ** Expectations
     shouldBe,
-    shouldBeWith,
     shouldNotBe,
-    shouldNotBeWith,
     shouldSatisfy,
-    shouldSatisfyWith,
     shouldNotSatisfy,
-    shouldNotSatisfyWith,
     shouldReturn,
-    shouldReturnWith,
     shouldNotReturn,
-    shouldNotReturnWith,
+    expectationFailure,
+    context,
 
     -- *** String expectations
     stringShouldBe,
-    stringShouldBeWith,
     textShouldBe,
-    textShouldBeWith,
 
     -- *** For throwing raw assertions
     stringsNotEqualButShouldHaveBeenEqual,

@@ -30,7 +30,7 @@ goldenByteStringFile fp produceBS =
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing
-          else Just $ bytestringsNotEqualButShouldHaveBeenEqual actual expected (Just $ goldenContext fp)
+          else Just $ Context (bytestringsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
     }
 
 -- | Test that the given text is the same as what we find in the given golden file.
@@ -52,7 +52,7 @@ goldenTextFile fp produceBS =
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing
-          else Just $ textsNotEqualButShouldHaveBeenEqual actual expected (Just $ goldenContext fp)
+          else Just $ Context (textsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
     }
 
 -- | Test that the given string is the same as what we find in the given golden file.
@@ -74,7 +74,7 @@ goldenStringFile fp produceBS =
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing
-          else Just $ stringsNotEqualButShouldHaveBeenEqual actual expected (Just $ goldenContext fp)
+          else Just $ Context (stringsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
     }
 
 -- | Test that the show instance has not changed for the given value.

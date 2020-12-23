@@ -136,7 +136,7 @@ spec = do
             _ ->
               if actual == expected
                 then Nothing
-                else Just $ NotEqualButShouldHaveBeenEqual (show actual) (show expected) Nothing
+                else Just $ NotEqualButShouldHaveBeenEqual (show actual) (show expected)
         }
 
     describe "outputResultForest" $ do
@@ -193,6 +193,13 @@ spec = do
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `shouldBe` "foq\nbaz\tqex"
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `textShouldBe` "foq\nbaz\tqex"
     it "compares bytestrings" $ ("foo\nbar\tquux " :: ByteString) `shouldBe` "foq\nbaz\tqex"
+  describe "Context" $ do
+    it "shows a nice context" $ context "Context" $ True `shouldBe` False
+    it "shows a nice context multiple levels deep" $
+      context "Context1" $
+        context "Context2" $
+          context "Context3" $
+            True `shouldBe` False
   modifyMaxSize (`div` 10) $
     describe "Property" $ do
       describe "generated values" $

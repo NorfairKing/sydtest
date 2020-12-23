@@ -193,7 +193,7 @@ spec = do
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `shouldBe` "foq\nbaz\tqex"
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `textShouldBe` "foq\nbaz\tqex"
     it "compares bytestrings" $ ("foo\nbar\tquux " :: ByteString) `shouldBe` "foq\nbaz\tqex"
-  describe "Property" $
+  describe "Property" $ do
     it "shows many generated values too" $
       property $ \i ->
         property $ \j ->
@@ -201,6 +201,10 @@ spec = do
             property $ \l ->
               property $ \m ->
                 i + j + k + l + m `shouldBe` m + l + k + j + i + (1 :: Int)
+    it "shows the classes in use on success" $
+      forAll (sort <$> arbitrary) $ \xs ->
+        classify (length xs > 1) "non-trivial" $
+          sort xs `shouldBe` (xs :: [Int])
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

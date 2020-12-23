@@ -203,8 +203,7 @@ outputFailures rf =
   let failures = filter testFailed $ flattenSpecForest rf
       nbDigitsInFailureCount :: Int
       nbDigitsInFailureCount = floor (logBase 10 (genericLength failures) :: Double)
-      pad = (chunk (T.pack (replicate (nbDigitsInFailureCount + 4) ' ')) :)
-      padFailureDetails = (chunk (T.pack (replicate (1 + nbDigitsInFailureCount + 3) ' ')) :)
+      padFailureDetails = (chunk (T.pack (replicate (nbDigitsInFailureCount + 4) ' ')) :)
    in map (padding :) $
         filter (not . null) $
           concat $
@@ -230,14 +229,14 @@ outputFailures rf =
                         chunk $ T.intercalate "." ts
                       ]
                   ],
-                  map (pad . (: []) . chunk . T.pack) $
+                  map (padFailureDetails . (: []) . chunk . T.pack) $
                     case (testRunResultNumTests, testRunResultNumShrinks) of
                       (Nothing, _) -> []
                       (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
                       (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
                       (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
-                  map (pad . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
-                  map pad $
+                  map (padFailureDetails . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
+                  map padFailureDetails $
                     case testRunResultException of
                       Nothing -> []
                       Just (Left s) -> stringChunks s
@@ -248,6 +247,7 @@ outputFailures rf =
                         PredicateSucceededButShouldHaveFailed actual mContext -> outputPredicateFailAssertionFailed actual mContext
                         ExpectationFailed s -> stringChunks s,
                   [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
+                  concat [map padFailureDetails $ stringChunks ei | ei <- maybeToList testRunResultExtraInfo],
                   [[chunk ""]]
                 ]
 

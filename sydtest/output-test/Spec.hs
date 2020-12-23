@@ -205,6 +205,10 @@ spec = do
       forAll (sort <$> arbitrary) $ \xs ->
         classify (length xs > 1) "non-trivial" $
           sort xs `shouldBe` (xs :: [Int])
+    it "shows the classes in use on failure" $
+      forAll (sort <$> arbitrary) $ \xs ->
+        classify (length xs > 1) "non-trivial" $
+          sort xs `shouldBe` (0 : xs :: [Int])
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

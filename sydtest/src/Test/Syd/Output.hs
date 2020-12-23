@@ -14,6 +14,7 @@ import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import Data.List
 import Data.List.Split (splitWhen)
+import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -156,10 +157,11 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
               ]
             ],
             [ pad
-                [chunk (T.pack (printf "  (passed for all of %d inputs)" w))]
+                [chunk (T.pack (printf "  passed for all of %d inputs" w))]
               | testRunResultStatus == TestPassed,
                 w <- maybeToList testRunResultNumTests
             ],
+            [pad $ map (\(s, i) -> chunk (T.pack (printf "  %d%% %s" i s))) (M.toList classes) | classes <- maybeToList testRunResultClasses],
             [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
           ]
 
@@ -246,6 +248,7 @@ outputFailures rf =
                         PredicateFailedButShouldHaveSucceeded actual mContext -> outputPredicateSuccessAssertionFailed actual mContext
                         PredicateSucceededButShouldHaveFailed actual mContext -> outputPredicateFailAssertionFailed actual mContext
                         ExpectationFailed s -> stringChunks s,
+                  [padFailureDetails $ map (\(s, i) -> chunk (T.pack (printf "%d%% %s" i s))) (M.toList classes) | classes <- maybeToList testRunResultClasses],
                   [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
                   concat [map padFailureDetails $ stringChunks ei | ei <- maybeToList testRunResultExtraInfo],
                   [[chunk ""]]

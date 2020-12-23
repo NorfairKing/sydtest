@@ -13,6 +13,7 @@ module Test.Syd.Run where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.IO.Class
+import Data.Map (Map)
 import Data.Typeable
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
@@ -63,6 +64,7 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let testRunResultGoldenCase = Nothing
   let testRunResultFailingInputs = []
   let testRunResultExtraInfo = Nothing
+  let testRunResultClasses = Nothing
   pure TestRunResult {..}
 
 applyWrapper2 ::
@@ -114,6 +116,7 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
   let testRunResultGoldenCase = Nothing
   let testRunResultFailingInputs = []
   let testRunResultExtraInfo = Nothing
+  let testRunResultClasses = Nothing
   pure TestRunResult {..}
 
 instance IsTest Property where
@@ -158,6 +161,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
       let testRunResultNumShrinks = Nothing
       let testRunResultFailingInputs = []
       let testRunResultExtraInfo = Nothing
+      let testRunResultClasses = Nothing
       pure TestRunResult {..}
     Right qcr -> do
       let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
@@ -168,6 +172,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultNumShrinks = Nothing
           let testRunResultFailingInputs = []
           let testRunResultExtraInfo = Nothing
+          let testRunResultClasses = Just $ classes qcr
           pure TestRunResult {..}
         GaveUp {} -> do
           let testRunResultStatus = TestFailed
@@ -175,6 +180,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultNumShrinks = Nothing
           let testRunResultFailingInputs = []
           let testRunResultExtraInfo = Just $ printf "Gave up, %d discarded tests" (numDiscarded qcr)
+          let testRunResultClasses = Just $ classes qcr
           pure TestRunResult {..}
         Failure {} -> do
           let testRunResultStatus = TestFailed
@@ -186,12 +192,14 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultNumShrinks = Just $ fromIntegral $ numShrinks qcr
           let testRunResultFailingInputs = failingTestCase qcr
           let testRunResultExtraInfo = Nothing
+          let testRunResultClasses = Nothing
           pure TestRunResult {..}
         NoExpectedFailure {} -> do
           let testRunResultStatus = TestFailed
           let testRunResultException = Nothing
           let testRunResultNumShrinks = Nothing
           let testRunResultFailingInputs = []
+          let testRunResultClasses = Just $ classes qcr
           let testRunResultExtraInfo = Just $ printf "Expected the property to fail but it didn't."
           pure TestRunResult {..}
 
@@ -266,6 +274,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
   let testRunResultNumShrinks = Nothing
   let testRunResultFailingInputs = []
   let testRunResultExtraInfo = Nothing
+  let testRunResultClasses = Nothing
   pure TestRunResult {..}
 
 exceptionHandlers :: [Handler (Either (Either String Assertion) a)]
@@ -309,6 +318,7 @@ data TestRunResult = TestRunResult
     testRunResultNumTests :: !(Maybe Word),
     testRunResultNumShrinks :: !(Maybe Word),
     testRunResultFailingInputs :: [String],
+    testRunResultClasses :: !(Maybe (Map String Int)),
     testRunResultGoldenCase :: !(Maybe GoldenCase),
     testRunResultExtraInfo :: !(Maybe String)
   }

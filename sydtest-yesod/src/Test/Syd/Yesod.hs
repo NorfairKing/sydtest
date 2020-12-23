@@ -11,10 +11,10 @@ module Test.Syd.Yesod
     yesodSpecWithSiteGeneratorAndArgument,
     yesodSpecWithSiteSupplier,
     yesodSpecWithSiteSupplierWith,
+    yesodSpecWithSiteSetupFunc,
 
     -- *** Setup functions
-    yesodSpecWithFunc,
-    yesodSetupFunc,
+    yesodClientSetupFunc,
 
     -- ** Core
     YesodSpec,

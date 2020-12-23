@@ -23,10 +23,10 @@ library:
     - mtl
     - pretty-show
     - sydtest
+    - sydtest-wai
     - text
     - time
     - wai
-    - warp
     - xml-conduit
     - yesod-core
     - yesod-test

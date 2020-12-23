@@ -25,6 +25,8 @@ with final.haskell.lib;
       "sydtest" = sydtestPkg "sydtest";
       "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";
       "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
+      "sydtest-servant" = sydtestPkg "sydtest-servant";
+      "sydtest-wai" = sydtestPkg "sydtest-wai";
       "sydtest-yesod" = sydtestPkg "sydtest-yesod";
     };
 

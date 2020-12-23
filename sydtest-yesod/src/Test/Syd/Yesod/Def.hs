@@ -2,14 +2,27 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module Test.Syd.Yesod.Def where
+module Test.Syd.Yesod.Def
+  ( yesodSpec,
+    yesodSpecWithSiteGenerator,
+    yesodSpecWithSiteGeneratorAndArgument,
+    yesodSpecWithSiteSupplier,
+    yesodSpecWithSiteSupplierWith,
+    yesodSpecWithSiteSetupFunc,
+    yesodClientSetupFunc,
+    YesodSpec,
+    yit,
+    ydescribe,
+  )
+where
 
 import GHC.Stack
 import Network.HTTP.Client as HTTP
-import Network.Wai.Handler.Warp as Warp
 import Test.Syd
+import Test.Syd.Wai
 import Test.Syd.Yesod.Client
 import Yesod.Core as Yesod
 
@@ -43,25 +56,26 @@ yesodSpecWithSiteSupplier func = yesodSpecWithSiteSupplierWith (\f () -> func f)
 
 -- | Using a function that supplies a 'site', based on an inner resource, run a test suite.
 yesodSpecWithSiteSupplierWith :: YesodDispatch site => ((site -> IO ()) -> (a -> IO ())) -> YesodSpec site -> SpecWith a
-yesodSpecWithSiteSupplierWith func = aroundWith func . beforeAll (newManager defaultManagerSettings) . aroundWith' yesodSpecWithFunc
+yesodSpecWithSiteSupplierWith func = yesodSpecWithSiteSetupFunc $ \_ -> SetupFunc func
 
--- | Turn a function that takes a 'YesodClient site' into a function that only takes a 'site'.
-yesodSpecWithFunc :: YesodDispatch site => (HTTP.Manager -> YesodClient site -> IO ()) -> (HTTP.Manager -> site -> IO ())
-yesodSpecWithFunc func man = unSetupFunc (yesodSetupFunc man) (func man)
+-- | Using a function that supplies a 'site', using a 'SetupFunc'
+yesodSpecWithSiteSetupFunc :: YesodDispatch site => (HTTP.Manager -> SetupFunc a site) -> TestDef (HTTP.Manager ': l) (YesodClient site) -> TestDef l a
+yesodSpecWithSiteSetupFunc setupFunc = managerSpec . setupAroundWith' (\man -> setupFunc man `connectSetupFunc` yesodClientSetupFunc man)
 
-yesodSetupFunc :: YesodDispatch site => HTTP.Manager -> SetupFunc site (YesodClient site)
-yesodSetupFunc man = SetupFunc $ \takeClient site ->
-  Warp.testWithApplication (Yesod.toWaiAppPlain site) $ \p ->
-    let client =
-          YesodClient
-            { yesodClientManager = man,
-              yesodClientSite = site,
-              yesodClientSitePort = p
-            }
-     in takeClient client
+yesodClientSetupFunc :: YesodDispatch site => HTTP.Manager -> SetupFunc site (YesodClient site)
+yesodClientSetupFunc man = wrapSetupFunc $ \site -> do
+  application <- liftIO $ Yesod.toWaiAppPlain site
+  p <- unwrapSetupFunc applicationSetupFunc application
+  let client =
+        YesodClient
+          { yesodClientManager = man,
+            yesodClientSite = site,
+            yesodClientSitePort = p
+          }
+  pure client
 
 -- | For backward compatibility with yesod-test
-type YesodSpec site = TestDefM '[HTTP.Manager] (YesodClient site) ()
+type YesodSpec site = TestDef '[HTTP.Manager] (YesodClient site)
 
 -- | Define a test in the 'YesodClientM site' monad instead of 'IO'.
 yit :: forall site. HasCallStack => String -> YesodClientM site () -> YesodSpec site

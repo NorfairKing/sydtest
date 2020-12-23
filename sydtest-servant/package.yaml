@@ -1,0 +1,36 @@
+name:                sydtest-servant
+version:             0.0.0.0
+github:              "NorfairKing/sydtest"
+author:              "Tom Sydney Kerckhove"
+maintainer:          "syd@cs-syd.eu"
+copyright:           "Copyright (c) 2020 Tom Sydney Kerckhove"
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - http-client
+  - servant
+  - servant-client
+  - servant-server
+  - sydtest
+  - sydtest-wai
+
+tests:
+  sydtest-servant-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - servant
+    - servant-client
+    - servant-server
+    - stm
+    - sydtest
+    - sydtest-servant

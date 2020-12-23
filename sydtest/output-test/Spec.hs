@@ -193,22 +193,34 @@ spec = do
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `shouldBe` "foq\nbaz\tqex"
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `textShouldBe` "foq\nbaz\tqex"
     it "compares bytestrings" $ ("foo\nbar\tquux " :: ByteString) `shouldBe` "foq\nbaz\tqex"
-  describe "Property" $ do
-    it "shows many generated values too" $
-      property $ \i ->
-        property $ \j ->
-          property $ \k ->
-            property $ \l ->
-              property $ \m ->
-                i + j + k + l + m `shouldBe` m + l + k + j + i + (1 :: Int)
-    it "shows the classes in use on success" $
-      forAll (sort <$> arbitrary) $ \xs ->
-        classify (length xs > 1) "non-trivial" $
-          sort xs `shouldBe` (xs :: [Int])
-    it "shows the classes in use on failure" $
-      forAll (sort <$> arbitrary) $ \xs ->
-        classify (length xs > 1) "non-trivial" $
-          sort xs `shouldBe` (0 : xs :: [Int])
+  modifyMaxSize (`div` 10) $
+    describe "Property" $ do
+      it "shows many generated values too" $
+        property $ \i ->
+          property $ \j ->
+            property $ \k ->
+              property $ \l ->
+                property $ \m ->
+                  i + j + k + l + m `shouldBe` m + l + k + j + i + (1 :: Int)
+      it "shows the classes in use on success" $
+        forAll (sort <$> arbitrary) $ \xs ->
+          classify (length xs > 1) "non-trivial" $
+            sort xs `shouldBe` (xs :: [Int])
+      it "shows the classes in use on success" $
+        forAll (sort <$> arbitrary) $ \xs ->
+          classify (null xs) "empty" $
+            classify (length xs == 1) "single element" $
+              classify (length xs > 1) "non-trivial" $
+                sort xs `shouldBe` (xs :: [Int])
+      it "shows the tables in use on success" $
+        forAll (sort <$> arbitrary) $ \xs ->
+          tabulate "List elements" (map show xs) $
+            sort xs `shouldBe` (xs :: [Int])
+      it "shows the tables in use on success" $
+        forAll (sort <$> arbitrary) $ \xs ->
+          tabulate "List elements" (map show xs) $
+            tabulate "List magnitudes" (map ((show :: Int -> String) . (ceiling :: Double -> Int) . logBase 10 . fromIntegral) xs) $
+              sort xs `shouldBe` (xs :: [Int])
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

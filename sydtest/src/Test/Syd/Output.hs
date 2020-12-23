@@ -14,6 +14,7 @@ import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import Data.List
 import Data.List.Split (splitWhen)
+import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
@@ -161,9 +162,45 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
               | testRunResultStatus == TestPassed,
                 w <- maybeToList testRunResultNumTests
             ],
-            [pad $ map (\(s, i) -> chunk (T.pack (printf "  %d%% %s" i s))) (M.toList classes) | classes <- maybeToList testRunResultClasses],
+            map pad $ classesChunks testRunResultClasses,
+            map pad $ tablesChunks testRunResultTables,
             [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
           ]
+
+classesChunks :: Maybe (Map String Int) -> [[Chunk]]
+classesChunks Nothing = []
+classesChunks (Just classes) =
+  map
+    ( \(s, i) ->
+        [ chunk
+            ( T.pack
+                ( printf "  %d%% %s" i s
+                )
+            )
+        ]
+    )
+    (M.toList classes)
+
+tablesChunks :: Maybe (Map String (Map String Int)) -> [[Chunk]]
+tablesChunks Nothing = []
+tablesChunks (Just tables) = concatMap (uncurry goTable) $ M.toList tables
+  where
+    goTable :: String -> Map String Int -> [[Chunk]]
+    goTable tableName percentages =
+      [chunk " "] :
+      [chunk (T.pack tableName)] :
+      map
+        ( \(s, i) ->
+            [ chunk
+                ( T.pack
+                    ( printf "  %.2f%% %s" (fromIntegral i / fromIntegral total :: Double) s
+                    )
+                )
+            ]
+        )
+        (M.toList percentages)
+      where
+        total = sum $ map snd $ M.toList percentages
 
 outputPendingLines :: Text -> Maybe Text -> [[Chunk]]
 outputPendingLines specifyText mReason =

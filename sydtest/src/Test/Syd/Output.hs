@@ -158,28 +158,59 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
               ]
             ],
             [ pad
-                [chunk (T.pack (printf "  passed for all of %d inputs" w))]
+                [chunk (T.pack (printf "passed for all of %d inputs" w))]
               | testRunResultStatus == TestPassed,
                 w <- maybeToList testRunResultNumTests
             ],
+            map pad $ labelsChunks testRunResultLabels,
             map pad $ classesChunks testRunResultClasses,
             map pad $ tablesChunks testRunResultTables,
             [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
           ]
 
+labelsChunks :: Maybe (Map [String] Int) -> [[Chunk]]
+labelsChunks Nothing = []
+labelsChunks (Just labels)
+  | M.size labels <= 1 = []
+  | otherwise =
+    [chunk "labels"] :
+    map
+      ( pad
+          . ( \(ss, i) ->
+                [ chunk
+                    ( T.pack
+                        ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) (unwords (map show ss))
+                        )
+                    )
+                ]
+            )
+      )
+      (M.toList labels)
+  where
+    pad = (chunk (T.pack (replicate paddingSize ' ')) :)
+    total = sum $ map snd $ M.toList labels
+
 classesChunks :: Maybe (Map String Int) -> [[Chunk]]
 classesChunks Nothing = []
-classesChunks (Just classes) =
-  map
-    ( \(s, i) ->
-        [ chunk
-            ( T.pack
-                ( printf "  %d%% %s" i s
-                )
+classesChunks (Just classes)
+  | M.null classes = []
+  | otherwise =
+    [chunk "classes"] :
+    map
+      ( pad
+          . ( \(s, i) ->
+                [ chunk
+                    ( T.pack
+                        ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s
+                        )
+                    )
+                ]
             )
-        ]
-    )
-    (M.toList classes)
+      )
+      (M.toList classes)
+  where
+    pad = (chunk (T.pack (replicate paddingSize ' ')) :)
+    total = sum $ map snd $ M.toList classes
 
 tablesChunks :: Maybe (Map String (Map String Int)) -> [[Chunk]]
 tablesChunks Nothing = []
@@ -190,16 +221,19 @@ tablesChunks (Just tables) = concatMap (uncurry goTable) $ M.toList tables
       [chunk " "] :
       [chunk (T.pack tableName)] :
       map
-        ( \(s, i) ->
-            [ chunk
-                ( T.pack
-                    ( printf "  %.2f%% %s" (fromIntegral i / fromIntegral total :: Double) s
-                    )
-                )
-            ]
+        ( pad
+            . ( \(s, i) ->
+                  [ chunk
+                      ( T.pack
+                          ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s
+                          )
+                      )
+                  ]
+              )
         )
         (M.toList percentages)
       where
+        pad = (chunk (T.pack (replicate paddingSize ' ')) :)
         total = sum $ map snd $ M.toList percentages
 
 outputPendingLines :: Text -> Maybe Text -> [[Chunk]]
@@ -285,7 +319,6 @@ outputFailures rf =
                         PredicateFailedButShouldHaveSucceeded actual mContext -> outputPredicateSuccessAssertionFailed actual mContext
                         PredicateSucceededButShouldHaveFailed actual mContext -> outputPredicateFailAssertionFailed actual mContext
                         ExpectationFailed s -> stringChunks s,
-                  [padFailureDetails $ map (\(s, i) -> chunk (T.pack (printf "%d%% %s" i s))) (M.toList classes) | classes <- maybeToList testRunResultClasses],
                   [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
                   concat [map padFailureDetails $ stringChunks ei | ei <- maybeToList testRunResultExtraInfo],
                   [[chunk ""]]

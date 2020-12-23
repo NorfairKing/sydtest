@@ -216,11 +216,22 @@ spec = do
         forAll (sort <$> arbitrary) $ \xs ->
           tabulate "List elements" (map show xs) $
             sort xs `shouldBe` (xs :: [Int])
+      let magnitude :: Int -> Int
+          magnitude = (ceiling :: Double -> Int) . logBase 10 . fromIntegral
       it "shows the tables in use on success" $
         forAll (sort <$> arbitrary) $ \xs ->
           tabulate "List elements" (map show xs) $
-            tabulate "List magnitudes" (map ((show :: Int -> String) . (ceiling :: Double -> Int) . logBase 10 . fromIntegral) xs) $
+            tabulate "List magnitudes" (map (show . magnitude) xs) $
               sort xs `shouldBe` (xs :: [Int])
+      it "shows the labels in use on success" $
+        property $ \xs ->
+          label ("length of input is " ++ show (length xs)) $
+            reverse (reverse xs) `shouldBe` (xs :: [Int])
+      it "shows the labels in use on success" $
+        property $ \xs ->
+          label ("length of input is " ++ show (length xs)) $
+            label ("magnitude (digits) of sum of input is " ++ show (magnitude (sum xs))) $
+              reverse (reverse xs) `shouldBe` (xs :: [Int])
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

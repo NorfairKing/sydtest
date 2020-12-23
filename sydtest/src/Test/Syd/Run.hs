@@ -64,6 +64,7 @@ runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
   let testRunResultGoldenCase = Nothing
   let testRunResultFailingInputs = []
   let testRunResultExtraInfo = Nothing
+  let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
   pure TestRunResult {..}
@@ -117,6 +118,7 @@ runIOTestWithArg func TestRunSettings {..} wrapper = do
   let testRunResultGoldenCase = Nothing
   let testRunResultFailingInputs = []
   let testRunResultExtraInfo = Nothing
+  let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
   pure TestRunResult {..}
@@ -163,6 +165,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
       let testRunResultNumShrinks = Nothing
       let testRunResultFailingInputs = []
       let testRunResultExtraInfo = Nothing
+      let testRunResultLabels = Nothing
       let testRunResultClasses = Nothing
       let testRunResultTables = Nothing
       pure TestRunResult {..}
@@ -175,6 +178,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultNumShrinks = Nothing
           let testRunResultFailingInputs = []
           let testRunResultExtraInfo = Nothing
+          let testRunResultLabels = Just $ labels qcr
           let testRunResultClasses = Just $ classes qcr
           let testRunResultTables = Just $ tables qcr
           pure TestRunResult {..}
@@ -184,6 +188,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultNumShrinks = Nothing
           let testRunResultFailingInputs = []
           let testRunResultExtraInfo = Just $ printf "Gave up, %d discarded tests" (numDiscarded qcr)
+          let testRunResultLabels = Just $ labels qcr
           let testRunResultClasses = Just $ classes qcr
           let testRunResultTables = Just $ tables qcr
           pure TestRunResult {..}
@@ -197,6 +202,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultNumShrinks = Just $ fromIntegral $ numShrinks qcr
           let testRunResultFailingInputs = failingTestCase qcr
           let testRunResultExtraInfo = Nothing
+          let testRunResultLabels = Nothing
           let testRunResultClasses = Nothing
           let testRunResultTables = Nothing
           pure TestRunResult {..}
@@ -205,6 +211,7 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultException = Nothing
           let testRunResultNumShrinks = Nothing
           let testRunResultFailingInputs = []
+          let testRunResultLabels = Just $ labels qcr
           let testRunResultClasses = Just $ classes qcr
           let testRunResultTables = Just $ tables qcr
           let testRunResultExtraInfo = Just $ printf "Expected the property to fail but it didn't."
@@ -281,6 +288,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
   let testRunResultNumShrinks = Nothing
   let testRunResultFailingInputs = []
   let testRunResultExtraInfo = Nothing
+  let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
   pure TestRunResult {..}
@@ -326,6 +334,7 @@ data TestRunResult = TestRunResult
     testRunResultNumTests :: !(Maybe Word),
     testRunResultNumShrinks :: !(Maybe Word),
     testRunResultFailingInputs :: [String],
+    testRunResultLabels :: !(Maybe (Map [String] Int)),
     testRunResultClasses :: !(Maybe (Map String Int)),
     testRunResultTables :: !(Maybe (Map String (Map String Int))),
     testRunResultGoldenCase :: !(Maybe GoldenCase),

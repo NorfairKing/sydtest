@@ -14,6 +14,7 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad.IO.Class
 import Data.Map (Map)
+import qualified Data.Map as M
 import Data.Typeable
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
@@ -202,8 +203,8 @@ runPropertyTestWithArg p TestRunSettings {..} wrapper = do
           let testRunResultNumShrinks = Just $ fromIntegral $ numShrinks qcr
           let testRunResultFailingInputs = failingTestCase qcr
           let testRunResultExtraInfo = Nothing
-          let testRunResultLabels = Nothing
-          let testRunResultClasses = Nothing
+          let testRunResultLabels = Just $ M.singleton (failingLabels qcr) 1
+          let testRunResultClasses = Just $ M.fromSet (const 1) (failingClasses qcr)
           let testRunResultTables = Nothing
           pure TestRunResult {..}
         NoExpectedFailure {} -> do

@@ -179,7 +179,7 @@ labelsChunks (Just labels)
           . ( \(ss, i) ->
                 [ chunk
                     ( T.pack
-                        ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) (unwords (map show ss))
+                        ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) (commaList (map show ss))
                         )
                     )
                 ]
@@ -246,6 +246,23 @@ outputPendingLines specifyText mReason =
         Just reason -> [padding, chunk reason]
     ]
 
+outputFailureLabels :: Maybe (Map [String] Int) -> [[Chunk]]
+outputFailureLabels Nothing = []
+outputFailureLabels (Just labels)
+  | labels == M.singleton [] 1 = []
+  | otherwise = [["Labels: ", chunk (T.pack (commaList (map show (concat $ M.keys labels))))]]
+
+commaList :: [String] -> String
+commaList [] = []
+commaList [s] = s
+commaList (s1 : rest) = s1 ++ ", " ++ commaList rest
+
+outputFailureClasses :: Maybe (Map String Int) -> [[Chunk]]
+outputFailureClasses Nothing = []
+outputFailureClasses (Just classes)
+  | M.null classes = []
+  | otherwise = [["Class: ", chunk (T.pack (commaList (M.keys classes)))]]
+
 outputGoldenCase :: GoldenCase -> [Chunk]
 outputGoldenCase = \case
   GoldenNotFound -> [fore red $ chunk "Golden output not found"]
@@ -309,6 +326,8 @@ outputFailures rf =
                       (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
                       (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
                   map (padFailureDetails . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
+                  map padFailureDetails $ outputFailureLabels testRunResultLabels,
+                  map padFailureDetails $ outputFailureClasses testRunResultClasses,
                   map padFailureDetails $
                     case testRunResultException of
                       Nothing -> []

@@ -35,9 +35,11 @@ module Test.Syd
     pending,
     pendingWith,
 
-    -- ** Golden tests
+    -- ** Environment-based tests
+    eit,
+    withTestEnv,
 
-    -- *** Single files
+    -- ** Golden tests
     pureGoldenByteStringFile,
     goldenByteStringFile,
     pureGoldenTextFile,

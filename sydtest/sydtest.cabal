@@ -24,8 +24,10 @@ library
       Test.Syd.Def
       Test.Syd.Def.Around
       Test.Syd.Def.AroundAll
+      Test.Syd.Def.Env
       Test.Syd.Def.Golden
       Test.Syd.Def.SetupFunc
+      Test.Syd.Def.Specify
       Test.Syd.Def.TestDefM
       Test.Syd.Expectation
       Test.Syd.HList

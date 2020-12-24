@@ -68,15 +68,19 @@ type YesodExample site a = YesodClientM site a
 runYesodClientM :: YesodClient site -> YesodClientM site a -> IO a
 runYesodClientM cenv (YesodClientM func) = runReaderT (evalStateT func initYesodClientState) cenv
 
+-- | Get the most recently sent request.
 getRequest :: YesodClientM site (Maybe Request)
 getRequest = State.gets (fmap fst . yesodClientStateLast)
 
+-- | Get the most recently received response.
 getResponse :: YesodClientM site (Maybe (Response LB.ByteString))
 getResponse = State.gets (fmap snd . yesodClientStateLast)
 
+-- | Get the most recently sent request and the response to it.
 getLast :: YesodClientM site (Maybe (Request, Response LB.ByteString))
 getLast = State.gets yesodClientStateLast
 
+-- | Get the 'Location' header of most recently received response.
 getLocation :: ParseRoute site => YesodClientM site (Either Text (Route site))
 getLocation = do
   mr <- getResponse

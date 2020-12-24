@@ -4,14 +4,13 @@ An experimental testing framework for Haskell with good defaults and advanced te
 
 Sydtest aims to make the common easy and the hard possible.
 
-**Not ready for use in production yet.**
-
 
 ## License
 
 Copyright (c) 2020 Tom Sydney Kerckhove
 
 All Rights Reserved
+
 
 ## In short
 
@@ -74,7 +73,7 @@ This project chooses best practices as defaults:
 | Deterministic randomness for randomised execution order by default                        | ✔️       | ✖️                                                           | C                                                                |
 | Deterministic randomness                                                                  | ✔️       | ✔️                                                           | ✔️                                                                |
 | Deterministic randomness by default                                                       | ✔️       | ✖️                                                           | ✖️                                                                |
-| Deterministic randomness instructions for rerunning tests                                 | 🚧      | ✔️                                                           | C                                                                |
+| Deterministic randomness instructions for rerunning tests                                 | ✔️       | ✔️                                                           | C                                                                |
 | Hiding process arguments from tests                                                       | ✔️       | ✔️                                                           | C                                                                |
 | Declaring that an individual test should fail                                             | 🚧      | ✖️                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |
 | Declaring that at least one in a test group should fail                                   | 🚧      | C                                                           | [Lib](http://hackage.haskell.org/package/tasty-expected-failure) |

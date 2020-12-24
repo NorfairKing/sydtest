@@ -305,7 +305,7 @@ xitWithBoth s _ = pending s
 -- | Declare a test that uses all outer resources
 --
 -- You will most likely never need this function, but in case you do:
--- Note that this will alwast require a type annotation, along with the @GADTs@ and @ScopedTypeVariables@ extensions.
+-- Note that this will always require a type annotation, along with the @GADTs@ and @ScopedTypeVariables@ extensions.
 --
 -- === Example usage
 --

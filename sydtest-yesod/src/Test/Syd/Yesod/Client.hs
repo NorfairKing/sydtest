@@ -30,6 +30,7 @@ data YesodClient site = YesodClient
     yesodClientSitePort :: !Int
   }
 
+-- | The state that is maintained throughout a 'YesodClientM'
 data YesodClientState site = YesodClientState
   { -- | The last request and response pair
     yesodClientStateLast :: !(Maybe (Request, Response LB.ByteString)),
@@ -37,6 +38,7 @@ data YesodClientState site = YesodClientState
     yesodClientStateCookies :: !CookieJar
   }
 
+-- | The starting point of the 'YesodClientState site' of a 'YesodClientM site'
 initYesodClientState :: YesodClientState site
 initYesodClientState =
   YesodClientState

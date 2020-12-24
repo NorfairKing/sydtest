@@ -92,14 +92,20 @@ module Test.Syd
     aroundWith,
 
     -- **** Setup functions
-    SetupFunc (..),
-    composeSetupFunc,
-    connectSetupFunc,
-    wrapSetupFunc,
-    unwrapSetupFunc,
+
+    -- ***** Using setup functions
     setupAround,
     setupAroundWith,
     setupAroundWith',
+
+    -- ***** Creating setup functions
+    SetupFunc (..),
+    makeSimpleSetupFunc,
+    useSimpleSetupFunc,
+    connectSetupFunc,
+    composeSetupFunc,
+    wrapSetupFunc,
+    unwrapSetupFunc,
 
     -- *** Declaring different test settings
     modifyMaxSuccess,

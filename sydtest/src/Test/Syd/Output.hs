@@ -342,8 +342,8 @@ outputAssertion :: Assertion -> [[Chunk]]
 outputAssertion = \case
   NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
   EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
-  PredicateFailedButShouldHaveSucceeded actual -> outputPredicateSuccessAssertionFailed actual
-  PredicateSucceededButShouldHaveFailed actual -> outputPredicateFailAssertionFailed actual
+  PredicateFailedButShouldHaveSucceeded actual mName -> outputPredicateSuccessAssertionFailed actual mName
+  PredicateSucceededButShouldHaveFailed actual mName -> outputPredicateFailAssertionFailed actual mName
   ExpectationFailed s -> stringChunks s
   Context a' context -> outputAssertion a' ++ stringChunks context
 
@@ -399,17 +399,23 @@ outputNotEqualAssertionFailed actual notExpected =
         [fore blue "Not Expected: ", chunk (T.pack notExpected)]
       ]
 
-outputPredicateSuccessAssertionFailed :: String -> [[Chunk]]
-outputPredicateSuccessAssertionFailed actual =
-  [ [chunk "Predicate failed, but should have succeeded, on this value:"],
-    [chunk (T.pack actual)]
-  ]
+outputPredicateSuccessAssertionFailed :: String -> Maybe String -> [[Chunk]]
+outputPredicateSuccessAssertionFailed actual mName =
+  concat
+    [ [ [chunk "Predicate failed, but should have succeeded, on this value:"],
+        [chunk (T.pack actual)]
+      ],
+      concat $ [[chunk "Predicate: "]] : [stringChunks name | name <- maybeToList mName]
+    ]
 
-outputPredicateFailAssertionFailed :: String -> [[Chunk]]
-outputPredicateFailAssertionFailed actual =
-  [ [chunk "Predicate succeeded, but should have failed, on this value:"],
-    [chunk (T.pack actual)]
-  ]
+outputPredicateFailAssertionFailed :: String -> Maybe String -> [[Chunk]]
+outputPredicateFailAssertionFailed actual mName =
+  concat
+    [ [ [chunk "Predicate succeeded, but should have failed, on this value:"],
+        [chunk (T.pack actual)]
+      ],
+      concat $ [[chunk "Predicate: "]] : [stringChunks name | name <- maybeToList mName]
+    ]
 
 mContextChunks :: Maybe String -> [[Chunk]]
 mContextChunks = maybe [] stringChunks

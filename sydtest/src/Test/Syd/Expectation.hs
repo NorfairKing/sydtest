@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
 -- | This module defines all the functions you will use to define your tests
@@ -6,8 +8,10 @@ module Test.Syd.Expectation where
 import Control.Exception
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
+import Data.List
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Typeable
 import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.Run
@@ -27,15 +31,23 @@ infix 1 `shouldNotBe`
 
 -- | Assert that a value satisfies the given predicate.
 shouldSatisfy :: (HasCallStack, Show a) => a -> (a -> Bool) -> IO ()
-shouldSatisfy actual p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual)
+shouldSatisfy actual p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual) Nothing
+
+-- | Assert that a value satisfies the given predicate with the given predicate name.
+shouldSatisfyNamed :: (HasCallStack, Show a) => a -> String -> (a -> Bool) -> IO ()
+shouldSatisfyNamed actual name p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual) (Just name)
 
 infix 1 `shouldSatisfy`
 
 -- | Assert that a value does not satisfy the given predicate.
 shouldNotSatisfy :: (HasCallStack, Show a) => a -> (a -> Bool) -> IO ()
-shouldNotSatisfy actual p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual)
+shouldNotSatisfy actual p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual) Nothing
 
 infix 1 `shouldNotSatisfy`
+
+-- | Assert that a value does not satisfy the given predicate with the given predicate name.
+shouldNotSatisfyNamed :: (HasCallStack, Show a) => a -> String -> (a -> Bool) -> IO ()
+shouldNotSatisfyNamed actual name p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual) (Just name)
 
 -- | Assert that computation returns the given value (according to `==`).
 shouldReturn :: (HasCallStack, Show a, Eq a) => IO a -> a -> IO ()
@@ -52,6 +64,24 @@ shouldNotReturn computeActual expected = do
   unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected)
 
 infix 1 `shouldNotReturn`
+
+-- | Assert that the given list has the given prefix
+shouldStartWith :: (HasCallStack, Show a, Eq a) => [a] -> [a] -> Expectation
+shouldStartWith a i = shouldSatisfyNamed a ("has infix\n" <> ppShow i) (isInfixOf i)
+
+infix 1 `shouldStartWith`
+
+-- | Assert that the given list has the given suffix
+shouldEndWith :: (HasCallStack, Show a, Eq a) => [a] -> [a] -> Expectation
+shouldEndWith a s = shouldSatisfyNamed a ("has suffix\n" <> ppShow s) (isSuffixOf s)
+
+infix 1 `shouldEndWith`
+
+-- | Assert that the given list has the given infix
+shouldContain :: (HasCallStack, Show a, Eq a) => [a] -> [a] -> Expectation
+shouldContain a i = shouldSatisfyNamed a ("has infix\n" <> ppShow i) (isInfixOf i)
+
+infix 1 `shouldContain`
 
 -- | Assert that two 'String's are equal according to `==`.
 --
@@ -98,3 +128,38 @@ context s action = (action >>= evaluate) `catch` (\a -> throwIO (Context a s))
 
 -- | For easy hspec migration
 type Expectation = IO ()
+
+-- | For easy hspec migration
+type Selector a = (a -> Bool)
+
+-- | Assert that a given IO action throws an exception that matches the given exception
+shouldThrow :: forall e a. (HasCallStack, Exception e) => IO a -> Selector e -> Expectation
+action `shouldThrow` p = do
+  r <- try action
+  case r of
+    Right _ ->
+      expectationFailure $
+        "did not get expected exception: " ++ exceptionType
+    Left e ->
+      context ("predicate failed on expected exception: " ++ exceptionType ++ " (" ++ show e ++ ")") $
+        e `shouldSatisfy` p
+  where
+    -- a string repsentation of the expected exception's type
+    exceptionType = (show . typeOf @e) undefined
+
+infix 1 `shouldThrow`
+
+anyException :: Selector SomeException
+anyException = const True
+
+anyErrorCall :: Selector ErrorCall
+anyErrorCall = const True
+
+errorCall :: String -> Selector ErrorCall
+errorCall s (ErrorCallWithLocation msg _) = s == msg
+
+anyIOException :: Selector IOException
+anyIOException = const True
+
+anyArithException :: Selector ArithException
+anyArithException = const True

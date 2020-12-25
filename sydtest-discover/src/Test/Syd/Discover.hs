@@ -130,6 +130,7 @@ makeSpecModule Settings {..} destination sources =
     [ if settingMain then "" else moduleDeclaration (makeModuleName destination),
       "",
       "import Test.Syd",
+      "import qualified Prelude",
       "",
       importDeclarations sources,
       if settingMain then mainDeclaration else "",
@@ -142,7 +143,7 @@ moduleDeclaration mn = unwords ["module", mn, "where"]
 mainDeclaration :: String
 mainDeclaration =
   unlines
-    [ "main :: IO ()",
+    [ "main :: Prelude.IO ()",
       "main = sydTest spec"
     ]
 

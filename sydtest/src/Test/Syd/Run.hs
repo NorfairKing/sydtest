@@ -349,8 +349,12 @@ data TestStatus = TestPassed | TestFailed
 data Assertion
   = NotEqualButShouldHaveBeenEqual String String
   | EqualButShouldNotHaveBeenEqual String String
-  | PredicateSucceededButShouldHaveFailed String
-  | PredicateFailedButShouldHaveSucceeded String
+  | PredicateSucceededButShouldHaveFailed
+      String -- Value
+      (Maybe String) -- Name of the predicate
+  | PredicateFailedButShouldHaveSucceeded
+      String -- Value
+      (Maybe String) -- Name of the predicate
   | ExpectationFailed String
   | Context Assertion String
   deriving (Show, Eq, Typeable, Generic)

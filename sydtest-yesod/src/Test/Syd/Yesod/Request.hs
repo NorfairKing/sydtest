@@ -10,6 +10,7 @@
 
 module Test.Syd.Yesod.Request where
 
+import Control.Applicative
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.State (MonadState, StateT (..), execStateT)
@@ -55,9 +56,9 @@ performMethod method route = request $ do
 
 statusIs :: HasCallStack => Int -> YesodClientM site ()
 statusIs i = do
-  mLast <- State.gets yesodClientStateLast
+  mLast <- getLast
   liftIO $ case mLast of
-    Nothing -> expectationFailure "No request made yet."
+    Nothing -> expectationFailure "statusIs: No request made yet."
     Just (req, resp) ->
       let c = statusCode (responseStatus resp)
           ctx =
@@ -68,6 +69,16 @@ statusIs i = do
                 ppShow resp
               ]
        in context ctx $ c `shouldBe` i
+
+-- | Assert the last response has the given text.
+--
+-- The check is performed using the response body in full text form.
+bodyContains :: HasCallStack => String -> YesodExample site ()
+bodyContains text = do
+  mResp <- getResponse
+  liftIO $ case mResp of
+    Nothing -> expectationFailure "bodyContains: No request made yet."
+    Just resp -> shouldSatisfy (TE.encodeUtf8 (T.pack text)) (`SB.isInfixOf` LB.toStrict (responseBody resp))
 
 newtype RequestBuilder site a = RequestBuilder
   { unRequestBuilder ::
@@ -126,7 +137,11 @@ runRequestBuilder (RequestBuilder func) = do
   p <- asks yesodClientSitePort
   cj <- State.gets yesodClientStateCookies
   RequestBuilderData {..} <- execStateT func initialRequestBuilderData
-  req <- liftIO $ parseRequest $ T.unpack requestBuilderDataUrl
+  let requestStr = T.unpack requestBuilderDataUrl
+
+  req <- case parseRequest requestStr <|> parseRequest ("http://localhost" <> requestStr) of
+    Nothing -> liftIO $ expectationFailure $ "Failed to parse url: " <> requestStr
+    Just req -> pure req
   boundary <- liftIO webkitBoundary
   let (body, contentTypeHeader) = case requestBuilderDataPostData of
         MultipleItemsPostData [] -> (RequestBodyBS SB.empty, Nothing)
@@ -183,12 +198,11 @@ setUrl :: (Yesod site, RedirectUrl site url) => url -> RequestBuilder site ()
 setUrl route = do
   site <- asks yesodClientSite
   Right url <-
-    fmap ("http://localhost" <>)
-      <$> Yesod.Core.Unsafe.runFakeHandler
-        M.empty
-        (const $ error "Test.Syd.Yesod: No logger available")
-        site
-        (toTextUrl route)
+    Yesod.Core.Unsafe.runFakeHandler
+      M.empty
+      (const $ error "Test.Syd.Yesod: No logger available")
+      site
+      (toTextUrl route)
   State.modify'
     ( \oldReq ->
         oldReq
@@ -322,3 +336,25 @@ htmlQuery query = do
     Just resp -> case CSS.findBySelector (responseBody resp) query of
       Left err -> liftIO $ expectationFailure $ show query <> " did not parse: " <> show err
       Right matches -> pure $ map (LB.fromStrict . TE.encodeUtf8 . T.pack) matches
+
+-- | Follow a redirect, if the last response was a redirect.
+--
+-- (We consider a request a redirect if the status is
+-- 301, 302, 303, 307 or 308, and the Location header is set.)
+followRedirect ::
+  Yesod site =>
+  -- | 'Left' with an error message if not a redirect, 'Right' with the redirected URL if it was
+  YesodExample site (Either Text Text)
+followRedirect = do
+  mr <- getResponse
+  case mr of
+    Nothing -> return $ Left "followRedirect called, but there was no previous response, so no redirect to follow"
+    Just r -> do
+      if HTTP.statusCode (responseStatus r) `notElem` [301, 302, 303, 307, 308]
+        then return $ Left "followRedirect called, but previous request was not a redirect"
+        else do
+          case lookup "Location" (responseHeaders r) of
+            Nothing -> return $ Left "followRedirect called, but no location header set"
+            Just h ->
+              let url = TE.decodeUtf8 h
+               in get url >> return (Right url)

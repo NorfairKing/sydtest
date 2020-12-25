@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.Wai where
@@ -17,13 +18,13 @@ waiSpec application = waiSpecWithSetupFunc $ pure application
 -- | Run a 'Wai.Application' around every test by setting it up with the given setup function.
 --
 -- This provides the port on which the application is running.
-waiSpecWith :: ((Application -> IO ()) -> IO ()) -> TestDef l Port -> TestDef l ()
+waiSpecWith :: (forall r. (Application -> IO r) -> IO r) -> TestDef l Port -> TestDef l ()
 waiSpecWith appFunc = waiSpecWithSetupFunc $ makeSimpleSetupFunc appFunc
 
 -- | Run a 'Wai.Application' around every test by setting it up with the given setup function that can take an argument.
 -- a
 -- This provides the port on which the application is running.
-waiSpecWith' :: ((Application -> IO ()) -> (a -> IO ())) -> TestDef l Port -> TestDef l a
+waiSpecWith' :: (forall r. (Application -> IO r) -> (a -> IO r)) -> TestDef l Port -> TestDef l a
 waiSpecWith' appFunc = waiSpecWithSetupFunc $ SetupFunc appFunc
 
 -- | Run a 'Wai.Application' around every test by setting it up with the given 'SetupFunc'.

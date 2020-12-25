@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Test.Syd.Def.SetupFunc where
 
 import Control.Category as Cat
@@ -10,7 +12,7 @@ import Test.Syd.HList
 --
 -- You can think of this as a potentially-resource-aware version of 'b -> IO a'.
 newtype SetupFunc b a = SetupFunc
-  { unSetupFunc :: (a -> IO ()) -> (b -> IO ())
+  { unSetupFunc :: forall r. (a -> IO r) -> (b -> IO r)
   }
 
 instance Functor (SetupFunc c) where
@@ -55,13 +57,13 @@ instance Category SetupFunc where
 --
 -- * [Network.Wai.Handler.Warp.testWithApplication](https://hackage.haskell.org/package/warp-3.3.13/docs/Network-Wai-Handler-Warp.html#v:testWithApplication)
 -- * [Path.IO.withSystemTempDir](https://hackage.haskell.org/package/path-io-1.6.2/docs/Path-IO.html#v:withSystemTempDir)
-makeSimpleSetupFunc :: ((a -> IO ()) -> IO ()) -> SetupFunc () a
+makeSimpleSetupFunc :: (forall r. (a -> IO r) -> IO r) -> SetupFunc () a
 makeSimpleSetupFunc provideA = SetupFunc $ \takeA () -> provideA $ \a -> takeA a
 
 -- | Use a 'SetupFunc ()' as a simple provider function.
 --
 -- This is the opposite of the 'makeSimpleSetupFunc' function
-useSimpleSetupFunc :: SetupFunc () a -> ((a -> IO ()) -> IO ())
+useSimpleSetupFunc :: SetupFunc () a -> (forall r. (a -> IO r) -> IO r)
 useSimpleSetupFunc (SetupFunc provideAWithUnit) takeA = provideAWithUnit (\a -> takeA a) ()
 
 -- | Wrap a function that produces a 'SetupFunc' to into a 'SetupFunc'.

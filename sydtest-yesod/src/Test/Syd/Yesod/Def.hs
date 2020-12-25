@@ -51,11 +51,11 @@ yesodSpecWithSiteGeneratorAndArgument :: YesodDispatch site => (a -> IO site) ->
 yesodSpecWithSiteGeneratorAndArgument func = yesodSpecWithSiteSupplierWith $ \f a -> func a >>= f
 
 -- | Using a function that supplies a 'site', run a test suite.
-yesodSpecWithSiteSupplier :: YesodDispatch site => ((site -> IO ()) -> IO ()) -> YesodSpec site -> Spec
+yesodSpecWithSiteSupplier :: YesodDispatch site => (forall r. (site -> IO r) -> IO r) -> YesodSpec site -> Spec
 yesodSpecWithSiteSupplier func = yesodSpecWithSiteSupplierWith (\f () -> func f)
 
 -- | Using a function that supplies a 'site', based on an inner resource, run a test suite.
-yesodSpecWithSiteSupplierWith :: YesodDispatch site => ((site -> IO ()) -> (a -> IO ())) -> YesodSpec site -> SpecWith a
+yesodSpecWithSiteSupplierWith :: YesodDispatch site => (forall r. (site -> IO r) -> (a -> IO r)) -> YesodSpec site -> SpecWith a
 yesodSpecWithSiteSupplierWith func = yesodSpecWithSiteSetupFunc $ \_ -> SetupFunc func
 
 -- | Using a function that supplies a 'site', using a 'SetupFunc'

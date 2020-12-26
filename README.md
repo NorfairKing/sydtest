@@ -1,6 +1,6 @@
 # sydtest
 
-An experimental testing framework for Haskell with good defaults and advanced testing features.
+An modern testing framework for Haskell with good defaults and advanced testing features.
 
 Sydtest aims to make the common easy and the hard possible.
 
@@ -10,6 +10,11 @@ Sydtest aims to make the common easy and the hard possible.
 Copyright (c) 2020 Tom Sydney Kerckhove
 
 All Rights Reserved
+
+
+
+You can use this software under the AGPL license **with the additional condition** that it is not used for commercial purposes.
+Alternatively you can automatically receive a commercial license while you are [a github sponsor of NorfairKing](https://github.com/sponsors/NorfairKing) or a contributor.
 
 
 ## In short

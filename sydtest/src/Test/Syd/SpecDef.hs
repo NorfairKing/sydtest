@@ -45,7 +45,7 @@ data SpecDefTree (a :: [Type]) c e where -- a: input from 'aroundAll', c: input 
   DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
   DefBeforeAllNode :: IO a -> SpecDefForest (a ': l) c e -> SpecDefTree l c e
   DefAroundAllNode ::
-    ((a -> IO ()) -> IO ()) ->
+    SetupFunc () a ->
     SpecDefForest (a ': l) c e ->
     SpecDefTree l c e
   DefAroundAllWithNode ::

@@ -102,7 +102,7 @@ runner failFast nbThreads failFastVar handleForest = do
           b <- func
           goForest p (HCons b a) sdf
         DefAroundAllNode func sdf ->
-          func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning)
+          unSetupFunc func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning) ()
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
            in unSetupFunc func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning) x

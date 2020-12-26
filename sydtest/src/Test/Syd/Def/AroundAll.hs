@@ -48,8 +48,8 @@ afterAll_ action = afterAll' $ \_ -> action
 -- | Run a custom action before and/or after all spec items in group, to provide access to a resource 'a'.
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
-aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM (a ': l) c e -> TestDefM l c e
-aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
+aroundAll :: (forall s. (a -> IO s) -> IO s) -> TestDefM (a ': l) c e -> TestDefM l c e
+aroundAll func = wrapRWST $ \forest -> DefAroundAllNode (makeSimpleSetupFunc func) forest
 
 -- | Run a custom action before and/or after all spec items in a group without accessing any resources.
 --
@@ -84,7 +84,7 @@ aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
 -- In this case, the test will "just work", but it will be executed twice even if the output reports that it only passed once.
 --
 -- Note: If you're interested in fixing this, talk to me, but only after GHC has gotten impredicative types because that will likely be a requirement.
-aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e
+aroundAll_ :: (forall s. IO s -> IO s) -> TestDefM a b e -> TestDefM a b e
 aroundAll_ func = wrapRWST $ \forest -> DefWrapNode func forest
 
 -- | Run a custom action before and/or after all spec items in a group to provide access to a resource 'a' while using a resource 'b'

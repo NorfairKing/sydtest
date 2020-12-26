@@ -93,11 +93,12 @@ spec = sequential $ do
         readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
     let increment :: IO ()
         increment = atomically $ modifyTVar var (+ 1)
-    let incrementBeforeAndAfter :: (Int -> IO ()) -> IO ()
+    let incrementBeforeAndAfter :: (Int -> IO s) -> IO s
         incrementBeforeAndAfter func = do
           i <- readAndIncrement
-          func i
+          s <- func i
           increment
+          pure s
     aroundAll incrementBeforeAndAfter $ do
       let t :: Int -> IO ()
           t i = i `shouldBe` 1
@@ -108,11 +109,12 @@ spec = sequential $ do
     var <- liftIO $ newTVarIO (0 :: Int)
     let increment :: IO ()
         increment = atomically $ modifyTVar var (+ 1)
-    let incrementBeforeAndAfter :: IO () -> IO ()
+    let incrementBeforeAndAfter :: IO s -> IO s
         incrementBeforeAndAfter func = do
           increment
-          func
+          s <- func
           increment
+          pure s
     aroundAll_ incrementBeforeAndAfter $ do
       let t :: IO ()
           t = do
@@ -127,11 +129,12 @@ spec = sequential $ do
         readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
     let increment :: IO ()
         increment = atomically $ modifyTVar var (+ 1)
-    let incrementBeforeAndAfter :: (Int -> IO ()) -> IO ()
+    let incrementBeforeAndAfter :: (Int -> IO s) -> IO s
         incrementBeforeAndAfter func = do
           i <- readAndIncrement
-          func i
+          s <- func i
           increment
+          pure s
     let incrementBeforeAndAfterWith :: (Int -> IO s) -> Int -> IO s
         incrementBeforeAndAfterWith func j = do
           i <- readAndIncrement

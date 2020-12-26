@@ -52,7 +52,7 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
                   goForest (HCons b l) sdf
               )
       DefAroundAllNode func sdf ->
-        fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest (HCons b l) sdf)
+        fmap SubForestNode <$> unSetupFunc func (\b -> goForest (HCons b l) sdf) ()
       DefAroundAllWithNode func sdf ->
         let HCons x _ = l
          in fmap SubForestNode <$> unSetupFunc func (\b -> goForest (HCons b l) sdf) x
@@ -108,7 +108,7 @@ runSpecForestInterleavedWithOutputSynchronously mColour failFast testForest = do
                     goForest level (HCons b a) sdf
                 )
         DefAroundAllNode func sdf ->
-          fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest level (HCons b a) sdf)
+          fmap SubForestNode <$> unSetupFunc func (\b -> goForest level (HCons b a) sdf) ()
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
            in fmap SubForestNode <$> unSetupFunc func (\b -> goForest level (HCons b a) sdf) x

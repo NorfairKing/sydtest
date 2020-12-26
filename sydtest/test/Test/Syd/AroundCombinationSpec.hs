@@ -17,16 +17,18 @@ spec = sequential $
           readAndIncrement = atomically $ stateTVar var $ \i -> (i + 1, i + 1)
       let increment :: IO ()
           increment = atomically $ modifyTVar var (+ 1)
-      let incrementAround :: (Int -> IO ()) -> IO ()
+      let incrementAround :: (Int -> IO s) -> IO s
           incrementAround func = do
             i <- readAndIncrement
-            func i
+            s <- func i
             increment
-      let incrementAroundWith :: (Int -> IO ()) -> Int -> IO ()
+            pure s
+      let incrementAroundWith :: (Int -> IO s) -> Int -> IO s
           incrementAroundWith func j = do
             i <- readAndIncrement
-            func (i + j)
+            s <- func (i + j)
             increment
+            pure s
       let incrementAroundWith2 :: (Int -> Int -> IO ()) -> Int -> Int -> IO ()
           incrementAroundWith2 func j k = do
             i <- readAndIncrement

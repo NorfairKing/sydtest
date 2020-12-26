@@ -20,6 +20,7 @@ import Data.Text (Text)
 import Data.Word
 import GHC.Stack
 import Test.QuickCheck.IO ()
+import Test.Syd.Def.SetupFunc
 import Test.Syd.HList
 import Test.Syd.Run
 import Test.Syd.SpecForest
@@ -48,7 +49,7 @@ data SpecDefTree (a :: [Type]) c e where -- a: input from 'aroundAll', c: input 
     SpecDefForest (a ': l) c e ->
     SpecDefTree l c e
   DefAroundAllWithNode ::
-    ((b -> IO ()) -> (a -> IO ())) ->
+    SetupFunc a b ->
     SpecDefForest (b ': a ': l) c e ->
     SpecDefTree (a ': l) c e
   DefAfterAllNode :: (HList a -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e

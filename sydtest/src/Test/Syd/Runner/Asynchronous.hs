@@ -21,6 +21,7 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import Rainbow
 import Test.QuickCheck.IO ()
+import Test.Syd.Def.SetupFunc
 import Test.Syd.HList
 import Test.Syd.Output
 import Test.Syd.Run
@@ -104,7 +105,7 @@ runner failFast nbThreads failFastVar handleForest = do
           func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning)
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
-           in func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning) x
+           in unSetupFunc func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning) x
         DefAfterAllNode func sdf -> goForest p a sdf `finally` (waitForCurrentlyRunning >> func a)
         DefParallelismNode p' sdf -> goForest p' a sdf
         DefRandomisationNode _ sdf -> goForest p a sdf

@@ -14,6 +14,7 @@ import Control.Exception
 import Control.Monad.RWS.Strict
 import Data.Kind
 import Test.QuickCheck.IO ()
+import Test.Syd.Def.SetupFunc
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 import Test.Syd.Run
@@ -128,3 +129,24 @@ aroundWith' func (TestDefM rwst) = TestDefM $
     let forest' :: SpecDefForest u d ()
         forest' = modifyForest forest
     pure (res, s, forest')
+
+-- | Connect two setup functions.
+--
+-- This is basically 'flip (.)' but for 'SetupFunc's.
+-- It's exactly 'flip composeSetupFunc'.
+connectSetupFunc :: SetupFunc c b -> SetupFunc b a -> SetupFunc c a
+connectSetupFunc = flip composeSetupFunc
+
+-- | Use 'around' with a 'SetupFunc'
+setupAround :: SetupFunc () c -> TestDefM a c e -> TestDefM a () e
+setupAround = setupAroundWith
+
+-- | Use 'aroundWith' with a 'SetupFunc'
+setupAroundWith :: SetupFunc d c -> TestDefM a c e -> TestDefM a d e
+setupAroundWith (SetupFunc f) = aroundWith f
+
+-- | Use 'aroundWith'' with a 'SetupFunc'
+setupAroundWith' :: HContains l a => (a -> SetupFunc d c) -> TestDefM l c e -> TestDefM l d e
+setupAroundWith' setupFuncFunc = aroundWith' $ \takeAC a d ->
+  let (SetupFunc provideCWithD) = setupFuncFunc a
+   in provideCWithD (\c -> takeAC a c) d

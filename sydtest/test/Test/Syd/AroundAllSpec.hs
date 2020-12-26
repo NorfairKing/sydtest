@@ -132,11 +132,12 @@ spec = sequential $ do
           i <- readAndIncrement
           func i
           increment
-    let incrementBeforeAndAfterWith :: (Int -> IO ()) -> Int -> IO ()
+    let incrementBeforeAndAfterWith :: (Int -> IO s) -> Int -> IO s
         incrementBeforeAndAfterWith func j = do
           i <- readAndIncrement
-          func (i + j)
+          s <- func (i + j)
           increment
+          pure s
     aroundAll incrementBeforeAndAfter $
       aroundAllWith incrementBeforeAndAfterWith $ do
         let t :: Int -> IO ()

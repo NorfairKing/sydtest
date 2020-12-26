@@ -4,9 +4,6 @@ module Test.Syd.Def.SetupFunc where
 
 import Control.Category as Cat
 import Control.Monad.IO.Class
-import Test.Syd.Def.Around
-import Test.Syd.Def.TestDefM
-import Test.Syd.HList
 
 -- | A function that can provide an 'a' given a 'b'.
 --
@@ -104,24 +101,3 @@ composeSetupFunc (SetupFunc provideAWithB) (SetupFunc provideBWithC) = SetupFunc
           b
     )
     c
-
--- | Connect two setup functions.
---
--- This is basically 'flip (.)' but for 'SetupFunc's.
--- It's exactly 'flip composeSetupFunc'.
-connectSetupFunc :: SetupFunc c b -> SetupFunc b a -> SetupFunc c a
-connectSetupFunc = flip composeSetupFunc
-
--- | Use 'around' with a 'SetupFunc'
-setupAround :: SetupFunc () c -> TestDefM a c e -> TestDefM a () e
-setupAround = setupAroundWith
-
--- | Use 'aroundWith' with a 'SetupFunc'
-setupAroundWith :: SetupFunc d c -> TestDefM a c e -> TestDefM a d e
-setupAroundWith (SetupFunc f) = aroundWith f
-
--- | Use 'aroundWith'' with a 'SetupFunc'
-setupAroundWith' :: HContains l a => (a -> SetupFunc d c) -> TestDefM l c e -> TestDefM l d e
-setupAroundWith' setupFuncFunc = aroundWith' $ \takeAC a d ->
-  let (SetupFunc provideCWithD) = setupFuncFunc a
-   in provideCWithD (\c -> takeAC a c) d

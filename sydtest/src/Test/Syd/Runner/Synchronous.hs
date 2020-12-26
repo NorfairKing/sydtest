@@ -14,6 +14,7 @@ import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.Text as T
 import Rainbow
+import Test.Syd.Def.SetupFunc
 import Test.Syd.HList
 import Test.Syd.Output
 import Test.Syd.Run
@@ -54,7 +55,7 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
         fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest (HCons b l) sdf)
       DefAroundAllWithNode func sdf ->
         let HCons x _ = l
-         in fmap SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b l) sdf) x
+         in fmap SubForestNode <$> unSetupFunc func (\b -> goForest (HCons b l) sdf) x
       DefAfterAllNode func sdf -> fmap SubForestNode <$> (goForest l sdf `finally` func l)
       DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest l sdf -- Ignore, it's synchronous anyway
       DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest l sdf
@@ -110,7 +111,7 @@ runSpecForestInterleavedWithOutputSynchronously mColour failFast testForest = do
           fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest level (HCons b a) sdf)
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
-           in fmap SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) x
+           in fmap SubForestNode <$> unSetupFunc func (\b -> goForest level (HCons b a) sdf) x
         DefAfterAllNode func sdf -> fmap SubForestNode <$> (goForest level a sdf `finally` func a)
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level a sdf

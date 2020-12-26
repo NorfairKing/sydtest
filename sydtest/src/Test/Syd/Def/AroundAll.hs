@@ -4,6 +4,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE IncoherentInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -13,6 +14,7 @@ module Test.Syd.Def.AroundAll where
 
 import Control.Monad.RWS.Strict
 import Test.QuickCheck.IO ()
+import Test.Syd.Def.SetupFunc
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 import Test.Syd.SpecDef
@@ -90,10 +92,10 @@ aroundAll_ func = wrapRWST $ \forest -> DefWrapNode func forest
 -- See the @FOOTGUN@ note in the docs for 'around_'.
 aroundAllWith ::
   forall a b c l r.
-  ((a -> IO ()) -> (b -> IO ())) ->
+  (forall s. (a -> IO s) -> (b -> IO s)) ->
   TestDefM (a ': b ': l) c r ->
   TestDefM (b ': l) c r
-aroundAllWith func = wrapRWST $ \forest -> DefAroundAllWithNode func forest
+aroundAllWith func = wrapRWST $ \forest -> DefAroundAllWithNode (SetupFunc func) forest
 
 -- | Declare a node in the spec def forest
 wrapRWST :: (TestForest a c -> TestTree b d) -> TestDefM a c l -> TestDefM b d l

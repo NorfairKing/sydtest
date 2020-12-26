@@ -3,7 +3,10 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE IncoherentInstances #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.HList where
@@ -14,20 +17,13 @@ data HList (r :: [Type]) where
   HNil :: HList '[]
   HCons :: e -> HList l -> HList (e ': l)
 
-class HContains (l :: [Type]) a where
-  getElem :: HList l -> a
+type family HContains (xs :: [Type]) (x :: Type) :: Constraint where
+  HContains '[] x = x ~ ()
+  HContains (x ': xs) x = ()
+  HContains (_ ': xs) x = HContains xs x
 
-instance HContains '[] () where
-  getElem HNil = ()
-
-instance HContains l (HList l) where
-  getElem = id
-
-instance HContains '[a] a where
-  getElem (HCons a _) = a
-
-instance HContains (a ': l) a where
-  getElem (HCons a _) = a
-
-instance HContains l a => HContains (b ': l) a where
-  getElem (HCons _ hl) = getElem hl
+getElem :: HContains l a => HList l -> a
+getElem = \case
+  HNil -> ()
+  HCons (e :: a) _ -> e
+  HCons _ x -> getElem x

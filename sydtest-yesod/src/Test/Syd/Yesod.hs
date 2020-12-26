@@ -12,6 +12,7 @@ module Test.Syd.Yesod
     yesodSpecWithSiteSupplier,
     yesodSpecWithSiteSupplierWith,
     yesodSpecWithSiteSetupFunc,
+    yesodSpecWithSiteSetupFunc',
 
     -- *** Setup functions
     yesodClientSetupFunc,

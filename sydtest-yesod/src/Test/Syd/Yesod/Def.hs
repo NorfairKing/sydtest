@@ -12,6 +12,7 @@ module Test.Syd.Yesod.Def
     yesodSpecWithSiteSupplier,
     yesodSpecWithSiteSupplierWith,
     yesodSpecWithSiteSetupFunc,
+    yesodSpecWithSiteSetupFunc',
     yesodClientSetupFunc,
     YesodSpec,
     yit,
@@ -60,7 +61,13 @@ yesodSpecWithSiteSupplierWith func = yesodSpecWithSiteSetupFunc $ \_ -> SetupFun
 
 -- | Using a function that supplies a 'site', using a 'SetupFunc'
 yesodSpecWithSiteSetupFunc :: YesodDispatch site => (HTTP.Manager -> SetupFunc a site) -> TestDef (HTTP.Manager ': l) (YesodClient site) -> TestDef l a
-yesodSpecWithSiteSetupFunc setupFunc = managerSpec . setupAroundWith' (\man -> setupFunc man `connectSetupFunc` yesodClientSetupFunc man)
+yesodSpecWithSiteSetupFunc setupFunc = managerSpec . yesodSpecWithSiteSetupFunc' setupFunc
+
+-- | Using a function that supplies a 'site', using a 'SetupFunc' but without setting up the 'HTTP.Manager' beforehand.
+--
+-- This function assumed that you've already set up the 'HTTP.Manager' beforehand using something like 'managerSpec'.
+yesodSpecWithSiteSetupFunc' :: YesodDispatch site => (HTTP.Manager -> SetupFunc a site) -> TestDef (HTTP.Manager ': l) (YesodClient site) -> TestDef (HTTP.Manager ': l) a
+yesodSpecWithSiteSetupFunc' setupFunc = setupAroundWith' (\man -> setupFunc man `connectSetupFunc` yesodClientSetupFunc man)
 
 yesodClientSetupFunc :: YesodDispatch site => HTTP.Manager -> SetupFunc site (YesodClient site)
 yesodClientSetupFunc man = wrapSetupFunc $ \site -> do

@@ -11,7 +11,7 @@ Copyright (c) 2020 Tom Sydney Kerckhove
 
 All Rights Reserved
 
-See [LICENSE](./LICENSE)
+See [LICENSE](./sydtest/LICENSE.md)
 
 
 ## In short

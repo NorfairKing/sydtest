@@ -11,10 +11,7 @@ Copyright (c) 2020 Tom Sydney Kerckhove
 
 All Rights Reserved
 
-
-
-You can use this software under the AGPL license **with the additional condition** that it is not used for commercial purposes.
-Alternatively you can automatically receive a commercial license while you are [a github sponsor of NorfairKing](https://github.com/sponsors/NorfairKing) or a contributor.
+See [LICENSE](./LICENSE)
 
 
 ## In short

@@ -184,7 +184,7 @@ xit s _ = pending s
 -- This is quite a rare use-case but here is an example anyway:
 --
 -- > beforeAll (pure 3) $ describe "addition" $
--- >     itWithBoth "adds 3 to 5 to result in 8" $ \i ->
+-- >     itWithOuter "adds 3 to 5 to result in 8" $ \i ->
 -- >         i + 5 == 8
 --
 --
@@ -194,7 +194,7 @@ xit s _ = pending s
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
 -- > in aroundAll setUpTempDir describe "readFile and writeFile" $
--- >     itWithBoth "reads back what it wrote for this example" $ \tempDir -> do
+-- >     itWithOuter "reads back what it wrote for this example" $ \tempDir -> do
 -- >         let cts = "hello world"
 -- >         let fp = tempDir </> "test.txt"
 -- >         writeFile fp cts
@@ -207,7 +207,7 @@ xit s _ = pending s
 -- This is quite a rare use-case but here is an example anyway:
 --
 -- > beforeAll (pure 3) $ describe "multiplication" $
--- >     itWithBoth "is commutative for 5" $ \i ->
+-- >     itWithOuter "is commutative for 5" $ \i ->
 -- >         i * 5 == 5 * 3
 --
 --
@@ -215,7 +215,7 @@ xit s _ = pending s
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
 -- > in aroundAll setUpTempDir describe "readFile and writeFile" $
--- >     itWithBoth "reads back what it wrote for this example" $ \tempDir ->
+-- >     itWithouter "reads back what it wrote for this example" $ \tempDir ->
 -- >         property $ \cts -> do
 -- >             let fp = tempDir </> "test.txt"
 -- >             writeFile fp cts

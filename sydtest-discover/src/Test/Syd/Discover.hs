@@ -155,7 +155,7 @@ specDeclaration fs =
   unlines $
     "spec :: Spec" :
     if null fs
-      then ["spec = pure ()"]
+      then ["spec = Prelude.pure ()"]
       else
         "spec = do" :
         map moduleSpecLine fs

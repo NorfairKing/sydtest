@@ -2,8 +2,6 @@
 
 A modern testing framework for Haskell with good defaults and advanced testing features.
 
-Sydtest aims to make the common easy and the hard possible.
-
 
 ## License
 
@@ -19,20 +17,69 @@ Alternatively you can automatically receive a commercial license while you are [
 
 ## In short
 
-### The devil is in the defaults
+This is a short overview of the principles by which sydtest was designed.
+See a complete overview of the features below.
 
-This project chooses best practices as defaults:
+### Principle: Passing tests should give you confidence
 
-- A fixed seed for deterministic randomness
-- Pretty show for output
-- Multi-line coloured diffs
-- Bounded shrinking
-- Randomised test suite execution order
+This means you should be alerted of any potential issue as early as possible.
 
-### Advanced testing features
+* Parallel test execution by default
 
-- Multi-line coloured diff for equality assertion failures
-- Wrap a test group to use a `withResource`-like function (`aroundAll`)
+  This will show any race-conditions or lack of thread-safety that your code may have.
+  It also helps with decreasing the total runtime of a test suite.
+
+* Randomised test suite execution order by default
+
+  This will prevent any dependency on the order of execution.
+
+### Principle: Reproducible tests
+
+* Deterministic randomness by default
+
+  Both the test suite execution order shuffling and the property testing randomness uses a fixed seed by default.
+  This helps to prevent flakiness and makes it easy to reproduce a failing test.
+
+* Flakiness diagnosis
+  
+  When you notice a flaky test suite, sydtest offers you tools to help diagnose this flakiness.
+  This turns a flaky test suite into a reproducible failure that you can go and fix.
+
+### Principle: Debugging should be as easy as possible
+
+* Pretty show for output
+  
+  Sydtest uses [`ppShow`](http://hackage.haskell.org/package/pretty-show-1.10/docs/Text-Show-Pretty.html#v:ppShow) to show values in test failure output.
+  This makes it easier to investigate the failure.
+
+* Multi-line coloured diffs
+
+  When values are asserted to be equal, the diff is shown on multiple lines and it is coloured to help with investigating.
+
+* Contextual failures
+  
+  Sydtest allows you to attach context to assertions to show more output than just the assertion-specific output when the assertion fails.
+
+### Principle: Suitable for CI
+
+* Bounded shrinking by default
+
+  While QuickCheck uses unbounded shrinking by default, sydtest overrides this to provide bounded shrinking by default.
+  This helps to prevent any infinite hangs when a counterexample is found.
+
+* Timing tests and test suites
+
+  Sydtest shows how long tests took (with colour coding) to help you speed up your test suite most effectively.
+  It also shows you if the slowest test took a significant part of the total runtime of your test suite.
+
+### Principle: Advanced testing features
+
+* Resource setup
+  
+  Sydtest helps you to set up resources during test suite execution.
+  It offers combinators that did not exist before, like `aroundAll`, as well as the powerful `SetupFunc` concept.
+
+* Built-in golden tests with good diffing.
 
 ## Features & Comparison to similar projects
 

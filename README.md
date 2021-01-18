@@ -115,7 +115,7 @@ This means you should be alerted of any potential issue as early as possible.
 | Aquire and release a resource for every test in a group (`before` and `after`)            | ✔️       | ✔️                                                           | C                                                                |
 | Aquire and release a resource once for an entire test group (`beforeAll` and `afterAll`)  | ✔️       | ✔️                                                           | ✔️                                                                |
 | Wrap a single test to use a `withResource`-like function (`around`)                       | ✔️       | ✔️                                                           | ✖️                                                                |
-| Wrap a test group to use a `withResource`-like function (`aroundAll`)                     | ✔️       | ✖️                                                           | ✖️                                                                |
+| Wrap a test group to use a `withResource`-like function (`aroundAll`)                     | ✔️       | ✔️[4]                                                           | ✖️                                                                |
 | Randomising execution order                                                               | ✔️       | ✔️                                                           | C                                                                |
 | Randomised execution order by default                                                     | ✔️       | ✖️                                                           | C                                                                |
 | Deterministic randomness for randomised execution                                         | ✔️       | ✖️                                                           | C                                                                |
@@ -146,6 +146,7 @@ Please let me know if I made a mistake anywhere, and feel free to fill in the qu
 * [1]: Test discovery is always handled via a separate library so I use `✔️` instead of `Lib`.
 * [2]: It turns out that this is surprisingly difficult, due to [forkProcess' interaction with `MVar`s](https://www.reddit.com/r/haskell/comments/jsap9r/how_dangerous_is_forkprocess/) but I'm still looking for a way to make it happen. The answer may lie in [the way `weigh` does it](https://github.com/fpco/weigh/blob/bfcf4415144d7d2817dfcb91b6f9a6dfd7236de7/src/Weigh.hs#L373)
 * [3]: This is not a responsibility of Tasty, it is a responsibility of test providers. tasty-hedgehog for example preserves all the nice formatting you get from Hedgehog.
+* [4]: [`aroundAll` is available in `hspec` as of `hspec-2.7.8`](http://hackage.haskell.org/package/hspec-2.7.8).
 
 
 ## Migrating from `hspec`

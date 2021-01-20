@@ -64,6 +64,7 @@ module Test.Syd.Yesod
 
     -- * Declaring assertions
     statusIs,
+    locationShouldBe,
     bodyContains,
 
     -- ** Reexports

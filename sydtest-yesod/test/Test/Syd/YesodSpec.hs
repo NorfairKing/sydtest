@@ -59,6 +59,14 @@ spec = yesodSpec App $ do
       setMethod "POST"
       addFileWith "TEST_PARAM" "filename" "test" (Just "text/plain")
     statusIs 200
+  yit "can check for redirects" $ do
+    get RedirectHomeR
+    locationShouldBe HomeR
+    errOrDestination <- followRedirect
+    liftIO $ case errOrDestination of
+      Left err -> expectationFailure (show err)
+      Right _ -> pure ()
+    statusIs 200
   yit "retains cookies" $ do
     get SetCookieR
     statusIs 200

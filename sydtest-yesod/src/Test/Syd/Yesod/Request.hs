@@ -70,6 +70,13 @@ statusIs i = do
               ]
        in context ctx $ c `shouldBe` i
 
+locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM site ()
+locationShouldBe expected = do
+  errOrLoc <- getLocation
+  liftIO $ case errOrLoc of
+    Left err -> expectationFailure (T.unpack err)
+    Right actual -> expected `shouldBe` actual
+
 -- | Assert the last response has the given text.
 --
 -- The check is performed using the response body in full text form.

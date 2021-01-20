@@ -26,6 +26,8 @@ mkYesod
     /expects-post-body ExpectsPostBodyR   POST
     /expects-post-file ExpectsPostFileR   POST
 
+    /redirect RedirectHomeR GET
+
     /set-cookie SetCookieR GET
     /expects-cookie ExpectsCookieR GET
 
@@ -81,6 +83,9 @@ postExpectsPostFileR = do
       unless (fileContentType fi == "text/plain") $ invalidArgs ["incorrect content type"]
       contents <- runResourceT $ fileSourceByteString fi
       unless (contents == "test") $ invalidArgs ["incorrect body"]
+
+getRedirectHomeR :: Handler ()
+getRedirectHomeR = redirect HomeR
 
 getSetCookieR :: Handler ()
 getSetCookieR = setCookie (defaultSetCookie {setCookieName = "TEST_COOKIE"})

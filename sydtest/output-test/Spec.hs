@@ -101,6 +101,8 @@ spec = do
     it "shouldNotBe" $ 3 `shouldNotBe` (3 :: Int)
     it "shouldSatisfy" $ (3 :: Int) `shouldSatisfy` even
     it "shouldNotSatisfy" $ (3 :: Int) `shouldNotSatisfy` odd
+    it "shouldSatisfyNamed" $ shouldSatisfyNamed (3 :: Int) "even" even
+    it "shouldNotSatisfyNamed" $ shouldNotSatisfyNamed (3 :: Int) "odd" odd
   pending "pending test"
   describe "Golden" $ do
     it "does not fail the suite when an exception happens while reading" $

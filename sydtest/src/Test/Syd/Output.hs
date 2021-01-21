@@ -405,7 +405,7 @@ outputPredicateSuccessAssertionFailed actual mName =
     [ [ [chunk "Predicate failed, but should have succeeded, on this value:"],
         [chunk (T.pack actual)]
       ],
-      concat $ [[chunk "Predicate: "]] : [stringChunks name | name <- maybeToList mName]
+      concat [map (chunk "Predicate: " :) (stringChunks name) | name <- maybeToList mName]
     ]
 
 outputPredicateFailAssertionFailed :: String -> Maybe String -> [[Chunk]]
@@ -414,7 +414,7 @@ outputPredicateFailAssertionFailed actual mName =
     [ [ [chunk "Predicate succeeded, but should have failed, on this value:"],
         [chunk (T.pack actual)]
       ],
-      concat $ [[chunk "Predicate: "]] : [stringChunks name | name <- maybeToList mName]
+      concat [map (chunk "Predicate: " :) (stringChunks name) | name <- maybeToList mName]
     ]
 
 mContextChunks :: Maybe String -> [[Chunk]]

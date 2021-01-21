@@ -13,6 +13,11 @@ module Test.Syd.Runner
 where
 
 import Control.Concurrent (getNumCapabilities)
+import Control.Monad
+import Control.Monad.IO.Class
+import qualified Data.ByteString as SB
+import qualified Data.ByteString.Char8 as SB8
+import Rainbow
 import System.Environment
 import System.Mem (performGC)
 import Test.Syd.Def
@@ -41,6 +46,26 @@ sydTestOnce sets spec = do
     Synchronous -> runSpecForestInterleavedWithOutputSynchronously (settingColour sets) (settingFailFast sets) specForest
     ByCapabilities -> do
       i <- getNumCapabilities
+
+      when (i == 1) $ do
+        byteStringMaker <- case settingColour sets of
+          Just False -> pure toByteStringsColors0
+          Just True -> pure toByteStringsColors256
+          Nothing -> liftIO byteStringMakerFromEnvironment
+        let outputLine :: [Chunk] -> IO ()
+            outputLine lineChunks = do
+              let bss = chunksToByteStrings byteStringMaker lineChunks
+              mapM_ SB.putStr bss
+              SB8.putStrLn ""
+        mapM_
+          ( outputLine
+              . (: [])
+              . fore red
+          )
+          [ chunk "WARNING: Only one CPU core detected, make sure to compile your test suite with these ghc options:",
+            chunk "         -threaded -rtsopts -with-rtsopts=-N",
+            chunk "         (This is important for correctness as well as speed, as a parallell test suite can find thread safety problems.)"
+          ]
       runSpecForestInterleavedWithOutputAsynchronously (settingColour sets) (settingFailFast sets) i specForest
     Asynchronous i ->
       runSpecForestInterleavedWithOutputAsynchronously (settingColour sets) (settingFailFast sets) i specForest

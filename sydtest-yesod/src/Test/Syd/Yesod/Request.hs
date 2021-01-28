@@ -42,18 +42,32 @@ import qualified Yesod.Test as YesodTest
 import Yesod.Test.TransversingCSS as CSS
 
 -- | Make a @GET@ request for the given route
+--
+-- > yit "returns 200 on the home route" $ do
+-- >   get HomeR
+-- >   statusIs 200
 get :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
 get = performMethod methodGet
 
 -- | Make a @POST@ request for the given route
+--
+-- > yit "returns 200 on the start processing route" $ do
+-- >   post StartProcessingR
+-- >   statusIs 200
 post :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
 post = performMethod methodPost
 
+-- | Perform a request using an arbitrary method for the given route.
 performMethod :: (Yesod site, RedirectUrl site url) => Method -> url -> YesodClientM site ()
 performMethod method route = request $ do
   setUrl route
   setMethod method
 
+-- | Assert the status of the most recently received response.
+--
+-- > yit "returns 200 on the home route" $ do
+-- >   get HomeR
+-- >   statusIs 200
 statusIs :: HasCallStack => Int -> YesodClientM site ()
 statusIs i = do
   mLast <- getLast
@@ -70,6 +84,12 @@ statusIs i = do
               ]
        in context ctx $ c `shouldBe` i
 
+-- | Assert the redirect location of the most recently received response.
+--
+-- > yit "redirects to the overview on the home route" $ do
+-- >   get HomeR
+-- >   statusIs 301
+-- >   locationShouldBe OverviewR
 locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM site ()
 locationShouldBe expected = do
   errOrLoc <- getLocation
@@ -79,7 +99,7 @@ locationShouldBe expected = do
 
 -- | Assert the last response has the given text.
 --
--- The check is performed using the response body in full text form.
+-- The check is performed using the response body in full text form without any html parsing.
 bodyContains :: HasCallStack => String -> YesodExample site ()
 bodyContains text = do
   mResp <- getResponse
@@ -87,6 +107,12 @@ bodyContains text = do
     Nothing -> expectationFailure "bodyContains: No request made yet."
     Just resp -> shouldSatisfy (TE.encodeUtf8 (T.pack text)) (`SB.isInfixOf` LB.toStrict (responseBody resp))
 
+-- | A request builder monad that allows you to monadically build a request using `runRequestBuilder`.
+--
+-- This request builder has access to the entire `YesodClientM` underneath.
+-- This includes the `Site` under test, as well as cookies etc.
+--
+-- See 'YesodClientM' for more details.
 newtype RequestBuilder site a = RequestBuilder
   { unRequestBuilder ::
       StateT
@@ -105,6 +131,7 @@ newtype RequestBuilder site a = RequestBuilder
       MonadThrow
     )
 
+-- | Run a 'YesodClientM' function as part of a 'RequestBuilder'.
 liftClient :: YesodClientM site a -> RequestBuilder site a
 liftClient = RequestBuilder . lift
 
@@ -139,6 +166,7 @@ isFile = \case
   ReqKvPart {} -> False
   ReqFilePart {} -> True
 
+-- | Run a 'RequestBuilder' to make the 'Request' that it defines.
 runRequestBuilder :: RequestBuilder site a -> YesodClientM site Request
 runRequestBuilder (RequestBuilder func) = do
   p <- asks yesodClientSitePort
@@ -196,11 +224,20 @@ runRequestBuilder (RequestBuilder func) = do
   State.modify' (\s -> s {yesodClientStateCookies = cj'})
   pure req'
 
+-- | Perform the request that is built by the given 'RequestBuilder'.
+--
+-- > yit "returns 200 on this post request" $ do
+-- >   request $ do
+-- >     setUrl StartProcessingR
+-- >     setMethod "POST"
+-- >     addPostParam "key" "value"
+-- >   statusIs 200
 request :: RequestBuilder site a -> YesodClientM site ()
 request rb = do
   req <- runRequestBuilder rb
   performRequest req
 
+-- | Set the url of the 'RequestBuilder' to the given route.
 setUrl :: (Yesod site, RedirectUrl site url) => url -> RequestBuilder site ()
 setUrl route = do
   site <- asks yesodClientSite
@@ -217,12 +254,19 @@ setUrl route = do
           }
     )
 
+-- | Set the method of the 'RequestBuilder'.
+setMethod :: Method -> RequestBuilder site ()
+setMethod m = State.modify' (\r -> r {requestBuilderDataMethod = m})
+
+-- | Add the given request header to the 'RequestBuilder'.
 addRequestHeader :: HTTP.Header -> RequestBuilder site ()
 addRequestHeader h = State.modify' (\r -> r {requestBuilderDataHeaders = h : requestBuilderDataHeaders r})
 
+-- | Add the given GET parameter to the 'RequestBuilder'.
 addGetParam :: Text -> Text -> RequestBuilder site ()
 addGetParam k v = State.modify' (\r -> r {requestBuilderDataGetParams = (TE.encodeUtf8 k, Just $ TE.encodeUtf8 v) : requestBuilderDataGetParams r})
 
+-- | Add the given POST parameter to the 'RequestBuilder'.
 addPostParam :: Text -> Text -> RequestBuilder site ()
 addPostParam name value =
   State.modify' $ \r -> r {requestBuilderDataPostData = addPostData (requestBuilderDataPostData r)}
@@ -260,6 +304,9 @@ addFileWith name path contents mMimetype =
     addPostData (MultipleItemsPostData posts) =
       MultipleItemsPostData $ ReqFilePart name path contents mMimetype : posts
 
+-- | Set the request body of the 'RequestBuilder'.
+--
+-- Note that this invalidates any of the other post parameters that may have been set.
 setRequestBody :: ByteString -> RequestBuilder site ()
 setRequestBody body = State.modify' $ \r -> r {requestBuilderDataPostData = BinaryPostData body}
 
@@ -302,9 +349,10 @@ addTokenFromCookieNamedToHeaderNamed cookieName headerName = do
               show cookies
             ]
 
-setMethod :: Method -> RequestBuilder site ()
-setMethod m = State.modify' (\r -> r {requestBuilderDataMethod = m})
-
+-- | Perform the given request as-is.
+--
+-- Note that this function does not check whether you are making a request to the site under test.
+-- You could make a request to https://google.com if you wanted.
 performRequest :: Request -> YesodClientM site ()
 performRequest req = do
   man <- asks yesodClientManager

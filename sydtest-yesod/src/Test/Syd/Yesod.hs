@@ -31,8 +31,6 @@ module Test.Syd.Yesod
     -- * Making requests
     get,
     post,
-    performMethod,
-    performRequest,
     followRedirect,
 
     -- ** Using the request builder
@@ -45,6 +43,10 @@ module Test.Syd.Yesod
     addFile,
     addFileWith,
     setRequestBody,
+
+    -- ** Helpers
+    performMethod,
+    performRequest,
 
     -- *** Types
     RequestBuilder (..),

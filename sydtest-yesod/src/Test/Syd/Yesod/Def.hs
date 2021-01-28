@@ -31,6 +31,42 @@ import Yesod.Core as Yesod
 --
 -- If your 'site' contains any resources that need to be set up, you probably want to be using one of the following functions instead.
 --
+-- Example usage with a minimal yesod 'App':
+--
+-- > {-# LANGUAGE MultiParamTypeClasses #-}
+-- > {-# LANGUAGE OverloadedStrings     #-}
+-- > {-# LANGUAGE QuasiQuotes           #-}
+-- > {-# LANGUAGE TemplateHaskell       #-}
+-- > {-# LANGUAGE TypeFamilies          #-}
+-- >
+-- > module Minimal where
+-- >
+-- > import Yesod
+-- > import Test.Syd
+-- >
+-- > data App = App -- | Empty App type
+-- >
+-- > mkYesod "App" [parseRoutes|
+-- >     / HomeR GET
+-- > |]
+-- >
+-- > instance Yesod App
+-- >
+-- > getHomeR :: Handler Html
+-- > getHomeR = "Hello, world!"
+-- >
+-- > main :: IO ()
+-- > main = Yesod.warp 3000 App
+-- >
+-- > testMain :: IO ()
+-- > testMain = sydTest spec
+-- >
+-- > spec :: Spec
+-- > spec = yesodSpec App $ do
+-- >   it "returns 200 on the homepage" $ do
+-- >     get HomeR
+-- >     statusIs 200
+--
 -- This function exists for backward compatibility with yesod-test.
 yesodSpec :: YesodDispatch site => site -> YesodSpec site -> Spec
 yesodSpec site = yesodSpecWithSiteGenerator $ pure site
@@ -38,6 +74,27 @@ yesodSpec site = yesodSpecWithSiteGenerator $ pure site
 -- | Run a test suite using the given 'site' generator.
 --
 -- If your 'site' contains any resources that you will want to have set up beforhand, you will probably want to use 'yesodSpecWithSiteGeneratorAndArgument' or 'yesodSpecWithSiteSupplierWith' instead.
+--
+--
+-- Example usage with a yesod 'App' that contains a secret key that is generated at startup but not used during tests:
+--
+-- > data Key = Key -- The implementation of the actual key is omitted here for brevity.
+-- > genKey :: IO Key
+-- > genKey = pure Key
+-- >
+-- > data App = App { appSecretKey :: Key }
+-- >
+-- > genApp :: IO App
+-- > genApp = App <$> genKey
+-- >
+-- > main :: IO ()
+-- > main = sydTest spec
+-- >
+-- > spec :: Spec
+-- > spec = yesodSpecWithSiteGenerator genApp $ do
+-- >   it "returns 200 on the homepage" $ do
+-- >     get HomeR
+-- >     statusIs 200
 --
 -- This function exists for backward compatibility with yesod-test.
 yesodSpecWithSiteGenerator :: YesodDispatch site => IO site -> YesodSpec site -> Spec
@@ -52,6 +109,26 @@ yesodSpecWithSiteGeneratorAndArgument :: YesodDispatch site => (a -> IO site) ->
 yesodSpecWithSiteGeneratorAndArgument func = yesodSpecWithSiteSupplierWith $ \f a -> func a >>= f
 
 -- | Using a function that supplies a 'site', run a test suite.
+--
+-- Example usage with a yesod 'App' that contains an sqlite database connection. See 'sydtest-persistent-sqlite'.
+--
+-- > import Test.Syd.Persistent.Sqlite
+-- >
+-- > data App = App { appConnectionPool :: ConnectionPool }
+-- >
+-- > main :: IO ()
+-- > main = sydTest spec
+-- >
+-- > appSupplier :: (App -> IO r) -> IO r
+-- > appSupplier func =
+-- >   withconnectionPool myMigration $ \pool ->
+-- >     func $ App { appConnectionPool = pool}
+-- >
+-- > spec :: Spec
+-- > spec = yesodSpecWithSiteSupplier appSupplier $ do
+-- >   it "returns 200 on the homepage" $ do
+-- >     get HomeR
+-- >     statusIs 200
 yesodSpecWithSiteSupplier :: YesodDispatch site => (forall r. (site -> IO r) -> IO r) -> YesodSpec site -> Spec
 yesodSpecWithSiteSupplier func = yesodSpecWithSiteSupplierWith (\f () -> func f)
 
@@ -89,5 +166,7 @@ yit :: forall site. HasCallStack => String -> YesodClientM site () -> YesodSpec 
 yit s f = it s ((\cenv -> runYesodClientM cenv f) :: YesodClient site -> IO ())
 
 -- | For backward compatibility
+--
+-- > ydescribe = describe
 ydescribe :: String -> YesodSpec site -> YesodSpec site
 ydescribe = describe

@@ -30,11 +30,11 @@ spec = yesodSpecWithSiteSetupFunc appSetupFunc $ do
 
   -- A simple test that shows a post request, and shows that empty forms will not be accepted.
   yit "cannot post if the form data is missing" $ do
-    get HomeR
+    get NewThoughtR
     statusIs 200
     request $ do
       setMethod "POST"
-      setUrl HomeR
+      setUrl NewThoughtR
       addToken
     statusIs 400
 
@@ -42,11 +42,11 @@ spec = yesodSpecWithSiteSetupFunc appSetupFunc $ do
   -- Each part of the form needs to be added using 'addPostParam'
   -- Don't forget the 'addToken' piece to make sure you don't run into XSRF errors.
   yit "can post this example blogpost" $ do
-    get HomeR
+    get NewThoughtR
     statusIs 200
     request $ do
       setMethod "POST"
-      setUrl HomeR
+      setUrl NewThoughtR
       addToken
       addPostParam "title" "example title"
       addPostParam "contents" "example contents"
@@ -59,11 +59,11 @@ spec = yesodSpecWithSiteSetupFunc appSetupFunc $ do
     forAll (arbitrary `suchThat` (not . null)) $ \title ->
       forAll (arbitrary `suchThat` (not . null)) $ \contents ->
         runYesodClientM yc $ do
-          get HomeR
+          get NewThoughtR
           statusIs 200
           request $ do
             setMethod "POST"
-            setUrl HomeR
+            setUrl NewThoughtR
             addToken
             addPostParam "title" (T.pack title)
             addPostParam "contents" (T.pack contents)

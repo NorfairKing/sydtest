@@ -10,6 +10,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Example.Blog where
 
@@ -36,7 +37,9 @@ data App = App
 mkYesod
   "App"
   [parseRoutes|
-    / HomeR GET POST
+    / HomeR GET
+    /new-thought NewThoughtR GET POST
+    /thought/#ThoughtId ThoughtR GET
 |]
 
 type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
@@ -45,6 +48,14 @@ instance Yesod App
 
 instance RenderMessage App FormMessage where
   renderMessage _ _ = defaultFormMessage
+
+runDB :: SqlPersistT IO a -> Handler a
+runDB func = do
+  pool <- getsYesod appConnectionPool
+  liftIO $ runSqlPool func pool
+
+getHomeR :: Handler Html
+getHomeR = defaultLayout "Welcome!, feel free to post some thoughts at /thought."
 
 data NewThought = NewThought
   { newThoughtTitle :: Text,
@@ -58,8 +69,8 @@ newThoughtForm =
       <$> areq textField ("Title" {fsName = Just "title"}) Nothing
       <*> (unTextarea <$> areq textareaField ("Contents" {fsName = Just "contents"}) Nothing)
 
-getHomeR :: Handler Html
-getHomeR = do
+getNewThoughtR :: Handler Html
+getNewThoughtR = do
   ((res, form), enctype) <- runFormPost newThoughtForm
   case res of
     FormSuccess f ->
@@ -80,8 +91,11 @@ getHomeR = do
         |]
     FormFailure errs -> invalidArgs errs
 
-postHomeR :: Handler Html
-postHomeR = getHomeR
+postNewThoughtR :: Handler Html
+postNewThoughtR = getNewThoughtR
+
+getThoughtR :: ThoughtId -> Handler Html
+getThoughtR = undefined
 
 main :: IO ()
 main = runStderrLoggingT $

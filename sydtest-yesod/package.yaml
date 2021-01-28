@@ -64,6 +64,7 @@ tests:
     - QuickCheck
     - http-client
     - monad-logger
+    - mtl
     - persistent
     - persistent-sqlite
     - persistent-template

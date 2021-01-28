@@ -12,6 +12,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
+-- This is an example of a yesod application that uses a database.
+-- It is supposed to represent a blog with blog posts.
+-- However, we call the blog posts thought so that it's not too confusing with 'POST' also being the HTTP method.
 module Example.Blog where
 
 import Control.Monad.Logger
@@ -46,13 +49,14 @@ type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 
 instance Yesod App
 
+instance YesodPersist App where
+  type YesodPersistBackend App = SqlBackend
+  runDB func = do
+    pool <- getsYesod appConnectionPool
+    runSqlPool func pool
+
 instance RenderMessage App FormMessage where
   renderMessage _ _ = defaultFormMessage
-
-runDB :: SqlPersistT IO a -> Handler a
-runDB func = do
-  pool <- getsYesod appConnectionPool
-  liftIO $ runSqlPool func pool
 
 getHomeR :: Handler Html
 getHomeR = defaultLayout "Welcome!, feel free to post some thoughts at /thought."
@@ -73,12 +77,21 @@ getNewThoughtR :: Handler Html
 getNewThoughtR = do
   ((res, form), enctype) <- runFormPost newThoughtForm
   case res of
-    FormSuccess f ->
+    FormSuccess f -> do
+      thoughtId <-
+        runDB $
+          insert $
+            Thought
+              { thoughtTitle = newThoughtTitle f,
+                thoughtContents = newThoughtContents f
+              }
       defaultLayout
         [whamlet|
           <p>You've posted a thought!
           <p>the title was #{newThoughtTitle f}
-          <p>the contents were #{Textarea $ newThoughtContents f}
+          <p>the contents were #{newThoughtContents f}
+          <a href=@{ThoughtR thoughtId}>
+            Look at your thought
         |]
     FormMissing ->
       defaultLayout
@@ -95,7 +108,14 @@ postNewThoughtR :: Handler Html
 postNewThoughtR = getNewThoughtR
 
 getThoughtR :: ThoughtId -> Handler Html
-getThoughtR = undefined
+getThoughtR thoughtId = do
+  thought <- runDB $ get404 thoughtId
+  defaultLayout
+    [whamlet|
+      <h1> #{thoughtTitle thought}
+      <p>
+        #{thoughtContents thought}
+    |]
 
 main :: IO ()
 main = runStderrLoggingT $

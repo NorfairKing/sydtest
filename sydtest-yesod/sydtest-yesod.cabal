@@ -67,6 +67,7 @@ test-suite sydtest-yesod-blog-example-test
     , base >=4.7 && <5
     , http-client
     , monad-logger
+    , mtl
     , persistent
     , persistent-sqlite
     , persistent-template

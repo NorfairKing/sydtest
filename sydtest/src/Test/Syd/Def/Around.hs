@@ -20,25 +20,45 @@ import Test.Syd.Run
 import Test.Syd.SpecDef
 
 -- | Run a custom action before every spec item, to set up an inner resource 'c'.
-before :: IO c -> TestDefM a c e -> TestDefM a () e
+before ::
+  -- | The function to run before every test, to produce the inner resource
+  IO inner ->
+  TestDefM outers inner result ->
+  TestDefM outers () result
 before action = around (action >>=)
 
 -- | Run a custom action before every spec item without setting up any inner resources.
-before_ :: IO () -> TestDefM a c e -> TestDefM a c e
+before_ ::
+  -- | The function to run before every test
+  IO () ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 before_ action = around_ (action >>)
 
 -- | Run a custom action after every spec item, using the inner resource 'c'.
-after :: (c -> IO ()) -> TestDefM a c e -> TestDefM a c e
+after ::
+  -- | The function to run after every test, using the inner resource
+  (inner -> IO ()) ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 after action = aroundWith $ \e x -> e x `finally` action x
 
 -- | Run a custom action after every spec item without using any inner resources.
-after_ :: IO () -> TestDefM a c e -> TestDefM a c e
+after_ ::
+  -- | The function to run after every test
+  IO () ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 after_ action = after $ \_ -> action
 
 -- | Run a custom action before and/or after every spec item, to provide access to an inner resource 'c'.
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
-around :: ((c -> IO ()) -> IO ()) -> TestDefM a c e -> TestDefM a () e
+around ::
+  -- | The function to provide the inner resource around every test
+  ((inner -> IO ()) -> IO ()) ->
+  TestDefM outers inner result ->
+  TestDefM outers () result
 around action = aroundWith $ \e () -> action e
 
 -- | Run a custom action before and/or after every spec item without accessing any inner resources.
@@ -75,35 +95,53 @@ around action = aroundWith $ \e () -> action e
 --
 --
 -- Note: If you're interested in fixing this, talk to me, but only after GHC has gotten impredicative types because that will likely be a requirement.
-around_ :: (IO () -> IO ()) -> TestDefM a c e -> TestDefM a c e
+around_ ::
+  -- | The function to wrap every test with
+  (IO () -> IO ()) ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 around_ action = aroundWith $ \e a -> action (e a)
 
 -- | Run a custom action before and/or after every spec item, to provide access to an inner resource 'c' while using the inner resource 'd'.
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
-aroundWith :: forall a c d r. ((c -> IO ()) -> (d -> IO ())) -> TestDefM a c r -> TestDefM a d r
+aroundWith ::
+  forall newInner oldInner outers result.
+  ((newInner -> IO ()) -> (oldInner -> IO ())) ->
+  TestDefM outers newInner result ->
+  TestDefM outers oldInner result
 aroundWith func =
   aroundWith' $
-    \(takeAC :: HList a -> c -> IO ()) -- Just to make sure the 'a' is not ambiguous.
+    \(takeAC :: HList outers -> newInner -> IO ()) -- Just to make sure the 'a' is not ambiguous.
      a
      d ->
         func (\c -> takeAC a c) d
 
--- | Run a custom action before and/or after every spec item, to provide access to an inner resource 'c' while using the inner resource 'd' and any outer resource available.
-aroundWith' :: forall a c d r (u :: [Type]). HContains u a => ((a -> c -> IO ()) -> (a -> d -> IO ())) -> TestDefM u c r -> TestDefM u d r
+-- | Run a custom action around every spec item, to provide access to an inner resource 'newInner' while using the inner resource 'oldInner' and any outer resource available.
+aroundWith' ::
+  forall newInner oldInner outer result (outers :: [Type]).
+  HContains outers outer =>
+  -- | The function that provides the new inner resource using the old resource.
+  -- It can also use and modify the outer resource
+  ((outer -> newInner -> IO ()) -> (outer -> oldInner -> IO ())) ->
+  TestDefM outers newInner result ->
+  TestDefM outers oldInner result
 aroundWith' func (TestDefM rwst) = TestDefM $
   flip mapRWST rwst $ \inner -> do
     (res, s, forest) <- inner
+    -- a: outers
+    -- c: newInner
+    -- d: oldInner
     let modifyVal ::
           forall x.
-          HContains x a =>
-          (((HList x -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
-          ((HList x -> d -> IO ()) -> IO ()) ->
+          HContains x outer =>
+          (((HList x -> newInner -> IO ()) -> IO ()) -> IO TestRunResult) ->
+          ((HList x -> oldInner -> IO ()) -> IO ()) ->
           IO TestRunResult
         modifyVal takeSupplyXC supplyXD =
-          let supplyXC :: (HList x -> c -> IO ()) -> IO ()
+          let supplyXC :: (HList x -> newInner -> IO ()) -> IO ()
               supplyXC takeXC =
-                let takeXD :: HList x -> d -> IO ()
+                let takeXD :: HList x -> oldInner -> IO ()
                     takeXD x d =
                       let takeAC _ c = takeXC x c
                        in func takeAC (getElem x) d
@@ -111,7 +149,8 @@ aroundWith' func (TestDefM rwst) = TestDefM $
            in takeSupplyXC supplyXC
 
         -- For this function to work recursively, the first parameter of the input and the output types must be the same
-        modifyTree :: forall x e. HContains x a => SpecDefTree x c e -> SpecDefTree x d e
+        modifyTree ::
+          forall x extra. HContains x outer => SpecDefTree x newInner extra -> SpecDefTree x oldInner extra
         modifyTree = \case
           DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
           DefPendingNode t mr -> DefPendingNode t mr
@@ -123,8 +162,12 @@ aroundWith' func (TestDefM rwst) = TestDefM $
           DefAfterAllNode f sdf -> DefAfterAllNode f $ modifyForest sdf
           DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
           DefRandomisationNode f sdf -> DefRandomisationNode f $ modifyForest sdf
-        modifyForest :: forall x e. HContains x a => SpecDefForest x c e -> SpecDefForest x d e
+        modifyForest ::
+          forall x extra.
+          HContains x outer =>
+          SpecDefForest x newInner extra ->
+          SpecDefForest x oldInner extra
         modifyForest = map modifyTree
-    let forest' :: SpecDefForest u d ()
+    let forest' :: SpecDefForest outers oldInner ()
         forest' = modifyForest forest
     pure (res, s, forest')

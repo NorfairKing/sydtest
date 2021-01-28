@@ -38,7 +38,7 @@ import Test.Syd.Def.TestDefM
 -- >       i <- runDB $ insert person
 -- >       person' <- runDB $ get i
 -- >       liftIO $ person' `shouldBe` person
-eit :: HasCallStack => String -> ReaderT env IO () -> TestDef l env
+eit :: HasCallStack => String -> ReaderT env IO () -> TestDef outers env
 eit s f = it s (\env -> runReaderT f env)
 
 -- | Helper function to run a property test with an 'env'.

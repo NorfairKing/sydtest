@@ -30,6 +30,8 @@
 --        * For @IO ()@, both 'Arg1' and 'Arg2' are '()'.
 --
 --  * When using 'it' or 'specify' to define tests, the 'Arg1' and 'Arg2' arguments of the test that you pass in have to correspond to the outer and inner resources of your test suite, respectively.
+--
+--  * You can declare how to set up or tear down resources using the 'around' and 'aroundAll' functions.
 module Test.Syd
   ( -- * Top level API functions
     sydTest,

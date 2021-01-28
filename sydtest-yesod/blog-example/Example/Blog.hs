@@ -1,15 +1,37 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Example.Blog where
 
+import Control.Monad.Logger
 import Data.Text (Text)
+import Database.Persist.Sql
+import Database.Persist.Sqlite
+import Database.Persist.TH
 import Yesod
 
+share
+  [mkPersist sqlSettings, mkMigrate "migrateThoughts"]
+  [persistLowerCase|
+Thought
+    title Text
+    contents Text
+    deriving Show Eq
+|]
+
 data App = App
+  { appConnectionPool :: ConnectionPool
+  }
 
 mkYesod
   "App"
@@ -62,4 +84,7 @@ postHomeR :: Handler Html
 postHomeR = getHomeR
 
 main :: IO ()
-main = Yesod.warp 3000 App
+main = runStderrLoggingT $
+  withSqlitePool "example.sqlite3" 1 $ \pool -> do
+    runSqlPool (runMigration migrateThoughts) pool
+    liftIO $ Yesod.warp 3000 $ App {appConnectionPool = pool}

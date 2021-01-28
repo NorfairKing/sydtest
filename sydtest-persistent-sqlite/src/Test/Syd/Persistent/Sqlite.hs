@@ -28,9 +28,11 @@ persistSqliteSpec migration = aroundWith $ \func _ -> withConnectionPool migrati
 withConnectionPool :: Migration -> (ConnectionPool -> IO ()) -> IO ()
 withConnectionPool = flip $ unSetupFunc connectionPoolSetupFunc'
 
+-- | The 'SetupFunc' version of 'withConnectionPool'.
 connectionPoolSetupFunc :: Migration -> SetupFunc () ConnectionPool
 connectionPoolSetupFunc = unwrapSetupFunc connectionPoolSetupFunc'
 
+-- | A wrapped version of 'connectionPoolSetupFunc'
 connectionPoolSetupFunc' :: SetupFunc Migration ConnectionPool
 connectionPoolSetupFunc' = SetupFunc $ \takeConnectionPool migration ->
   runNoLoggingT $

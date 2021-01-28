@@ -62,6 +62,11 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - QuickCheck
+    - http-client
+    - monad-logger
+    - persistent
+    - persistent-sqlite
+    - persistent-template
     - sydtest
     - sydtest-persistent-sqlite
     - sydtest-yesod

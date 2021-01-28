@@ -65,6 +65,11 @@ test-suite sydtest-yesod-blog-example-test
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , http-client
+    , monad-logger
+    , persistent
+    , persistent-sqlite
+    , persistent-template
     , sydtest
     , sydtest-persistent-sqlite
     , sydtest-yesod

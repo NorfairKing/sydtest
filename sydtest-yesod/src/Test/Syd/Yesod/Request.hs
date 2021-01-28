@@ -69,20 +69,14 @@ performMethod method route = request $ do
 -- >   get HomeR
 -- >   statusIs 200
 statusIs :: HasCallStack => Int -> YesodClientM site ()
-statusIs i = do
-  mLast <- getLast
-  liftIO $ case mLast of
-    Nothing -> expectationFailure "statusIs: No request made yet."
-    Just (req, resp) ->
-      let c = statusCode (responseStatus resp)
-          ctx =
-            unlines
-              [ "last request:",
-                ppShow req,
-                "full response:",
-                ppShow resp
-              ]
-       in context ctx $ c `shouldBe` i
+statusIs i =
+  withLastRequestContext $ do
+    mLast <- getLast
+    case mLast of
+      Nothing -> liftIO $ expectationFailure "statusIs: No request made yet."
+      Just (_, resp) ->
+        let c = statusCode (responseStatus resp)
+         in withLastRequestContext $ liftIO $ c `shouldBe` i
 
 -- | Assert the redirect location of the most recently received response.
 --
@@ -91,11 +85,12 @@ statusIs i = do
 -- >   statusIs 301
 -- >   locationShouldBe OverviewR
 locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM site ()
-locationShouldBe expected = do
-  errOrLoc <- getLocation
-  liftIO $ case errOrLoc of
-    Left err -> expectationFailure (T.unpack err)
-    Right actual -> expected `shouldBe` actual
+locationShouldBe expected =
+  withLastRequestContext $ do
+    errOrLoc <- getLocation
+    liftIO $ case errOrLoc of
+      Left err -> expectationFailure (T.unpack err)
+      Right actual -> expected `shouldBe` actual
 
 -- | Assert the last response has the given text.
 --
@@ -103,17 +98,12 @@ locationShouldBe expected = do
 bodyContains :: HasCallStack => String -> YesodExample site ()
 bodyContains text = do
   mResp <- getLast
-  liftIO $ case mResp of
-    Nothing -> expectationFailure "bodyContains: No request made yet."
-    Just (req, resp) ->
-      let ctx =
-            unlines
-              [ "last request:",
-                ppShow req,
-                "full response:",
-                ppShow resp
-              ]
-       in context ctx $ shouldSatisfyNamed (TE.encodeUtf8 (T.pack text)) (unwords ["bodyContains", show text]) (`SB.isInfixOf` LB.toStrict (responseBody resp))
+  case mResp of
+    Nothing -> liftIO $ expectationFailure "bodyContains: No request made yet."
+    Just (_, resp) ->
+      withLastRequestContext $
+        liftIO $
+          shouldSatisfyNamed (TE.encodeUtf8 (T.pack text)) (unwords ["bodyContains", show text]) (`SB.isInfixOf` LB.toStrict (responseBody resp))
 
 -- | A request builder monad that allows you to monadically build a request using `runRequestBuilder`.
 --

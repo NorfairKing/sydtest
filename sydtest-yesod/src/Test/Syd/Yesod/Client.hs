@@ -18,6 +18,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
+import Test.Syd
 import Yesod.Core as Yesod
 
 -- | A client environment to call a Yesod app.
@@ -100,3 +101,24 @@ getLocation = do
        in (ss, map unJust $ queryToQueryText q)
     unJust (a, Just b) = (a, b)
     unJust (a, Nothing) = (a, mempty)
+
+-- | Annotate the given test code with the last request and its response, if one has been made already.
+withLastRequestContext :: YesodClientM site a -> YesodClientM site a
+withLastRequestContext yfunc@(YesodClientM func) = do
+  mLast <- getLast
+  case mLast of
+    Nothing -> yfunc
+    Just (req, resp) ->
+      YesodClientM $ do
+        s <- get
+        c <- ask
+        let ctx =
+              unlines
+                [ "last request:",
+                  ppShow req,
+                  "full response:",
+                  ppShow resp
+                ]
+        (r, s') <- liftIO $ context ctx $ runReaderT (runStateT func s) c
+        put s'
+        pure r

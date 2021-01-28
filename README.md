@@ -57,6 +57,11 @@ This means you should be alerted of any potential issue as early as possible.
   
   Sydtest allows you to attach context to assertions to show more output than just the assertion-specific output when the assertion fails.
 
+* Named predicates
+
+  Whenever you use a custom predicate in an assertion, you get the opportunity to annotate it with its name so that when the test fails, you see _which_ predicate failed.
+  The output also mentions explicitly whether the predicate was supposed to pass or fail.
+
 ### Principle: Suitable for CI
 
 * Bounded shrinking by default
@@ -109,6 +114,7 @@ This means you should be alerted of any potential issue as early as possible.
 | Coloured diffing                                                                          | ✔️       | ✔️                                                           | C                                                                |
 | multi-line diffing                                                                        | ✔️       | ✖️                                                           | ✖️                                                                |
 | Contextual failures                                                                       | ✔️       | ✖️                                                           | ✖️                                                                |
+| Named predicates                                                                          | ✔️       | ✖️                                                           | ?                                                                |
 | Inter-test progress output during test suite execution                                    | ✔️       | ✔️                                                           | ✔️                                                                |
 | Intra-test progress output during test suite execution                                    | 🚧      | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-quickcheck)      |
 | Optional standard output and standard error suppression [2]                               | ✖️       | ✖️                                                           | ✖️                                                                |

@@ -2,6 +2,34 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
 
+-- |
+--
+-- = Modern testing of Haskell code using /sydtest/
+--
+-- For a full overview of features and comparisons, please see [the README](https://github.com/NorfairKing/sydtest#readme).
+--
+-- == What's in a test
+--
+-- To use @sydtest@, you don't necessarily need to know the following, but for advanced usage you definitely will.
+-- If you're just starting out, you can ignore this section and just follow the examples in the docs below.
+--
+-- * Every test is an instance of the 'IsTest' type class.
+--   A test can be a pure 'Bool', an @IO ()@, a 'GoldenTest', some combination of those, or any type that you can implement 'IsTest' for.
+--
+--  * @sydtest@ allows you to declare resources for use during your tests.
+--    This could be things like a database connection or a server to connect to, for example.
+--
+--  * Every resource is either an outer resource (set up once for a test group) or an inner resource (set up again for each test).
+--
+--  * Every 'IsTest' instance defines two associated types, an 'Arg1' type and an 'Arg2' type.
+--    These correspond to two function arguments. 'Arg1' corresponds to the first and 'Arg2' corresponds to the second.
+--    For example, @IO ()@ is an instance of @IsTest@, but @arg -> IO ()@ and @outerArgs -> innerArg -> IO ()@ are as well.
+--
+--        * For @outerArgs -> innerArgs -> IO ()@, 'Arg1' is @outerArgs@ and 'Arg2' is innerArgs.
+--        * For @arg -> IO ()@, 'Arg1' is '()' and 'Arg2' is @arg@.
+--        * For @IO ()@, both 'Arg1' and 'Arg2' are '()'.
+--
+--  * When using 'it' or 'specify' to define tests, the 'Arg1' and 'Arg2' arguments of the test that you pass in have to correspond to the outer and inner resources of your test suite, respectively.
 module Test.Syd
   ( -- * Top level API functions
     sydTest,
@@ -148,6 +176,7 @@ module Test.Syd
     TestDef,
     execTestDefM,
     runTestDefM,
+    IsTest (..),
 
     -- ** Test suite types
     TDef (..),

@@ -9,19 +9,21 @@ import Test.Syd.Def.Around
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 
--- | A function that can provide an 'a' given a 'b'.
+-- | A function that can provide an 'new' given an 'old'.
 --
--- You can think of this as a potentially-resource-aware version of 'b -> IO a'.
-newtype SetupFunc b a = SetupFunc
-  { unSetupFunc :: forall r. (a -> IO r) -> (b -> IO r)
+-- You can think of this as a potentially-resource-aware version of 'old -> IO new'.
+--
+-- This type has a monad instance, which means you can now compose setup functions using regular do-notation.
+newtype SetupFunc old new = SetupFunc
+  { unSetupFunc :: forall r. (new -> IO r) -> (old -> IO r)
   }
 
-instance Functor (SetupFunc c) where
+instance Functor (SetupFunc old) where
   fmap f (SetupFunc provideA) = SetupFunc $ \takeB c ->
     let takeA = \a -> takeB $ f a
      in provideA takeA c
 
-instance Applicative (SetupFunc c) where
+instance Applicative (SetupFunc old) where
   pure a = SetupFunc $ \aFunc _ -> aFunc a
   (SetupFunc provideF) <*> (SetupFunc provideA) = SetupFunc $ \takeB c ->
     provideF
@@ -34,7 +36,7 @@ instance Applicative (SetupFunc c) where
       )
       c
 
-instance Monad (SetupFunc c) where
+instance Monad (SetupFunc old) where
   (SetupFunc provideA) >>= m = SetupFunc $ \takeB c ->
     provideA
       ( \a ->
@@ -43,7 +45,7 @@ instance Monad (SetupFunc c) where
       )
       c
 
-instance MonadIO (SetupFunc c) where
+instance MonadIO (SetupFunc old) where
   liftIO ioFunc = SetupFunc $ \takeA _ -> do
     ioFunc >>= takeA
 
@@ -58,13 +60,16 @@ instance Category SetupFunc where
 --
 -- * [Network.Wai.Handler.Warp.testWithApplication](https://hackage.haskell.org/package/warp-3.3.13/docs/Network-Wai-Handler-Warp.html#v:testWithApplication)
 -- * [Path.IO.withSystemTempDir](https://hackage.haskell.org/package/path-io-1.6.2/docs/Path-IO.html#v:withSystemTempDir)
-makeSimpleSetupFunc :: (forall r. (a -> IO r) -> IO r) -> SetupFunc () a
+makeSimpleSetupFunc ::
+  (forall result. (resource -> IO result) -> IO result) ->
+  SetupFunc () resource
 makeSimpleSetupFunc provideA = SetupFunc $ \takeA () -> provideA $ \a -> takeA a
 
 -- | Use a 'SetupFunc ()' as a simple provider function.
 --
 -- This is the opposite of the 'makeSimpleSetupFunc' function
-useSimpleSetupFunc :: SetupFunc () a -> (forall r. (a -> IO r) -> IO r)
+useSimpleSetupFunc ::
+  SetupFunc () resource -> (forall result. (resource -> IO result) -> IO result)
 useSimpleSetupFunc (SetupFunc provideAWithUnit) takeA = provideAWithUnit (\a -> takeA a) ()
 
 -- | Wrap a function that produces a 'SetupFunc' to into a 'SetupFunc'.
@@ -80,7 +85,9 @@ useSimpleSetupFunc (SetupFunc provideAWithUnit) takeA = provideAWithUnit (\a -> 
 -- > setupSomething :: SetupFunc () R
 -- > setupSomething :: B -> R -> SetupFunc () C
 -- > somehowCombine :: C -> R -> A
-wrapSetupFunc :: (b -> SetupFunc () a) -> SetupFunc b a
+wrapSetupFunc ::
+  (old -> SetupFunc () new) ->
+  SetupFunc old new
 wrapSetupFunc bFunc = SetupFunc $ \takeA b ->
   let SetupFunc provideAWithUnit = bFunc b
    in provideAWithUnit (\a -> takeA a) ()
@@ -88,14 +95,18 @@ wrapSetupFunc bFunc = SetupFunc $ \takeA b ->
 -- | Unwrap a 'SetupFunc' into a function that produces a 'SetupFunc'
 --
 -- This is the opposite of 'wrapSetupFunc'.
-unwrapSetupFunc :: SetupFunc b a -> (b -> SetupFunc () a)
+unwrapSetupFunc ::
+  SetupFunc old new -> (old -> SetupFunc () new)
 unwrapSetupFunc (SetupFunc provideAWithB) b = SetupFunc $ \takeA () ->
   provideAWithB (\a -> takeA a) b
 
 -- | Compose two setup functions.
 --
--- This is basically '(.)' but for 'SetupFunc's
-composeSetupFunc :: SetupFunc b a -> SetupFunc c b -> SetupFunc c a
+-- This is '(.)' but for 'SetupFunc's
+composeSetupFunc ::
+  SetupFunc newer newest ->
+  SetupFunc old newer ->
+  SetupFunc old newest
 composeSetupFunc (SetupFunc provideAWithB) (SetupFunc provideBWithC) = SetupFunc $ \takeA c ->
   provideBWithC
     ( \b ->
@@ -110,19 +121,32 @@ composeSetupFunc (SetupFunc provideAWithB) (SetupFunc provideBWithC) = SetupFunc
 --
 -- This is basically 'flip (.)' but for 'SetupFunc's.
 -- It's exactly 'flip composeSetupFunc'.
-connectSetupFunc :: SetupFunc c b -> SetupFunc b a -> SetupFunc c a
+connectSetupFunc ::
+  SetupFunc old newer ->
+  SetupFunc newer newest ->
+  SetupFunc old newest
 connectSetupFunc = flip composeSetupFunc
 
 -- | Use 'around' with a 'SetupFunc'
-setupAround :: SetupFunc () c -> TestDefM a c e -> TestDefM a () e
+setupAround ::
+  SetupFunc () inner ->
+  TestDefM outers inner result ->
+  TestDefM outers () result
 setupAround = setupAroundWith
 
 -- | Use 'aroundWith' with a 'SetupFunc'
-setupAroundWith :: SetupFunc d c -> TestDefM a c e -> TestDefM a d e
+setupAroundWith ::
+  SetupFunc oldInner newInner ->
+  TestDefM outers newInner result ->
+  TestDefM outers oldInner result
 setupAroundWith (SetupFunc f) = aroundWith f
 
 -- | Use 'aroundWith'' with a 'SetupFunc'
-setupAroundWith' :: HContains l a => (a -> SetupFunc d c) -> TestDefM l c e -> TestDefM l d e
+setupAroundWith' ::
+  HContains outers outer =>
+  (outer -> SetupFunc oldInner newInner) ->
+  TestDefM outers newInner result ->
+  TestDefM outers oldInner result
 setupAroundWith' setupFuncFunc = aroundWith' $ \takeAC a d ->
   let (SetupFunc provideCWithD) = setupFuncFunc a
    in provideCWithD (\c -> takeAC a c) d

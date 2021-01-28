@@ -59,11 +59,15 @@ import Test.Syd.SpecDef
 -- >         3 + 5 `shouldBe` 8
 -- >     it "adds 4 to 7 to result in 11" $
 -- >         4 + 7 `shouldBe` 11
-describe :: String -> TestDefM a b () -> TestDefM a b ()
+describe ::
+  -- | The test group description
+  String ->
+  TestDefM outers inner () ->
+  TestDefM outers inner ()
 describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
 
 -- TODO maybe we want to keep all tests below but replace them with a "Pending" instead.
-xdescribe :: String -> TestDefM a b () -> TestDefM a b ()
+xdescribe :: String -> TestDefM outers inner () -> TestDefM outers inner ()
 xdescribe s _ = pending s
 
 -- | Declare a test
@@ -155,7 +159,14 @@ xdescribe s _ = pending s
 -- >             writeFile fp cts
 -- >             cts' <- readFile fp
 -- >             cts' `shouldBe` cts
-it :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
+it ::
+  forall outers inner test.
+  (HasCallStack, IsTest test, Arg1 test ~ (), Arg2 test ~ inner) =>
+  -- | The description of the test
+  String ->
+  -- | The test itself
+  test ->
+  TestDefM outers inner ()
 it s t = do
   sets <- ask
   let testDef =
@@ -170,8 +181,37 @@ it s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
-xit :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
+xit ::
+  forall outers inner test.
+  (HasCallStack, IsTest test, Arg1 test ~ (), Arg2 test ~ inner) =>
+  -- | The description of the test
+  String ->
+  -- | The test itself
+  test ->
+  TestDefM outers inner ()
 xit s _ = pending s
+
+-- | A synonym for 'it'
+specify ::
+  forall outers inner test.
+  (HasCallStack, IsTest test, Arg1 test ~ (), Arg2 test ~ inner) =>
+  -- | The description of the test
+  String ->
+  -- | The test itself
+  test ->
+  TestDefM outers inner ()
+specify = it
+
+-- | A synonym for 'xit'
+xspecify ::
+  forall outers inner test.
+  (HasCallStack, IsTest test, Arg1 test ~ (), Arg2 test ~ inner) =>
+  -- | The description of the test
+  String ->
+  -- | The test itself
+  test ->
+  TestDefM outers inner ()
+xspecify = xit
 
 -- | Declare a test that uses an outer resource
 --
@@ -221,7 +261,13 @@ xit s _ = pending s
 -- >             writeFile fp cts
 -- >             cts' <- readFile fp
 -- >             cts' `shouldBe` cts
-itWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
+itWithOuter ::
+  (HasCallStack, IsTest test, Arg1 test ~ inner, Arg2 test ~ outer) =>
+  -- The test description
+  String ->
+  -- The test itself
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
 itWithOuter s t = do
   sets <- ask
   let testDef =
@@ -235,8 +281,34 @@ itWithOuter s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
-xitWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
+xitWithOuter ::
+  (HasCallStack, IsTest test, Arg1 test ~ inner, Arg2 test ~ outer) =>
+  -- The test description
+  String ->
+  -- The test itself
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
 xitWithOuter s _ = pending s
+
+-- | A synonym for 'itWithOuter'
+specifyWithOuter ::
+  (HasCallStack, IsTest test, Arg1 test ~ inner, Arg2 test ~ outer) =>
+  -- The test description
+  String ->
+  -- The test itself
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
+specifyWithOuter = itWithOuter
+
+-- | A synonym for 'xitWithOuter'
+xspecifyWithOuter ::
+  (HasCallStack, IsTest test, Arg1 test ~ inner, Arg2 test ~ outer) =>
+  -- The test description
+  String ->
+  -- The test itself
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
+xspecifyWithOuter = xitWithOuter
 
 -- | Declare a test that uses both an inner and an outer resource
 --
@@ -285,7 +357,15 @@ xitWithOuter s _ = pending s
 -- >             writeFile fp cts
 -- >             cts' <- readFile fp
 -- >             cts' `shouldBe` cts
-itWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+itWithBoth ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ outer,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
 itWithBoth s t = do
   sets <- ask
   let testDef =
@@ -299,8 +379,40 @@ itWithBoth s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
-xitWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
+xitWithBoth ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ outer,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
 xitWithBoth s _ = pending s
+
+-- | A synonym for 'itWithBoth'
+specifyWithBoth ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ outer,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
+specifyWithBoth = itWithBoth
+
+-- | A synonym for 'xitWithBoth'
+xspecifyWithBoth ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ outer,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM (outer ': otherOuters) inner ()
+xspecifyWithBoth = xitWithBoth
 
 -- | Declare a test that uses all outer resources
 --
@@ -313,7 +425,15 @@ xitWithBoth s _ = pending s
 -- >     itWithAll "example" $
 -- >         \(HCons c (HCons i HNil) :: HList '[Char, Int]) () ->
 -- >             (c, i) `shouldeBe` ('a', 5)
-itWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+itWithAll ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ HList outers,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM outers inner ()
 itWithAll s t = do
   sets <- ask
   let testDef =
@@ -327,41 +447,45 @@ itWithAll s t = do
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]
 
-xitWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+xitWithAll ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ HList outers,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM outers inner ()
 xitWithAll s _ = pending s
 
--- | A synonym for 'it'
-specify :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
-specify = it
-
-xspecify :: forall outers test. (HasCallStack, IsTest test, Arg1 test ~ ()) => String -> test -> TestDefM outers (Arg2 test) ()
-xspecify = xit
-
--- | A synonym for 'itWithOuter'
-specifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
-specifyWithOuter = itWithOuter
-
-xspecifyWithOuter :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg2 test ': l) (Arg1 test) ()
-xspecifyWithOuter = xitWithOuter
-
--- | A synonym for 'itWithBoth'
-specifyWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
-specifyWithBoth = itWithBoth
-
-xspecifyWithBoth :: (HasCallStack, IsTest test) => String -> test -> TestDefM (Arg1 test ': l) (Arg2 test) ()
-xspecifyWithBoth = xitWithBoth
-
 -- | A synonym for 'itWithAll'
-specifyWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+specifyWithAll ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ HList outers,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM outers inner ()
 specifyWithAll = itWithAll
 
-xspecifyWithAll :: (HasCallStack, IsTest test, Arg1 test ~ HList l) => String -> test -> TestDefM l (Arg2 test) ()
+-- | A synonym for 'xitWithAll'
+xspecifyWithAll ::
+  ( HasCallStack,
+    IsTest test,
+    Arg1 test ~ HList outers,
+    Arg2 test ~ inner
+  ) =>
+  String ->
+  test ->
+  TestDefM outers inner ()
 xspecifyWithAll = xitWithAll
 
 -- | Declare a test that has not been written yet.
-pending :: String -> TestDefM a b ()
+pending :: String -> TestDefM outers inner ()
 pending s = tell [DefPendingNode (T.pack s) Nothing]
 
 -- | Declare a test that has not been written yet for the given reason.
-pendingWith :: String -> String -> TestDefM a b ()
+pendingWith :: String -> String -> TestDefM outers inner ()
 pendingWith s reason = tell [DefPendingNode (T.pack s) (Just (T.pack reason))]

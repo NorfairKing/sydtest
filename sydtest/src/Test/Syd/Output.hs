@@ -158,7 +158,10 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
               ]
             ],
             [ pad
-                [chunk (T.pack (printf "passed for all of %d inputs" w))]
+                [ chunk "passed for all of ",
+                  fore green $ chunk (T.pack (printf "%d" w)),
+                  " inputs."
+                ]
               | testRunResultStatus == TestPassed,
                 w <- maybeToList testRunResultNumTests
             ],

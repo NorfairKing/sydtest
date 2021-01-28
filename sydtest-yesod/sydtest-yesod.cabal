@@ -63,7 +63,8 @@ test-suite sydtest-yesod-blog-example-test
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , sydtest
     , sydtest-persistent-sqlite
     , sydtest-yesod

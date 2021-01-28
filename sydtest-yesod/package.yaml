@@ -61,6 +61,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - QuickCheck
     - sydtest
     - sydtest-persistent-sqlite
     - sydtest-yesod

@@ -18,35 +18,63 @@ import Test.Syd.HList
 import Test.Syd.SpecDef
 
 -- | Run a custom action before all spec items in a group, to set up an outer resource 'a'.
-beforeAll :: IO a -> TestDefM (a ': l) c e -> TestDefM l c e
+beforeAll ::
+  -- | The function to run (once), beforehand, to produce the outer resource.
+  IO outer ->
+  TestDefM (outer ': otherOuters) inner result ->
+  TestDefM otherOuters inner result
 beforeAll action = wrapRWST $ \forest -> DefBeforeAllNode action forest
 
 -- | Run a custom action before all spec items in a group without setting up any outer resources.
-beforeAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
+beforeAll_ ::
+  -- | The function to run (once), beforehand.
+  IO () ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 beforeAll_ action = aroundAll_ (action >>)
 
 -- | Run a custom action before all spec items in a group, to set up an outer resource 'b' by using the outer resource 'a'.
-beforeAllWith :: (b -> IO a) -> TestDefM (a ': b ': l) c e -> TestDefM (b ': l) c e
+beforeAllWith ::
+  -- | The function to run (once), beforehand, to produce a new outer resource while using a previous outer resource
+  (previousOuter -> IO newOuter) ->
+  TestDefM (newOuter ': previousOuter ': otherOuters) inner result ->
+  TestDefM (previousOuter ': otherOuters) inner result
 beforeAllWith action = aroundAllWith $ \func b -> do
   a <- action b
   func a
 
 -- | Run a custom action after all spec items, using the outer resource 'a'.
-afterAll :: (a -> IO ()) -> TestDefM (a ': l) b e -> TestDefM (a ': l) b e
+afterAll ::
+  -- | The function to run (once), afterwards, using the outer resource.
+  (outer -> IO ()) ->
+  TestDefM (outer ': otherOuters) inner result ->
+  TestDefM (outer ': otherOuters) inner result
 afterAll func = afterAll' $ \(HCons a _) -> func a
 
 -- | Run a custom action after all spec items, using all the outer resources.
-afterAll' :: (HList l -> IO ()) -> TestDefM l b e -> TestDefM l b e
+afterAll' ::
+  -- | The function to run (once), afterwards, using all outer resources.
+  (HList outers -> IO ()) ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 afterAll' func = wrapRWST $ \forest -> DefAfterAllNode func forest
 
 -- | Run a custom action after all spec items without using any outer resources.
-afterAll_ :: IO () -> TestDefM a b e -> TestDefM a b e
+afterAll_ ::
+  -- | The function to run (once), afterwards.
+  IO () ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 afterAll_ action = afterAll' $ \_ -> action
 
 -- | Run a custom action before and/or after all spec items in group, to provide access to a resource 'a'.
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
-aroundAll :: ((a -> IO ()) -> IO ()) -> TestDefM (a ': l) c e -> TestDefM l c e
+aroundAll ::
+  -- | The function that provides the outer resource (once), around the tests.
+  ((outer -> IO ()) -> IO ()) ->
+  TestDefM (outer ': otherOuters) inner result ->
+  TestDefM otherOuters inner result
 aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
 
 -- | Run a custom action before and/or after all spec items in a group without accessing any resources.
@@ -82,21 +110,30 @@ aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
 -- In this case, the test will "just work", but it will be executed twice even if the output reports that it only passed once.
 --
 -- Note: If you're interested in fixing this, talk to me, but only after GHC has gotten impredicative types because that will likely be a requirement.
-aroundAll_ :: (IO () -> IO ()) -> TestDefM a b e -> TestDefM a b e
+aroundAll_ ::
+  -- | The function that wraps running the tests.
+  (IO () -> IO ()) ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
 aroundAll_ func = wrapRWST $ \forest -> DefWrapNode func forest
 
 -- | Run a custom action before and/or after all spec items in a group to provide access to a resource 'a' while using a resource 'b'
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
 aroundAllWith ::
-  forall a b c l r.
-  ((a -> IO ()) -> (b -> IO ())) ->
-  TestDefM (a ': b ': l) c r ->
-  TestDefM (b ': l) c r
+  forall newOuter oldOuter otherOuters inner result.
+  -- | The function that provides the new outer resource (once), using the old outer resource.
+  ((newOuter -> IO ()) -> (oldOuter -> IO ())) ->
+  TestDefM (newOuter ': oldOuter ': otherOuters) inner result ->
+  TestDefM (oldOuter ': otherOuters) inner result
 aroundAllWith func = wrapRWST $ \forest -> DefAroundAllWithNode func forest
 
 -- | Declare a node in the spec def forest
-wrapRWST :: (TestForest a c -> TestTree b d) -> TestDefM a c l -> TestDefM b d l
+wrapRWST ::
+  -- | The wrapper node
+  (TestForest outers1 inner1 -> TestTree outers2 inner2) ->
+  TestDefM outers1 inner1 result ->
+  TestDefM outers2 inner2 result
 wrapRWST func (TestDefM rwst) = TestDefM $
   flip mapRWST rwst $ \inner -> do
     (res, s, forest) <- inner

@@ -18,6 +18,7 @@ import Control.Monad.RWS.Strict
 import Control.Monad.Random
 import Data.DList (DList)
 import qualified Data.DList as DList
+import Data.Kind
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -31,32 +32,32 @@ import Test.Syd.SpecDef
 type Spec = SpecWith ()
 
 -- | A synonym for easy migration from hspec
-type SpecWith a = SpecM a ()
+type SpecWith inner = SpecM inner ()
 
 -- | A synonym for easy migration from hspec
-type SpecM a b = TestDefM '[] a b
+type SpecM inner result = TestDefM '[] inner result
 
 -- | A synonym for a test suite definition
-type TestDef a b = TestDefM a b ()
+type TestDef outer inner = TestDefM outer inner ()
 
 -- | The test definition monad
 --
 -- This type has three parameters:
 --
--- * @a@: The type of the result of `aroundAll`
--- * @b@: The type of the result of `around`
--- * @c@: The result
+-- * @outers@: A type-level list of the outer resources. These are resources that are prived once, around a group of tests. (This is the type of the results of `aroundAll`.)
+-- * @inner@: The inner resource. This is a resource that is set up around every test, and even every example of a property test. (This is the type of the result of `around`.)
+-- * @result@: The result ('TestDefM' is a monad.)
 --
 -- In practice, all of these three parameters should be '()' at the top level.
-newtype TestDefM a b c = TestDefM
-  { unTestDefM :: RWST TestRunSettings (TestForest a b) () IO c
+newtype TestDefM (outers :: [Type]) inner result = TestDefM
+  { unTestDefM :: RWST TestRunSettings (TestForest outers inner) () IO result
   }
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestRunSettings, MonadWriter (TestForest a b), MonadState ())
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestRunSettings, MonadWriter (TestForest outers inner), MonadState ())
 
-execTestDefM :: Settings -> TestDefM a b c -> IO (TestForest a b)
+execTestDefM :: Settings -> TestDefM outers inner result -> IO (TestForest outers inner)
 execTestDefM sets = fmap snd . runTestDefM sets
 
-runTestDefM :: Settings -> TestDefM a b c -> IO (c, TestForest a b)
+runTestDefM :: Settings -> TestDefM outers inner result -> IO (result, TestForest outers inner)
 runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
   (a, _, testForest) <- runRWST func (toTestRunSettings sets) () -- TODO allow passing in settings from the command-line
@@ -79,7 +80,7 @@ toTestRunSettings Settings {..} =
       testRunSettingGoldenReset = settingGoldenReset
     }
 
-filterTestForest :: Maybe Text -> SpecDefForest a b c -> SpecDefForest a b c
+filterTestForest :: Maybe Text -> SpecDefForest outers inner result -> SpecDefForest outers inner result
 filterTestForest mf = fromMaybe [] . goForest DList.empty
   where
     goForest :: DList Text -> SpecDefForest a b c -> Maybe (SpecDefForest a b c)
@@ -112,7 +113,7 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
       DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest dl sdf
 
-randomiseTestForest :: MonadRandom m => SpecDefForest a b c -> m (SpecDefForest a b c)
+randomiseTestForest :: MonadRandom m => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
 randomiseTestForest = goForest
   where
     goForest :: MonadRandom m => SpecDefForest a b c -> m (SpecDefForest a b c)

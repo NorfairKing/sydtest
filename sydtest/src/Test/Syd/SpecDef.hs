@@ -24,36 +24,85 @@ import Test.Syd.HList
 import Test.Syd.Run
 import Test.Syd.SpecForest
 
-data TDef v = TDef {testDefVal :: v, testDefCallStack :: CallStack}
+data TDef value = TDef {testDefVal :: value, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)
 
-type TestForest a c = SpecDefForest a c ()
+type TestForest outers inner = SpecDefForest outers inner ()
 
-type TestTree a c = SpecDefTree a c ()
+type TestTree outers inner = SpecDefTree outers inner ()
 
-type SpecDefForest (a :: [Type]) c e = [SpecDefTree a c e]
+type SpecDefForest (outers :: [Type]) inner extra = [SpecDefTree outers inner extra]
 
-data SpecDefTree (a :: [Type]) c e where -- a: input from 'aroundAll', c: input from 'around', e: extra
+-- | A tree of tests
+--
+-- This type has three parameters:
+--
+-- * @outers@: A type-level list of the outer resources. These are resources that are prived once, around a group of tests. (This is the type of the results of `aroundAll`.)
+-- * @inner@: The inner resource. This is a resource that is set up around every test, and even every example of a property test. (This is the type of the result of `around`.)
+-- * @result@: The result ('TestDefM' is a monad.)
+--
+-- In practice, all of these three parameters should be '()' at the top level.
+--
+-- When you're just using sydtest and not writing a library for sydtest, you probably don't even want to concern yourself with this type.
+data SpecDefTree (outers :: [Type]) inner extra where
+  -- | Define a test
   DefSpecifyNode ::
+    -- | The description of the test
     Text ->
-    TDef (((HList a -> c -> IO ()) -> IO ()) -> IO TestRunResult) ->
-    e ->
-    SpecDefTree a c e -- A test with its description
-  DefPendingNode :: Text -> Maybe Text -> SpecDefTree a c e
-  DefDescribeNode :: Text -> SpecDefForest a c e -> SpecDefTree a c e -- A description
-  DefWrapNode :: (IO () -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
-  DefBeforeAllNode :: IO a -> SpecDefForest (a ': l) c e -> SpecDefTree l c e
+    -- | How the test can be run given a function that provides the resources
+    TDef (((HList outers -> inner -> IO ()) -> IO ()) -> IO TestRunResult) ->
+    extra ->
+    SpecDefTree outers inner extra
+  -- | Define a pending test
+  DefPendingNode ::
+    -- | The description of the test
+    Text ->
+    -- | The reason why the test is pending
+    Maybe Text ->
+    SpecDefTree outers inner extra
+  -- | Group tests using a description
+  DefDescribeNode ::
+    -- | The description
+    Text ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
+  DefWrapNode ::
+    -- | The function that wraps running the tests.
+    (IO () -> IO ()) ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
+  DefBeforeAllNode ::
+    -- | The function to run (once), beforehand, to produce the outer resource.
+    IO outer ->
+    SpecDefForest (outer ': otherOuters) inner extra ->
+    SpecDefTree otherOuters inner extra
   DefAroundAllNode ::
-    ((a -> IO ()) -> IO ()) ->
-    SpecDefForest (a ': l) c e ->
-    SpecDefTree l c e
+    -- | The function that provides the outer resource (once), around the tests.
+    ((outer -> IO ()) -> IO ()) ->
+    SpecDefForest (outer ': otherOuters) inner extra ->
+    SpecDefTree otherOuters inner extra
   DefAroundAllWithNode ::
-    ((b -> IO ()) -> (a -> IO ())) ->
-    SpecDefForest (b ': a ': l) c e ->
-    SpecDefTree (a ': l) c e
-  DefAfterAllNode :: (HList a -> IO ()) -> SpecDefForest a c e -> SpecDefTree a c e
-  DefParallelismNode :: Parallelism -> SpecDefForest a c e -> SpecDefTree a c e
-  DefRandomisationNode :: ExecutionOrderRandomisation -> SpecDefForest a c e -> SpecDefTree a c e
+    -- | The function that provides the new outer resource (once), using the old outer resource.
+    ((newOuter -> IO ()) -> (oldOuter -> IO ())) ->
+    SpecDefForest (newOuter ': oldOuter ': otherOuters) inner extra ->
+    SpecDefTree (oldOuter ': otherOuters) inner extra
+  DefAfterAllNode ::
+    -- | The function to run (once), afterwards, using all outer resources.
+    (HList outers -> IO ()) ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
+  -- | Control the level of parallelism for a given group of tests
+  DefParallelismNode ::
+    -- | The level of parallelism
+    Parallelism ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
+  -- | Control the execution order randomisation for a given group of tests
+  DefRandomisationNode ::
+    -- | The execution order randomisation
+    ExecutionOrderRandomisation ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
 
 instance Functor (SpecDefTree a c) where
   fmap :: forall e f. (e -> f) -> SpecDefTree a c e -> SpecDefTree a c f

@@ -51,3 +51,19 @@ tests:
     - text
     - yesod
     - yesod-form
+
+  sydtest-yesod-blog-example-test:
+    main: Spec.hs
+    source-dirs: blog-example
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest
+    - sydtest-persistent-sqlite
+    - sydtest-yesod
+    - text
+    - yesod
+    - yesod-form

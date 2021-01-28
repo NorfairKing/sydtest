@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.34.3.
 --
 -- see: https://github.com/sol/hpack
 
@@ -48,6 +48,28 @@ library
     , xml-conduit
     , yesod-core
     , yesod-test
+  default-language: Haskell2010
+
+test-suite sydtest-yesod-blog-example-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Example.Blog
+      Example.BlogSpec
+      Paths_sydtest_yesod
+  hs-source-dirs:
+      blog-example
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      base >=4.7 && <5
+    , sydtest
+    , sydtest-persistent-sqlite
+    , sydtest-yesod
+    , text
+    , yesod
+    , yesod-form
   default-language: Haskell2010
 
 test-suite sydtest-yesod-test

@@ -4,6 +4,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
+-- | Testing a yesod site.
+--
+-- For a fully-worked example, see sydtest-yesod/blog-example.
 module Test.Syd.Yesod
   ( -- * Functions to run a test suite
     yesodSpec,
@@ -31,8 +34,6 @@ module Test.Syd.Yesod
     -- * Making requests
     get,
     post,
-    performMethod,
-    performRequest,
     followRedirect,
 
     -- ** Using the request builder
@@ -45,6 +46,10 @@ module Test.Syd.Yesod
     addFile,
     addFileWith,
     setRequestBody,
+
+    -- ** Helpers
+    performMethod,
+    performRequest,
 
     -- *** Types
     RequestBuilder (..),

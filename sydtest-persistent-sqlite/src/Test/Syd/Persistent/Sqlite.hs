@@ -1,5 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Testing with an in-memory sqlite database using persistent-sqlite
+--
+-- For a fully worked example, see sydtest-yesod/blog-example.
 module Test.Syd.Persistent.Sqlite
   ( persistSqliteSpec,
     withConnectionPool,

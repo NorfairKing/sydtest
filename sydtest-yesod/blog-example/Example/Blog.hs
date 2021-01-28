@@ -19,73 +19,44 @@ mkYesod
 
 type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 
-instance Yesod App where
-  defaultLayout widget = do
-    pc <- widgetToPageContent widget
-    withUrlRenderer
-      [hamlet|
-            \<!DOCTYPE html>
-            <html lang="en">
-                <head>
-                    <meta charset="utf-8">
-                    <title>#{pageTitle pc}
-                    <meta name="description" content="my awesome site">
-                    <meta name="author" content="Patrick Brisbin">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    ^{pageHead pc}
-                <body>
-                    ^{pageBody pc}
-            |]
+instance Yesod App
 
 instance RenderMessage App FormMessage where
   renderMessage _ _ = defaultFormMessage
 
-data Fruit = Apple | Orange | Pear deriving (Eq, Ord, Read, Show)
-
-data TheForm = TheForm
-  { formText :: Text,
-    formInt :: Int,
-    formFruit :: Fruit
+data NewThought = NewThought
+  { newThoughtTitle :: Text,
+    newThoughtContents :: Text
   }
 
-theForm :: Form TheForm
-theForm =
+newThoughtForm :: Form NewThought
+newThoughtForm =
   renderDivs $
-    TheForm
-      <$> areq textField "Some text" Nothing
-      <*> areq intField "Some number" Nothing
-      <*> areq selectFruit "Some fruit" Nothing
-  where
-    selectFruit =
-      selectField $
-        return $
-          mkOptionList
-            [ Option "Apple" Apple "apple",
-              Option "Orange" Orange "orange",
-              Option "Pear" Pear "pear"
-            ]
+    NewThought
+      <$> areq textField ("Title" {fsName = Just "title"}) Nothing
+      <*> (unTextarea <$> areq textareaField ("Contents" {fsName = Just "contents"}) Nothing)
 
 getHomeR :: Handler Html
 getHomeR = do
-  ((res, form), enctype) <- runFormPost theForm
-  defaultLayout $ do
-    setTitle "My title"
-
-    case res of
-      FormSuccess f ->
+  ((res, form), enctype) <- runFormPost newThoughtForm
+  case res of
+    FormSuccess f ->
+      defaultLayout
         [whamlet|
-                                <p>You've posted a form!
-                                <p>the text was #{formText f}
-                                <p>the number was #{formInt f}
-                                <p>the fruit was #{show $ formFruit f}
-                                |]
-      _ ->
+          <p>You've posted a thought!
+          <p>the title was #{newThoughtTitle f}
+          <p>the contents were #{Textarea $ newThoughtContents f}
+        |]
+    FormMissing ->
+      defaultLayout
         [whamlet|
-                    <p>Hello world!
-                    <form enctype="#{enctype}" method="post">
-                        ^{form}
-                        <input type="submit">
-                    |]
+          <p>Hello world!
+          <form enctype="#{enctype}" method="post">
+            ^{form}
+            <input type="submit">
+              Submit thought
+        |]
+    FormFailure errs -> invalidArgs errs
 
 postHomeR :: Handler Html
 postHomeR = getHomeR

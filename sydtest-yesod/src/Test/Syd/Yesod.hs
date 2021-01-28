@@ -4,6 +4,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
+-- | Testing a yesod site.
+--
+-- For a fully-worked example, see sydtest-yesod/blog-example.
 module Test.Syd.Yesod
   ( -- * Functions to run a test suite
     yesodSpec,

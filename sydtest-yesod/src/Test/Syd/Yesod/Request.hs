@@ -102,10 +102,18 @@ locationShouldBe expected = do
 -- The check is performed using the response body in full text form without any html parsing.
 bodyContains :: HasCallStack => String -> YesodExample site ()
 bodyContains text = do
-  mResp <- getResponse
+  mResp <- getLast
   liftIO $ case mResp of
     Nothing -> expectationFailure "bodyContains: No request made yet."
-    Just resp -> shouldSatisfy (TE.encodeUtf8 (T.pack text)) (`SB.isInfixOf` LB.toStrict (responseBody resp))
+    Just (req, resp) ->
+      let ctx =
+            unlines
+              [ "last request:",
+                ppShow req,
+                "full response:",
+                ppShow resp
+              ]
+       in context ctx $ shouldSatisfyNamed (TE.encodeUtf8 (T.pack text)) (unwords ["bodyContains", show text]) (`SB.isInfixOf` LB.toStrict (responseBody resp))
 
 -- | A request builder monad that allows you to monadically build a request using `runRequestBuilder`.
 --

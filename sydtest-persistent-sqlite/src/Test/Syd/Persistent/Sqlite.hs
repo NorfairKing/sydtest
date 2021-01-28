@@ -1,5 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Testing with an in-memory sqlite database using persistent-sqlite
+--
+-- For a fully worked example, see sydtest-yesod/blog-example.
 module Test.Syd.Persistent.Sqlite
   ( persistSqliteSpec,
     withConnectionPool,
@@ -25,9 +28,11 @@ persistSqliteSpec migration = aroundWith $ \func _ -> withConnectionPool migrati
 withConnectionPool :: Migration -> (ConnectionPool -> IO ()) -> IO ()
 withConnectionPool = flip $ unSetupFunc connectionPoolSetupFunc'
 
+-- | The 'SetupFunc' version of 'withConnectionPool'.
 connectionPoolSetupFunc :: Migration -> SetupFunc () ConnectionPool
 connectionPoolSetupFunc = unwrapSetupFunc connectionPoolSetupFunc'
 
+-- | A wrapped version of 'connectionPoolSetupFunc'
 connectionPoolSetupFunc' :: SetupFunc Migration ConnectionPool
 connectionPoolSetupFunc' = SetupFunc $ \takeConnectionPool migration ->
   runNoLoggingT $

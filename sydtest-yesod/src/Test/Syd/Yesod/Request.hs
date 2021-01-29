@@ -69,14 +69,13 @@ performMethod method route = request $ do
 -- >   get HomeR
 -- >   statusIs 200
 statusIs :: HasCallStack => Int -> YesodClientM site ()
-statusIs i =
-  withLastRequestContext $ do
-    mLast <- getLast
-    case mLast of
-      Nothing -> liftIO $ expectationFailure "statusIs: No request made yet."
-      Just (_, resp) ->
-        let c = statusCode (responseStatus resp)
-         in withLastRequestContext $ liftIO $ c `shouldBe` i
+statusIs i = do
+  mLast <- getLast
+  case mLast of
+    Nothing -> liftIO $ expectationFailure "statusIs: No request made yet."
+    Just (_, resp) ->
+      let c = statusCode (responseStatus resp)
+       in withLastRequestContext $ liftIO $ c `shouldBe` i
 
 -- | Assert the redirect location of the most recently received response.
 --
@@ -103,7 +102,7 @@ bodyContains text = do
     Just (_, resp) ->
       withLastRequestContext $
         liftIO $
-          shouldSatisfyNamed (TE.encodeUtf8 (T.pack text)) (unwords ["bodyContains", show text]) (`SB.isInfixOf` LB.toStrict (responseBody resp))
+          shouldSatisfyNamed (responseBody resp) (unwords ["bodyContains", show text]) (\body -> TE.encodeUtf8 (T.pack text) `SB.isInfixOf` LB.toStrict body)
 
 -- | A request builder monad that allows you to monadically build a request using `runRequestBuilder`.
 --

@@ -59,7 +59,7 @@ instance RenderMessage App FormMessage where
   renderMessage _ _ = defaultFormMessage
 
 getHomeR :: Handler Html
-getHomeR = defaultLayout "Welcome!, feel free to post some thoughts at /thought."
+getHomeR = defaultLayout "Welcome!, feel free to post some thoughts at /new-thought."
 
 data NewThought = NewThought
   { newThoughtTitle :: Text,

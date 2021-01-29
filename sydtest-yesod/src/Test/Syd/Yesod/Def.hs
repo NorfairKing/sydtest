@@ -121,7 +121,7 @@ yesodSpecWithSiteGeneratorAndArgument func = yesodSpecWithSiteSupplierWith $ \f 
 -- >
 -- > appSupplier :: (App -> IO r) -> IO r
 -- > appSupplier func =
--- >   withconnectionPool myMigration $ \pool ->
+-- >   withConnectionPool myMigration $ \pool ->
 -- >     func $ App { appConnectionPool = pool}
 -- >
 -- > spec :: Spec

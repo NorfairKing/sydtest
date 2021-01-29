@@ -43,12 +43,12 @@ spec = yesodSpecWithSiteSetupFunc appSetupFunc $ do
     request $ do
       setMethod "POST"
       setUrl NewThoughtR
-      addToken
+      addToken -- For the CSRF protection
     statusIs 400
 
   -- A simple form POST request test.
   -- Each part of the form needs to be added using 'addPostParam'
-  -- Don't forget the 'addToken' piece to make sure you don't run into XSRF errors.
+  -- Don't forget the 'addToken' piece to make sure you don't run into CSRF errors.
   yit "can post this example blogpost" $ do
     get NewThoughtR
     statusIs 200

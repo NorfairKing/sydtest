@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
--- | The 'SetupFunc' abstraction makes resource provider functions (of type '(a -> IO r) -> IO r') composable.
+-- | The 'SetupFunc' abstraction makes resource provider functions (of type @(a -> IO r) -> IO r@) composable.
 module Test.Syd.Def.SetupFunc where
 
 import Control.Category as Cat

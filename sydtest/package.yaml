@@ -31,7 +31,7 @@ library:
     - path-io
     - pretty-show
     - quickcheck-io
-    - rainbow
+    - safe-coloured-text
     - random-shuffle
     - safe
     - split
@@ -53,7 +53,7 @@ tests:
     - bytestring
     - path
     - path-io
-    - rainbow
+    - safe-coloured-text
     - stm
     - sydtest
 
@@ -69,6 +69,6 @@ tests:
     - bytestring
     - path
     - path-io
-    - rainbow
+    - safe-coloured-text
     - sydtest
     - text

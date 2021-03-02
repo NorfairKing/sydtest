@@ -9,8 +9,8 @@ module Test.Syd.Output where
 
 import Control.Monad.Reader
 import Data.Algorithm.Diff
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as SB
+import Data.ByteString.Builder (Builder)
+import qualified Data.ByteString.Builder as SBB
 import qualified Data.ByteString.Char8 as SB8
 import Data.List
 import Data.List.Split (splitWhen)
@@ -20,28 +20,30 @@ import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Stack
-import Rainbow
-import Rainbow.Types (Chunk (..))
 import Safe
 import Test.QuickCheck.IO ()
 import Test.Syd.Run
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
+import Text.Colour
 import Text.Printf
 
 printOutputSpecForest :: Maybe Bool -> Timed ResultForest -> IO ()
 printOutputSpecForest mColour results = do
-  byteStringMaker <- case mColour of
-    Just False -> pure toByteStringsColors0
-    Just True -> pure toByteStringsColors256
-    Nothing -> liftIO byteStringMakerFromEnvironment
-  let bytestrings = outputSpecForestByteString byteStringMaker results
-  forM_ bytestrings $ \bs -> do
-    mapM_ SB.putStr bs
+  tc <- case mColour of
+    Just False -> pure NoColour
+    Just True -> pure Colours
+    Nothing -> getTerminalCapabilitiesFromEnv
+
+  forM_ (outputResultReport results) $ \chunks -> do
+    putChunksWith tc chunks
     SB8.putStrLn ""
 
-outputSpecForestByteString :: (Chunk -> [ByteString] -> [ByteString]) -> Timed ResultForest -> [[ByteString]]
-outputSpecForestByteString byteStringMaker results = map (chunksToByteStrings byteStringMaker) (outputResultReport results)
+renderResultReport :: TerminalCapabilities -> Timed ResultForest -> Builder
+renderResultReport tc rf =
+  mconcat $
+    intersperse (SBB.char7 '\n') $
+      map (renderChunks tc) (outputResultReport rf)
 
 outputResultReport :: Timed ResultForest -> [[Chunk]]
 outputResultReport trf@(Timed rf _) =
@@ -353,7 +355,7 @@ outputAssertion = \case
 outputEqualityAssertionFailed :: String -> String -> [[Chunk]]
 outputEqualityAssertionFailed actual expected =
   let diff = getDiff actual expected -- TODO use 'getGroupedDiff' instead, but then we need to fix the 'splitWhen' below
-      splitLines = splitWhen ((== "\n") . _yarn)
+      splitLines = splitWhen ((== "\n") . chunkText)
       chunksLinesWithHeader :: Chunk -> [[Chunk]] -> [[Chunk]]
       chunksLinesWithHeader header = \case
         [cs] -> [header : cs]
@@ -436,7 +438,7 @@ outputFailure TestRunResult {..} = case testRunResultStatus of
   TestPassed -> Nothing
   TestFailed -> Just [[chunk "Failure"]]
 
-statusColour :: TestStatus -> Radiant
+statusColour :: TestStatus -> Colour
 statusColour = \case
   TestPassed -> green
   TestFailed -> red
@@ -484,8 +486,13 @@ padding = chunk $ T.replicate paddingSize " "
 paddingSize :: Int
 paddingSize = 2
 
-orange :: Radiant
-orange = color256 166
+orange :: Colour
+orange = red -- TODO
 
-darkRed :: Radiant
-darkRed = color256 160
+darkRed :: Colour
+darkRed = red -- TODO
+-- orange :: Radiant
+-- orange = color256 166
+--
+-- darkRed :: Radiant
+-- darkRed = color256 160

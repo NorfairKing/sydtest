@@ -15,9 +15,7 @@ where
 import Control.Concurrent (getNumCapabilities)
 import Control.Monad
 import Control.Monad.IO.Class
-import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
-import Rainbow
 import System.Environment
 import System.Mem (performGC)
 import Test.Syd.Def
@@ -27,6 +25,7 @@ import Test.Syd.Run
 import Test.Syd.Runner.Asynchronous
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
+import Text.Colour
 import Text.Printf
 
 sydTestResult :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
@@ -48,14 +47,13 @@ sydTestOnce sets spec = do
       i <- getNumCapabilities
 
       when (i == 1) $ do
-        byteStringMaker <- case settingColour sets of
-          Just False -> pure toByteStringsColors0
-          Just True -> pure toByteStringsColors256
-          Nothing -> liftIO byteStringMakerFromEnvironment
+        tc <- case settingColour sets of
+          Just False -> pure NoColour
+          Just True -> pure Colours
+          Nothing -> getTerminalCapabilitiesFromEnv
         let outputLine :: [Chunk] -> IO ()
-            outputLine lineChunks = do
-              let bss = chunksToByteStrings byteStringMaker lineChunks
-              mapM_ SB.putStr bss
+            outputLine lineChunks = liftIO $ do
+              putChunksWith tc lineChunks
               SB8.putStrLn ""
         mapM_
           ( outputLine

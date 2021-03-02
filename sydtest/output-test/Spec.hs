@@ -9,15 +9,15 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as SB
-import qualified Data.ByteString.Char8 as SB8
+import qualified Data.ByteString.Builder as SBB
+import qualified Data.ByteString.Lazy as LB
 import Data.List
 import Data.Text (Text)
-import Rainbow
 import System.Exit
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
+import Text.Colour
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
 
@@ -145,7 +145,8 @@ spec = do
       it "outputs the same as last time" $ do
         pureGoldenByteStringFile
           "test_resources/output.golden"
-          (SB8.intercalate (SB8.pack "\n") $ map SB.concat $ outputSpecForestByteString toByteStringsColors256 (Timed [] 0))
+          (LB.toStrict $ SBB.toLazyByteString $ renderResultReport Colours (Timed [] 0))
+
   doNotRandomiseExecutionOrder $
     describe "Around" $
       do

@@ -10,16 +10,15 @@ module Test.Syd.Runner.Synchronous where
 
 import Control.Exception
 import Control.Monad.IO.Class
-import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.Text as T
-import Rainbow
 import Test.Syd.HList
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner.Wrappers
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
+import Text.Colour
 
 runSpecForestSynchronously :: Bool -> TestForest '[] () -> IO ResultForest
 runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
@@ -61,16 +60,14 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
 
 runSpecForestInterleavedWithOutputSynchronously :: Maybe Bool -> Bool -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputSynchronously mColour failFast testForest = do
-  byteStringMaker <- case mColour of
-    Just False -> pure toByteStringsColors0
-    Just True -> pure toByteStringsColors256
-    Nothing -> liftIO byteStringMakerFromEnvironment
+  tc <- case mColour of
+    Just False -> pure NoColour
+    Just True -> pure Colours
+    Nothing -> getTerminalCapabilitiesFromEnv
   let outputLine :: [Chunk] -> IO ()
-      outputLine lineChunks = do
-        let bss = chunksToByteStrings byteStringMaker lineChunks
-        liftIO $ do
-          mapM_ SB.putStr bss
-          SB8.putStrLn ""
+      outputLine lineChunks = liftIO $ do
+        putChunksWith tc lineChunks
+        SB8.putStrLn ""
       treeWidth :: Int
       treeWidth = specForestWidth testForest
   let pad :: Int -> [Chunk] -> [Chunk]

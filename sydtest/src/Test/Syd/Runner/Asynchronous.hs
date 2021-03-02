@@ -12,20 +12,19 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad.Reader
-import qualified Data.ByteString as SB
 import qualified Data.ByteString.Char8 as SB8
 import Data.IORef
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Text as T
-import Rainbow
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
+import Text.Colour
 
 runSpecForestAsynchronously :: Bool -> Int -> TestForest '[] () -> IO ResultForest
 runSpecForestAsynchronously failFast nbThreads testForest = do
@@ -112,15 +111,15 @@ runner failFast nbThreads failFastVar handleForest = do
 
 printer :: Maybe Bool -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
 printer mColour failFastVar handleForest = do
-  byteStringMaker <- case mColour of
-    Just False -> pure toByteStringsColors0
-    Just True -> pure toByteStringsColors256
-    Nothing -> liftIO byteStringMakerFromEnvironment
+  tc <- case mColour of
+    Just False -> pure NoColour
+    Just True -> pure Colours
+    Nothing -> getTerminalCapabilitiesFromEnv
   let outputLine :: [Chunk] -> IO ()
-      outputLine lineChunks = do
-        let bss = chunksToByteStrings byteStringMaker lineChunks
-        mapM_ SB.putStr bss
+      outputLine lineChunks = liftIO $ do
+        putChunksWith tc lineChunks
         SB8.putStrLn ""
+
       treeWidth :: Int
       treeWidth = specForestWidth handleForest
 

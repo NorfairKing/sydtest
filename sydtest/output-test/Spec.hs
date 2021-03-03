@@ -32,7 +32,7 @@ main = do
   testForest <- execTestDefM sets spec
   tc <- case settingColour sets of
     Just False -> pure WithoutColours
-    Just True -> pure With256Colours
+    Just True -> pure With24BitColours
     Nothing -> getTerminalCapabilitiesFromEnv
 
   _ <- runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) testForest
@@ -150,7 +150,7 @@ spec = do
       it "outputs the same as last time" $ do
         pureGoldenByteStringFile
           "test_resources/output.golden"
-          (LB.toStrict $ SBB.toLazyByteString $ renderResultReport With256Colours (Timed [] 0))
+          (LB.toStrict $ SBB.toLazyByteString $ renderResultReport With24BitColours (Timed [] 0))
 
   doNotRandomiseExecutionOrder $
     describe "Around" $

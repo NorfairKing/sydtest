@@ -482,12 +482,7 @@ paddingSize :: Int
 paddingSize = 2
 
 orange :: Colour
-orange = red -- TODO
+orange = colour256 166
 
 darkRed :: Colour
-darkRed = red -- TODO
--- orange :: Radiant
--- orange = color256 166
---
--- darkRed :: Radiant
--- darkRed = color256 160
+darkRed = colour256 160

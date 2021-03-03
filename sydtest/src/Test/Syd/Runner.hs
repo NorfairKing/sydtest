@@ -43,7 +43,7 @@ sydTestOnce sets spec = do
   specForest <- execTestDefM sets spec
   tc <- case settingColour sets of
     Just False -> pure WithoutColours
-    Just True -> pure With256Colours
+    Just True -> pure With8BitColours
     Nothing -> getTerminalCapabilitiesFromEnv
   withArgs [] $ case settingThreads sets of
     Synchronous -> runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) specForest
@@ -97,7 +97,7 @@ sydTestIterations totalIterations sets spec =
     rf <- go 0
     tc <- case settingColour sets of
       Just False -> pure WithoutColours
-      Just True -> pure With256Colours
+      Just True -> pure With8BitColours
       Nothing -> getTerminalCapabilitiesFromEnv
     printOutputSpecForest tc rf
     pure rf

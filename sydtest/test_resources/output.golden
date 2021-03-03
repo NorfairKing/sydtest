@@ -1,9 +1,8 @@
-[0m[38;5;4mTests:[0m
-[0m[0m
-[0m[0m
-[0m[0m
-[0m[0m
-[0m  [0m[0mPassed:                   [0m[0m[38;5;2m0[0m
-[0m  [0m[0mFailed:                   [0m[0m[38;5;2m0[0m
-[0m  [0m[0mTest suite took  [0m[0m[38;5;3m         0.00 seconds[0m
-[0m[0m
+[34mTests:[m
+
+
+
+
+  Passed:                   [32m0[m
+  Failed:                   [32m0[m
+  Test suite took  [33m         0.00 seconds[m

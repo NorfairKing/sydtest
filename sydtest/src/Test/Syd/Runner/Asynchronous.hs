@@ -35,12 +35,12 @@ runSpecForestAsynchronously failFast nbThreads testForest = do
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-runSpecForestInterleavedWithOutputAsynchronously :: Maybe Bool -> Bool -> Int -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputAsynchronously mColour failFast nbThreads testForest = do
+runSpecForestInterleavedWithOutputAsynchronously :: TerminalCapabilities -> Bool -> Int -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputAsynchronously tc failFast nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
   let runRunner = runner failFast nbThreads failFastVar handleForest
-      runPrinter = liftIO $ printer mColour failFastVar handleForest
+      runPrinter = liftIO $ printer tc failFastVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
@@ -109,12 +109,8 @@ runner failFast nbThreads failFastVar handleForest = do
         DefRandomisationNode _ sdf -> goForest p a sdf
   goForest Parallel HNil handleForest
 
-printer :: Maybe Bool -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
-printer mColour failFastVar handleForest = do
-  tc <- case mColour of
-    Just False -> pure NoColour
-    Just True -> pure Colours
-    Nothing -> getTerminalCapabilitiesFromEnv
+printer :: TerminalCapabilities -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
+printer tc failFastVar handleForest = do
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
         putChunksWith tc lineChunks

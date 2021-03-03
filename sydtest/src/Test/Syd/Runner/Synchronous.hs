@@ -58,12 +58,8 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
       DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest l sdf -- Ignore, it's synchronous anyway
       DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest l sdf
 
-runSpecForestInterleavedWithOutputSynchronously :: Maybe Bool -> Bool -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputSynchronously mColour failFast testForest = do
-  tc <- case mColour of
-    Just False -> pure NoColour
-    Just True -> pure Colours
-    Nothing -> getTerminalCapabilitiesFromEnv
+runSpecForestInterleavedWithOutputSynchronously :: TerminalCapabilities -> Bool -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
         putChunksWith tc lineChunks

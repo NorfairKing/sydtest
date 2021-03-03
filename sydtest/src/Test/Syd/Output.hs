@@ -28,13 +28,8 @@ import Test.Syd.SpecForest
 import Text.Colour
 import Text.Printf
 
-printOutputSpecForest :: Maybe Bool -> Timed ResultForest -> IO ()
-printOutputSpecForest mColour results = do
-  tc <- case mColour of
-    Just False -> pure NoColour
-    Just True -> pure Colours
-    Nothing -> getTerminalCapabilitiesFromEnv
-
+printOutputSpecForest :: TerminalCapabilities -> Timed ResultForest -> IO ()
+printOutputSpecForest tc results = do
   forM_ (outputResultReport results) $ \chunks -> do
     putChunksWith tc chunks
     SB8.putStrLn ""

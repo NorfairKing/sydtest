@@ -41,16 +41,16 @@ sydTestResult sets spec = do
 sydTestOnce :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestOnce sets spec = do
   specForest <- execTestDefM sets spec
+  tc <- case settingColour sets of
+    Just False -> pure WithoutColours
+    Just True -> pure With256Colours
+    Nothing -> getTerminalCapabilitiesFromEnv
   withArgs [] $ case settingThreads sets of
-    Synchronous -> runSpecForestInterleavedWithOutputSynchronously (settingColour sets) (settingFailFast sets) specForest
+    Synchronous -> runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) specForest
     ByCapabilities -> do
       i <- getNumCapabilities
 
       when (i == 1) $ do
-        tc <- case settingColour sets of
-          Just False -> pure NoColour
-          Just True -> pure Colours
-          Nothing -> getTerminalCapabilitiesFromEnv
         let outputLine :: [Chunk] -> IO ()
             outputLine lineChunks = liftIO $ do
               putChunksWith tc lineChunks
@@ -64,9 +64,9 @@ sydTestOnce sets spec = do
             chunk "         -threaded -rtsopts -with-rtsopts=-N",
             chunk "         (This is important for correctness as well as speed, as a parallell test suite can find thread safety problems.)"
           ]
-      runSpecForestInterleavedWithOutputAsynchronously (settingColour sets) (settingFailFast sets) i specForest
+      runSpecForestInterleavedWithOutputAsynchronously tc (settingFailFast sets) i specForest
     Asynchronous i ->
-      runSpecForestInterleavedWithOutputAsynchronously (settingColour sets) (settingFailFast sets) i specForest
+      runSpecForestInterleavedWithOutputAsynchronously tc (settingFailFast sets) i specForest
 
 sydTestIterations :: Maybe Int -> Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestIterations totalIterations sets spec =
@@ -95,5 +95,9 @@ sydTestIterations totalIterations sets spec =
                 | otherwise -> go $ succ iteration
 
     rf <- go 0
-    printOutputSpecForest (settingColour sets) rf
+    tc <- case settingColour sets of
+      Just False -> pure WithoutColours
+      Just True -> pure With256Colours
+      Nothing -> getTerminalCapabilitiesFromEnv
+    printOutputSpecForest tc rf
     pure rf

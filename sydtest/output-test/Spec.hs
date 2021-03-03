@@ -30,12 +30,17 @@ main :: IO ()
 main = do
   sets <- getSettings
   testForest <- execTestDefM sets spec
-  _ <- runSpecForestInterleavedWithOutputSynchronously (settingColour sets) (settingFailFast sets) testForest
-  _ <- runSpecForestInterleavedWithOutputAsynchronously (settingColour sets) (settingFailFast sets) 8 testForest
+  tc <- case settingColour sets of
+    Just False -> pure WithoutColours
+    Just True -> pure With256Colours
+    Nothing -> getTerminalCapabilitiesFromEnv
+
+  _ <- runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) testForest
+  _ <- runSpecForestInterleavedWithOutputAsynchronously tc (settingFailFast sets) 8 testForest
   rf1 <- timeItT $ runSpecForestSynchronously (settingFailFast sets) testForest
-  printOutputSpecForest (settingColour sets) rf1
+  printOutputSpecForest tc rf1
   rf2 <- timeItT $ runSpecForestAsynchronously (settingFailFast sets) 8 testForest
-  printOutputSpecForest (settingColour sets) rf2
+  printOutputSpecForest tc rf2
   pure ()
 
 spec :: Spec
@@ -145,7 +150,7 @@ spec = do
       it "outputs the same as last time" $ do
         pureGoldenByteStringFile
           "test_resources/output.golden"
-          (LB.toStrict $ SBB.toLazyByteString $ renderResultReport Colours (Timed [] 0))
+          (LB.toStrict $ SBB.toLazyByteString $ renderResultReport With256Colours (Timed [] 0))
 
   doNotRandomiseExecutionOrder $
     describe "Around" $

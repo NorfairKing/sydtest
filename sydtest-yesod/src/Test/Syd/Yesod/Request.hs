@@ -6,12 +6,13 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
+{-# OPTIONS_GHC -fno-warn-redundant-constraints -fno-warn-unused-imports #-}
 
 module Test.Syd.Yesod.Request where
 
 import Control.Applicative
 import Control.Monad.Catch
+import Control.Monad.Fail
 import Control.Monad.Reader
 import Control.Monad.State (MonadState, StateT (..), execStateT)
 import qualified Control.Monad.State as State

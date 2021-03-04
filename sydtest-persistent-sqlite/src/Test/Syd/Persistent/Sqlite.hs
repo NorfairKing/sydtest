@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Testing with an in-memory sqlite database using persistent-sqlite
@@ -14,6 +15,7 @@ module Test.Syd.Persistent.Sqlite
 where
 
 import Control.Monad.Logger
+import Control.Monad.Reader
 import Database.Persist.Sql
 import Database.Persist.Sqlite
 import Test.Syd
@@ -37,8 +39,16 @@ connectionPoolSetupFunc' :: SetupFunc Migration ConnectionPool
 connectionPoolSetupFunc' = SetupFunc $ \takeConnectionPool migration ->
   runNoLoggingT $
     withSqlitePool ":memory:" 1 $ \pool -> do
-      _ <- flip runSqlPool pool $ runMigrationQuiet migration
+      _ <- flip runSqlPool pool $ migrationRunner migration
       liftIO $ takeConnectionPool pool
+
+#if MIN_VERSION_persistent(2,10,2)
+migrationRunner :: MonadIO m => Migration -> ReaderT SqlBackend m ()
+migrationRunner = void . runMigrationQuiet
+#else
+migrationRunner :: MonadIO m => Migration -> ReaderT SqlBackend m ()
+migrationRunner = runMigration
+#endif
 
 -- | A flipped version of 'runSqlPool' to run your tests
 runSqliteTest :: ConnectionPool -> SqlPersistT IO a -> IO a

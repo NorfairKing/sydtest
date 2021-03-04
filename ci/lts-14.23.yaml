@@ -1,11 +1,11 @@
 resolver: lts-14.23
 packages:
-- sydtest
-- sydtest-discover
-- sydtest-persistent-sqlite
-- sydtest-servant
-- sydtest-wai
-- sydtest-yesod
+- ../sydtest
+- ../sydtest-discover
+- ../sydtest-persistent-sqlite
+- ../sydtest-servant
+- ../sydtest-wai
+- ../sydtest-yesod
 extra-deps:
 - envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842
 - yamlparse-applicative-0.1.0.2@sha256:bda91f2818c1b5b124963931cb7f9a4e5758d026c09713e9ae2234534062747d,2133
@@ -17,7 +17,8 @@ extra-deps:
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wcompat
 
-
-    # nix:
+nix:
+  packages:
+    - zlib
     #   enable: true
     #   shell-file: shell.nix

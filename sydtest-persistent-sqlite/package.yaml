@@ -12,6 +12,7 @@ library:
   source-dirs: src
   dependencies:
   - monad-logger
+  - mtl
   - persistent
   - persistent-sqlite
   - persistent-template

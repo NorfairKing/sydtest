@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -42,5 +43,10 @@ testClient cenv func = do
     Left err -> expectationFailure $ show err
     Right r -> pure r
 
+#if MIN_VERSION_servant_client(0,16,0)
 testClientOrError :: ClientEnv -> ClientM a -> IO (Either ClientError a)
 testClientOrError = flip runClientM
+#else
+testClientOrError :: ClientEnv -> ClientM a -> IO (Either ServantError a)
+testClientOrError = flip runClientM
+#endif

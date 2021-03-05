@@ -176,32 +176,35 @@ runRequestBuilder (RequestBuilder func) = do
     Nothing -> liftIO $ expectationFailure $ "Failed to parse url: " <> requestStr
     Just req -> pure req
   boundary <- liftIO webkitBoundary
-  let (body, contentTypeHeader) = case requestBuilderDataPostData of
-        MultipleItemsPostData [] -> (RequestBodyBS SB.empty, Nothing)
-        MultipleItemsPostData dat ->
-          if any isFile dat
-            then
-              ( runIdentity $
-                  renderParts
-                    boundary
-                    ( flip map dat $ \case
-                        ReqKvPart k v -> partBS k (TE.encodeUtf8 v)
-                        ReqFilePart k path contents mime ->
-                          (partFileRequestBody k path (RequestBodyBS contents))
-                            { partContentType = TE.encodeUtf8 <$> mime
-                            }
-                    ),
-                Just $ "multipart/form-data; boundary=" <> boundary
+  (body, contentTypeHeader) <- liftIO $ case requestBuilderDataPostData of
+    MultipleItemsPostData [] -> pure (RequestBodyBS SB.empty, Nothing)
+    MultipleItemsPostData dat ->
+      if any isFile dat
+        then do
+          ps <-
+            renderParts
+              boundary
+              ( flip map dat $ \case
+                  ReqKvPart k v -> partBS k (TE.encodeUtf8 v)
+                  ReqFilePart k path contents mime ->
+                    (partFileRequestBody k path (RequestBodyBS contents))
+                      { partContentType = TE.encodeUtf8 <$> mime
+                      }
               )
-            else
-              ( RequestBodyBS $
-                  renderSimpleQuery False $
-                    flip mapMaybe dat $ \case
-                      ReqKvPart k v -> Just (TE.encodeUtf8 k, TE.encodeUtf8 v)
-                      ReqFilePart {} -> Nothing,
-                Just "application/x-www-form-urlencoded"
-              )
-        BinaryPostData sb -> (RequestBodyBS sb, Nothing)
+          pure
+            ( ps,
+              Just $ "multipart/form-data; boundary=" <> boundary
+            )
+        else
+          pure
+            ( RequestBodyBS $
+                renderSimpleQuery False $
+                  flip mapMaybe dat $ \case
+                    ReqKvPart k v -> Just (TE.encodeUtf8 k, TE.encodeUtf8 v)
+                    ReqFilePart {} -> Nothing,
+              Just "application/x-www-form-urlencoded"
+            )
+    BinaryPostData sb -> pure (RequestBodyBS sb, Nothing)
   now <- liftIO getCurrentTime
   let (req', cj') =
         insertCookiesIntoRequest

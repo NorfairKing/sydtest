@@ -1,4 +1,4 @@
 {
   url = "https://github.com/NorfairKing/safe-coloured-text";
-  rev = "61d959e65eeb6f4180d8ea4a0e2de1d5037b1394";
+  rev = "9db3defadd2d2f05b2db02b551c6458fc4d7c10b";
 }

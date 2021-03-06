@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
@@ -162,8 +163,17 @@ yesodClientSetupFunc man = wrapSetupFunc $ \site -> do
 type YesodSpec site = TestDef '[HTTP.Manager] (YesodClient site)
 
 -- | Define a test in the 'YesodClientM site' monad instead of 'IO'.
-yit :: forall site. HasCallStack => String -> YesodClientM site () -> YesodSpec site
-yit s f = it s ((\cenv -> runYesodClientM cenv f) :: YesodClient site -> IO ())
+yit ::
+  forall site e.
+  ( HasCallStack,
+    IsTest (YesodClient site -> IO e),
+    Arg1 (YesodClient site -> IO e) ~ (),
+    Arg2 (YesodClient site -> IO e) ~ YesodClient site
+  ) =>
+  String ->
+  YesodClientM site e ->
+  YesodSpec site
+yit s f = it s ((\cenv -> runYesodClientM cenv f) :: YesodClient site -> IO e)
 
 -- | For backward compatibility
 --

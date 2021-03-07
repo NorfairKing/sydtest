@@ -7,6 +7,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -17,6 +18,7 @@ module Test.Syd.SpecDef where
 
 import Data.Kind
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Word
 import GHC.Stack
 import Test.QuickCheck.IO ()
@@ -164,13 +166,13 @@ type ResultForest = SpecForest (TDef (Timed TestRunResult))
 type ResultTree = SpecTree (TDef (Timed TestRunResult))
 
 computeTestSuiteStats :: ResultForest -> TestSuiteStats
-computeTestSuiteStats = goF
+computeTestSuiteStats = goF []
   where
-    goF :: ResultForest -> TestSuiteStats
-    goF = foldMap goT
-    goT :: ResultTree -> TestSuiteStats
-    goT = \case
-      SpecifyNode _ (TDef (Timed TestRunResult {..} t) _) ->
+    goF :: [Text] -> ResultForest -> TestSuiteStats
+    goF ts = foldMap (goT ts)
+    goT :: [Text] -> ResultTree -> TestSuiteStats
+    goT ts = \case
+      SpecifyNode tn (TDef (Timed TestRunResult {..} t) _) ->
         TestSuiteStats
           { testSuiteStatSuccesses = case testRunResultStatus of
               TestPassed -> 1
@@ -180,7 +182,7 @@ computeTestSuiteStats = goF
               TestFailed -> 1,
             testSuiteStatPending = 0,
             testSuiteStatSumTime = t,
-            testSuiteStatLongestTime = Just t
+            testSuiteStatLongestTime = Just (T.intercalate "." (ts ++ [tn]), t)
           }
       PendingNode _ _ ->
         TestSuiteStats
@@ -190,15 +192,15 @@ computeTestSuiteStats = goF
             testSuiteStatSumTime = 0,
             testSuiteStatLongestTime = Nothing
           }
-      DescribeNode _ sf -> goF sf
-      SubForestNode sf -> goF sf
+      DescribeNode t sf -> goF (t : ts) sf
+      SubForestNode sf -> goF ts sf
 
 data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
     testSuiteStatFailures :: !Word,
     testSuiteStatPending :: !Word,
     testSuiteStatSumTime :: !Word64,
-    testSuiteStatLongestTime :: !(Maybe Word64)
+    testSuiteStatLongestTime :: !(Maybe (Text, Word64))
   }
   deriving (Show, Eq)
 
@@ -213,7 +215,7 @@ instance Semigroup TestSuiteStats where
           (Nothing, Nothing) -> Nothing
           (Just t1, Nothing) -> Just t1
           (Nothing, Just t2) -> Just t2
-          (Just t1, Just t2) -> Just (max t1 t2)
+          (Just (tn1, t1), Just (tn2, t2)) -> Just $ if t1 >= t2 then (tn1, t1) else (tn2, t2)
       }
 
 instance Monoid TestSuiteStats where

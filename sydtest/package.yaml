@@ -1,14 +1,14 @@
-name:                sydtest
-version:             0.0.0.0
-github:              "NorfairKing/sydtest"
-license:             OtherLicense
-license-file:        LICENSE.md
-author:              "Tom Sydney Kerckhove"
-maintainer:          "syd@cs-syd.eu"
-copyright:           "Copyright (c) 2020 Tom Sydney Kerckhove"
-category:            Testing
-synopsis:            A modern testing framework for Haskell with good defaults and advanced testing features.
-description:         A modern testing framework for Haskell with good defaults and advanced testing features. Sydtest aims to make the common easy and the hard possible. See https://github.com/NorfairKing/sydtest#readme for more information.
+name: sydtest
+version: 0.1.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2020-2021 Tom Sydney Kerckhove"
+category: Testing
+synopsis: A modern testing framework for Haskell with good defaults and advanced testing features.
+description: A modern testing framework for Haskell with good defaults and advanced testing features. Sydtest aims to make the common easy and the hard possible. See https://github.com/NorfairKing/sydtest#readme for more information.
 
 
 dependencies:

@@ -1,9 +1,13 @@
-name:                sydtest-servant
-version:             0.0.0.0
-github:              "NorfairKing/sydtest"
-author:              "Tom Sydney Kerckhove"
-maintainer:          "syd@cs-syd.eu"
-copyright:           "Copyright (c) 2020 Tom Sydney Kerckhove"
+name: sydtest-servant
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2020 Tom Sydney Kerckhove"
+category: Testing
+synopsis: A servant companion library for sydtest
 
 dependencies:
 - base >= 4.7 && < 5

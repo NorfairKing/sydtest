@@ -1,7 +1,6 @@
-Copyright (c) 2020 Tom Sydney Kerckhove
+Sydtest License
 
-All Rights Reserved
-
+Copyright (c) 2020-2021 Tom Sydney Kerckhove
 
 **Anyone** can use this software to test your software under the following license:
 

@@ -1,17 +1,20 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-discover
 version:        0.0.0.0
+synopsis:       Automatic test suite discovery for sydtest
+category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
 author:         Tom Sydney Kerckhove
 maintainer:     syd@cs-syd.eu
-copyright:      Copyright (c) 2020 Tom Sydney Kerckhove
-license:        AllRightsReserved
+copyright:      Copyright (c) 2020-2021 Tom Sydney Kerckhove
+license:        OtherLicense
+license-file:   LICENSE.md
 build-type:     Simple
 
 source-repository head

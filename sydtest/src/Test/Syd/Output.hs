@@ -109,7 +109,7 @@ outputStats (Timed TestSuiteStats {..} timing) =
                           [ [ chunk "Longest test took:   ",
                               fore yellow $ chunk $ T.pack (printf "%13.2f seconds" longestTimeSeconds)
                             ],
-                            [ chunk $ T.pack (printf ", which is %.2f%% of total runtime" longestTimePercentage)
+                            [ chunk $ T.pack (printf ", which is %.0f%% of total runtime" longestTimePercentage)
                               | showLongestTestDetails
                             ]
                           ]

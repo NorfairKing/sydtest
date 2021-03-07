@@ -69,14 +69,16 @@ outputFailuresWithHeading rf =
 
 outputStats :: Timed TestSuiteStats -> [[Chunk]]
 outputStats (Timed TestSuiteStats {..} timing) =
-  let totalTimeSeconds :: Double
+  let sumTimeSeconds :: Double
+      sumTimeSeconds = fromIntegral testSuiteStatSumTime / 1_000_000_000
+      totalTimeSeconds :: Double
       totalTimeSeconds = fromIntegral timing / 1_000_000_000
    in map (padding :) $
         concat
-          [ [ [ chunk "Passed:                   ",
+          [ [ [ chunk "Passed:                       ",
                 fore green $ chunk (T.pack (show testSuiteStatSuccesses))
               ],
-              [ chunk "Failed:                   ",
+              [ chunk "Failed:                       ",
                 ( if testSuiteStatFailures > 0
                     then fore red
                     else fore green
@@ -84,7 +86,7 @@ outputStats (Timed TestSuiteStats {..} timing) =
                   $ chunk (T.pack (show testSuiteStatFailures))
               ]
             ],
-            [ [ chunk "Pending:                  ",
+            [ [ chunk "Pending:                      ",
                 fore magenta $ chunk (T.pack (show testSuiteStatPending))
               ]
               | testSuiteStatPending > 0
@@ -92,9 +94,9 @@ outputStats (Timed TestSuiteStats {..} timing) =
             [ let longestTimeSeconds :: Double
                   longestTimeSeconds = fromIntegral longest / 1_000_000_000
                   longestTimePercentage :: Double
-                  longestTimePercentage = 100 * longestTimeSeconds / totalTimeSeconds
+                  longestTimePercentage = 100 * longestTimeSeconds / sumTimeSeconds
                in concat
-                    [ [ chunk "Longest test took",
+                    [ [ chunk "Longest test took:   ",
                         fore yellow $ chunk $ T.pack (printf "%13.2f seconds" longestTimeSeconds)
                       ],
                       [ chunk $ T.pack (printf ", which is %.2f%% of total runtime" longestTimePercentage)
@@ -103,7 +105,10 @@ outputStats (Timed TestSuiteStats {..} timing) =
                     ]
               | longest <- maybeToList testSuiteStatLongestTime
             ],
-            [ [ chunk "Test suite took  ",
+            [ [ chunk "Sum of test runtimes:",
+                fore yellow $ chunk $ T.pack (printf "%13.2f seconds" sumTimeSeconds)
+              ],
+              [ chunk "Test suite took:     ",
                 fore yellow $ chunk $ T.pack (printf "%13.2f seconds" totalTimeSeconds)
               ]
             ]

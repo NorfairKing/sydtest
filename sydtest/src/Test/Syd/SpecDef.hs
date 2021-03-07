@@ -179,6 +179,7 @@ computeTestSuiteStats = goF
               TestPassed -> 0
               TestFailed -> 1,
             testSuiteStatPending = 0,
+            testSuiteStatSumTime = t,
             testSuiteStatLongestTime = Just t
           }
       PendingNode _ _ ->
@@ -186,6 +187,7 @@ computeTestSuiteStats = goF
           { testSuiteStatSuccesses = 0,
             testSuiteStatFailures = 0,
             testSuiteStatPending = 1,
+            testSuiteStatSumTime = 0,
             testSuiteStatLongestTime = Nothing
           }
       DescribeNode _ sf -> goF sf
@@ -195,6 +197,7 @@ data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
     testSuiteStatFailures :: !Word,
     testSuiteStatPending :: !Word,
+    testSuiteStatSumTime :: !Word64,
     testSuiteStatLongestTime :: !(Maybe Word64)
   }
   deriving (Show, Eq)
@@ -205,6 +208,7 @@ instance Semigroup TestSuiteStats where
       { testSuiteStatSuccesses = testSuiteStatSuccesses tss1 + testSuiteStatSuccesses tss2,
         testSuiteStatFailures = testSuiteStatFailures tss1 + testSuiteStatFailures tss2,
         testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2,
+        testSuiteStatSumTime = testSuiteStatSumTime tss1 + testSuiteStatSumTime tss2,
         testSuiteStatLongestTime = case (testSuiteStatLongestTime tss1, testSuiteStatLongestTime tss2) of
           (Nothing, Nothing) -> Nothing
           (Just t1, Nothing) -> Just t1
@@ -219,6 +223,7 @@ instance Monoid TestSuiteStats where
       { testSuiteStatSuccesses = 0,
         testSuiteStatFailures = 0,
         testSuiteStatPending = 0,
+        testSuiteStatSumTime = 0,
         testSuiteStatLongestTime = Nothing
       }
 

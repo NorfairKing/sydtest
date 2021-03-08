@@ -57,7 +57,7 @@ runPureTestWithArg ::
   TestRunSettings ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runPureTestWithArg computeBool TestRunSettings {..} wrapper = do
+runPureTestWithArg computeBool TestRunSettings {} wrapper = do
   let testRunResultNumTests = Nothing
   resultBool <-
     applyWrapper2 wrapper $
@@ -110,7 +110,7 @@ runIOTestWithArg ::
   TestRunSettings ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runIOTestWithArg func TestRunSettings {..} wrapper = do
+runIOTestWithArg func TestRunSettings {} wrapper = do
   let testRunResultNumTests = Nothing
   result <- liftIO $
     applyWrapper2 wrapper $

@@ -1,4 +1,4 @@
-resolver: lts-15.15
+resolver: nightly-2021-03-01
 packages:
 - sydtest
 - sydtest-discover
@@ -18,7 +18,7 @@ extra-deps:
     - safe-coloured-text
 
 ghc-options:
-  "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wcompat
+  "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef
 
 
 nix:

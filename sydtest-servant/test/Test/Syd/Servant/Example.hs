@@ -13,7 +13,7 @@ exampleAPI = Proxy
 
 type ExampleAPI =
   "get" :> Get '[JSON] Int
-    :<|> "add" :> ReqBody '[JSON] Int :> PostNoContent '[JSON] NoContent
+    :<|> "add" :> ReqBody '[JSON] Int :> Post '[JSON] NoContent
 
 exampleServer :: TVar Int -> Server ExampleAPI
 exampleServer var = serveGet :<|> serveAdd

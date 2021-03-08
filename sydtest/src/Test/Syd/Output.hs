@@ -12,7 +12,7 @@ import Data.Algorithm.Diff
 import Data.ByteString.Builder (Builder)
 import qualified Data.ByteString.Builder as SBB
 import qualified Data.ByteString.Char8 as SB8
-import Data.List
+import qualified Data.List as L
 import Data.List.Split (splitWhen)
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -37,7 +37,7 @@ printOutputSpecForest tc results = do
 renderResultReport :: TerminalCapabilities -> Timed ResultForest -> Builder
 renderResultReport tc rf =
   mconcat $
-    intersperse (SBB.char7 '\n') $
+    L.intersperse (SBB.char7 '\n') $
       map (renderChunks tc) (outputResultReport rf)
 
 outputResultReport :: Timed ResultForest -> [[Chunk]]
@@ -308,7 +308,7 @@ outputFailures :: ResultForest -> [[Chunk]]
 outputFailures rf =
   let failures = filter testFailed $ flattenSpecForest rf
       nbDigitsInFailureCount :: Int
-      nbDigitsInFailureCount = floor (logBase 10 (genericLength failures) :: Double)
+      nbDigitsInFailureCount = floor (logBase 10 (L.genericLength failures) :: Double)
       padFailureDetails = (chunk (T.pack (replicate (nbDigitsInFailureCount + 4) ' ')) :)
    in map (padding :) $
         filter (not . null) $

@@ -6,6 +6,7 @@ let
     "lts-15_03"
     "lts-16_11"
     "lts-16_20"
+    "nightly-2021-03-01"
   ];
 
   mkReleaseForVersion = version:

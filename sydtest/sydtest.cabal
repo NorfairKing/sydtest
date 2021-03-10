@@ -30,6 +30,7 @@ library
       Test.Syd.Def.AroundAll
       Test.Syd.Def.Env
       Test.Syd.Def.Golden
+      Test.Syd.Def.Scenario
       Test.Syd.Def.SetupFunc
       Test.Syd.Def.Specify
       Test.Syd.Def.TestDefM
@@ -59,6 +60,7 @@ library
     , containers
     , dlist
     , envparse
+    , filepath
     , mtl
     , optparse-applicative
     , path
@@ -102,6 +104,7 @@ test-suite sydtest-test
       Test.Syd.AroundSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
+      Test.Syd.ScenarioSpec
       Test.Syd.Specify.AllOuterSpec
       Test.Syd.SpecifySpec
       Test.Syd.TimingSpec

@@ -79,6 +79,10 @@ module Test.Syd
     goldenShowInstance,
     goldenPrettyShowInstance,
 
+    -- ** Scenario tests
+    scenarioDir,
+    scenarioDirRecur,
+
     -- ** Expectations
     shouldBe,
     shouldNotBe,

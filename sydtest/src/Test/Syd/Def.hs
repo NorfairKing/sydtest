@@ -7,6 +7,7 @@ module Test.Syd.Def
     module Test.Syd.Def.AroundAll,
     module Test.Syd.Def.SetupFunc,
     module Test.Syd.Def.Golden,
+    module Test.Syd.Def.Scenario,
     module Test.Syd.Def.TestDefM,
   )
 where
@@ -15,6 +16,7 @@ import Test.Syd.Def.Around
 import Test.Syd.Def.AroundAll
 import Test.Syd.Def.Env
 import Test.Syd.Def.Golden
+import Test.Syd.Def.Scenario
 import Test.Syd.Def.SetupFunc
 import Test.Syd.Def.Specify
 import Test.Syd.Def.TestDefM

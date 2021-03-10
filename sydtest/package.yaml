@@ -25,15 +25,16 @@ library:
     - containers
     - dlist
     - envparse
+    - filepath
     - mtl
     - optparse-applicative
     - path
     - path-io
     - pretty-show
     - quickcheck-io
-    - safe-coloured-text
     - random-shuffle
     - safe
+    - safe-coloured-text
     - split
     - text
     - yaml

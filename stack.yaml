@@ -1,6 +1,7 @@
 resolver: nightly-2021-03-01
 packages:
 - sydtest
+- sydtest-amqp
 - sydtest-discover
 - sydtest-persistent-sqlite
 - sydtest-servant

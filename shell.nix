@@ -5,6 +5,8 @@ in
 pkgs.haskell.lib.buildStackProject {
   name = "sydtest";
   buildInputs = with pkgs; [
+    coreutils
+    rabbitmq-server
     zlib
   ];
   shellHook = ''

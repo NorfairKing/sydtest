@@ -2,3 +2,4 @@ stack.yaml.lock
 .stack-work
 .pre-commit-config.yaml
 result*
+*.dump

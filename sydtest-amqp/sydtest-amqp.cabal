@@ -1,0 +1,56 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-amqp
+version:        0.0.0.0
+synopsis:       An amqp companion library for sydtest
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+copyright:      Copyright (c) 2020-2021 Tom Sydney Kerckhove
+license:        OtherLicense
+license-file:   LICENSE.md
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd.AMQP
+  other-modules:
+      Paths_sydtest_amqp
+  hs-source-dirs:
+      src
+  build-depends:
+      amqp
+    , async
+    , base >=4.7 && <5
+    , path
+    , path-io
+    , process
+    , sydtest
+  default-language: Haskell2010
+
+test-suite sydtest-amqp-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Test.Syd.AMQPSpec
+      Paths_sydtest_amqp
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      base >=4.7 && <5
+    , sydtest
+    , sydtest-amqp
+  default-language: Haskell2010

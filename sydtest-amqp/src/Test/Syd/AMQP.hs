@@ -6,14 +6,11 @@
 
 module Test.Syd.AMQP where
 
-import Control.Concurrent
-import Control.Concurrent.Async
-import Control.Concurrent.STM
 import Control.Exception
+import Control.Monad
 import Data.Aeson as JSON
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as LB
 import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Network.AMQP as AMQP
 import Network.Socket
@@ -22,13 +19,13 @@ import qualified Network.Socket.Wait as Socket
 import Path
 import Path.IO
 import System.Environment (getEnvironment)
+import System.Exit
 import System.Process.Typed
 import Test.Syd
 
 data RabbitMQHandle = RabbitMQHandle
   { rabbitMQHandleProcessHandle :: !(Process () () ()),
-    rabbitMQHandlePort :: !PortNumber,
-    rabbitMQHandleDistributionPort :: !PortNumber
+    rabbitMQHandlePort :: !PortNumber
   }
 
 amqpSpec :: TestDefM (RabbitMQHandle ': outers) AMQP.Connection result -> TestDefM outers () result
@@ -48,7 +45,7 @@ amqpConnectionSetupFunc h = do
 --
 -- Note that this does not clean up anything between tests. See 'amqpSpec' instead.
 rabbitMQSpec :: TestDefM (RabbitMQHandle ': outers) inner result -> TestDefM outers inner result
-rabbitMQSpec = setupAroundAll rabbitMQServerSetupFunc
+rabbitMQSpec = setupAroundAll rabbitMQServerSetupFunc . sequential -- Must run sequentially because state is shared.
 
 rabbitMQServerSetupFunc :: SetupFunc () RabbitMQHandle
 rabbitMQServerSetupFunc = do
@@ -61,10 +58,10 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
   configFile <- resolveFile td "rabbitmq.conf"
   mnesiaDir <- resolveDir td "mnesia"
   logDir <- resolveDir td "log"
-  oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
   portInt <- liftIO getFreePort
   distPortInt <- liftIO getFreePort
   liftIO $ putStrLn $ unwords ["Starting RabbitMQ Server on port", show portInt]
+  oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
   let e =
         [ ("RABBITMQ_PID_FILE", fromAbsFile pidFile),
           ("RABBITMQ_CONFIG_FILE", fromAbsFile configFile),
@@ -76,29 +73,48 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
           ("RABBITMQ_DIST_PORT", show distPortInt)
         ]
           ++ oldEnv
-  let pc = setStdout inherit $ setStderr inherit $ setEnv e $ (proc "rabbitmq-server" [])
+  let pc = setStdout inherit $ setStderr inherit $ setEnv e $ proc "rabbitmq-server" []
   ph <-
     makeSimpleSetupFunc
-      ( \func -> withProcessWait pc $ \ph -> do
+      ( \func -> withProcessTerm pc $ \ph -> do
           Socket.wait "127.0.0.1" portInt
-          putStrLn "RabbitMQ ready for testing!"
-          func ph
+          putStrLn "RabbitMQ was started succesfully and is now ready for testing!"
+          r <- func ph
+          putStrLn "RabbitMQ shut down succesfully."
+          pure r
       )
   let pn = fromIntegral portInt -- (hopefully) safe because it came from 'getFreePort'.
-  let dpn = fromIntegral distPortInt -- (hopefully) safe because it came from 'getFreePort'.
   pure $
     RabbitMQHandle
       { rabbitMQHandleProcessHandle = ph,
-        rabbitMQHandlePort = pn,
-        rabbitMQHandleDistributionPort = dpn
+        rabbitMQHandlePort = pn
       }
 
+-- FIXME: I'd prefer if there was a less-external way to do this, but oh well :s
 cleanRabbitMQState :: RabbitMQHandle -> IO ()
 cleanRabbitMQState RabbitMQHandle {..} = do
-  lb <- readProcessStdout_ $ shell "rabbitmqctl list_queues --formatter json"
+  oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
+  let e =
+        ("RABBITMQ_NODE_PORT", show (fromIntegral rabbitMQHandlePort :: Int)) :
+        oldEnv
+
+  (_ec, _output) <- readProcessInterleaved $ setStdout nullStream $ setStderr nullStream $ setEnv e $ shell "rabbitmqctl close_all_connections cleanup"
+  case _ec of
+    ExitFailure i -> fail $ unlines ["Something went wrong while trying to close connections", "exit code: " <> show i, show _output]
+    ExitSuccess -> pure ()
+  lb <- readProcessStdout_ $ setEnv e $ shell "rabbitmqctl list_queues --formatter json"
   case JSON.eitherDecode lb of
     Left err -> fail err
-    Right r -> print (r :: ListQueuesOutput)
+    Right (ListQueuesOutput queues) -> forM_ queues $ \queue -> do
+      let queueName = T.unpack (queueOutputName queue)
+      (_ec, _output) <- readProcessInterleaved $ setEnv e $ shell $ "rabbitmqctl purge_queue " <> queueName
+      case _ec of
+        ExitFailure i -> fail $ unlines ["Something went wrong while trying to purge queue " <> queueName, "exit code: " <> show i, show _output]
+        ExitSuccess -> pure ()
+      (_ec, _output) <- readProcessInterleaved $ setEnv e $ shell $ "rabbitmqctl delete_queue " <> queueName
+      case _ec of
+        ExitFailure i -> fail $ unlines ["Something went wrong while trying to delete queue " <> queueName, "exit code: " <> show i, show _output]
+        ExitSuccess -> pure ()
 
 newtype ListQueuesOutput = ListQueuesOutput [QueueOutput]
   deriving (Show, Eq, Generic)

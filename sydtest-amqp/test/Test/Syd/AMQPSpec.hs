@@ -66,7 +66,7 @@ spec = do
           chan <- openChannel conn
 
           -- declare a queue, exchange and binding
-          declareQueue chan newQueue {queueName = "myQueue"}
+          _ <- declareQueue chan newQueue {queueName = "myQueue"}
           declareExchange chan newExchange {exchangeName = "myExchange", exchangeType = "direct"}
           bindQueue chan "myQueue" "myExchange" "myKey"
 
@@ -74,4 +74,9 @@ spec = do
           mMesg <- getMsg chan Ack "myQueue"
           case mMesg of
             Nothing -> pure ()
-            Just (_, _) -> expectationFailure "Should not have been able to read any message."
+            Just (m, _) ->
+              expectationFailure $
+                unlines
+                  [ "Should not have been able to read any message, but read this one:",
+                    show m
+                  ]

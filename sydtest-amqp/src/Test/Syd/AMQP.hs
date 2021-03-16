@@ -1,10 +1,13 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.AMQP where
 
+import Control.Concurrent
 import Control.Concurrent.Async
-import Network.AMQP
+import Control.Exception
+import Network.AMQP as AMQP
 import Network.Socket
 import Network.Socket.Free
 import qualified Network.Socket.Wait as Socket
@@ -14,13 +17,27 @@ import System.Environment
 import System.Process
 import Test.Syd
 
--- rabbitMQSpec
-
 data RabbitMQHandle = RabbitMQHandle
   { rabbitMQHandleProcessHandle :: !ProcessHandle,
-    rabbitMQHandlePort :: !PortNumber
+    rabbitMQHandlePort :: !PortNumber,
+    rabbitMQHandleDistributionPort :: !PortNumber
   }
 
+amqpSpec :: TestDefM (RabbitMQHandle ': outers) AMQP.Connection result -> TestDefM outers () result
+amqpSpec = rabbitMQSpec . setupAroundWith' amqpConnectionSetupFunc
+
+amqpConnectionSetupFunc :: RabbitMQHandle -> SetupFunc () Connection
+amqpConnectionSetupFunc RabbitMQHandle {..} =
+  makeSimpleSetupFunc $ \func -> do
+    let opts = defaultConnectionOpts {coServers = [("localhost", rabbitMQHandlePort)]}
+    let acquire = openConnection'' opts
+    let release = closeConnection
+    let use = func
+    bracket acquire release use
+
+-- | Sets up a rabbitmq server, once, for the given group of tests.
+--
+-- Note that this does not clean up anything between tests. See 'amqpSpec' instead.
 rabbitMQSpec :: TestDefM (RabbitMQHandle ': outers) inner result -> TestDefM outers inner result
 rabbitMQSpec = setupAroundAll rabbitMQServerSetupFunc
 
@@ -61,4 +78,10 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
           pure r
       )
   let pn = fromIntegral portInt -- (hopefully) safe because it came from 'getFreePort'.
-  pure $ RabbitMQHandle {rabbitMQHandleProcessHandle = ph, rabbitMQHandlePort = pn}
+  let dpn = fromIntegral distPortInt -- (hopefully) safe because it came from 'getFreePort'.
+  pure $
+    RabbitMQHandle
+      { rabbitMQHandleProcessHandle = ph,
+        rabbitMQHandlePort = pn,
+        rabbitMQHandleDistributionPort = dpn
+      }

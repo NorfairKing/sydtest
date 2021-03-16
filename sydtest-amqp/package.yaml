@@ -36,5 +36,6 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
+    - amqp
     - sydtest
     - sydtest-amqp

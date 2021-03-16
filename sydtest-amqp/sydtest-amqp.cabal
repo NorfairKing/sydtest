@@ -29,15 +29,20 @@ library
   hs-source-dirs:
       src
   build-depends:
-      amqp
+      aeson
+    , amqp
     , async
     , base >=4.7 && <5
+    , bytestring
     , network
     , path
     , path-io
     , port-utils
     , process
+    , stm
     , sydtest
+    , text
+    , typed-process
   default-language: Haskell2010
 
 test-suite sydtest-amqp-test

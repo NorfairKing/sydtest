@@ -1,4 +1,6 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 
 -- | The 'SetupFunc' abstraction makes resource provider functions (of type @(a -> IO r) -> IO r@) composable.
 module Test.Syd.Def.SetupFunc where
@@ -6,6 +8,7 @@ module Test.Syd.Def.SetupFunc where
 import Control.Category as Cat
 import Control.Monad.IO.Class
 import Test.Syd.Def.Around
+import Test.Syd.Def.AroundAll
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 
@@ -150,3 +153,17 @@ setupAroundWith' ::
 setupAroundWith' setupFuncFunc = aroundWith' $ \takeAC a d ->
   let (SetupFunc provideCWithD) = setupFuncFunc a
    in provideCWithD (\c -> takeAC a c) d
+
+-- | Use 'aroundAll' with a 'SetupFunc'
+setupAroundAll ::
+  SetupFunc () outer ->
+  TestDefM (outer : outers) inner result ->
+  TestDefM outers inner result
+setupAroundAll sf = aroundAll $ \func -> unSetupFunc sf func ()
+
+-- | Use 'aroundAllWith' with a 'SetupFunc'
+setupAroundAllWith ::
+  SetupFunc oldOuter newOuter ->
+  TestDefM (newOuter ': oldOuter ': outers) inner result ->
+  TestDefM (oldOuter ': outers) inner result
+setupAroundAllWith sf = aroundAllWith $ unSetupFunc sf

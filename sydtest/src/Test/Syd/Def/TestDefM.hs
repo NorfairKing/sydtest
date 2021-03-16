@@ -38,7 +38,7 @@ type SpecWith inner = SpecM inner ()
 type SpecM inner result = TestDefM '[] inner result
 
 -- | A synonym for a test suite definition
-type TestDef outer inner = TestDefM outer inner ()
+type TestDef outers inner = TestDefM outers inner ()
 
 -- | The test definition monad
 --

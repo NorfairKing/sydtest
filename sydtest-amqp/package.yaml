@@ -18,8 +18,10 @@ library:
   dependencies:
   - amqp
   - async
+  - network
   - path
   - path-io
+  - port-utils
   - process
   - sydtest
 

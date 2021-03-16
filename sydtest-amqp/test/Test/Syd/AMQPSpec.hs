@@ -4,7 +4,7 @@ import Test.Syd
 import Test.Syd.AMQP
 
 spec :: Spec
-spec = do
-  describe "runRabbitMQServer" $
-    it "can run the server" $ do
-      runRabbitMQServer
+spec = rabbitMQSpec $ do
+  describe "rabbitMQSpec" $
+    it "can run the server and clean up nicely" $ do
+      pure () :: IO ()

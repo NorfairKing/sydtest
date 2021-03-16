@@ -141,9 +141,15 @@ module Test.Syd
     -- **** Setup functions
 
     -- ***** Using setup functions
+
+    -- ****** Around
     setupAround,
     setupAroundWith,
     setupAroundWith',
+
+    -- ****** AroundAll
+    setupAroundAll,
+    setupAroundAllWith,
 
     -- ***** Creating setup functions
     SetupFunc (..),

@@ -21,7 +21,7 @@ source-repository head
   type: git
   location: https://github.com/NorfairKing/sydtest
 
-flag integration_tests
+flag sydtest_integration_tests
   description: Whether to allow building integration tests
   manual: False
   default: True
@@ -63,7 +63,7 @@ test-suite sydtest-hedis-test
     , hedis
     , sydtest
     , sydtest-hedis
-  if flag(integration_tests)
+  if flag(sydtest_integration_tests)
     buildable: True
   else
     buildable: False

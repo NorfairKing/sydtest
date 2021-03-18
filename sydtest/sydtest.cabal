@@ -39,6 +39,7 @@ library
       Test.Syd.Modify
       Test.Syd.OptParse
       Test.Syd.Output
+      Test.Syd.Path
       Test.Syd.Run
       Test.Syd.Runner
       Test.Syd.Runner.Asynchronous
@@ -104,6 +105,7 @@ test-suite sydtest-test
       Test.Syd.AroundSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
+      Test.Syd.PathSpec
       Test.Syd.ScenarioSpec
       Test.Syd.Specify.AllOuterSpec
       Test.Syd.SpecifySpec

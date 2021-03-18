@@ -1,16 +1,18 @@
 let
+  sources = import ./nix/sources.nix;
   pkgs = import ./nix/pkgs.nix { };
-  pre-commit-check = (import ./ci.nix { inherit pkgs; }).pre-commit-check;
+  pre-commit = import ./nix/pre-commit.nix;
 in
 pkgs.haskell.lib.buildStackProject {
-  name = "sydtest";
+  name = "sydtest-shell";
   buildInputs = with pkgs; [
     coreutils
-    rabbitmq-server
     zlib
+    (import sources.niv { inherit pkgs; }).niv
+    rabbitmq-server
     redis
   ];
   shellHook = ''
-    ${pre-commit-check.shellHook}
+    ${pre-commit.check.shellHook}
   '';
 }

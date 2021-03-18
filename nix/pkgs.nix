@@ -1,21 +1,17 @@
-{ pkgsf ? import (import ./nixpkgs.nix { }) }:
+{ pkgsf ? import ./nixpkgs.nix }:
 let
+  sources = import ./sources.nix;
   pkgs = pkgsf { };
-  yamlparse-applicative-overlay =
-    import (
-      builtins.fetchGit (import ./yamlparse-applicative-version.nix) + "/nix/overlay.nix"
-    );
-  safe-coloured-text-overlay =
-    import (
-      builtins.fetchGit (import ./safe-coloured-text-version.nix) + "/nix/overlay.nix"
-    );
+  pre-commit-hooks = import sources.pre-commit-hooks;
+  yamlparse-applicative-overlay = import (sources.yamlparse-applicative + "/nix/overlay.nix");
+  safe-coloured-text-overlay = import (sources.safe-coloured-text + "/nix/overlay.nix");
   sydtestPkgs =
     pkgsf {
       overlays =
         [
           yamlparse-applicative-overlay
           safe-coloured-text-overlay
-          (import ./gitignore-src.nix)
+          (final: previous: { inherit (import sources.gitignore { inherit (final) lib; }) gitignoreSource; })
           (import ./overlay.nix)
         ];
       config.allowUnfree = true;

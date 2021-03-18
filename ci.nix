@@ -1,35 +1,28 @@
 { pkgs ? import ./nix/pkgs.nix { } }:
 let
-  versions = [
-    "lts-13_19"
-    "lts-14_23"
-    "lts-15_03"
-    "lts-16_11"
-    "lts-16_20"
-    "nightly-2021-03-01"
-  ];
+  sources = import ./nix/sources.nix;
 
-  mkReleaseForVersion = version:
+  versions = {
+    "lts-13_19" = "82d2c663b4dffbd635ed694bcc301284987b8097";
+    "lts-14_23" = "a87b506140a7267477103759c3f8da5b2e8d994e";
+    "lts-15_03" = "beeb24f1e939be7d85fdd64e31f13b8fe8238150";
+    "lts-16_11" = "89db531aea80df58584c9a9e3504ffd9617e6b48";
+    "lts-16_20" = "35b3a1f43a9621a88e906a839f99d8252500152b";
+    "nightly-2021-03-01" = "0dff305a49a1ce72fda09206abbaff40ef41efd7";
+  };
+
+  mkReleaseForVersion = version: rev:
     let
-      nixpkgsVersion = import (./ci + "/${version}.nix");
-      pkgsf = import (import ./nix/nixpkgs.nix { inherit nixpkgsVersion; });
+      pkgsf = import (builtins.fetchGit {
+        url = "https://github.com/NixOS/nixpkgs";
+        inherit rev;
+      });
       p = import ./nix/pkgs.nix { inherit pkgsf; };
     in
     p.sydtestRelease.overrideAttrs (old: { name = "sydtest-release-${version}"; });
 
-  nix-pre-commit-hooks =
-    import (
-      builtins.fetchTarball "https://github.com/hercules-ci/nix-pre-commit-hooks/archive/1b11ce0f8c65dd3d8e9520e23c100b76d09a858b.tar.gz"
-    );
 in
 {
   release = pkgs.sydtestRelease;
-  pre-commit-check = nix-pre-commit-hooks.run {
-    src = ./.;
-    hooks = {
-      nixpkgs-fmt.enable = true;
-      hlint.enable = true;
-      ormolu.enable = true;
-    };
-  };
-} // pkgs.lib.genAttrs versions mkReleaseForVersion
+  pre-commit-check = (import ./nix/pre-commit.nix).check;
+} // builtins.mapAttrs mkReleaseForVersion versions

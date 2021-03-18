@@ -28,12 +28,14 @@ with final.haskell.lib;
       "sydtest-servant" = sydtestPkg "sydtest-servant";
       "sydtest-wai" = sydtestPkg "sydtest-wai";
       "sydtest-yesod" = sydtestPkg "sydtest-yesod";
-      "sydtest-amqp" = dontCheck (addBuildDepends (sydtestPkg "sydtest-amqp") [
-        final.rabbitmq-server
-      ]);
-      "sydtest-hedis" = dontCheck (addBuildDepends (sydtestPkg "sydtest-hedis") [
-        final.redis
-      ]);
+      "sydtest-amqp" = overrideCabal (sydtestPkg "sydtest-amqp") (old: {
+        testDepends = (old.testDepends or [ ]) ++ [ final.rabbitmq-server ];
+        # Turn off testing because the rabbitmq server doesn't actually work on older nixpkgs versions.
+        doCheck = false;
+      });
+      "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
+        testDepends = (old.testDepends or [ ]) ++ [ final.redis ];
+      });
     };
 
   sydtestRelease =

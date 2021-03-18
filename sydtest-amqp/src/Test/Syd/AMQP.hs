@@ -22,6 +22,7 @@ import System.Environment (getEnvironment)
 import System.Exit
 import System.Process.Typed
 import Test.Syd
+import Test.Syd.Path
 
 data RabbitMQHandle = RabbitMQHandle
   { rabbitMQHandleProcessHandle :: !(Process () () ()),
@@ -49,12 +50,11 @@ rabbitMQSpec = setupAroundAll rabbitMQServerSetupFunc . sequential -- Must run s
 
 rabbitMQServerSetupFunc :: SetupFunc () RabbitMQHandle
 rabbitMQServerSetupFunc = do
-  td <- makeSimpleSetupFunc $ withSystemTempDir "sydtest-amqp"
+  td <- tempDirSetupFunc "sydtest-amqp"
   unwrapSetupFunc rabbitMQServerSetupFunc' td
 
 rabbitMQServerSetupFunc' :: SetupFunc (Path Abs Dir) RabbitMQHandle
 rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
-  -- td <- resolveDir' "/tmp/test-erlang"
   pidFile <- resolveFile td "rabbitmq.pid"
   configFile <- resolveFile td "rabbitmq.conf"
   mnesiaDir <- resolveDir td "mnesia"

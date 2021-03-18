@@ -63,6 +63,8 @@ instance Category SetupFunc where
 --
 -- * [Network.Wai.Handler.Warp.testWithApplication](https://hackage.haskell.org/package/warp-3.3.13/docs/Network-Wai-Handler-Warp.html#v:testWithApplication)
 -- * [Path.IO.withSystemTempDir](https://hackage.haskell.org/package/path-io-1.6.2/docs/Path-IO.html#v:withSystemTempDir)
+--
+-- Note that these examples already have functions defined for them in sydtest companion libraries.
 makeSimpleSetupFunc ::
   (forall result. (resource -> IO result) -> IO result) ->
   SetupFunc () resource

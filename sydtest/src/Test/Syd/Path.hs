@@ -1,7 +1,10 @@
 module Test.Syd.Path where
 
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as SB
 import Path
 import Path.IO
+import System.IO
 import Test.Syd.Def.SetupFunc
 import Test.Syd.Def.TestDefM
 
@@ -19,3 +22,19 @@ tempDirSetupFunc ::
   String ->
   SetupFunc () (Path Abs Dir)
 tempDirSetupFunc template = makeSimpleSetupFunc $ withSystemTempDir template
+
+tempBinaryFileSetupFunc ::
+  -- | Temporary directory name template
+  String ->
+  ByteString ->
+  SetupFunc () (Path Abs File)
+tempBinaryFileSetupFunc template contents =
+  makeSimpleSetupFunc $ \func ->
+    withSystemTempFile
+      template
+      ( \af h -> do
+          SB.hPut h contents
+          hFlush h
+          hClose h
+          func af
+      )

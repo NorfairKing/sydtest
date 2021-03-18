@@ -11,7 +11,6 @@
 module Test.Syd.Redis where
 
 import Control.Exception
-import qualified Data.ByteString as SB
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Database.Redis as Redis
@@ -22,6 +21,7 @@ import Path
 import Path.IO
 import System.Process.Typed
 import Test.Syd
+import Test.Syd.Path
 
 data RedisServerHandle = RedisServerHandle
   { redisServerHandleProcessHandle :: !(Process () () ()),
@@ -50,12 +50,11 @@ redisServerSpec = setupAroundAll redisServerSetupFunc . sequential -- Must run s
 
 redisServerSetupFunc :: SetupFunc () RedisServerHandle
 redisServerSetupFunc = do
-  td <- makeSimpleSetupFunc $ withSystemTempDir "sydtest-hedis"
+  td <- tempDirSetupFunc "sydtest-hedis"
   unwrapSetupFunc redisServerSetupFunc' td
 
 redisServerSetupFunc' :: SetupFunc (Path Abs Dir) RedisServerHandle
 redisServerSetupFunc' = wrapSetupFunc $ \td -> do
-  configFile <- resolveFile td "redis-config.conf"
   pidFile <- resolveFile td "redis.pid"
   logFile <- resolveFile td "redis.log"
   portInt <- liftIO $ do
@@ -71,7 +70,7 @@ redisServerSetupFunc' = wrapSetupFunc $ \td -> do
               unwords ["always-show-logo", "no"], -- No need to see the logo.
               unwords ["logfile", fromAbsFile logFile]
             ]
-  liftIO $ SB.writeFile (fromAbsFile configFile) (TE.encodeUtf8 configFileContents)
+  configFile <- tempBinaryFileSetupFunc "config-file" (TE.encodeUtf8 configFileContents)
   let pc =
         setWorkingDir (fromAbsDir td) $
           setStdout inherit $

@@ -2,6 +2,11 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 
+-- TODO possibly supply a variant of 'redisSpec' that uses a different database scope per test
+-- so that the tests can still happen in parallel:
+-- see https://hackage.haskell.org/package/hedis-0.14.2/docs/Database-Redis.html#v:select
+-- and connectDatabase:
+-- https://hackage.haskell.org/package/hedis-0.14.2/docs/Database-Redis.html#t:ConnectInfo
 module Test.Syd.Redis where
 
 import Control.Exception
@@ -28,7 +33,13 @@ redisSpec = redisServerSpec . setupAroundWith' redisConnectionSetupFunc
 redisConnectionSetupFunc :: RedisServerHandle -> SetupFunc () Redis.Connection
 redisConnectionSetupFunc RedisServerHandle {..} = do
   let connInfo = Redis.defaultConnectInfo {connectPort = PortNumber redisServerHandlePort}
-  unwrapSetupFunc checkedConnectSetupFunc connInfo
+  conn <- unwrapSetupFunc checkedConnectSetupFunc connInfo
+  makeSimpleSetupFunc $ \func -> do
+    errOrStatus <- runRedis conn Redis.flushall -- Clean state
+    case errOrStatus of
+      Left err -> expectationFailure $ "Something went wrong while trying to clean the state before the test starts: " <> show err
+      Right s -> s `shouldBe` Ok
+    func conn
 
 checkedConnectSetupFunc :: SetupFunc Redis.ConnectInfo Redis.Connection
 checkedConnectSetupFunc = SetupFunc $ flip withCheckedConnect

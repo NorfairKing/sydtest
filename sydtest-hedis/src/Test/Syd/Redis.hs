@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 -- TODO possibly supply a variant of 'redisSpec' that uses a different database scope per test
 -- so that the tests can still happen in parallel:
@@ -42,7 +43,7 @@ redisConnectionSetupFunc RedisServerHandle {..} = do
     func conn
 
 checkedConnectSetupFunc :: SetupFunc Redis.ConnectInfo Redis.Connection
-checkedConnectSetupFunc = SetupFunc $ flip withCheckedConnect
+checkedConnectSetupFunc = SetupFunc $ \func connInfo -> bracket (checkedConnect connInfo) disconnect func
 
 redisServerSpec :: TestDefM (RedisServerHandle ': outers) inner result -> TestDefM outers inner result
 redisServerSpec = setupAroundAll redisServerSetupFunc . sequential -- Must run sequentially because state is shared.

@@ -3,6 +3,7 @@ packages:
 - sydtest
 - sydtest-amqp
 - sydtest-discover
+- sydtest-hedis
 - sydtest-persistent-sqlite
 - sydtest-servant
 - sydtest-wai

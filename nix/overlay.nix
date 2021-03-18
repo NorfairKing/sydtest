@@ -28,10 +28,12 @@ with final.haskell.lib;
       "sydtest-servant" = sydtestPkg "sydtest-servant";
       "sydtest-wai" = sydtestPkg "sydtest-wai";
       "sydtest-yesod" = sydtestPkg "sydtest-yesod";
-      "sydtest-amqp" = addBuildDepends (sydtestPkg "sydtest-amqp") [
+      "sydtest-amqp" = dontCheck (addBuildDepends (sydtestPkg "sydtest-amqp") [
         final.rabbitmq-server
-        final.coreutils
-      ];
+      ]);
+      "sydtest-hedis" = dontCheck (addBuildDepends (sydtestPkg "sydtest-hedis") [
+        final.redis
+      ]);
     };
 
   sydtestRelease =

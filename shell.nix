@@ -8,6 +8,7 @@ pkgs.haskell.lib.buildStackProject {
     coreutils
     rabbitmq-server
     zlib
+    redis
   ];
   shellHook = ''
     ${pre-commit-check.shellHook}

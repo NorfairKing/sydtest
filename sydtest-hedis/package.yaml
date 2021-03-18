@@ -1,0 +1,43 @@
+name: sydtest-hedis
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
+category: Testing
+synopsis: An hedis companion library for sydtest
+
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - bytestring
+  - hedis
+  - network
+  - path
+  - path-io
+  - port-utils
+  - sydtest
+  - text
+  - typed-process
+
+tests:
+  sydtest-amqp-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -Wall
+    dependencies:
+    - amqp
+    - hedis
+    - sydtest
+    - sydtest-hedis

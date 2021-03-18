@@ -2,6 +2,7 @@ resolver: lts-13.19
 packages:
 - ../sydtest
 - ../sydtest-amqp
+- ../sydtest-hedis
 - ../sydtest-discover
 - ../sydtest-persistent-sqlite
 - ../sydtest-servant
@@ -25,3 +26,4 @@ nix:
   packages:
     - zlib
     - rabbitmq-server
+    - redis

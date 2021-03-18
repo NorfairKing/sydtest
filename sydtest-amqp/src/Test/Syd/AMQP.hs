@@ -64,8 +64,12 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
   generatedConfigDir <- resolveDir td "generated-config"
   logDir <- resolveDir td "log"
   ensureDir logDir
-  portInt <- liftIO getFreePort
-  distPortInt <- liftIO getFreePort
+  let getFreePort_ = liftIO $ do
+        (portInt, _socket) <- openFreePort
+        close _socket
+        pure portInt
+  portInt <- liftIO getFreePort_
+  distPortInt <- liftIO getFreePort_
   liftIO $ putStrLn $ unwords ["Starting RabbitMQ Server on port", show portInt]
   oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
   let e =
@@ -84,7 +88,7 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
           ("RABBITMQ_DIST_PORT", show distPortInt)
         ]
           ++ oldEnv
-  let pc = setStdout inherit $ setStderr inherit $ setEnv e $ proc "rabbitmq-server" []
+  let pc = setWorkingDir (fromAbsDir td) $ setStdout inherit $ setStderr inherit $ setEnv e $ proc "rabbitmq-server" []
   ph <-
     makeSimpleSetupFunc
       ( \func -> bracket (startProcess pc) stopProcess $ \ph -> do

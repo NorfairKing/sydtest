@@ -15,7 +15,7 @@ let
       pkgsf = import (import ./nix/nixpkgs.nix { inherit nixpkgsVersion; });
       p = import ./nix/pkgs.nix { inherit pkgsf; };
     in
-    p.sydtestRelease;
+    p.sydtestRelease.overrideAttrs (old: { name = "sydtest-release-${version}"; });
 
   nix-pre-commit-hooks =
     import (

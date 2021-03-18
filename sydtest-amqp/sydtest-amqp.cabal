@@ -21,6 +21,11 @@ source-repository head
   type: git
   location: https://github.com/NorfairKing/sydtest
 
+flag integration_tests
+  description: Whether to allow building integration tests
+  manual: False
+  default: True
+
 library
   exposed-modules:
       Test.Syd.AMQP
@@ -61,4 +66,8 @@ test-suite sydtest-amqp-test
     , base >=4.7 && <5
     , sydtest
     , sydtest-amqp
+  if flag(integration_tests)
+    buildable: True
+  else
+    buildable: False
   default-language: Haskell2010

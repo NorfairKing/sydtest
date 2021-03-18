@@ -45,14 +45,14 @@ tests:
     - sydtest
     - sydtest-amqp
     when:
-      - condition: flag(integration_tests)
+      - condition: flag(sydtest_integration_tests)
         then:
           buildable: True
         else:
           buildable: False
 
 flags:
-  integration_tests:
+  sydtest_integration_tests:
     description: Whether to allow building integration tests
     manual: false
     default: true

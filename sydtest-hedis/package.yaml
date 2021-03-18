@@ -27,7 +27,7 @@ library:
   - typed-process
 
 tests:
-  sydtest-amqp-test:
+  sydtest-hedis-test:
     main: Spec.hs
     source-dirs: test
     build-tools: sydtest-discover
@@ -41,3 +41,15 @@ tests:
     - hedis
     - sydtest
     - sydtest-hedis
+    when:
+      - condition: flag(integration_tests)
+        then:
+          buildable: True
+        else:
+          buildable: False
+
+flags:
+  integration_tests:
+    description: Whether to allow building integration tests
+    manual: false
+    default: true

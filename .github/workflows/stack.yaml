@@ -49,4 +49,5 @@ jobs:
 
     - name: Test
       run: |
-        stack test --system-ghc
+        stack test --system-ghc \
+          *:-integration # Don't run integration tests on CI because they would need rabbitmq-server and redis etc.

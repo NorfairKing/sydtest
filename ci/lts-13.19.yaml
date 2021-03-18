@@ -1,6 +1,7 @@
 resolver: lts-13.19
 packages:
 - ../sydtest
+- ../sydtest-amqp
 - ../sydtest-discover
 - ../sydtest-persistent-sqlite
 - ../sydtest-servant
@@ -23,3 +24,4 @@ nix:
   path: [ "nixpkgs=https://github.com/NixOS/nixpkgs/archive/82d2c663b4dffbd635ed694bcc301284987b8097.tar.gz" ]
   packages:
     - zlib
+    - rabbitmq-server

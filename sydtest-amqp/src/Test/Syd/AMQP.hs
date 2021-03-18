@@ -54,19 +54,30 @@ rabbitMQServerSetupFunc = do
 
 rabbitMQServerSetupFunc' :: SetupFunc (Path Abs Dir) RabbitMQHandle
 rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
+  -- td <- resolveDir' "/tmp/test-erlang"
   pidFile <- resolveFile td "rabbitmq.pid"
   configFile <- resolveFile td "rabbitmq.conf"
   mnesiaDir <- resolveDir td "mnesia"
+  schemaDir <- resolveDir td "schema"
+  pluginsDir <- resolveDir td "plugins"
+  pluginsExpandDir <- resolveDir td "plugins-expand"
+  generatedConfigDir <- resolveDir td "generated-config"
   logDir <- resolveDir td "log"
+  ensureDir logDir
   portInt <- liftIO getFreePort
   distPortInt <- liftIO getFreePort
   liftIO $ putStrLn $ unwords ["Starting RabbitMQ Server on port", show portInt]
   oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
   let e =
-        [ ("RABBITMQ_PID_FILE", fromAbsFile pidFile),
+        [ ("RABBITMQ_BASE", fromAbsDir td),
+          ("RABBITMQ_PID_FILE", fromAbsFile pidFile),
           ("RABBITMQ_CONFIG_FILE", fromAbsFile configFile),
           ("RABBITMQ_MNESIA_DIR", fromAbsDir mnesiaDir),
           ("RABBITMQ_MNESIA_BASE", fromAbsDir mnesiaDir), -- Just to be sure
+          ("RABBITMQ_SCHEMA_DIR", fromAbsDir schemaDir),
+          ("RABBITMQ_PLUGINS_DIR", fromAbsDir pluginsDir),
+          ("RABBITMQ_PLUGINS_EXPAND_DIR", fromAbsDir pluginsExpandDir),
+          ("RABBITMQ_GENERATED_CONFIG_DIR", fromAbsDir generatedConfigDir),
           ("RABBITMQ_LOG_BASE", fromAbsDir logDir),
           ("RABBITMQ_LOGS", fromAbsDir logDir), -- Just to be sure
           ("RABBITMQ_NODE_PORT", show portInt),
@@ -76,7 +87,7 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
   let pc = setStdout inherit $ setStderr inherit $ setEnv e $ proc "rabbitmq-server" []
   ph <-
     makeSimpleSetupFunc
-      ( \func -> withProcessTerm pc $ \ph -> do
+      ( \func -> bracket (startProcess pc) stopProcess $ \ph -> do
           Socket.wait "127.0.0.1" portInt
           putStrLn "RabbitMQ was started succesfully and is now ready for testing!"
           r <- func ph
@@ -98,7 +109,7 @@ cleanRabbitMQState RabbitMQHandle {..} = do
         ("RABBITMQ_NODE_PORT", show (fromIntegral rabbitMQHandlePort :: Int)) :
         oldEnv
 
-  (_ec, _output) <- readProcessInterleaved $ setStdout nullStream $ setStderr nullStream $ setEnv e $ shell "rabbitmqctl close_all_connections cleanup"
+  (_ec, _output) <- readProcessInterleaved $ setEnv e $ shell "rabbitmqctl close_all_connections cleanup"
   case _ec of
     ExitFailure i -> fail $ unlines ["Something went wrong while trying to close connections", "exit code: " <> show i, show _output]
     ExitSuccess -> pure ()

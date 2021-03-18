@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.Redis where
@@ -7,6 +8,7 @@ import Control.Exception
 import qualified Data.ByteString as SB
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Database.Redis as Redis
 import Network.Socket
 import Network.Socket.Free
 import qualified Network.Socket.Wait as Socket
@@ -19,6 +21,17 @@ data RedisServerHandle = RedisServerHandle
   { redisServerHandleProcessHandle :: !(Process () () ()),
     redisServerHandlePort :: !PortNumber
   }
+
+redisSpec :: TestDefM (RedisServerHandle ': outers) Redis.Connection result -> TestDefM outers () result
+redisSpec = redisServerSpec . setupAroundWith' redisConnectionSetupFunc
+
+redisConnectionSetupFunc :: RedisServerHandle -> SetupFunc () Redis.Connection
+redisConnectionSetupFunc RedisServerHandle {..} = do
+  let connInfo = Redis.defaultConnectInfo {connectPort = PortNumber redisServerHandlePort}
+  unwrapSetupFunc checkedConnectSetupFunc connInfo
+
+checkedConnectSetupFunc :: SetupFunc Redis.ConnectInfo Redis.Connection
+checkedConnectSetupFunc = SetupFunc $ flip withCheckedConnect
 
 redisServerSpec :: TestDefM (RedisServerHandle ': outers) inner result -> TestDefM outers inner result
 redisServerSpec = setupAroundAll redisServerSetupFunc . sequential -- Must run sequentially because state is shared.

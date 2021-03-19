@@ -49,4 +49,4 @@ jobs:
     - name: Test
       run: |
         stack test --system-ghc \
-          '*:-sydtest_integration_tests' # Don't run integration tests on CI because they would need rabbitmq-server and redis etc.
+          --flag '*:-sydtest_integration_tests' # Don't run integration tests on CI because they would need rabbitmq-server and redis etc.

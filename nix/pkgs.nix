@@ -1,6 +1,8 @@
-{ pkgsf ? import ./nixpkgs.nix }:
 let
   sources = import ./sources.nix;
+in
+{ pkgsf ? import sources.nixpkgs }:
+let
   pkgs = pkgsf { };
   pre-commit-hooks = import sources.pre-commit-hooks;
   yamlparse-applicative-overlay = import (sources.yamlparse-applicative + "/nix/overlay.nix");

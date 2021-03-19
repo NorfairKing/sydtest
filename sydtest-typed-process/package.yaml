@@ -30,7 +30,7 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
-    - stm
+    - bytestring
     - sydtest
     - sydtest-typed-process
     - typed-process

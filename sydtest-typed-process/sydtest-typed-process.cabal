@@ -47,7 +47,7 @@ test-suite sydtest-typed-process-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
-    , stm
+    , bytestring
     , sydtest
     , sydtest-typed-process
     , typed-process

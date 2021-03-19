@@ -5,6 +5,7 @@ packages:
 - sydtest-discover
 - sydtest-hedis
 - sydtest-persistent-sqlite
+- sydtest-process
 - sydtest-servant
 - sydtest-typed-process
 - sydtest-wai

@@ -21,7 +21,7 @@ jobs:
       if: github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.ref == 'refs/heads/master'
 
     - uses: cachix/install-nix-action@v12
-    - uses: actions/setup-haskell@v1.1.3
+    - uses: haskell/actions/setup@v1.2
       name: Setup Haskell Stack
       with:
         ghc-version: ${{ matrix.ghc }}

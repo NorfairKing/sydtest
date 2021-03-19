@@ -23,12 +23,12 @@ tempDirSetupFunc ::
   SetupFunc () (Path Abs Dir)
 tempDirSetupFunc template = makeSimpleSetupFunc $ withSystemTempDir template
 
-tempBinaryFileSetupFunc ::
+tempBinaryFileWithContentsSetupFunc ::
   -- | Temporary directory name template
   String ->
   ByteString ->
   SetupFunc () (Path Abs File)
-tempBinaryFileSetupFunc template contents =
+tempBinaryFileWithContentsSetupFunc template contents =
   makeSimpleSetupFunc $ \func ->
     withSystemTempFile
       template

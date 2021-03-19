@@ -70,7 +70,7 @@ redisServerSetupFunc' = wrapSetupFunc $ \td -> do
               unwords ["always-show-logo", "no"], -- No need to see the logo.
               unwords ["logfile", fromAbsFile logFile]
             ]
-  configFile <- tempBinaryFileSetupFunc "config-file" (TE.encodeUtf8 configFileContents)
+  configFile <- tempBinaryFileWithContentsSetupFunc "config-file" (TE.encodeUtf8 configFileContents)
   let pc =
         setWorkingDir (fromAbsDir td) $
           setStdout inherit $

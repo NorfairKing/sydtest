@@ -23,6 +23,7 @@ import System.Exit
 import System.Process.Typed
 import Test.Syd
 import Test.Syd.Path
+import Test.Syd.Process.Typed
 
 data RabbitMQHandle = RabbitMQHandle
   { rabbitMQHandleProcessHandle :: !(Process () () ()),
@@ -70,7 +71,6 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
         pure portInt
   portInt <- liftIO getFreePort_
   distPortInt <- liftIO getFreePort_
-  liftIO $ putStrLn $ unwords ["Starting RabbitMQ Server on port", show portInt]
   oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
   let e =
         [ ("RABBITMQ_BASE", fromAbsDir td),
@@ -89,15 +89,8 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
         ]
           ++ oldEnv
   let pc = setWorkingDir (fromAbsDir td) $ setStdout inherit $ setStderr inherit $ setEnv e $ proc "rabbitmq-server" []
-  ph <-
-    makeSimpleSetupFunc
-      ( \func -> bracket (startProcess pc) stopProcess $ \ph -> do
-          Socket.wait "127.0.0.1" portInt
-          putStrLn "RabbitMQ was started succesfully and is now ready for testing!"
-          r <- func ph
-          putStrLn "RabbitMQ shut down succesfully."
-          pure r
-      )
+  ph <- typedProcessSetupFunc pc
+  liftIO $ Socket.wait "127.0.0.1" portInt
   let pn = fromIntegral portInt -- (hopefully) safe because it came from 'getFreePort'.
   pure $
     RabbitMQHandle

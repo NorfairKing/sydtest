@@ -1,4 +1,4 @@
-name: sydtest-hedis
+name: sydtest-typed-process
 version: 0.0.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
@@ -7,7 +7,7 @@ author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
 category: Testing
-synopsis: An hedis companion library for sydtest
+synopsis: A typed-process companion library for sydtest
 
 
 dependencies:
@@ -16,19 +16,11 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - bytestring
-  - hedis
-  - network
-  - path
-  - path-io
-  - port-utils
   - sydtest
-  - sydtest-typed-process
-  - text
   - typed-process
 
 tests:
-  sydtest-hedis-test:
+  sydtest-typed-process-test:
     main: Spec.hs
     source-dirs: test
     build-tools: sydtest-discover
@@ -38,19 +30,7 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
-    - amqp
-    - hedis
+    - stm
     - sydtest
-    - sydtest-hedis
-    when:
-      - condition: flag(sydtest_integration_tests)
-        then:
-          buildable: True
-        else:
-          buildable: False
-
-flags:
-  sydtest_integration_tests:
-    description: Whether to allow building integration tests
-    manual: false
-    default: true
+    - sydtest-typed-process
+    - typed-process

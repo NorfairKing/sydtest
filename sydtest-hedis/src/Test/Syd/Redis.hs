@@ -22,6 +22,7 @@ import Path.IO
 import System.Process.Typed
 import Test.Syd
 import Test.Syd.Path
+import Test.Syd.Process.Typed
 
 data RedisServerHandle = RedisServerHandle
   { redisServerHandleProcessHandle :: !(Process () () ()),
@@ -78,12 +79,8 @@ redisServerSetupFunc' = wrapSetupFunc $ \td -> do
               proc
                 "redis-server"
                 [fromAbsFile configFile]
-  ph <-
-    makeSimpleSetupFunc
-      ( \func -> bracket (startProcess pc) stopProcess $ \ph -> do
-          Socket.wait "127.0.0.1" portInt
-          func ph
-      )
+  ph <- typedProcessSetupFunc pc
+  liftIO $ Socket.wait "127.0.0.1" portInt
   pure $
     RedisServerHandle
       { redisServerHandleProcessHandle = ph,

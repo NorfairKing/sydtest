@@ -26,6 +26,7 @@ with final.haskell.lib;
       "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";
       "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
       "sydtest-servant" = sydtestPkg "sydtest-servant";
+      "sydtest-typed-process" = sydtestPkg "sydtest-typed-process";
       "sydtest-wai" = sydtestPkg "sydtest-wai";
       "sydtest-yesod" = sydtestPkg "sydtest-yesod";
       "sydtest-amqp" = overrideCabal (sydtestPkg "sydtest-amqp") (old: {

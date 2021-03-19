@@ -46,6 +46,7 @@ library
     , process
     , stm
     , sydtest
+    , sydtest-typed-process
     , text
     , typed-process
   default-language: Haskell2010

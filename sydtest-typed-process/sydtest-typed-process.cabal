@@ -4,9 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           sydtest-hedis
+name:           sydtest-typed-process
 version:        0.0.0.0
-synopsis:       An hedis companion library for sydtest
+synopsis:       A typed-process companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -21,51 +21,34 @@ source-repository head
   type: git
   location: https://github.com/NorfairKing/sydtest
 
-flag sydtest_integration_tests
-  description: Whether to allow building integration tests
-  manual: False
-  default: True
-
 library
   exposed-modules:
-      Test.Syd.Redis
+      Test.Syd.Process.Typed
   other-modules:
-      Paths_sydtest_hedis
+      Paths_sydtest_typed_process
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
-    , bytestring
-    , hedis
-    , network
-    , path
-    , path-io
-    , port-utils
     , sydtest
-    , sydtest-typed-process
-    , text
     , typed-process
   default-language: Haskell2010
 
-test-suite sydtest-hedis-test
+test-suite sydtest-typed-process-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Syd.RedisSpec
-      Paths_sydtest_hedis
+      Test.Syd.Process.TypedSpec
+      Paths_sydtest_typed_process
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      amqp
-    , base >=4.7 && <5
-    , hedis
+      base >=4.7 && <5
+    , stm
     , sydtest
-    , sydtest-hedis
-  if flag(sydtest_integration_tests)
-    buildable: True
-  else
-    buildable: False
+    , sydtest-typed-process
+    , typed-process
   default-language: Haskell2010

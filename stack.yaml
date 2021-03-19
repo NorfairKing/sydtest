@@ -6,6 +6,7 @@ packages:
 - sydtest-hedis
 - sydtest-persistent-sqlite
 - sydtest-servant
+- sydtest-typed-process
 - sydtest-wai
 - sydtest-yesod
 extra-deps:

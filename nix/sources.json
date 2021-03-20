@@ -11,6 +11,18 @@
         "url": "https://github.com/hercules-ci/gitignore.nix/archive/211907489e9f198594c0eb0ca9256a1949c9d412.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "haskell.nix": {
+        "branch": "master",
+        "description": "Alternative Haskell Infrastructure for Nixpkgs",
+        "homepage": "https://input-output-hk.github.io/haskell.nix",
+        "owner": "input-output-hk",
+        "repo": "haskell.nix",
+        "rev": "f600106883849ab0c5c8ce352b5378009ff09b24",
+        "sha256": "1wyi8f7h6zdqjqs3khxnpjfds2769zxynk9arn8603s2pp2xjc8b",
+        "type": "tarball",
+        "url": "https://github.com/input-output-hk/haskell.nix/archive/f600106883849ab0c5c8ce352b5378009ff09b24.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "niv": {
         "branch": "master",
         "description": "Easy dependency management for Nix projects",

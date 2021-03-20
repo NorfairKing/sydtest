@@ -4,9 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           sydtest-hedis
+name:           sydtest-mongo
 version:        0.0.0.0
-synopsis:       An hedis companion library for sydtest
+synopsis:       An mongoDB companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -28,31 +28,32 @@ flag sydtest_integration_tests
 
 library
   exposed-modules:
-      Test.Syd.Redis
+      Test.Syd.MongoDB
   other-modules:
-      Paths_sydtest_hedis
+      Paths_sydtest_mongo
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , hedis
+    , mongoDB
     , network
     , path
     , path-io
     , port-utils
+    , process
     , sydtest
-    , sydtest-typed-process
+    , sydtest-process
     , text
-    , typed-process
+    , yaml
   default-language: Haskell2010
 
 test-suite sydtest-hedis-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Syd.RedisSpec
-      Paths_sydtest_hedis
+      Test.Syd.MongoDBSpec
+      Paths_sydtest_mongo
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
@@ -60,9 +61,9 @@ test-suite sydtest-hedis-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
-    , hedis
+    , mongoDB
     , sydtest
-    , sydtest-hedis
+    , sydtest-mongo
   if flag(sydtest_integration_tests)
     buildable: True
   else

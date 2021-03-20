@@ -9,6 +9,7 @@ pkgs.haskell.lib.buildStackProject {
     coreutils
     zlib
     (import sources.niv { inherit pkgs; }).niv
+    mongodb
     rabbitmq-server
     redis
   ];

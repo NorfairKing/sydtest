@@ -1,4 +1,4 @@
-name: sydtest-hedis
+name: sydtest-mongo
 version: 0.0.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
@@ -7,7 +7,7 @@ author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
 category: Testing
-synopsis: An hedis companion library for sydtest
+synopsis: An mongoDB companion library for sydtest
 
 
 dependencies:
@@ -17,15 +17,16 @@ library:
   source-dirs: src
   dependencies:
   - bytestring
-  - hedis
+  - mongoDB
   - network
   - path
   - path-io
   - port-utils
+  - process
   - sydtest
-  - sydtest-typed-process
+  - sydtest-process
   - text
-  - typed-process
+  - yaml
 
 tests:
   sydtest-hedis-test:
@@ -38,9 +39,9 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
-    - hedis
+    - mongoDB
     - sydtest
-    - sydtest-hedis
+    - sydtest-mongo
     when:
       - condition: flag(sydtest_integration_tests)
         then:

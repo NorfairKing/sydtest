@@ -38,6 +38,12 @@ with final.haskell.lib;
       "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ final.redis ];
       });
+      # The haskell package mongoDB-2.7.0.0 is marked as broken.
+      # "sydtest-mongo" = overrideCabal (sydtestPkg "sydtest-mongo") (old: {
+      #   testDepends = (old.testDepends or [ ]) ++ [ final.mongodb ];
+      #   # Turn off testing because the mongo doesn't actually work on older nixpkgs versions.
+      #   doCheck = false;
+      # });
     };
 
   sydtestRelease =

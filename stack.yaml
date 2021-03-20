@@ -1,9 +1,11 @@
 resolver: nightly-2021-03-19
+allow-newer: false
 packages:
 - sydtest
 - sydtest-amqp
 - sydtest-discover
 - sydtest-hedis
+- sydtest-mongo
 - sydtest-persistent-sqlite
 - sydtest-process
 - sydtest-servant

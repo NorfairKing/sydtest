@@ -64,6 +64,7 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
   pluginsExpandDir <- resolveDir td "plugins-expand"
   generatedConfigDir <- resolveDir td "generated-config"
   logDir <- resolveDir td "log"
+  cookieFile <- resolveFile td "erlang-cookie"
   ensureDir logDir
   let getFreePort_ = liftIO $ do
         (portInt, _socket) <- openFreePort
@@ -85,7 +86,8 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
           ("RABBITMQ_LOG_BASE", fromAbsDir logDir),
           ("RABBITMQ_LOGS", fromAbsDir logDir), -- Just to be sure
           ("RABBITMQ_NODE_PORT", show portInt),
-          ("RABBITMQ_DIST_PORT", show distPortInt)
+          ("RABBITMQ_DIST_PORT", show distPortInt),
+          ("RABBITMQ_ERLANG_COOKIE", fromAbsFile cookieFile)
         ]
           ++ oldEnv
   let pc = setWorkingDir (fromAbsDir td) $ setStdout inherit $ setStderr inherit $ setEnv e $ proc "rabbitmq-server" []

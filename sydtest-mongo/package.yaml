@@ -29,7 +29,7 @@ library:
   - yaml
 
 tests:
-  sydtest-hedis-test:
+  sydtest-mongo-test:
     main: Spec.hs
     source-dirs: test
     build-tools: sydtest-discover

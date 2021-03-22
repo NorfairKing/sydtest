@@ -1,8 +1,10 @@
+{ pkgsf ? import (builtins.fetchGit {
+    url = "https://github.com/NixOS/nixpkgs";
+    rev = "35b3a1f43a9621a88e906a839f99d8252500152b";
+  })
+}:
 let
   sources = import ./sources.nix;
-in
-{ pkgsf ? import sources.nixpkgs }:
-let
   pkgs = pkgsf { };
   pre-commit-hooks = import sources.pre-commit-hooks;
   yamlparse-applicative-overlay = import (sources.yamlparse-applicative + "/nix/overlay.nix");

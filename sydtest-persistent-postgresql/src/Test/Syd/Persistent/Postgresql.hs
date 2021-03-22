@@ -15,7 +15,6 @@ where
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Database.Persist.Postgresql
-import Database.Persist.Sql
 import Database.Postgres.Temp as Temp
 import Test.Syd
 

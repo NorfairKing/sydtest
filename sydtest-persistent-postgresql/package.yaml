@@ -1,4 +1,4 @@
-name: sydtest-mongo
+name: sydtest-persistent-postgresql
 version: 0.0.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
@@ -7,7 +7,7 @@ author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
 category: Testing
-synopsis: An mongoDB companion library for sydtest
+synopsis: An persistent-postgresql companion library for sydtest
 
 
 dependencies:
@@ -16,22 +16,15 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - binary
-  - bson
-  - bytestring
-  - mongoDB
-  - network
-  - path
-  - path-io
-  - port-utils
-  - process
+  - monad-logger
+  - mtl
+  - persistent
+  - persistent-postgresql
   - sydtest
-  - sydtest-process
-  - text
-  - yaml
+  - tmp-postgres
 
 tests:
-  sydtest-mongo-test:
+  sydtest-persistent-postgresql-test:
     main: Spec.hs
     source-dirs: test
     build-tools: sydtest-discover
@@ -41,10 +34,11 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
-    - mongoDB
+    - persistent
+    - persistent-postgresql
+    - persistent-template
     - sydtest
-    - sydtest-mongo
-    - text
+    - sydtest-persistent-postgresql
     when:
       - condition: flag(sydtest_integration_tests)
         then:

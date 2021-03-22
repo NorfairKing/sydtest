@@ -10,6 +10,7 @@ pkgs.haskell.lib.buildStackProject {
     zlib
     (import sources.niv { }).niv
     mongodb
+    postgresql
     rabbitmq-server
     redis
   ];

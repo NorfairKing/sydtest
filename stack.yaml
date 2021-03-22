@@ -8,6 +8,7 @@ packages:
 - sydtest-discover
 - sydtest-hedis
 - sydtest-mongo
+- sydtest-persistent-postgresql
 - sydtest-persistent-sqlite
 - sydtest-process
 - sydtest-servant

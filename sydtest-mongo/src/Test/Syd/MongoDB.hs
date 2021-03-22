@@ -1,11 +1,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.MongoDB where
 
+import Control.Exception
+import Control.Monad (forM_, void)
 import Data.Text (Text)
 import Data.Yaml as Yaml
+import Database.MongoDB as Mongo
 import Network.Socket as Socket
 import Network.Socket.Free
 import qualified Network.Socket.Wait as Socket
@@ -20,6 +24,25 @@ data MongoServerHandle = MongoServerHandle
   { mongoServerHandleProcessHandle :: !ProcessHandle,
     mongoServerHandlePort :: !PortNumber
   }
+
+mongoSpec :: TestDefM (MongoServerHandle ': outers) Mongo.Pipe result -> TestDefM outers () result
+mongoSpec = mongoServerSpec . setupAroundWith' mongoConnectionSetupFunc
+
+mongoConnectionSetupFunc :: MongoServerHandle -> SetupFunc () Mongo.Pipe
+mongoConnectionSetupFunc MongoServerHandle {..} = do
+  pipe <-
+    makeSimpleSetupFunc $
+      let h = Host "127.0.0.1" $ PortNumber mongoServerHandlePort
+       in bracket (Mongo.connect h) Mongo.close
+  liftIO $
+    Mongo.access pipe master "dummy" $ do
+      databases <- Mongo.allDatabases
+      forM_ databases $ \database ->
+        Mongo.useDb database $ do
+          collections <- allCollections
+          forM_ collections $ \collection -> do
+            void $ Mongo.deleteAll collection [([], [])] -- #types, amirite
+  pure pipe
 
 mongoServerSpec :: TestDefM (MongoServerHandle ': outers) inner result -> TestDefM outers inner result
 mongoServerSpec = setupAroundAll mongoServerSetupFunc . sequential -- Must run sequentially because state is shared.

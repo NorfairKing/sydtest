@@ -36,17 +36,17 @@ jobs:
 
     - name: Build dependencies
       run: |
-        stack build --system-ghc --only-dependencies --test --bench --no-run-tests --no-run-benchmarks
+        stack build   --system-ghc --no-nix --only-dependencies --test --bench --no-run-tests --no-run-benchmarks
 
     - name: Build autoexporter
       run: |
-        stack install --system-ghc autoexporter
+        stack install --system-ghc --no-nix autoexporter
 
     - name: Build
       run: |
-        stack build --system-ghc --test --bench --no-run-tests --no-run-benchmarks
+        stack build   --system-ghc --no-nix --test --bench --no-run-tests --no-run-benchmarks
 
     - name: Test
       run: |
-        stack test --system-ghc --no-nix \
+        stack test    --system-ghc --no-nix \
           --flag '*:-sydtest_integration_tests' # Don't run integration tests on CI because they would need rabbitmq-server and redis etc.

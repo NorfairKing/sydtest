@@ -16,6 +16,8 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - binary
+  - bson
   - bytestring
   - mongoDB
   - network

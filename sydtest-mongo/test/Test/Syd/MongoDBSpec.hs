@@ -37,3 +37,21 @@ spec = do
               r <- find (select [] collection) >>= rest
               liftIO $ r `shouldBe` []
             pure () :: IO ()
+
+  describe "pureGoldenBSONDocumentFile" $
+    it "outputs this example the same as before" $
+      pureGoldenBSONDocumentFile
+        "test_resources/pure-example.bson"
+        [ "hello" =: ("world" :: Text),
+          "foo" =: (5 :: Int),
+          "bar" =: (0.5 :: Double)
+        ]
+  describe "goldenBSONDocumentFile" $
+    it "outputs this example the same as before" $
+      goldenBSONDocumentFile
+        "test_resources/example.bson"
+        $ pure
+          [ "hello" =: ("world" :: Text),
+            "baz" =: 'a',
+            "quux" =: (0.0 :: Double)
+          ]

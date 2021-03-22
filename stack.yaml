@@ -1,4 +1,6 @@
-resolver: lts-17.6
+# Track the stackage nightly version used in the nixpkgs commit we use
+# https://github.com/NixOS/nixpkgs/blob/4e0d3868c679da20108db402785f924daa1a7fb5/pkgs/development/haskell-modules/configuration-hackage2nix.yaml#L80
+resolver: nightly-2021-03-17
 allow-newer: false
 packages:
 - sydtest

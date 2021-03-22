@@ -6,49 +6,47 @@ on:
       - development
       - master
 
-jobs: {}
-  # Turn off stack CI because it doesn't work, for unknown reasons.
-  # It succeeds locally but not on CI because of quickcheck bounds and I don't understand why.
-  # stack:
-  #   name: stack / ghc ${{ matrix.ghc }}
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       stack: ["2.5.1"]
-  #       ghc: ["8.10.4"]
+jobs:
+  stack:
+    name: stack / ghc ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: ["2.5.1"]
+        ghc: ["8.10.4"]
 
-  #   steps:
-  #   - uses: actions/checkout@v2
+    steps:
+    - uses: actions/checkout@v2
 
-  #   - uses: cachix/install-nix-action@v12
-  #   - uses: haskell/actions/setup@v1.2
-  #     name: Setup Haskell Stack
-  #     with:
-  #       ghc-version: ${{ matrix.ghc }}
-  #       stack-version: ${{ matrix.stack }}
+    - uses: cachix/install-nix-action@v12
+    - uses: haskell/actions/setup@v1.2
+      name: Setup Haskell Stack
+      with:
+        ghc-version: ${{ matrix.ghc }}
+        stack-version: ${{ matrix.stack }}
 
-  #   - uses: actions/cache@v1
-  #     name: Cache ~/.stack
-  #     with:
-  #       path: |
-  #         ~/.stack
-  #         .stack-work
-  #       key: ${{ runner.os }}-${{ matrix.ghc }}-stack
+    - uses: actions/cache@v1
+      name: Cache ~/.stack
+      with:
+        path: |
+          ~/.stack
+          .stack-work
+        key: ${{ runner.os }}-${{ matrix.ghc }}-stack
 
-  #   - name: Build dependencies
-  #     run: |
-  #       stack build --system-ghc --only-dependencies --test --bench --no-run-tests --no-run-benchmarks
+    - name: Build dependencies
+      run: |
+        stack build --system-ghc --only-dependencies --test --bench --no-run-tests --no-run-benchmarks
 
-  #   - name: Build autoexporter
-  #     run: |
-  #       stack install --system-ghc autoexporter
+    - name: Build autoexporter
+      run: |
+        stack install --system-ghc autoexporter
 
-  #   - name: Build
-  #     run: |
-  #       stack build --system-ghc --test --bench --no-run-tests --no-run-benchmarks
+    - name: Build
+      run: |
+        stack build --system-ghc --test --bench --no-run-tests --no-run-benchmarks
 
-  #   - name: Test
-  #     run: |
-  #       stack test --system-ghc \
-  #         --flag '*:-sydtest_integration_tests' # Don't run integration tests on CI because they would need rabbitmq-server and redis etc.
+    - name: Test
+      run: |
+        stack test --system-ghc --no-nix \
+          --flag '*:-sydtest_integration_tests' # Don't run integration tests on CI because they would need rabbitmq-server and redis etc.

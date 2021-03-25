@@ -1,4 +1,4 @@
-name: sydtest-amqp
+name: sydtest-rabbitmq
 version: 0.0.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
@@ -7,7 +7,7 @@ author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 copyright: "Copyright (c) 2020-2021 Tom Sydney Kerckhove"
 category: Testing
-synopsis: An amqp companion library for sydtest
+synopsis: An rabbitmq companion library for sydtest
 
 
 dependencies:
@@ -27,7 +27,6 @@ library:
   - process
   - stm
   - sydtest
-  - sydtest-rabbitmq
   - sydtest-typed-process
   - text
   - typed-process
@@ -45,7 +44,7 @@ tests:
     dependencies:
     - amqp
     - sydtest
-    - sydtest-amqp
+    - sydtest-rabbitmq
     when:
       - condition: flag(sydtest_integration_tests)
         then:

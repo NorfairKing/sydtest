@@ -35,6 +35,11 @@ with final.haskell.lib;
         # Turn off testing because the rabbitmq server doesn't actually work on older nixpkgs versions.
         doCheck = false;
       });
+      "sydtest-rabbitmq" = overrideCabal (sydtestPkg "sydtest-rabbitmq") (old: {
+        testDepends = (old.testDepends or [ ]) ++ [ final.rabbitmq-server ];
+        # Turn off testing because the rabbitmq server doesn't actually work on older nixpkgs versions.
+        doCheck = false;
+      });
       "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ final.redis ];
       });

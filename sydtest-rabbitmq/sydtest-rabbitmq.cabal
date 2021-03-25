@@ -4,9 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           sydtest-amqp
+name:           sydtest-rabbitmq
 version:        0.0.0.0
-synopsis:       An amqp companion library for sydtest
+synopsis:       An rabbitmq companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -28,9 +28,9 @@ flag sydtest_integration_tests
 
 library
   exposed-modules:
-      Test.Syd.AMQP
+      Test.Syd.RabbitMQ
   other-modules:
-      Paths_sydtest_amqp
+      Paths_sydtest_rabbitmq
   hs-source-dirs:
       src
   build-depends:
@@ -46,7 +46,6 @@ library
     , process
     , stm
     , sydtest
-    , sydtest-rabbitmq
     , sydtest-typed-process
     , text
     , typed-process
@@ -56,8 +55,8 @@ test-suite sydtest-amqp-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Syd.AMQPSpec
-      Paths_sydtest_amqp
+      Test.Syd.RabbitMQSpec
+      Paths_sydtest_rabbitmq
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
@@ -67,7 +66,7 @@ test-suite sydtest-amqp-test
       amqp
     , base >=4.7 && <5
     , sydtest
-    , sydtest-amqp
+    , sydtest-rabbitmq
   if flag(sydtest_integration_tests)
     buildable: True
   else

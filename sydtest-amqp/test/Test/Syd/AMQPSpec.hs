@@ -8,10 +8,6 @@ import Test.Syd.AMQP
 
 spec :: Spec
 spec = do
-  rabbitMQSpec $ do
-    describe "rabbitMQSpec" $
-      it "can run the server and clean up nicely" $ do
-        pure () :: IO ()
   amqpSpec $
     doNotRandomiseExecutionOrder $ do
       describe "amqpSpec" $ do

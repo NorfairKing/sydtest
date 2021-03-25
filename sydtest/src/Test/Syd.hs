@@ -70,10 +70,14 @@ module Test.Syd
     withTestEnv,
 
     -- ** Golden tests
-    pureGoldenByteStringFile,
-    goldenByteStringFile,
     pureGoldenTextFile,
     goldenTextFile,
+    pureGoldenByteStringFile,
+    goldenByteStringFile,
+    pureGoldenLazyByteStringFile,
+    goldenLazyByteStringFile,
+    pureGoldenByteStringBuilderFile,
+    goldenByteStringBuilderFile,
     pureGoldenStringFile,
     goldenStringFile,
     goldenShowInstance,

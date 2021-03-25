@@ -35,6 +35,7 @@ library:
     - random-shuffle
     - safe
     - safe-coloured-text
+    - safe-coloured-text-terminfo
     - split
     - text
     - yaml
@@ -71,5 +72,6 @@ tests:
     - path
     - path-io
     - safe-coloured-text
+    - safe-coloured-text-terminfo
     - sydtest
     - text

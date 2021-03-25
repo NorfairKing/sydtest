@@ -26,6 +26,7 @@ import Test.Syd.Runner.Asynchronous
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
 import Text.Colour
+import Text.Colour.Capabilities.FromEnv
 import Text.Printf
 
 sydTestResult :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)

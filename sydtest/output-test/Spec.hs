@@ -18,6 +18,7 @@ import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
 import Text.Colour
+import Text.Colour.Capabilities.FromEnv
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
 

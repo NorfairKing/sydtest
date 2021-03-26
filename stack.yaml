@@ -22,8 +22,8 @@ extra-deps:
   commit: 9059edbd30c7d3b07cd97306158c4f2f33bb7a44
   subdirs:
     - yamlparse-applicative
-- github: notquiteamonad/safe-coloured-text
-  commit: 43232c2c1b3038fbb1d3d384709756223da2f709
+- github: NorfairKing/safe-coloured-text
+  commit: 3fe46e3102a02987ebb8ee389c15a9c57df21ccc
   subdirs:
     - safe-coloured-text
     - safe-coloured-text-terminfo

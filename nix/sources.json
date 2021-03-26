@@ -53,10 +53,10 @@
         "homepage": null,
         "owner": "NorfairKing",
         "repo": "safe-coloured-text",
-        "rev": "ca42a55ddd5f3d9e866fe33b3b6862e9860f7604",
-        "sha256": "1xqr72hkkqrvcbb833d7pg4zc02l3gb566jdkr1dzrigjhrcwpi6",
+        "rev": "3fe46e3102a02987ebb8ee389c15a9c57df21ccc",
+        "sha256": "0s7s7bv31rkkli26922abqcgm7sx944c0a6kj818ycqs6s3j1nql",
         "type": "tarball",
-        "url": "https://github.com/NorfairKing/safe-coloured-text/archive/ca42a55ddd5f3d9e866fe33b3b6862e9860f7604.tar.gz",
+        "url": "https://github.com/NorfairKing/safe-coloured-text/archive/3fe46e3102a02987ebb8ee389c15a9c57df21ccc.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "yamlparse-applicative": {

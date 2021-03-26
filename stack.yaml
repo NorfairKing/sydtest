@@ -22,10 +22,11 @@ extra-deps:
   commit: 9059edbd30c7d3b07cd97306158c4f2f33bb7a44
   subdirs:
     - yamlparse-applicative
-- github: NorfairKing/safe-coloured-text
-  commit: 9db3defadd2d2f05b2db02b551c6458fc4d7c10b
+- github: notquiteamonad/safe-coloured-text
+  commit: 43232c2c1b3038fbb1d3d384709756223da2f709
   subdirs:
     - safe-coloured-text
+    - safe-coloured-text-terminfo
 
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef

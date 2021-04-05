@@ -211,6 +211,7 @@ spec = do
             True `shouldBe` False
   modifyMaxSize (`div` 10) $
     describe "Property" $ do
+      describe "0 tests run" $ modifyMaxSuccess (const 0) $ it "shows a red '0 tests' when no tests are run" $ property $ \b -> b `shouldBe` False
       describe "generated values" $
         it "shows many generated values too" $
           property $ \i ->

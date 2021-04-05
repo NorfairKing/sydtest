@@ -172,7 +172,9 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
             ],
             [ pad
                 [ chunk "passed for all of ",
-                  fore green $ chunk (T.pack (printf "%d" w)),
+                  case w of
+                    0 -> fore red $ chunk "0"
+                    _ -> fore green $ chunk (T.pack (printf "%d" w)),
                   " inputs."
                 ]
               | testRunResultStatus == TestPassed,

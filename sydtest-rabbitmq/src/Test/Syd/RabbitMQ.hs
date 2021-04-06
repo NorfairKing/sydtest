@@ -28,9 +28,8 @@ data RabbitMQHandle = RabbitMQHandle
     rabbitMQHandlePort :: !PortNumber
   }
 
--- Note that this does not clean up anything between tests. See 'amqpSpec' instead.
 rabbitMQSpec :: TestDefM (RabbitMQHandle ': outers) inner result -> TestDefM outers inner result
-rabbitMQSpec = setupAroundAll rabbitMQServerSetupFunc . sequential -- Must run sequentially because state is shared.
+rabbitMQSpec = setupAroundAll rabbitMQServerSetupFunc . sequential . cleanRabbitMQStateBeforeEach -- Must run sequentially because state is shared.
 
 rabbitMQServerSetupFunc :: SetupFunc () RabbitMQHandle
 rabbitMQServerSetupFunc = do
@@ -80,6 +79,20 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
       { rabbitMQHandleProcessHandle = ph,
         rabbitMQHandlePort = pn
       }
+
+cleanRabbitMQStateBeforeEach :: TestDefM (RabbitMQHandle ': outers) inner result -> TestDefM (RabbitMQHandle ': outers) inner result
+cleanRabbitMQStateBeforeEach =
+  -- TODO this could be done with a fancy "beforeWith'" function instead.
+  setupAroundWith'
+    ( ( \handle ->
+          SetupFunc
+            ( \func inner -> do
+                cleanRabbitMQState handle
+                func inner
+            )
+      ) ::
+        RabbitMQHandle -> SetupFunc inner inner
+    )
 
 -- FIXME: I'd prefer if there was a less-external way to do this, but oh well :s
 cleanRabbitMQState :: RabbitMQHandle -> IO ()

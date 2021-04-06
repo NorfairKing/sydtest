@@ -13,8 +13,7 @@ amqpSpec :: TestDefM (RabbitMQHandle ': outers) AMQP.Connection result -> TestDe
 amqpSpec = rabbitMQSpec . setupAroundWith' amqpConnectionSetupFunc
 
 amqpConnectionSetupFunc :: RabbitMQHandle -> SetupFunc () Connection
-amqpConnectionSetupFunc h = do
-  liftIO $ cleanRabbitMQState h
+amqpConnectionSetupFunc h =
   makeSimpleSetupFunc $ \func -> do
     let opts = defaultConnectionOpts {coServers = [("localhost", rabbitMQHandlePort h)]}
     let acquire = openConnection'' opts

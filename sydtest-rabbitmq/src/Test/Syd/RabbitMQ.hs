@@ -28,8 +28,18 @@ data RabbitMQHandle = RabbitMQHandle
     rabbitMQHandlePort :: !PortNumber
   }
 
+-- | Run a rabbitmq server around a group of tests.
+--
+-- This function also cleans up the rabbitmq state before every test.
+-- Consequently, it also uses `modifyMaxSuccess (`div` 20)` to decrease the
+-- number of property tests that will be run, because the state cleaning takes
+-- a long time.
 rabbitMQSpec :: TestDefM (RabbitMQHandle ': outers) inner result -> TestDefM outers inner result
-rabbitMQSpec = setupAroundAll rabbitMQServerSetupFunc . sequential . cleanRabbitMQStateBeforeEach -- Must run sequentially because state is shared.
+rabbitMQSpec =
+  setupAroundAll rabbitMQServerSetupFunc
+    . sequential -- Must run sequentially because state is shared.
+    . cleanRabbitMQStateBeforeEach
+    . modifyMaxSuccess (`div` 20)
 
 rabbitMQServerSetupFunc :: SetupFunc () RabbitMQHandle
 rabbitMQServerSetupFunc = do

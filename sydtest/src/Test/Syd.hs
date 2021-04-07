@@ -82,6 +82,8 @@ module Test.Syd
     goldenStringFile,
     goldenShowInstance,
     goldenPrettyShowInstance,
+    goldenContext,
+    GoldenTest (..),
 
     -- ** Scenario tests
     scenarioDir,

@@ -1,4 +1,8 @@
-module Test.Syd.Def.Golden where
+module Test.Syd.Def.Golden
+  ( module Test.Syd.Def.Golden,
+    GoldenTest (..),
+  )
+where
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as SB
@@ -143,5 +147,11 @@ goldenShowInstance fp a = pureGoldenStringFile fp (show a)
 goldenPrettyShowInstance :: Show a => FilePath -> a -> GoldenTest String
 goldenPrettyShowInstance fp a = pureGoldenStringFile fp (ppShow a)
 
+-- | The golden test context for adding context to a golden test assertion:
+--
+-- > goldenTestCompare = \actual expected ->
+-- >   if actual == expected
+-- >     then Nothing
+-- >     else Just $ Context (stringsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
 goldenContext :: FilePath -> String
 goldenContext fp = "The golden results are in: " <> fp

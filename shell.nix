@@ -15,6 +15,7 @@ pkgs.haskell.lib.buildStackProject {
     redis
   ];
   shellHook = ''
+    export TMPDIR=/tmp
     ${pre-commit.check.shellHook}
   '';
 }

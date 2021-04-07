@@ -219,10 +219,29 @@ aroundRose action r = ioRose $ do
   action $ \a b -> reduceRose (r a b) >>= writeIORef ref
   readIORef ref
 
+-- | A golden test for output of type @a@.
+--
+-- The purpose of a golden test is to ensure that the output of a certain
+-- process does not change even over time.
+--
+-- Golden tests can also be used to show how the output of a certain process
+-- changes over time and force code reviewers to review the diff that they see
+-- in the PR.
+--
+-- This works by saving a 'golden' output in the repository somewhere,
+-- committing it, and then compare that golden output to the output that is
+-- currently being produced. You can use `--golden-reset` to have sydtest
+-- update the golden output by writing the current output.
 data GoldenTest a = GoldenTest
-  { goldenTestRead :: IO (Maybe a),
+  { -- | Read the golden test output, 'Nothing' if there is no golden output yet.
+    goldenTestRead :: IO (Maybe a),
+    -- | Produce the current output
     goldenTestProduce :: IO a,
+    -- | Write golden output
     goldenTestWrite :: a -> IO (),
+    -- | Compare golden output with current output
+    --
+    -- The first argument is the current output, the second is the golden output
     goldenTestCompare :: a -> a -> Maybe Assertion
   }
 

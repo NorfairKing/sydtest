@@ -4,7 +4,7 @@ let
 
 in
 {
-  tools = with nix-pre-commit-hooks.tools; [
+  tools = with nix-pre-commit-hooks; [
     hlint
     nixpkgs-fmt
     ormolu

@@ -13,7 +13,7 @@ pkgs.haskell.lib.buildStackProject {
     postgresql
     rabbitmq-server
     redis
-  ];
+  ] ++ pre-commit.tools;
   shellHook = ''
     export TMPDIR=/tmp
     ${pre-commit.check.shellHook}

@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3effb7154c7fdbcd6eb587c29f54a450305cf561bc7ffae845e216bc4bee6f6a
+-- hash: cf81614ce7b5828af600971ffa0c8fe38e220288c54515c6949ddb9a1c1da65d
 
 name:           sydtest-aeson
 version:        0.0.0.0
@@ -22,11 +22,6 @@ build-type:     Simple
 source-repository head
   type: git
   location: https://github.com/NorfairKing/sydtest
-
-flag sydtest_integration_tests
-  description: Whether to allow building integration tests
-  manual: False
-  default: True
 
 library
   exposed-modules:
@@ -61,8 +56,4 @@ test-suite sydtest-aeson-test
     , sydtest
     , sydtest-aeson
     , text
-  if flag(sydtest_integration_tests)
-    buildable: True
-  else
-    buildable: False
   default-language: Haskell2010

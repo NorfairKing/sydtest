@@ -23,6 +23,7 @@ with final.haskell.lib;
     in
     {
       "sydtest" = sydtestPkg "sydtest";
+      "sydtest-aeson" = sydtestPkg "sydtest-aeson";
       "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";
       "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
       "sydtest-process" = sydtestPkg "sydtest-process";

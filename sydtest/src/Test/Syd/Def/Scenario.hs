@@ -2,6 +2,7 @@ module Test.Syd.Def.Scenario (scenarioDir, scenarioDirRecur) where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.Maybe
 import Path
 import Path.IO
 import qualified System.FilePath as FP
@@ -40,7 +41,7 @@ scenarioDirHelper ::
 scenarioDirHelper lister dp func =
   describe dp $ do
     ad <- liftIO $ resolveDir' dp
-    fs <- liftIO $ snd <$> lister ad
+    fs <- liftIO $ fmap (fromMaybe []) $ forgivingAbsence $ snd <$> lister ad
     forM_ fs $ \rf -> do
       let fp = dp FP.</> fromRelFile rf
       describe (fromRelFile rf) $ func fp

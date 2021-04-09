@@ -2,21 +2,32 @@
 
 module Test.Syd.AesonSpec (spec) where
 
+import Data.Aeson as JSON
 import Data.Text (Text)
-import Data.Aeson as Aeson
 import Test.Syd
 import Test.Syd.Aeson
 
 spec :: Spec
 spec = do
-  describe "pureGoldenAesonDocumentFile" $
+  describe "pureGoldenJSONFile" $
     it "outputs this example the same as before" $
-      pureGoldenAesonDocumentFile
+      pureGoldenJSONFile
         "test_resources/pure-example.json"
-        $ Aeson.object 
-            [ "hello" .= ( "world" :: Text ), "a" .= ( 1 :: Int ), "b" .= True ]
-  describe "goldenAesonDocumentFile" $
+        $ JSON.object
+          ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
+  describe "goldenJSONFile" $
     it "outputs this example the same as before" $
-      goldenAesonDocumentFile
+      goldenJSONFile
         "test_resources/example.json"
-        $ pure $ Aeson.object [ "hello" .= ( "world" :: Text ), "a" .= ( 1 :: Int ), "b" .= True ]
+        $ pure $ JSON.object ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
+  describe "pureGoldenJSONValueFile" $
+    it "outputs this example the same as before" $
+      pureGoldenJSONValueFile
+        "test_resources/pure-example.json"
+        $ JSON.object
+          ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
+  describe "goldenJSONValueFile" $
+    it "outputs this example the same as before" $
+      goldenJSONValueFile
+        "test_resources/example.json"
+        $ pure $ JSON.object ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]

@@ -17,10 +17,12 @@ library:
   source-dirs: src
   dependencies:
   - aeson
+  - aeson-pretty
   - bytestring
   - path
   - path-io
   - sydtest
+  - text
 
 tests:
   sydtest-aeson-test:

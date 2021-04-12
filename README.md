@@ -11,6 +11,9 @@ All Rights Reserved
 
 See [LICENSE](./sydtest/LICENSE.md)
 
+## Contributing
+
+See [the contribution guide](./CONTRIBUTING.md)
 
 ## In short
 

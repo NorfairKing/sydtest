@@ -18,13 +18,14 @@ import Path
 import Path.IO
 import System.Environment (getEnvironment)
 import System.Exit
+import System.IO
 import System.Process.Typed
 import Test.Syd
 import Test.Syd.Path
 import Test.Syd.Process.Typed
 
 data RabbitMQHandle = RabbitMQHandle
-  { rabbitMQHandleProcessHandle :: !(Process () () ()),
+  { rabbitMQHandleProcessHandle :: !(Process () Handle Handle),
     rabbitMQHandlePort :: !PortNumber
   }
 
@@ -80,7 +81,7 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
           ("RABBITMQ_DIST_PORT", show distPortInt)
         ]
           ++ oldEnv
-  let pc = setWorkingDir (fromAbsDir td) $ setStdout nullStream $ setStderr nullStream $ setEnv e $ proc "rabbitmq-server" []
+  let pc = setWorkingDir (fromAbsDir td) $ setStdout createPipe $ setStderr createPipe $ setEnv e $ proc "rabbitmq-server" []
   ph <- typedProcessSetupFunc pc
   liftIO $ Socket.wait "127.0.0.1" portInt
   let pn = fromIntegral portInt -- (hopefully) safe because it came from 'getFreePort'.

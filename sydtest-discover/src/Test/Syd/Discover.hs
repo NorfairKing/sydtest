@@ -127,7 +127,8 @@ makeModuleName fp =
 makeSpecModule :: Settings -> Path Rel File -> [SpecModule] -> String
 makeSpecModule Settings {..} destination sources =
   unlines
-    [ if settingMain then "" else moduleDeclaration (makeModuleName destination),
+    [ "{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-unused-imports #-}",
+      if settingMain then "" else moduleDeclaration (makeModuleName destination),
       "",
       "import Test.Syd",
       "import qualified Prelude",
@@ -153,7 +154,6 @@ importDeclarations = unlines . map (("import qualified " <>) . specModuleModuleN
 specDeclaration :: [SpecModule] -> String
 specDeclaration fs =
   unlines $
-    "spec :: Spec" :
     if null fs
       then ["spec = Prelude.pure ()"]
       else

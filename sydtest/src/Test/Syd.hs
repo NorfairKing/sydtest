@@ -248,13 +248,17 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Show.Pretty (ppShow)
 
--- | Evaluate a test suite definition and then run it, with default 'Settings'
+-- | Evaluate a test suite definition and then run it.
+--
+-- This function perform option-parsing to construct the 'Settings' and then call 'sydTestWith'.
 sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
   sydTestWith sets spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'
+--
+-- This function performs no option-parsing.
 sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
   resultForest <- sydTestResult sets spec

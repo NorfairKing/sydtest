@@ -80,7 +80,7 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
           ("RABBITMQ_DIST_PORT", show distPortInt)
         ]
           ++ oldEnv
-  let pc = setWorkingDir (fromAbsDir td) $ setStdout inherit $ setStderr inherit $ setEnv e $ proc "rabbitmq-server" []
+  let pc = setWorkingDir (fromAbsDir td) $ setStdout nullStream $ setStderr nullStream $ setEnv e $ proc "rabbitmq-server" []
   ph <- typedProcessSetupFunc pc
   liftIO $ Socket.wait "127.0.0.1" portInt
   let pn = fromIntegral portInt -- (hopefully) safe because it came from 'getFreePort'.

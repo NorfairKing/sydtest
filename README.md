@@ -86,6 +86,19 @@ This means you should be alerted of any potential issue as early as possible.
 
 * Built-in golden tests with good diffing.
 
+### Principle: Batteries included
+
+This repository contains many companion libraries to write integration tests with popular dependencies:
+
+- RabbitMQ: `sydtest-amqp` and `sydtest-rabbitmq`
+- Redis: `sydtest-hedis`
+- Mongo: `sydtest-mongo`
+- Postgres: `sydtest-persistent-postgresql`
+- Sqlite: `sydtest-persistent-sqlite`
+- Wai: `sydtest-wai`
+- Servant: `sydtest-servant`
+- Yesod `sydtest-yesod`
+
 ## Features & Comparison to similar projects
 
 |                                                                                           | sydtest | Hspec                                                       | Tasty                                                            |

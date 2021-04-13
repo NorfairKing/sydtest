@@ -20,6 +20,29 @@ import Test.Syd
 
 -- | Declare a test suite that uses a database connection.
 --
+-- Example usage
+--
+-- > -- Database definition
+-- > share
+-- >   [mkPersist sqlSettings, mkMigrate "migrateExample"]
+-- >   [persistLowerCase|
+-- > Person
+-- >     name String
+-- >     age Int Maybe
+-- >     deriving Show Eq
+-- > |]
+-- >
+-- > -- Tests
+-- > spec :: Spec
+-- > spec =
+-- >   persistPostgresqlSpec migrateExample $ do
+-- >     it "can write and read this example person" $ \pool ->
+-- >       runPostgresqlTest pool $ do
+-- >         let p = Person {personName = "John Doe", personAge = Just 21}
+-- >         i <- insert p
+-- >         mp <- get i
+-- >         liftIO $ mp `shouldBe` Just p
+--
 -- This sets up the database connection around every test, so state is not preserved accross tests.
 persistPostgresqlSpec :: Migration -> SpecWith ConnectionPool -> SpecWith a
 persistPostgresqlSpec migration = aroundWith $ \func _ -> withConnectionPool migration func

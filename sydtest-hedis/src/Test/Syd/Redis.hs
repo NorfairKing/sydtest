@@ -8,7 +8,17 @@
 -- see https://hackage.haskell.org/package/hedis-0.14.2/docs/Database-Redis.html#v:select
 -- and connectDatabase:
 -- https://hackage.haskell.org/package/hedis-0.14.2/docs/Database-Redis.html#t:ConnectInfo
-module Test.Syd.Redis where
+module Test.Syd.Redis
+  ( redisSpec,
+    redisConnectionSetupFunc,
+    checkedConnectSetupFunc,
+    RedisServerHandle (..),
+    redisServerSpec,
+    cleanRedisServerState,
+    redisServerSetupFunc,
+    redisServerSetupFunc',
+  )
+where
 
 import Control.Exception
 import qualified Data.Text as T
@@ -24,36 +34,68 @@ import Test.Syd
 import Test.Syd.Path
 import Test.Syd.Process.Typed
 
+-- | A handle to a child process that is a Redis server.
 data RedisServerHandle = RedisServerHandle
   { redisServerHandleProcessHandle :: !(Process () () ()),
     redisServerHandlePort :: !PortNumber
   }
 
+-- | Run a redis server around a group of test and provide a clean connection to every test
+--
+-- Example usage:
+--
+-- >  redisSpec $ do
+-- >    it "sets up and tears down a redis connection nicely" $ \conn -> do
+-- >      runRedis conn $ do
+-- >        errOrStatus <- Redis.set "hello" "world"
+-- >        liftIO $ case errOrStatus of
+-- >          Left err -> expectationFailure $ show err
+-- >          Right status -> status `shouldBe` Ok
+-- >        errOrReply <- Redis.get "hello"
+-- >        liftIO $ case errOrReply of
+-- >          Left err -> expectationFailure $ show err
+-- >          Right val -> val `shouldBe` Just "world"
+--
+-- This function just combines 'redisServerSpec' with 'setupAroundWith' redisConnectionSetupFunc'.
 redisSpec :: TestDefM (RedisServerHandle ': outers) Redis.Connection result -> TestDefM outers () result
 redisSpec = redisServerSpec . setupAroundWith' redisConnectionSetupFunc
 
+-- | Set up a clean redis connection given a handle to the redis server.
+--
+-- This function cleans the state using `flushall`.
 redisConnectionSetupFunc :: RedisServerHandle -> SetupFunc () Redis.Connection
 redisConnectionSetupFunc RedisServerHandle {..} = do
   let connInfo = Redis.defaultConnectInfo {connectPort = PortNumber redisServerHandlePort}
   conn <- unwrapSetupFunc checkedConnectSetupFunc connInfo
   makeSimpleSetupFunc $ \func -> do
-    errOrStatus <- runRedis conn Redis.flushall -- Clean state
-    case errOrStatus of
-      Left err -> expectationFailure $ "Something went wrong while trying to clean the state before the test starts: " <> show err
-      Right s -> s `shouldBe` Ok
+    cleanRedisServerState conn
     func conn
 
+-- | A 'SetupFunc' that 'bracket's 'checkedConnect' and 'disconnect'.
 checkedConnectSetupFunc :: SetupFunc Redis.ConnectInfo Redis.Connection
 checkedConnectSetupFunc = SetupFunc $ \func connInfo -> bracket (checkedConnect connInfo) disconnect func
 
+-- | Run a redis server around a group of tests.
 redisServerSpec :: TestDefM (RedisServerHandle ': outers) inner result -> TestDefM outers inner result
 redisServerSpec = setupAroundAll redisServerSetupFunc . sequential -- Must run sequentially because state is shared.
 
+-- | Clean the redis server's state.
+cleanRedisServerState :: Connection -> IO ()
+cleanRedisServerState conn = do
+  errOrStatus <- runRedis conn Redis.flushall -- Clean state
+  case errOrStatus of
+    Left err -> expectationFailure $ "Something went wrong while trying to clean the state before the test starts: " <> show err
+    Right s -> s `shouldBe` Ok
+
+-- | Setup func for running a Redis server
+--
+-- This function uses a temporary directory (using 'tempDirSetupFunc') for any state.
 redisServerSetupFunc :: SetupFunc () RedisServerHandle
 redisServerSetupFunc = do
   td <- tempDirSetupFunc "sydtest-hedis"
   unwrapSetupFunc redisServerSetupFunc' td
 
+-- | Setup func for running a Redis server in a given directory
 redisServerSetupFunc' :: SetupFunc (Path Abs Dir) RedisServerHandle
 redisServerSetupFunc' = wrapSetupFunc $ \td -> do
   pidFile <- resolveFile td "redis.pid"

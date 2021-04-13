@@ -75,6 +75,18 @@ data MongoServerHandle = MongoServerHandle
 
 -- | Provide access to a real 'Mongo.Pipe' for each test.
 --
+-- Example usage:
+--
+-- >  mongoSpec $ do
+-- >    it "can write and read an example value" $ \pipe -> do
+-- >      Mongo.access pipe master "example-database" $ do
+-- >        let collection = "example-collection"
+-- >            exampleVal = ["hello" =: ("world" :: Text)]
+-- >        i <- insert collection exampleVal
+-- >        r <- findOne (select ["_id" =: i] collection)
+-- >        liftIO $ r `shouldBe` Just (("_id" =: i) : exampleVal)
+-- >      pure () :: IO ()
+--
 -- This function uses 'mongoServerSpec' as well as 'mongoConnectionSetupFunc' to run a mongo server, provide access to it and clean up before the test.
 mongoSpec :: TestDefM (MongoServerHandle ': outers) Mongo.Pipe result -> TestDefM outers () result
 mongoSpec = mongoServerSpec . setupAroundWith' mongoConnectionSetupFunc

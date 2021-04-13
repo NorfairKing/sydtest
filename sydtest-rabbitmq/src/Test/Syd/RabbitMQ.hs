@@ -4,7 +4,15 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Test.Syd.RabbitMQ where
+module Test.Syd.RabbitMQ
+  ( RabbitMQHandle (..),
+    rabbitMQSpec,
+    rabbitMQServerSetupFunc,
+    rabbitMQServerSetupFunc',
+    cleanRabbitMQStateBeforeEach,
+    cleanRabbitMQState,
+  )
+where
 
 import Control.Monad
 import Data.Aeson as JSON
@@ -31,8 +39,18 @@ data RabbitMQHandle = RabbitMQHandle
 
 -- | Run a rabbitmq server around a group of tests.
 --
+-- Example usage:
+--
+-- > rabbitMQSpec $ do
+-- >   describe "rabbitMQSpec" $
+-- >     it "can run the server and clean up nicely" $ do
+-- >       pure () :: IO ()
+--
+-- (You will probably want to use `sydtest-amqp` or `sydtest-amqp-client`
+-- instead of directly using this package.)
+--
 -- This function also cleans up the rabbitmq state before every test.
--- Consequently, it also uses `modifyMaxSuccess (`div` 20)` to decrease the
+-- Consequently, it also uses @modifyMaxSuccess (`div` 20)@ to decrease the
 -- number of property tests that will be run, because the state cleaning takes
 -- a long time.
 rabbitMQSpec :: TestDefM (RabbitMQHandle ': outers) inner result -> TestDefM outers inner result
@@ -42,11 +60,13 @@ rabbitMQSpec =
     . cleanRabbitMQStateBeforeEach
     . modifyMaxSuccess (`div` 20)
 
+-- | Set up a rabbitmq server in a temporary directory.
 rabbitMQServerSetupFunc :: SetupFunc () RabbitMQHandle
 rabbitMQServerSetupFunc = do
   td <- tempDirSetupFunc "sydtest-amqp"
   unwrapSetupFunc rabbitMQServerSetupFunc' td
 
+-- | Set up a rabbitmq server in the given directory
 rabbitMQServerSetupFunc' :: SetupFunc (Path Abs Dir) RabbitMQHandle
 rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
   pidFile <- resolveFile td "rabbitmq.pid"

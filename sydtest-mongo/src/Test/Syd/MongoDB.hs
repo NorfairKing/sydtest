@@ -11,6 +11,7 @@ module Test.Syd.MongoDB
     -- * Integration tests
     mongoSpec,
     mongoConnectionSetupFunc,
+    MongoServerHandle (..),
     mongoServerSpec,
     mongoServerSetupFunc,
     mongoServerSetupFunc',

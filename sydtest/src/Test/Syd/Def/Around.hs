@@ -19,13 +19,13 @@ import Test.Syd.HList
 import Test.Syd.Run
 import Test.Syd.SpecDef
 
--- | Run a custom action before every spec item, to set up an inner resource 'c'.
+-- | Run a custom action before every spec item, to set up an inner resource 'inner'.
 before ::
   -- | The function to run before every test, to produce the inner resource
   IO inner ->
   TestDefM outers inner result ->
   TestDefM outers () result
-before action = around (action >>=)
+before action = beforeWith $ \() -> action
 
 -- | Run a custom action before every spec item without setting up any inner resources.
 before_ ::
@@ -33,7 +33,25 @@ before_ ::
   IO () ->
   TestDefM outers inner result ->
   TestDefM outers inner result
-before_ action = around_ (action >>)
+before_ action = beforeWith $ \inner -> do
+  action
+  pure inner
+
+-- | Run a custom action before every spec item, to set up an inner resource 'newInner' using the previously set up resource 'oldInner'
+beforeWith ::
+  forall outers oldInner newInner result.
+  (oldInner -> IO newInner) ->
+  TestDefM outers newInner result ->
+  TestDefM outers oldInner result
+beforeWith action = beforeWith' (\(_ :: HList outers) -> action)
+
+-- | Run a custom action before every spec item, to set up an inner resource 'newInner' using the previously set up resource 'oldInner' and potentially any of the outer resources
+beforeWith' ::
+  HContains outers outer =>
+  (outer -> oldInner -> IO newInner) ->
+  TestDefM outers newInner result ->
+  TestDefM outers oldInner result
+beforeWith' action = aroundWith' $ \func outer inner -> action outer inner >>= func outer
 
 -- | Run a custom action after every spec item, using the inner resource 'c'.
 after ::

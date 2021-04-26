@@ -113,17 +113,9 @@ rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
 
 cleanRabbitMQStateBeforeEach :: TestDefM (RabbitMQHandle ': outers) inner result -> TestDefM (RabbitMQHandle ': outers) inner result
 cleanRabbitMQStateBeforeEach =
-  -- TODO this could be done with a fancy "beforeWith'" function instead.
-  setupAroundWith'
-    ( ( \handle ->
-          SetupFunc
-            ( \func inner -> do
-                cleanRabbitMQState handle
-                func inner
-            )
-      ) ::
-        RabbitMQHandle -> SetupFunc inner inner
-    )
+  beforeWith' $ \handle inner -> do
+    cleanRabbitMQState handle
+    pure inner
 
 -- FIXME: I'd prefer if there was a less-external way to do this, but oh well :s
 cleanRabbitMQState :: RabbitMQHandle -> IO ()

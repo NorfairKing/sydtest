@@ -496,4 +496,4 @@ pending s = tell [DefPendingNode (T.pack s) Nothing]
 
 -- | Declare a test that has not been written yet for the given reason.
 pendingWith :: String -> String -> TestDefM outers inner ()
-pendingWith s reason = tell [DefPendingNode (T.pack s) (Just (T.pack reason))]
+pendingWith description reasonWhyItsPending = tell [DefPendingNode (T.pack description) (Just (T.pack reasonWhyItsPending))]

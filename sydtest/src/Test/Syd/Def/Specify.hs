@@ -23,6 +23,7 @@ module Test.Syd.Def.Specify
     specifyWithOuter,
     specifyWithBoth,
     specifyWithAll,
+    prop,
 
     -- ** Declaring commented-out tests
     xdescribe,
@@ -44,6 +45,7 @@ where
 import Control.Monad.RWS.Strict
 import qualified Data.Text as T
 import GHC.Stack
+import Test.QuickCheck
 import Test.QuickCheck.IO ()
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
@@ -481,6 +483,12 @@ xspecifyWithAll ::
   test ->
   TestDefM outers inner ()
 xspecifyWithAll = xitWithAll
+
+-- | Convenience function for backwards compatibility with @hspec@
+--
+-- > prop s p = it s $ property p
+prop :: Testable prop => String -> prop -> Spec
+prop s p = it s $ property p
 
 -- | Declare a test that has not been written yet.
 pending :: String -> TestDefM outers inner ()

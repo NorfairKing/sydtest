@@ -49,6 +49,7 @@ module Test.Syd
     specifyWithOuter,
     specifyWithBoth,
     specifyWithAll,
+    prop,
 
     -- ** Commented-out tests
     xdescribe,

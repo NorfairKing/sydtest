@@ -15,10 +15,14 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - bytestring
   - http-client
+  - http-types
+  - mtl
+  - pretty-show
   - sydtest
-  - warp
   - wai
+  - warp
 
 
 tests:

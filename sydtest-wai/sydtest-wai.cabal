@@ -24,13 +24,19 @@ source-repository head
 library
   exposed-modules:
       Test.Syd.Wai
+      Test.Syd.Wai.Client
+      Test.Syd.Wai.Def
   other-modules:
       Paths_sydtest_wai
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , http-client
+    , http-types
+    , mtl
+    , pretty-show
     , sydtest
     , wai
     , warp

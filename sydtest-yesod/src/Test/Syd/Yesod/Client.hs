@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -17,9 +18,11 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 import Data.Text (Text)
 import qualified Data.Text as T
+import GHC.Generics (Generic)
 import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
 import Test.Syd
+import Test.Syd.Wai.Client (lastRequestResponseContext)
 import Yesod.Core as Yesod
 
 -- | A client environment to call a Yesod app.
@@ -31,17 +34,19 @@ data YesodClient site = YesodClient
     -- | The port that the site is running on, using @warp@
     yesodClientSitePort :: !Int
   }
+  deriving (Generic)
 
 -- | The state that is maintained throughout a 'YesodClientM'
-data YesodClientState site = YesodClientState
+data YesodClientState = YesodClientState
   { -- | The last request and response pair
     yesodClientStateLast :: !(Maybe (Request, Response LB.ByteString)),
     -- | The cookies to pass along
     yesodClientStateCookies :: !CookieJar
   }
+  deriving (Generic)
 
 -- | The starting point of the 'YesodClientState site' of a 'YesodClientM site'
-initYesodClientState :: YesodClientState site
+initYesodClientState :: YesodClientState
 initYesodClientState =
   YesodClientState
     { yesodClientStateLast = Nothing,
@@ -52,7 +57,7 @@ initYesodClientState =
 --
 -- This has access to a 'YesodClient site'.
 newtype YesodClientM site a = YesodClientM
-  { unYesodClientM :: StateT (YesodClientState site) (ReaderT (YesodClient site) IO) a
+  { unYesodClientM :: StateT YesodClientState (ReaderT (YesodClient site) IO) a
   }
   deriving
     ( Functor,
@@ -60,7 +65,7 @@ newtype YesodClientM site a = YesodClientM
       Monad,
       MonadIO,
       MonadReader (YesodClient site),
-      MonadState (YesodClientState site),
+      MonadState YesodClientState,
       MonadFail,
       MonadThrow
     )
@@ -113,13 +118,7 @@ withLastRequestContext yfunc@(YesodClientM func) = do
       YesodClientM $ do
         s <- get
         c <- ask
-        let ctx =
-              unlines
-                [ "last request:",
-                  ppShow req,
-                  "full response:",
-                  ppShow resp
-                ]
+        let ctx = lastRequestResponseContext req resp
         (r, s') <- liftIO $ context ctx $ runReaderT (runStateT func s) c
         put s'
         pure r

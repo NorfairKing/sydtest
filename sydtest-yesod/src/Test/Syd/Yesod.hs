@@ -23,6 +23,7 @@ module Test.Syd.Yesod
     -- ** Core
     YesodSpec,
     YesodClient (..),
+    YesodClientState (..),
     YesodClientM (..),
     runYesodClientM,
     YesodExample,
@@ -72,7 +73,12 @@ module Test.Syd.Yesod
     locationShouldBe,
     bodyContains,
 
-    -- ** Reexports
+    -- * Just to be sure we didn't forget any exports
+    module Test.Syd.Yesod.Client,
+    module Test.Syd.Yesod.Def,
+    module Test.Syd.Yesod.Request,
+
+    -- * Reexports
     module HTTP,
   )
 where

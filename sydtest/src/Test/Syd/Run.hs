@@ -29,8 +29,13 @@ import Test.QuickCheck.Random
 import Text.Printf
 
 class IsTest e where
+  -- | The argument from 'aroundAll'
   type Arg1 e
+
+  -- | The argument from 'around'
   type Arg2 e
+
+  -- | Running the test, safely
   runTest ::
     e ->
     TestRunSettings ->
@@ -38,8 +43,8 @@ class IsTest e where
     IO TestRunResult
 
 instance IsTest Bool where
-  type Arg1 Bool = () -- The argument from 'aroundAll'
-  type Arg2 Bool = () -- The argument from 'around'
+  type Arg1 Bool = ()
+  type Arg2 Bool = ()
   runTest func = runTest (\() () -> func)
 
 instance IsTest (arg -> Bool) where

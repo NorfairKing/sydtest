@@ -194,6 +194,12 @@ If you are using `hspec-discover`, the following change is to be made in your te
 +{-# OPTIONS_GHC -F -pgmF sydtest-discover #-}
 ```
 
+You can also use `sydtest-hspec` to import a hspec test suite into a sydtest test suite:
+
+``` haskell
+fromHspec :: Hspec.Spec -> Syd.Spec
+```
+
 ### Pending tests
 
 Pending tests are only a little less easy to migrate.

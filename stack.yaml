@@ -4,9 +4,11 @@ resolver: lts-16.20
 allow-newer: false
 packages:
 - sydtest
+- sydtest-aeson
 - sydtest-amqp
 - sydtest-discover
 - sydtest-hedis
+- sydtest-hspec
 - sydtest-mongo
 - sydtest-persistent-postgresql
 - sydtest-persistent-sqlite
@@ -16,7 +18,6 @@ packages:
 - sydtest-typed-process
 - sydtest-wai
 - sydtest-yesod
-- sydtest-aeson
 extra-deps:
 - envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842
 - github: NorfairKing/yamlparse-applicative

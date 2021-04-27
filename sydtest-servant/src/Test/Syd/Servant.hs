@@ -34,7 +34,15 @@ clientEnvSetupFunc :: forall api. HasServer api '[] => Servant.Proxy api -> HTTP
 clientEnvSetupFunc py man = wrapSetupFunc $ \server -> do
   let application = serve py server
   p <- unwrapSetupFunc applicationSetupFunc application
-  pure $ mkClientEnv man (BaseUrl Http "127.0.0.1" p "")
+  pure $
+    mkClientEnv
+      man
+      ( BaseUrl
+          Http
+          "127.0.0.1"
+          (fromIntegral p) -- Safe because it is PortNumber -> Int
+          ""
+      )
 
 testClient :: ClientEnv -> ClientM a -> IO a
 testClient cenv func = do

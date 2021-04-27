@@ -42,6 +42,7 @@ library
     , http-client
     , http-types
     , mtl
+    , network
     , pretty-show
     , sydtest
     , sydtest-wai

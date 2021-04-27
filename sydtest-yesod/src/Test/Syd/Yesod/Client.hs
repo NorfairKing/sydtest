@@ -21,6 +21,7 @@ import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
+import Network.Socket (PortNumber)
 import Test.Syd
 import Test.Syd.Wai.Client (lastRequestResponseContext)
 import Yesod.Core as Yesod
@@ -32,7 +33,7 @@ data YesodClient site = YesodClient
     -- | The 'HTTP.Manager' to make the requests
     yesodClientManager :: !HTTP.Manager,
     -- | The port that the site is running on, using @warp@
-    yesodClientSitePort :: !Int
+    yesodClientSitePort :: !PortNumber
   }
   deriving (Generic)
 

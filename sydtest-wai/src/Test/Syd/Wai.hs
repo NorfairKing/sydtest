@@ -1,5 +1,21 @@
 {-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
 
+-- | Test a 'Wai.Application'
+--
+-- Example usage:
+--
+-- > exampleApplication :: Wai.Application
+-- > exampleApplication req sendResp = do
+-- >   lb <- strictRequestBody req
+-- >   sendResp $ responseLBS HTTP.ok200 (requestHeaders req) lb
+-- >
+-- > spec :: Spec
+-- > spec =
+-- >   waiClientSpec exampleApplication $
+-- >     describe "get" $
+-- >       wit "can GET the root and get a 200" $ do
+-- >         resp <- get "/"
+-- >         liftIO $ responseStatus resp `shouldBe` ok200
 module Test.Syd.Wai
   ( -- * Functions to run a test suite
 
@@ -11,8 +27,10 @@ module Test.Syd.Wai
 
     -- ** A test suite that uses a running wai application and calls it using the functions provided in this package
     waiClientSpec,
+    waiClientSpecWith,
     waiClientSpecWithSetupFunc,
     waiClientSpecWithSetupFunc',
+    wit,
 
     -- ** A test suite that uses a single HTTP manager accross tests
     managerSpec,
@@ -37,7 +55,7 @@ module Test.Syd.Wai
     request,
     performRequest,
 
-    -- ** Assertions
+    -- * Assertions
     ResponseMatcher (..),
     MatchHeader (..),
     MatchBody (..),

@@ -209,7 +209,7 @@ runRequestBuilder (RequestBuilder func) = do
   let (req', cj') =
         insertCookiesIntoRequest
           ( req
-              { port = p,
+              { port = fromIntegral p, -- Safe because it is PortNumber -> Int
                 method = requestBuilderDataMethod,
                 requestHeaders =
                   concat

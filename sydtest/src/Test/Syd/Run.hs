@@ -148,21 +148,24 @@ instance IsTest (outerArgs -> innerArg -> Property) where
   type Arg2 (outerArgs -> innerArg -> Property) = innerArg
   runTest = runPropertyTestWithArg
 
+makeQuickCheckArgs :: TestRunSettings -> Args
+makeQuickCheckArgs TestRunSettings {..} =
+  stdArgs
+    { replay = Just (mkQCGen testRunSettingSeed, 0),
+      chatty = False,
+      maxSuccess = testRunSettingMaxSuccess,
+      maxDiscardRatio = testRunSettingMaxDiscardRatio,
+      maxSize = testRunSettingMaxSize,
+      maxShrinks = testRunSettingMaxShrinks
+    }
+
 runPropertyTestWithArg ::
   (outerArgs -> innerArg -> Property) ->
   TestRunSettings ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runPropertyTestWithArg p TestRunSettings {..} wrapper = do
-  let qcargs =
-        stdArgs
-          { replay = Just (mkQCGen testRunSettingSeed, 0),
-            chatty = False,
-            maxSuccess = testRunSettingMaxSuccess,
-            maxDiscardRatio = testRunSettingMaxDiscardRatio,
-            maxSize = testRunSettingMaxSize,
-            maxShrinks = testRunSettingMaxShrinks
-          }
+runPropertyTestWithArg p trs@TestRunSettings {..} wrapper = do
+  let qcargs = makeQuickCheckArgs trs
   qcr <- quickCheckWithResult qcargs (aroundProperty wrapper p)
   let testRunResultGoldenCase = Nothing
   let testRunResultNumTests = Just $ fromIntegral $ numTests qcr

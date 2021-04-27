@@ -40,11 +40,6 @@ importItem item@Hspec.Item {..} =
    in parallelMod $
         it itemRequirement (ImportedItem item :: ImportedItem inner)
 
---  \inner ->
---  let wrapper :: Hspec.ActionWith inner -> IO ()
---      wrapper func = func inner
---   in itemExample params wrapper callback
-
 newtype ImportedItem a = ImportedItem (Hspec.Item a)
 
 instance IsTest (ImportedItem a) where
@@ -57,10 +52,15 @@ runImportedItem ::
   TestRunSettings ->
   ((() -> inner -> IO ()) -> IO ()) ->
   IO TestRunResult
-runImportedItem (ImportedItem Hspec.Item {..}) TestRunSettings {..} wrapper = do
+runImportedItem (ImportedItem Hspec.Item {..}) trs@TestRunSettings {..} wrapper = do
   errOrRes <- applyWrapper2 wrapper $ \() inner -> do
     let params :: Hspec.Params
-        params = undefined
+        params =
+          Hspec.Params
+            { Hspec.paramsQuickCheckArgs = makeQuickCheckArgs trs,
+              -- TODO use the right depth when sydtest supports smallcheck
+              Hspec.paramsSmallCheckDepth = Hspec.paramsSmallCheckDepth Hspec.defaultParams
+            }
         callback :: Hspec.ProgressCallback
         callback = const $ pure ()
     itemExample params (\takeInner -> takeInner inner) callback

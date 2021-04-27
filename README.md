@@ -197,7 +197,7 @@ If you are using `hspec-discover`, the following change is to be made in your te
 You can also use `sydtest-hspec` to import a hspec test suite into a sydtest test suite:
 
 ``` haskell
-fromHspec :: Hspec.Spec -> Syd.Spec
+Test.Syd.Hspec.fromHspec :: Hspec.Spec -> Syd.Spec
 ```
 
 ### Pending tests

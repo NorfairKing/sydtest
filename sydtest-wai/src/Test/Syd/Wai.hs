@@ -34,6 +34,14 @@ module Test.Syd.Wai
     delete,
     request,
 
+    -- ** Assertions
+    ResponseMatcher (..),
+    MatchHeader (..),
+    MatchBody (..),
+    shouldRespondWith,
+    Body,
+    (<:>),
+
     -- * Just to make sure we didn't forget any exports
     module Test.Syd.Wai.Client,
     module Test.Syd.Wai.Def,
@@ -48,4 +56,5 @@ import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
 import Test.Syd.Wai.Client
 import Test.Syd.Wai.Def
+import Test.Syd.Wai.Matcher
 import Test.Syd.Wai.Request

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Test.Syd.Wai.Request where
 
@@ -7,10 +8,13 @@ import Control.Monad.State as State
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 import Data.Time
+import GHC.Stack (HasCallStack)
 import Network.HTTP.Client as HTTP
 import Network.HTTP.Client.Internal (httpRaw)
 import Network.HTTP.Types as HTTP
+import Test.Syd
 import Test.Syd.Wai.Client
+import Test.Syd.Wai.Matcher
 
 -- | Perform a @GET@ request to the application under test.
 get :: ByteString -> WaiSession st (HTTP.Response LB.ByteString)
@@ -71,3 +75,14 @@ performRequest req = do
           }
     )
   pure resp
+
+shouldRespondWith :: HasCallStack => WaiSession st (HTTP.Response LB.ByteString) -> ResponseMatcher -> WaiExpectation st
+shouldRespondWith action ResponseMatcher {..} = do
+  response <- action
+  liftIO $
+    context (ppShow response) $ do
+      HTTP.statusCode (responseStatus response) `shouldBe` matchStatus
+      forM_ matchHeaders $ \(MatchHeader matchHeaderFunc) ->
+        mapM_ expectationFailure $ matchHeaderFunc (responseHeaders response) (responseBody response)
+      let (MatchBody matchBodyFunc) = matchBody
+      mapM_ expectationFailure $ matchBodyFunc (responseHeaders response) (responseBody response)

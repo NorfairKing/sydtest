@@ -52,3 +52,12 @@ spec = managerSpec $ do
       wit "can make a weird request" $ do
         resp <- request "HELLO" "" [] ""
         liftIO $ responseStatus resp `shouldBe` ok200
+    describe "shouldRespondWith" $ do
+      wit "works with a number" $
+        get "/" `shouldRespondWith` 200
+      wit "works with a string" $
+        get "/" `shouldRespondWith` ""
+      wit "correctly fails here" $
+        get "/" `shouldRespondWith` 303
+      wit "correctly fails here too" $
+        get "/" `shouldRespondWith` "foobar"

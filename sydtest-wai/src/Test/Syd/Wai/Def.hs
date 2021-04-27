@@ -15,7 +15,10 @@ import Test.Syd
 import Test.Syd.Wai.Client
 
 waiClientSpec :: Application -> TestDefM (HTTP.Manager ': outers) (WaiClient ()) result -> TestDefM outers oldInner result
-waiClientSpec application = waiClientSpecWithSetupFunc (\_ -> pure (application, ()))
+waiClientSpec application = waiClientSpecWith $ pure application
+
+waiClientSpecWith :: IO Application -> TestDefM (HTTP.Manager ': outers) (WaiClient ()) result -> TestDefM outers oldInner result
+waiClientSpecWith application = waiClientSpecWithSetupFunc (\_ -> liftIO $ (,) <$> application <*> pure ())
 
 waiClientSpecWithSetupFunc ::
   (HTTP.Manager -> SetupFunc oldInner (Application, env)) ->

@@ -26,6 +26,7 @@ library
       Test.Syd.Wai
       Test.Syd.Wai.Client
       Test.Syd.Wai.Def
+      Test.Syd.Wai.Matcher
       Test.Syd.Wai.Request
   other-modules:
       Paths_sydtest_wai
@@ -34,11 +35,13 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , case-insensitive
     , http-client
     , http-types
     , mtl
     , pretty-show
     , sydtest
+    , text
     , time
     , wai
     , warp

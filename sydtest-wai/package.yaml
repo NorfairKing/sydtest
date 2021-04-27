@@ -16,11 +16,13 @@ library:
   source-dirs: src
   dependencies:
   - bytestring
+  - case-insensitive
   - http-client
   - http-types
   - mtl
   - pretty-show
   - sydtest
+  - text
   - time
   - wai
   - warp

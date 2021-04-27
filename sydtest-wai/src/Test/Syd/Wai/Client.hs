@@ -1,8 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 module Test.Syd.Wai.Client where
 
+import Control.Monad.Fail
 import Control.Monad.Reader
 import Control.Monad.State as State
 import qualified Data.ByteString.Lazy as LB

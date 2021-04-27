@@ -164,7 +164,7 @@ runPropertyTestWithArg ::
   TestRunSettings ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runPropertyTestWithArg p trs@TestRunSettings {..} wrapper = do
+runPropertyTestWithArg p trs wrapper = do
   let qcargs = makeQuickCheckArgs trs
   qcr <- quickCheckWithResult qcargs (aroundProperty wrapper p)
   let testRunResultGoldenCase = Nothing

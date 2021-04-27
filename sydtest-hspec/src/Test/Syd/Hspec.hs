@@ -52,7 +52,7 @@ runImportedItem ::
   TestRunSettings ->
   ((() -> inner -> IO ()) -> IO ()) ->
   IO TestRunResult
-runImportedItem (ImportedItem Hspec.Item {..}) trs@TestRunSettings {..} wrapper = do
+runImportedItem (ImportedItem Hspec.Item {..}) trs wrapper = do
   errOrRes <- applyWrapper2 wrapper $ \() inner -> do
     let params :: Hspec.Params
         params =

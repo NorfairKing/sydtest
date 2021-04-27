@@ -5,15 +5,10 @@ module Test.Syd.Wai.Client where
 
 import Control.Monad.Reader
 import Control.Monad.State as State
-import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import GHC.Generics (Generic)
 import Network.HTTP.Client as HTTP
-import Network.HTTP.Types as HTTP
-import Network.Wai as Wai
-import Network.Wai.Handler.Warp as Warp
 import Test.Syd
-import Text.Show.Pretty
 
 data WaiClient env = WaiClient
   { -- The 'HTTP.Manager' tto make the requests

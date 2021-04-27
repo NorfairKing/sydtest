@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
+
 module Test.Syd.Wai
   ( -- * Functions to run a test suite
 

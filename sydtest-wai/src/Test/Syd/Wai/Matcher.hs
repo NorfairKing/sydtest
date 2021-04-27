@@ -17,9 +17,6 @@ import Data.Maybe
 import Data.String
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import qualified Data.Text.Lazy as LT
-import Data.Text.Lazy.Encoding (encodeUtf8)
-import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
 
 type Body = LB.ByteString
@@ -87,5 +84,5 @@ safeToString bs = do
   str <- either (const Nothing) (Just . T.unpack) (TE.decodeUtf8' bs)
   let isSafe = not $ case str of
         [] -> True
-        _ -> Char.isSpace (last str) || not (all . Char.isPrint) str
+        _ -> Char.isSpace (last str) || not (all Char.isPrint str)
   guard isSafe >> return str

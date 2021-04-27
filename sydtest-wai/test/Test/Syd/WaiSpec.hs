@@ -57,7 +57,3 @@ spec = managerSpec $ do
         get "/" `shouldRespondWith` 200
       wit "works with a string" $
         get "/" `shouldRespondWith` ""
-      wit "correctly fails here" $
-        get "/" `shouldRespondWith` 303
-      wit "correctly fails here too" $
-        get "/" `shouldRespondWith` "foobar"

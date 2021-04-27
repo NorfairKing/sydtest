@@ -17,7 +17,7 @@ import Text.Show.Pretty
 
 data WaiClient env = WaiClient
   { -- The 'HTTP.Manager' tto make the requests
-    waiClientMananger :: !HTTP.Manager,
+    waiClientManager :: !HTTP.Manager,
     -- The port that the application is running on, using @warp@
     waiClientPort :: !Int
   }

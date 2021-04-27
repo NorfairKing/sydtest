@@ -21,6 +21,7 @@ library:
   - mtl
   - pretty-show
   - sydtest
+  - time
   - wai
   - warp
 

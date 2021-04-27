@@ -26,6 +26,7 @@ library
       Test.Syd.Wai
       Test.Syd.Wai.Client
       Test.Syd.Wai.Def
+      Test.Syd.Wai.Request
   other-modules:
       Paths_sydtest_wai
   hs-source-dirs:
@@ -38,6 +39,7 @@ library
     , mtl
     , pretty-show
     , sydtest
+    , time
     , wai
     , warp
   default-language: Haskell2010

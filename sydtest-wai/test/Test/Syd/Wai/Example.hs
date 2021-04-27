@@ -14,9 +14,14 @@ exampleApplication req sendResp = do
             Just _ -> HTTP.ok200
       sendResp $ responseLBS status [] ""
     ["redirect"] ->
-      sendResp $ responseLBS seeOther303 [] ""
-    ["set-cookie"] -> undefined
-    ["expects-cookie"] -> undefined
+      sendResp $ responseLBS HTTP.seeOther303 [("Location", "/")] ""
+    ["set-cookie"] ->
+      sendResp $ responseLBS HTTP.ok200 [("Set-Cookie", "hello=world")] ""
+    ["expects-cookie"] -> do
+      let status = case lookup "Cookie" $ requestHeaders req of
+            Nothing -> HTTP.notFound404
+            Just _ -> HTTP.ok200
+      sendResp $ responseLBS status [] ""
     _ -> do
       lb <- strictRequestBody req
       sendResp $ responseLBS HTTP.ok200 (requestHeaders req) lb

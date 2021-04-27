@@ -50,7 +50,11 @@ request method path headers body = do
             requestHeaders = headers,
             requestBody = RequestBodyLBS body
           }
-  performRequest req
+  now <- liftIO getCurrentTime
+  cj <- State.gets waiClientStateCookies
+  let (req', cj') = insertCookiesIntoRequest req cj now
+  State.modify' (\s -> s {waiClientStateCookies = cj'})
+  performRequest req'
 
 performRequest :: HTTP.Request -> WaiSession st (HTTP.Response LB.ByteString)
 performRequest req = do

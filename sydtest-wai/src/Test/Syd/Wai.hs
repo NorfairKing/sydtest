@@ -1,12 +1,22 @@
 module Test.Syd.Wai
   ( -- * Functions to run a test suite
+
+    -- ** A test suite that uses a running wai applications
     waiSpec,
     waiSpecWith,
     waiSpecWith',
     waiSpecWithSetupFunc,
+
+    -- ** A test suite that uses a running wai application and calls it using the functions provided in this package
+    waiClientSpec,
+    waiClientSpecWithSetupFunc,
+    waiClientSpecWithSetupFunc',
+
+    -- ** A test suite that uses a single HTTP manager accross tests
     managerSpec,
 
     -- *** Setup functions
+    waiClientSetupFunc,
     applicationSetupFunc,
 
     -- ** Core

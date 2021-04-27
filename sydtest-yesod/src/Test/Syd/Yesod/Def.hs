@@ -21,7 +21,7 @@ module Test.Syd.Yesod.Def
   )
 where
 
-import GHC.Stack
+import GHC.Stack (HasCallStack)
 import Network.HTTP.Client as HTTP
 import Test.Syd
 import Test.Syd.Wai
@@ -175,7 +175,7 @@ yit ::
   YesodSpec site
 yit s f = it s ((\cenv -> runYesodClientM cenv f) :: YesodClient site -> IO e)
 
--- | For backward compatibility
+-- | For compatibility with `yesod-test`
 --
 -- > ydescribe = describe
 ydescribe :: String -> YesodSpec site -> YesodSpec site

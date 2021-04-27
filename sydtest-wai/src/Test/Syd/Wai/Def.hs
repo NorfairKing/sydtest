@@ -1,13 +1,57 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.Wai.Def where
 
+import GHC.Stack (HasCallStack)
 import Network.HTTP.Client as HTTP
 import Network.Wai as Wai
 import Network.Wai.Handler.Warp as Warp
 import Test.Syd
+import Test.Syd.Wai.Client
+
+waiClientSpec :: Application -> TestDefM (HTTP.Manager ': outers) (WaiClient ()) result -> TestDefM outers oldInner result
+waiClientSpec application = waiClientSpecWithSetupFunc (\_ -> pure (application, ()))
+
+waiClientSpecWithSetupFunc ::
+  (HTTP.Manager -> SetupFunc oldInner (Application, env)) ->
+  TestDefM (HTTP.Manager ': outers) (WaiClient env) result ->
+  TestDefM outers oldInner result
+waiClientSpecWithSetupFunc setupFunc = managerSpec . waiClientSpecWithSetupFunc' setupFunc
+
+waiClientSpecWithSetupFunc' ::
+  (HTTP.Manager -> SetupFunc oldInner (Application, env)) ->
+  TestDefM (HTTP.Manager ': outers) (WaiClient env) result ->
+  TestDefM (HTTP.Manager ': outers) oldInner result
+waiClientSpecWithSetupFunc' setupFunc = setupAroundWith' (\man -> setupFunc man `connectSetupFunc` waiClientSetupFunc man)
+
+waiClientSetupFunc :: HTTP.Manager -> SetupFunc (Application, env) (WaiClient env)
+waiClientSetupFunc man = wrapSetupFunc $ \(application, env) -> do
+  p <- unwrapSetupFunc applicationSetupFunc application
+  let client =
+        WaiClient
+          { waiClientManager = man,
+            waiClientEnv = env,
+            waiClientPort = p
+          }
+  pure client
+
+-- | Define a test in the 'WaiClientM site' monad instead of 'IO'.
+wit ::
+  forall env e outers.
+  ( HasCallStack,
+    IsTest (WaiClient env -> IO e),
+    Arg1 (WaiClient env -> IO e) ~ (),
+    Arg2 (WaiClient env -> IO e) ~ WaiClient env
+  ) =>
+  String ->
+  WaiClientM env e ->
+  TestDefM outers (WaiClient env) ()
+wit s f = it s ((\cenv -> runWaiClientM cenv f) :: WaiClient env -> IO e)
 
 -- | Run a given 'Wai.Application' around every test.
 --
@@ -40,5 +84,5 @@ applicationSetupFunc = SetupFunc $ \func application ->
     func p
 
 -- | Create a 'HTTP.Manager' before all tests in the given group.
-managerSpec :: TestDef (HTTP.Manager ': l) a -> TestDef l a
+managerSpec :: TestDefM (HTTP.Manager ': outers) inner result -> TestDefM outers inner result
 managerSpec = beforeAll $ HTTP.newManager HTTP.defaultManagerSettings

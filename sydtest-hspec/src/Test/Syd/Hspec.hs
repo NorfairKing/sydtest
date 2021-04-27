@@ -12,9 +12,15 @@ import Data.List
 import qualified Test.Hspec.Core.Spec as Hspec
 import Test.Syd as Syd
 
--- | Import an Hspec 'Test.Hspec.Spec' as a 'Test.Syd.Spec'.
+-- | Import an Hspec 'Test.Hspec.Spec' as a Sydtest 'Test.Syd.Spec'.
 --
--- This function is rather generally typed, you can use it on any 'Spec'.
+-- The reasoning behind this function is that, eventhough migration from hspec
+-- to sydtest is usually very simple, you might depend on certain libraries
+-- beyond your control that still use hspec.  In that case you want to be able
+-- to still use those libraries but also use sydtest already.
+--
+-- For this reason, and because hspec doesn't tell you wether a test is pending
+-- until after you run it, pending tests are imported as passing tests.
 fromHspec :: Hspec.Spec -> Syd.Spec
 fromHspec (Hspec.SpecM specWriter) = do
   (result, trees) <- liftIO $ runWriterT specWriter

@@ -10,15 +10,17 @@ import Control.Monad.State as State
 import qualified Data.ByteString.Lazy as LB
 import GHC.Generics (Generic)
 import Network.HTTP.Client as HTTP
+import Network.Socket (PortNumber)
 import Test.Syd
 
+-- | A client environment for a 'Wai.Application' with a user-defined environment as well
 data WaiClient env = WaiClient
   { -- The 'HTTP.Manager' tto make the requests
     waiClientManager :: !HTTP.Manager,
     -- | The user-defined environment
     waiClientEnv :: !env,
     -- The port that the application is running on, using @warp@
-    waiClientPort :: !Int
+    waiClientPort :: !PortNumber
   }
   deriving (Generic)
 

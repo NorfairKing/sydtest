@@ -8,13 +8,14 @@ import Test.Syd.Wai
 import Test.Syd.Wai.Example
 
 spec :: Spec
-spec = managerSpec $ do
-  waiSpec exampleApplication $ do
-    itWithBoth "echos this example" $ \man p -> do
-      let body = "hello world"
-      req <- (\r -> r {port = p, requestBody = RequestBodyLBS body}) <$> parseRequest "http://localhost"
-      resp <- httpLbs req man
-      responseBody resp `shouldBe` body
+spec = do
+  managerSpec $
+    waiSpec exampleApplication $ do
+      itWithBoth "echos this example" $ \man p -> do
+        let body = "hello world"
+        req <- (\r -> r {port = fromIntegral p, requestBody = RequestBodyLBS body}) <$> parseRequest "http://localhost"
+        resp <- httpLbs req man
+        responseBody resp `shouldBe` body
   waiClientSpec exampleApplication $ do
     describe "get" $ do
       wit "can GET the root and get a 200" $ do

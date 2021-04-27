@@ -48,7 +48,7 @@ request method path headers body = do
   let req =
         defaultRequest
           { host = "localhost",
-            port = port,
+            port = fromIntegral port, -- Safe because it is PortNumber -> INt
             method = method,
             path = path,
             requestHeaders = headers,
@@ -60,6 +60,11 @@ request method path headers body = do
   State.modify' (\s -> s {waiClientStateCookies = cj'})
   performRequest req'
 
+-- | Perform a bare 'HTTP.Request'.
+--
+-- You can use this to make a request to an application other than the one
+-- under test.  This function does __not__ set the host and port of the request
+-- like 'request' does, but it does share a 'CookieJar'.
 performRequest :: HTTP.Request -> WaiSession st (HTTP.Response LB.ByteString)
 performRequest req = do
   man <- asks waiClientManager
@@ -76,6 +81,10 @@ performRequest req = do
     )
   pure resp
 
+-- | Make a test assertion using a 'ResponseMatcher' on the 'HTTP.Response' produced by the given action
+--
+-- This function is provided for backward compatibility with wai-test but this approach has been made obsolete by the way sydtest does things.
+-- You should use 'shouldBe' based on the responses that you get from functions like 'get' and 'post' instead.
 shouldRespondWith :: HasCallStack => WaiSession st (HTTP.Response LB.ByteString) -> ResponseMatcher -> WaiExpectation st
 shouldRespondWith action ResponseMatcher {..} = do
   response <- action

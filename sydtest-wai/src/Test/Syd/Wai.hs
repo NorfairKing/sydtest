@@ -35,6 +35,7 @@ module Test.Syd.Wai
     options,
     delete,
     request,
+    performRequest,
 
     -- ** Assertions
     ResponseMatcher (..),

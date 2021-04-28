@@ -374,6 +374,11 @@ data TestRunResult = TestRunResult
 data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
 
+-- | A special exception that sydtest knows about and can display nicely in the error output
+--
+-- This is exported outwards so that you can define golden tests for custom types.
+--
+-- You will probably not want to use this directly in everyday tests, use `shouldBe` or a similar function instead.
 data Assertion
   = NotEqualButShouldHaveBeenEqual String String
   | EqualButShouldNotHaveBeenEqual String String

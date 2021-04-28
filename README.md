@@ -214,6 +214,12 @@ it "works" pending
 pending "works"
 ```
 
+### `context`
+
+The `context` function is a completely different function from the function with the same name in hspec.
+In hspec, context is a synonym for describe, but in sydtest, context is used for contextual failures.
+To migrate, replace your occurrences of `context` by `describe`.
+
 ### `beforeAll` and `afterAll`
 
 The `*All` resource functions from hspec will still work, but inside them you will need to use `itWithOuter` instead of `it.

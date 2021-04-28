@@ -123,6 +123,9 @@ expectationFailure :: HasCallStack => String -> IO a
 expectationFailure = throwIO . ExpectationFailed
 
 -- | Annotate a given action with a context, for contextual assertions
+--
+-- This is a completely different function from the function with the same name in hspec.
+-- In hspec, context is a synonym for describe, but in sydtest, context is used for contextual failures.
 context :: String -> IO a -> IO a
 context s action = (action >>= evaluate) `catch` (\a -> throwIO (Context a s))
 

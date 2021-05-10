@@ -1,4 +1,4 @@
 let
   pkgs = import ./nix/pkgs.nix { };
 in
-pkgs.sydtestRelease
+pkgs.sydtestPackages

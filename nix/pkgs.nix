@@ -15,6 +15,7 @@ let
         [
           yamlparse-applicative-overlay
           safe-coloured-text-overlay
+          (final: previous: { niv = (import sources.niv { pkgs = final; }).niv; })
           (final: previous: { inherit (import sources.gitignore { inherit (final) lib; }) gitignoreSource; })
           (import ./overlay.nix)
         ];

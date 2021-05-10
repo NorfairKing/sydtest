@@ -1,6 +1,4 @@
-# Track the stackage nightly version used in the nixpkgs commit we use
-# https://github.com/NixOS/nixpkgs/blob/4e0d3868c679da20108db402785f924daa1a7fb5/pkgs/development/haskell-modules/configuration-hackage2nix.yaml#L80
-resolver: lts-16.20
+resolver: lts-16.12
 allow-newer: false
 packages:
 - sydtest
@@ -25,7 +23,7 @@ extra-deps:
   subdirs:
     - yamlparse-applicative
 - github: NorfairKing/safe-coloured-text
-  commit: 3fe46e3102a02987ebb8ee389c15a9c57df21ccc
+  commit: d840dd7b0f13f4d0fd693c1dd93be33f9ee94605
   subdirs:
     - safe-coloured-text
     - safe-coloured-text-terminfo

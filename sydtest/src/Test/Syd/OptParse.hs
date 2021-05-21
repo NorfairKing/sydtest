@@ -19,6 +19,7 @@ import qualified Options.Applicative.Help as OptParse (string)
 import Path
 import Path.IO
 import Test.Syd.Run
+import Test.Syd.Run.Settings
 import YamlParse.Applicative as YamlParse
 
 getSettings :: IO Settings

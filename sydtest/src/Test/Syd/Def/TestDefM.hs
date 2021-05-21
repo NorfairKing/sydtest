@@ -26,6 +26,7 @@ import System.Random.Shuffle
 import Test.QuickCheck.IO ()
 import Test.Syd.OptParse
 import Test.Syd.Run
+import Test.Syd.Run.Settings
 import Test.Syd.SpecDef
 
 -- | A synonym for easy migration from hspec

@@ -29,6 +29,7 @@ import Control.Monad.RWS.Strict
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
 import Test.Syd.Run
+import Test.Syd.Run.Settings
 import Test.Syd.SpecDef
 
 modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM a b c -> TestDefM a b c

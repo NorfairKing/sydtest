@@ -43,6 +43,7 @@ library
       Test.Syd.Run
       Test.Syd.Run.Property
       Test.Syd.Run.Result
+      Test.Syd.Run.Settings
       Test.Syd.Runner
       Test.Syd.Runner.Asynchronous
       Test.Syd.Runner.Synchronous

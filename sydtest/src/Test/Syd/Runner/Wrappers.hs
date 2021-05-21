@@ -10,6 +10,7 @@ module Test.Syd.Runner.Wrappers where
 import Control.Concurrent
 import Control.Monad.IO.Class
 import Test.Syd.Run
+import Test.Syd.Run.Result
 import Test.Syd.SpecDef
 
 data Next a = Continue a | Stop a

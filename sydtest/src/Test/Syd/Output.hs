@@ -23,6 +23,7 @@ import GHC.Stack
 import Safe
 import Test.QuickCheck.IO ()
 import Test.Syd.Run
+import Test.Syd.Run.Result
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour

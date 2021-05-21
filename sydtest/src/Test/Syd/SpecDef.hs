@@ -24,6 +24,7 @@ import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.Run
+import Test.Syd.Run.Result
 import Test.Syd.SpecForest
 
 data TDef value = TDef {testDefVal :: value, testDefCallStack :: CallStack}

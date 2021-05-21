@@ -15,6 +15,7 @@ import Path
 import Path.IO
 import Test.Syd.Expectation
 import Test.Syd.Run
+import Test.Syd.Run.Result
 import Text.Show.Pretty
 
 -- | Test that the given bytestring is the same as what we find in the given golden file.

@@ -17,6 +17,7 @@ import Test.QuickCheck.IO ()
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 import Test.Syd.Run
+import Test.Syd.Run.Result
 import Test.Syd.SpecDef
 
 -- | Run a custom action before every spec item, to set up an inner resource 'inner'.

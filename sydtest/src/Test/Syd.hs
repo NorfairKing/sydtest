@@ -226,6 +226,7 @@ module Test.Syd
     module Test.Syd.Modify,
     module Test.Syd.Output,
     module Test.Syd.Run,
+    module Test.Syd.Run.Result,
     module Test.Syd.Runner,
     module Test.Syd.SpecDef,
     module Test.Syd.SpecForest,
@@ -244,6 +245,7 @@ import Test.Syd.Modify
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
+import Test.Syd.Run.Result
 import Test.Syd.Runner
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest

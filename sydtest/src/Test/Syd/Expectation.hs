@@ -15,6 +15,7 @@ import Data.Typeable
 import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.Run
+import Test.Syd.Run.Result
 import Text.Show.Pretty
 
 -- | Assert that two values are equal according to `==`.

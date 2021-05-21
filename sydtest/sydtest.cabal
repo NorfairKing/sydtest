@@ -48,6 +48,7 @@ library
       Test.Syd.Runner.Asynchronous
       Test.Syd.Runner.Synchronous
       Test.Syd.Runner.Wrappers
+      Test.Syd.Scratchpad
       Test.Syd.SpecDef
       Test.Syd.SpecForest
   other-modules:
@@ -76,6 +77,7 @@ library
     , safe-coloured-text
     , safe-coloured-text-terminfo
     , split
+    , stm
     , text
     , yaml
     , yamlparse-applicative

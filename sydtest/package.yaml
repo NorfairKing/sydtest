@@ -20,6 +20,7 @@ library:
     - Diff
     - MonadRandom
     - QuickCheck
+    - stm
     - async
     - bytestring
     - containers

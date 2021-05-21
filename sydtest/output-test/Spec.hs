@@ -6,6 +6,7 @@
 module Main where
 
 import Control.Concurrent
+import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad
 import Data.ByteString (ByteString)
@@ -27,6 +28,9 @@ class ToUnit a where
 
 instance ToUnit Int -- No implementation on purpose
 
+-- This test suite ensures that exceptions are not leaked out of test suites,
+-- and they serve as a way to check the output without requiring the tests to
+-- pass.
 main :: IO ()
 main = do
   sets <- getSettings
@@ -264,6 +268,21 @@ spec = do
             tabulate "List elements" (map show xs) $
               tabulate "List magnitudes" (map (show . magnitude) xs) $
                 sort xs `shouldBe` (xs :: [Int])
+  modifyMaxSize (const 30) $
+    describe "Shrinking" $ do
+      var <- liftIO $ newTVarIO True
+      let withTrue func = do
+            atomically $ writeTVar var True
+            r <- func
+            atomically $ writeTVar var False
+            pure r
+      around_ withTrue $
+        it "maintains resource invariants correctly" $
+          forAllShrink (sized $ \n -> pure n) shrink $ \i -> do
+            b <- readTVarIO var
+            if b
+              then i `shouldSatisfy` (< 20)
+              else expectationFailure "Invariant of resources not maintained during shrinking"
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

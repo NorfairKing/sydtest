@@ -73,5 +73,6 @@ tests:
     - path-io
     - safe-coloured-text
     - safe-coloured-text-terminfo
+    - stm
     - sydtest
     - text

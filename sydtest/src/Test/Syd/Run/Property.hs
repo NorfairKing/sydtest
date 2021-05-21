@@ -95,13 +95,25 @@ runPropertyTestWithArg p trs wrapper = do
       pure TestRunResult {..}
 
 aroundProperty :: ((a -> b -> IO ()) -> IO ()) -> (a -> b -> Property) -> Property
-aroundProperty action p = MkProperty . MkGen $ \r n -> aroundProp action $ \a b -> (unGen . unProperty $ p a b) r n
+aroundProperty action p =
+  idempotentIOProperty $
+    applySimpleWrapper2'
+      action
+      ( \a b -> do
+          evaluate $ p a b
+      )
 
-aroundProp :: ((a -> b -> IO ()) -> IO ()) -> (a -> b -> Prop) -> Prop
-aroundProp action p = MkProp $ aroundRose action (\a b -> unProp $ p a b)
+applySimpleWrapper2' ::
+  MonadIO m =>
+  ((a -> b -> m ()) -> m ()) ->
+  (a -> b -> m r) ->
+  m r
+applySimpleWrapper2' takeTakeAB takeAB = do
+  var <- liftIO newEmptyMVar
+  takeTakeAB
+    ( \a b -> do
+        r <- takeAB a b
+        liftIO $ putMVar var r
+    )
 
-aroundRose :: ((a -> b -> IO ()) -> IO ()) -> (a -> b -> Rose QCP.Result) -> Rose QCP.Result
-aroundRose action r = ioRose $ do
-  ref <- newIORef (return QCP.succeeded)
-  action $ \a b -> reduceRose (r a b) >>= writeIORef ref
-  readIORef ref
+  liftIO $ readMVar var

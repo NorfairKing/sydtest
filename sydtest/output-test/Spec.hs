@@ -270,7 +270,7 @@ spec = do
                 sort xs `shouldBe` (xs :: [Int])
   modifyMaxSize (const 30) $
     describe "Shrinking" $ do
-      var <- liftIO $ newTVarIO True
+      var <- liftIO $ newTVarIO False
       let withTrue func = do
             atomically $ writeTVar var True
             r <- func

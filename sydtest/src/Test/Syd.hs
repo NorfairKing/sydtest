@@ -162,10 +162,6 @@ module Test.Syd
     SetupFunc (..),
     makeSimpleSetupFunc,
     useSimpleSetupFunc,
-    connectSetupFunc,
-    composeSetupFunc,
-    wrapSetupFunc,
-    unwrapSetupFunc,
 
     -- *** Declaring different test settings
     modifyMaxSuccess,

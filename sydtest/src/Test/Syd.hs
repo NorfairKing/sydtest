@@ -261,5 +261,9 @@ sydTestWith sets spec = do
   resultForest <- sydTestResult sets spec
   when (shouldExitFail (timedValue resultForest)) (exitWith (ExitFailure 1))
 
+-- | Run a test suite during test suite definition.
+--
+-- This function only exists for backward compatibility.
+-- You can also just use 'liftIO' instead.
 runIO :: IO e -> TestDefM a b e
 runIO = liftIO

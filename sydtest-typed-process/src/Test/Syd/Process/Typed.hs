@@ -30,9 +30,8 @@ outerTypedProcessSpec pc = setupAroundAll $ typedProcessSetupFunc pc
 -- | Set up a process beforehand and stop it afterwards.
 --
 -- The process will be terminated using 'stopProcess'.
-typedProcessSetupFunc :: ProcessConfig stdin stdout stderr -> SetupFunc () (Process stdin stdout stderr)
+typedProcessSetupFunc :: ProcessConfig stdin stdout stderr -> SetupFunc (Process stdin stdout stderr)
 typedProcessSetupFunc pc =
-  makeSimpleSetupFunc
-    ( \func -> bracket (startProcess pc) stopProcess $ \ph -> do
-        func ph
-    )
+  SetupFunc $ \func ->
+    bracket (startProcess pc) stopProcess $ \ph -> do
+      func ph

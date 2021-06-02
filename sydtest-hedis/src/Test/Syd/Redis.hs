@@ -57,23 +57,23 @@ data RedisServerHandle = RedisServerHandle
 -- >          Right val -> val `shouldBe` Just "world"
 --
 -- This function just combines 'redisServerSpec' with 'setupAroundWith' redisConnectionSetupFunc'.
-redisSpec :: TestDefM (RedisServerHandle ': outers) Redis.Connection result -> TestDefM outers () result
-redisSpec = redisServerSpec . setupAroundWith' redisConnectionSetupFunc
+redisSpec :: TestDefM (RedisServerHandle ': outers) Redis.Connection result -> TestDefM outers inner result
+redisSpec = redisServerSpec . setupAroundWith' (\serverHandle _ -> redisConnectionSetupFunc serverHandle)
 
 -- | Set up a clean redis connection given a handle to the redis server.
 --
 -- This function cleans the state using `flushall`.
-redisConnectionSetupFunc :: RedisServerHandle -> SetupFunc () Redis.Connection
+redisConnectionSetupFunc :: RedisServerHandle -> SetupFunc Redis.Connection
 redisConnectionSetupFunc RedisServerHandle {..} = do
   let connInfo = Redis.defaultConnectInfo {connectPort = PortNumber redisServerHandlePort}
-  conn <- unwrapSetupFunc checkedConnectSetupFunc connInfo
-  makeSimpleSetupFunc $ \func -> do
+  conn <- checkedConnectSetupFunc connInfo
+  SetupFunc $ \func -> do
     cleanRedisServerState conn
     func conn
 
 -- | A 'SetupFunc' that 'bracket's 'checkedConnect' and 'disconnect'.
-checkedConnectSetupFunc :: SetupFunc Redis.ConnectInfo Redis.Connection
-checkedConnectSetupFunc = SetupFunc $ \func connInfo -> bracket (checkedConnect connInfo) disconnect func
+checkedConnectSetupFunc :: Redis.ConnectInfo -> SetupFunc Redis.Connection
+checkedConnectSetupFunc connInfo = SetupFunc $ \func -> bracket (checkedConnect connInfo) disconnect func
 
 -- | Run a redis server around a group of tests.
 redisServerSpec :: TestDefM (RedisServerHandle ': outers) inner result -> TestDefM outers inner result
@@ -90,14 +90,14 @@ cleanRedisServerState conn = do
 -- | Setup func for running a Redis server
 --
 -- This function uses a temporary directory (using 'tempDirSetupFunc') for any state.
-redisServerSetupFunc :: SetupFunc () RedisServerHandle
+redisServerSetupFunc :: SetupFunc RedisServerHandle
 redisServerSetupFunc = do
   td <- tempDirSetupFunc "sydtest-hedis"
-  unwrapSetupFunc redisServerSetupFunc' td
+  redisServerSetupFunc' td
 
 -- | Setup func for running a Redis server in a given directory
-redisServerSetupFunc' :: SetupFunc (Path Abs Dir) RedisServerHandle
-redisServerSetupFunc' = wrapSetupFunc $ \td -> do
+redisServerSetupFunc' :: Path Abs Dir -> SetupFunc RedisServerHandle
+redisServerSetupFunc' td = do
   pidFile <- resolveFile td "redis.pid"
   logFile <- resolveFile td "redis.log"
   portInt <- liftIO $ do

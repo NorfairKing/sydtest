@@ -17,6 +17,8 @@
 * `connectSetupFunc`, now obsolete: use `>=>` instead.
 * `wrapSetupFunc`, now entirely obsolete.
 * `unwrapSetupFunc`, now entirely obsolete.
+* `makeSimpleSetupFunc`, now obsolete: Use the `SetupFunc` constructor directly.
+* `useSimpleSetupFunc`, now obsolete: Use the `unSetupFunc` function directly.
 
 ## [0.1.0.0] - 2021-03-07
 

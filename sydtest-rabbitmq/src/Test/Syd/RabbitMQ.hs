@@ -61,14 +61,14 @@ rabbitMQSpec =
     . modifyMaxSuccess (`div` 20)
 
 -- | Set up a rabbitmq server in a temporary directory.
-rabbitMQServerSetupFunc :: SetupFunc () RabbitMQHandle
+rabbitMQServerSetupFunc :: SetupFunc RabbitMQHandle
 rabbitMQServerSetupFunc = do
   td <- tempDirSetupFunc "sydtest-amqp"
-  unwrapSetupFunc rabbitMQServerSetupFunc' td
+  rabbitMQServerSetupFunc' td
 
 -- | Set up a rabbitmq server in the given directory
-rabbitMQServerSetupFunc' :: SetupFunc (Path Abs Dir) RabbitMQHandle
-rabbitMQServerSetupFunc' = wrapSetupFunc $ \td -> do
+rabbitMQServerSetupFunc' :: Path Abs Dir -> SetupFunc RabbitMQHandle
+rabbitMQServerSetupFunc' td = do
   pidFile <- resolveFile td "rabbitmq.pid"
   configFile <- resolveFile td "rabbitmq.conf"
   mnesiaDir <- resolveDir td "mnesia"

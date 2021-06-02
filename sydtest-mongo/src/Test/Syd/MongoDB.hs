@@ -89,14 +89,14 @@ data MongoServerHandle = MongoServerHandle
 -- >      pure () :: IO ()
 --
 -- This function uses 'mongoServerSpec' as well as 'mongoConnectionSetupFunc' to run a mongo server, provide access to it and clean up before the test.
-mongoSpec :: TestDefM (MongoServerHandle ': outers) Mongo.Pipe result -> TestDefM outers () result
-mongoSpec = mongoServerSpec . setupAroundWith' mongoConnectionSetupFunc
+mongoSpec :: TestDefM (MongoServerHandle ': outers) Mongo.Pipe result -> TestDefM outers inner result
+mongoSpec = mongoServerSpec . setupAroundWith' (\serverHandle _ -> mongoConnectionSetupFunc serverHandle)
 
 -- | Connect to the given mongo server and clean up beforehand.
-mongoConnectionSetupFunc :: MongoServerHandle -> SetupFunc () Mongo.Pipe
+mongoConnectionSetupFunc :: MongoServerHandle -> SetupFunc Mongo.Pipe
 mongoConnectionSetupFunc MongoServerHandle {..} = do
   pipe <-
-    makeSimpleSetupFunc $
+    SetupFunc $
       let h = Host "127.0.0.1" $ PortNumber mongoServerHandlePort
        in bracket (Mongo.connect h) Mongo.close
   liftIO $
@@ -114,14 +114,14 @@ mongoServerSpec :: TestDefM (MongoServerHandle ': outers) inner result -> TestDe
 mongoServerSpec = setupAroundAll mongoServerSetupFunc . sequential -- Must run sequentially because state is shared.
 
 -- | Set up, and clean up after, a mongo server in a temporary directory.
-mongoServerSetupFunc :: SetupFunc () MongoServerHandle
+mongoServerSetupFunc :: SetupFunc MongoServerHandle
 mongoServerSetupFunc = do
   td <- tempDirSetupFunc "sydtest-hedis"
-  unwrapSetupFunc mongoServerSetupFunc' td
+  mongoServerSetupFunc' td
 
 -- | Set up, and clean up after, a mongo server, in the given directory.
-mongoServerSetupFunc' :: SetupFunc (Path Abs Dir) MongoServerHandle
-mongoServerSetupFunc' = wrapSetupFunc $ \td -> do
+mongoServerSetupFunc' :: Path Abs Dir -> SetupFunc MongoServerHandle
+mongoServerSetupFunc' td = do
   pidFile <- resolveFile td "mongo.pid"
   logFile <- resolveFile td "mongo.log"
   dataDir <- resolveDir td "data"

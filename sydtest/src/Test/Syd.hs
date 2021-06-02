@@ -147,6 +147,9 @@ module Test.Syd
 
     -- **** Setup functions
 
+    -- ***** Creating setup functions
+    SetupFunc (..),
+
     -- ***** Using setup functions
 
     -- ****** Around
@@ -157,11 +160,6 @@ module Test.Syd
     -- ****** AroundAll
     setupAroundAll,
     setupAroundAllWith,
-
-    -- ***** Creating setup functions
-    SetupFunc (..),
-    makeSimpleSetupFunc,
-    useSimpleSetupFunc,
 
     -- *** Declaring different test settings
     modifyMaxSuccess,

@@ -46,15 +46,14 @@ import Test.Syd.RabbitMQ
 -- >         Just (m, e) -> do
 -- >           msgBody m `shouldBe` body
 -- >           ackEnv e
-amqpSpec :: TestDefM (RabbitMQHandle ': outers) AMQP.Connection result -> TestDefM outers () result
-amqpSpec = rabbitMQSpec . setupAroundWith' amqpConnectionSetupFunc
+amqpSpec :: TestDefM (RabbitMQHandle ': outers) AMQP.Connection result -> TestDefM outers inner result
+amqpSpec = rabbitMQSpec . setupAroundWith' (\serverHandle _ -> amqpConnectionSetupFunc serverHandle)
 
 -- | Setup function for a connection to a given rabbitmq server
-amqpConnectionSetupFunc :: RabbitMQHandle -> SetupFunc () Connection
-amqpConnectionSetupFunc h =
-  makeSimpleSetupFunc $ \func -> do
-    let opts = defaultConnectionOpts {coServers = [("localhost", rabbitMQHandlePort h)]}
-    let acquire = openConnection'' opts
-    let release = closeConnection
-    let use = func
-    bracket acquire release use
+amqpConnectionSetupFunc :: RabbitMQHandle -> SetupFunc Connection
+amqpConnectionSetupFunc h = SetupFunc $ \func -> do
+  let opts = defaultConnectionOpts {coServers = [("localhost", rabbitMQHandlePort h)]}
+  let acquire = openConnection'' opts
+  let release = closeConnection
+  let use = func
+  bracket acquire release use

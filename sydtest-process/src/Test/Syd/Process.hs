@@ -31,9 +31,7 @@ outerProcessSpec cp = setupAroundAll $ processSetupFunc cp
 -- | Set up a process beforehand and stop it afterwards.
 --
 -- The process will be terminated using 'cleanupProcess'.
-processSetupFunc :: CreateProcess -> SetupFunc () (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
+processSetupFunc :: CreateProcess -> SetupFunc (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
 processSetupFunc cp =
-  makeSimpleSetupFunc
-    ( \func -> bracket (createProcess cp) cleanupProcess $ \ph -> do
-        func ph
-    )
+  SetupFunc $ \func -> bracket (createProcess cp) cleanupProcess $ \ph -> do
+    func ph

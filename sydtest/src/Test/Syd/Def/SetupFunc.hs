@@ -17,6 +17,13 @@ import Test.Syd.HList
 -- In other words, it's like an 'IO resource' that can clean up after itself.
 --
 -- This type has a monad instance, which means you can now compose setup functions using regular do-notation.
+-- This works together nicely with most supplier functions.
+-- Some examples:
+--
+-- * [Network.Wai.Handler.Warp.testWithApplication](https://hackage.haskell.org/package/warp-3.3.13/docs/Network-Wai-Handler-Warp.html#v:testWithApplication)
+-- * [Path.IO.withSystemTempDir](https://hackage.haskell.org/package/path-io-1.6.2/docs/Path-IO.html#v:withSystemTempDir)
+--
+-- Note that these examples already have functions defined for them in sydtest companion libraries.
 newtype SetupFunc resource = SetupFunc
   { unSetupFunc :: forall r. (resource -> IO r) -> IO r
   }
@@ -48,37 +55,6 @@ instance Monad SetupFunc where
 instance MonadIO SetupFunc where
   liftIO ioFunc = SetupFunc $ \takeA -> do
     ioFunc >>= takeA
-
--- * Making a 'SetupFunc' for your resource(s)
-
--- | Turn a simple provider function into a 'SetupFunc'.
---
--- > makeSimpleSetupFunc = SetupFunc
---
--- This works together nicely with most supplier functions.
--- Some examples:
---
--- * [Network.Wai.Handler.Warp.testWithApplication](https://hackage.haskell.org/package/warp-3.3.13/docs/Network-Wai-Handler-Warp.html#v:testWithApplication)
--- * [Path.IO.withSystemTempDir](https://hackage.haskell.org/package/path-io-1.6.2/docs/Path-IO.html#v:withSystemTempDir)
---
--- Note that these examples already have functions defined for them in sydtest companion libraries.
---
--- Note: This function only exists for backward compatibility, you can use the constructor directly instead.
-makeSimpleSetupFunc ::
-  (forall result. (resource -> IO result) -> IO result) ->
-  SetupFunc resource
-makeSimpleSetupFunc = SetupFunc
-
--- | Use a 'SetupFunc ()' as a simple provider function.
---
--- > useSimpleSetupFunc = unSetupFunc
---
--- This is the opposite of the 'makeSimpleSetupFunc' function
---
--- Note: This function only exists for backward compatibility
-useSimpleSetupFunc ::
-  SetupFunc resource -> (forall result. (resource -> IO result) -> IO result)
-useSimpleSetupFunc = unSetupFunc
 
 -- * Using 'SetupFunc' to define your test suite
 

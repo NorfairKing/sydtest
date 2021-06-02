@@ -6,6 +6,7 @@
 
 * `beforeWith` and `beforeWith'`
 * `scenarioDir` and `scenarioDirRecur` for scenario testing.
+* `bracketSetupFunc`
 
 ### Changed
 

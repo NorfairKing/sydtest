@@ -20,7 +20,6 @@ module Test.Syd.Redis
   )
 where
 
-import Control.Exception
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Database.Redis as Redis
@@ -73,7 +72,7 @@ redisConnectionSetupFunc RedisServerHandle {..} = do
 
 -- | A 'SetupFunc' that 'bracket's 'checkedConnect' and 'disconnect'.
 checkedConnectSetupFunc :: Redis.ConnectInfo -> SetupFunc Redis.Connection
-checkedConnectSetupFunc connInfo = SetupFunc $ \func -> bracket (checkedConnect connInfo) disconnect func
+checkedConnectSetupFunc connInfo = bracketSetupFunc (checkedConnect connInfo) disconnect
 
 -- | Run a redis server around a group of tests.
 redisServerSpec :: TestDefM (RedisServerHandle ': outers) inner result -> TestDefM outers inner result

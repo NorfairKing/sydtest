@@ -3,7 +3,6 @@
 
 module Test.Syd.Process where
 
-import Control.Exception
 import System.IO
 import System.Process
 import Test.Syd
@@ -32,6 +31,4 @@ outerProcessSpec cp = setupAroundAll $ processSetupFunc cp
 --
 -- The process will be terminated using 'cleanupProcess'.
 processSetupFunc :: CreateProcess -> SetupFunc (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
-processSetupFunc cp =
-  SetupFunc $ \func -> bracket (createProcess cp) cleanupProcess $ \ph -> do
-    func ph
+processSetupFunc cp = bracketSetupFunc (createProcess cp) cleanupProcess

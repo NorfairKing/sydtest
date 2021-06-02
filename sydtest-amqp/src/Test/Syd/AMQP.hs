@@ -8,7 +8,6 @@ module Test.Syd.AMQP
   )
 where
 
-import Control.Exception
 import Network.AMQP as AMQP
 import Test.Syd
 import Test.Syd.RabbitMQ
@@ -51,9 +50,8 @@ amqpSpec = rabbitMQSpec . setupAroundWith' (\serverHandle _ -> amqpConnectionSet
 
 -- | Setup function for a connection to a given rabbitmq server
 amqpConnectionSetupFunc :: RabbitMQHandle -> SetupFunc Connection
-amqpConnectionSetupFunc h = SetupFunc $ \func -> do
+amqpConnectionSetupFunc h = do
   let opts = defaultConnectionOpts {coServers = [("localhost", rabbitMQHandlePort h)]}
   let acquire = openConnection'' opts
   let release = closeConnection
-  let use = func
-  bracket acquire release use
+  bracketSetupFunc acquire release

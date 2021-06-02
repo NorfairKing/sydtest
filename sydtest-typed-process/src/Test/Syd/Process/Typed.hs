@@ -3,7 +3,6 @@
 
 module Test.Syd.Process.Typed where
 
-import Control.Exception
 import System.Process.Typed
 import Test.Syd
 
@@ -31,7 +30,4 @@ outerTypedProcessSpec pc = setupAroundAll $ typedProcessSetupFunc pc
 --
 -- The process will be terminated using 'stopProcess'.
 typedProcessSetupFunc :: ProcessConfig stdin stdout stderr -> SetupFunc (Process stdin stdout stderr)
-typedProcessSetupFunc pc =
-  SetupFunc $ \func ->
-    bracket (startProcess pc) stopProcess $ \ph -> do
-      func ph
+typedProcessSetupFunc pc = bracketSetupFunc (startProcess pc) stopProcess

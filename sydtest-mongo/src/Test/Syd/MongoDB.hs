@@ -18,7 +18,6 @@ module Test.Syd.MongoDB
   )
 where
 
-import Control.Exception
 import Control.Monad (forM_, void)
 import Data.Binary.Get
 import Data.Binary.Put
@@ -95,10 +94,8 @@ mongoSpec = mongoServerSpec . setupAroundWith' (\serverHandle _ -> mongoConnecti
 -- | Connect to the given mongo server and clean up beforehand.
 mongoConnectionSetupFunc :: MongoServerHandle -> SetupFunc Mongo.Pipe
 mongoConnectionSetupFunc MongoServerHandle {..} = do
-  pipe <-
-    SetupFunc $
-      let h = Host "127.0.0.1" $ PortNumber mongoServerHandlePort
-       in bracket (Mongo.connect h) Mongo.close
+  let h = Host "127.0.0.1" $ PortNumber mongoServerHandlePort
+  pipe <- bracketSetupFunc (Mongo.connect h) Mongo.close
   liftIO $
     Mongo.access pipe master "dummy" $ do
       databases <- Mongo.allDatabases

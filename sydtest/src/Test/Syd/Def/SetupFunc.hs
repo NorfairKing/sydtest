@@ -5,11 +5,14 @@
 -- | The 'SetupFunc' abstraction makes resource provider functions (of type @(a -> IO r) -> IO r@) composable.
 module Test.Syd.Def.SetupFunc where
 
+import Control.Exception
 import Control.Monad.IO.Class
 import Test.Syd.Def.Around
 import Test.Syd.Def.AroundAll
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
+
+-- * Creating 'SetupFunc's
 
 -- | A function that can provide a 'resource'.
 --
@@ -55,6 +58,10 @@ instance Monad SetupFunc where
 instance MonadIO SetupFunc where
   liftIO ioFunc = SetupFunc $ \takeA -> do
     ioFunc >>= takeA
+
+-- | Turn the arguments that you would normally give to 'bracket' into a 'SetupFunc'.
+bracketSetupFunc :: IO resource -> (resource -> IO r) -> SetupFunc resource
+bracketSetupFunc acquire release = SetupFunc $ \func -> bracket acquire release func
 
 -- * Using 'SetupFunc' to define your test suite
 

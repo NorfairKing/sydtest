@@ -20,21 +20,20 @@ tempDirSpec template = setupAround $ tempDirSetupFunc template
 tempDirSetupFunc ::
   -- | Temporary directory name template
   String ->
-  SetupFunc () (Path Abs Dir)
-tempDirSetupFunc template = makeSimpleSetupFunc $ withSystemTempDir template
+  SetupFunc (Path Abs Dir)
+tempDirSetupFunc template = SetupFunc $ withSystemTempDir template
 
 tempBinaryFileWithContentsSetupFunc ::
   -- | Temporary directory name template
   String ->
   ByteString ->
-  SetupFunc () (Path Abs File)
-tempBinaryFileWithContentsSetupFunc template contents =
-  makeSimpleSetupFunc $ \func ->
-    withSystemTempFile
-      template
-      ( \af h -> do
-          SB.hPut h contents
-          hFlush h
-          hClose h
-          func af
-      )
+  SetupFunc (Path Abs File)
+tempBinaryFileWithContentsSetupFunc template contents = SetupFunc $ \func ->
+  withSystemTempFile
+    template
+    ( \af h -> do
+        SB.hPut h contents
+        hFlush h
+        hClose h
+        func af
+    )

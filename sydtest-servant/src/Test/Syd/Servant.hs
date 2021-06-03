@@ -25,15 +25,16 @@ servantSpec :: forall api. HasServer api '[] => Servant.Proxy api -> ServerT api
 servantSpec py server = servantSpecWithSetupFunc py (pure server)
 
 -- | Run a servant server around every test, based around the given 'SetupFunc'
-servantSpecWithSetupFunc :: forall api a. HasServer api '[] => Servant.Proxy api -> SetupFunc a (ServerT api Handler) -> ServantSpec -> SpecWith a
-servantSpecWithSetupFunc py serverSetupFunc =
-  beforeAll (newManager defaultManagerSettings)
-    . setupAroundWith' (\man -> serverSetupFunc `connectSetupFunc` clientEnvSetupFunc py man)
+servantSpecWithSetupFunc :: forall api. HasServer api '[] => Servant.Proxy api -> SetupFunc (ServerT api Handler) -> ServantSpec -> Spec
+servantSpecWithSetupFunc py setupFunc = servantSpecWithSetupFunc' py $ \() -> setupFunc
 
-clientEnvSetupFunc :: forall api. HasServer api '[] => Servant.Proxy api -> HTTP.Manager -> SetupFunc (ServerT api Handler) ClientEnv
-clientEnvSetupFunc py man = wrapSetupFunc $ \server -> do
+servantSpecWithSetupFunc' :: forall api inner. HasServer api '[] => Servant.Proxy api -> (inner -> SetupFunc (ServerT api Handler)) -> ServantSpec -> SpecWith inner
+servantSpecWithSetupFunc' py serverSetupFunc = managerSpec . setupAroundWith' (\man inner -> serverSetupFunc inner >>= clientEnvSetupFunc py man)
+
+clientEnvSetupFunc :: forall api. HasServer api '[] => Servant.Proxy api -> HTTP.Manager -> ServerT api Handler -> SetupFunc ClientEnv
+clientEnvSetupFunc py man server = do
   let application = serve py server
-  p <- unwrapSetupFunc applicationSetupFunc application
+  p <- applicationSetupFunc application
   pure $
     mkClientEnv
       man

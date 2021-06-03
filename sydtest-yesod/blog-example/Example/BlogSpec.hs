@@ -7,22 +7,13 @@ import qualified Data.Text as T
 import Database.Persist (selectList)
 import Database.Persist.Sql (Entity (..), SqlPersistT)
 import Example.Blog
-import Network.HTTP.Client as HTTP
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.Persistent.Sqlite
 import Test.Syd.Yesod
 
--- | A 'SetupFunc' to provide the App and clean up around it.
---
--- The 'HTTP.Manager' here is the one that is used for doing the test requests.
--- It is setup only once and it is shared accross tests for performance reasons.
--- If you also need an 'HTTP.Manager' in your 'App', then you can use it in your 'SetupFunc' here
--- but in this case we don't need it.
-appSetupFunc :: HTTP.Manager -> SetupFunc () App
-appSetupFunc _ = do
-  pool <- connectionPoolSetupFunc migrateThoughts
-  pure $ App {appConnectionPool = pool}
+appSupplier :: (App -> IO r) -> IO r
+appSupplier func = withConnectionPool migrateThoughts $ \pool -> func App {appConnectionPool = pool}
 
 testDB :: SqlPersistT IO a -> YesodClientM App a
 testDB func = do
@@ -30,7 +21,7 @@ testDB func = do
   liftIO $ runSqlPool func pool
 
 spec :: Spec
-spec = yesodSpecWithSiteSetupFunc appSetupFunc $ do
+spec = yesodSpecWithSiteSupplier appSupplier $ do
   -- A simple read-only test: We can request the home page succesfully.
   yit "can GET the home page" $ do
     get HomeR

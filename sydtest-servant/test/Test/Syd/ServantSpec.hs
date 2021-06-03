@@ -6,8 +6,8 @@ import Test.Syd
 import Test.Syd.Servant
 import Test.Syd.Servant.Example
 
-exampleSetupFunc :: SetupFunc () (Server ExampleAPI)
-exampleSetupFunc = SetupFunc $ \func () -> do
+exampleSetupFunc :: SetupFunc (Server ExampleAPI)
+exampleSetupFunc = SetupFunc $ \func -> do
   var <- newTVarIO 0
   func $ exampleServer var
 

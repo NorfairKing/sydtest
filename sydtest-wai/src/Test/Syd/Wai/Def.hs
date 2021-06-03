@@ -23,11 +23,11 @@ waiClientSpec application = waiClientSpecWith $ pure application
 
 -- | Run a given 'Wai.Application', as built by the given action, around every test.
 waiClientSpecWith :: IO Application -> TestDefM (HTTP.Manager ': outers) (WaiClient ()) result -> TestDefM outers oldInner result
-waiClientSpecWith application = waiClientSpecWithSetupFunc (\_ -> liftIO $ (,) <$> application <*> pure ())
+waiClientSpecWith application = waiClientSpecWithSetupFunc (\_ _ -> liftIO $ (,) <$> application <*> pure ())
 
 -- | Run a given 'Wai.Application', as built by the given 'SetupFunc', around every test.
 waiClientSpecWithSetupFunc ::
-  (HTTP.Manager -> SetupFunc oldInner (Application, env)) ->
+  (HTTP.Manager -> oldInner -> SetupFunc (Application, env)) ->
   TestDefM (HTTP.Manager ': outers) (WaiClient env) result ->
   TestDefM outers oldInner result
 waiClientSpecWithSetupFunc setupFunc = managerSpec . waiClientSpecWithSetupFunc' setupFunc
@@ -36,15 +36,17 @@ waiClientSpecWithSetupFunc setupFunc = managerSpec . waiClientSpecWithSetupFunc'
 --
 -- This function doesn't set up the 'HTTP.Manager' like 'waiClientSpecWithSetupFunc' does.
 waiClientSpecWithSetupFunc' ::
-  (HTTP.Manager -> SetupFunc oldInner (Application, env)) ->
+  (HTTP.Manager -> oldInner -> SetupFunc (Application, env)) ->
   TestDefM (HTTP.Manager ': outers) (WaiClient env) result ->
   TestDefM (HTTP.Manager ': outers) oldInner result
-waiClientSpecWithSetupFunc' setupFunc = setupAroundWith' (\man -> setupFunc man `connectSetupFunc` waiClientSetupFunc man)
+waiClientSpecWithSetupFunc' setupFunc = setupAroundWith' $ \man oldInner -> do
+  (application, env) <- setupFunc man oldInner
+  waiClientSetupFunc man application env
 
 -- | A 'SetupFunc' for a 'WaiClient', given an 'Application' and user-defined @env@.
-waiClientSetupFunc :: HTTP.Manager -> SetupFunc (Application, env) (WaiClient env)
-waiClientSetupFunc man = wrapSetupFunc $ \(application, env) -> do
-  p <- unwrapSetupFunc applicationSetupFunc application
+waiClientSetupFunc :: HTTP.Manager -> Application -> env -> SetupFunc (WaiClient env)
+waiClientSetupFunc man application env = do
+  p <- applicationSetupFunc application
   let client =
         WaiClient
           { waiClientManager = man,
@@ -85,23 +87,31 @@ waiSpec application = waiSpecWithSetupFunc $ pure application
 --
 -- This provides the port on which the application is running.
 waiSpecWith :: (forall r. (Application -> IO r) -> IO r) -> TestDef outers PortNumber -> TestDef outers ()
-waiSpecWith appFunc = waiSpecWithSetupFunc $ makeSimpleSetupFunc appFunc
+waiSpecWith appFunc = waiSpecWithSetupFunc $ SetupFunc $ \takeApp -> appFunc takeApp
 
 -- | Run a 'Wai.Application' around every test by setting it up with the given setup function that can take an argument.
 -- a
 -- This provides the port on which the application is running.
-waiSpecWith' :: (forall r. (Application -> IO r) -> (a -> IO r)) -> TestDef outers PortNumber -> TestDef outers a
-waiSpecWith' appFunc = waiSpecWithSetupFunc $ SetupFunc appFunc
+waiSpecWith' :: (forall r. (Application -> IO r) -> (inner -> IO r)) -> TestDef outers PortNumber -> TestDef outers inner
+waiSpecWith' appFunc = waiSpecWithSetupFunc' $ \inner -> SetupFunc $ \takeApp -> appFunc takeApp inner
 
 -- | Run a 'Wai.Application' around every test by setting it up with the given 'SetupFunc'.
 -- a
 -- This provides the port on which the application is running.
-waiSpecWithSetupFunc :: SetupFunc a Application -> TestDef outers PortNumber -> TestDef outers a
-waiSpecWithSetupFunc setupFunc = setupAroundWith (setupFunc `connectSetupFunc` applicationSetupFunc)
+waiSpecWithSetupFunc :: SetupFunc Application -> TestDef outers PortNumber -> TestDef outers ()
+waiSpecWithSetupFunc setupFunc = waiSpecWithSetupFunc' $ \() -> setupFunc
+
+-- | Run a 'Wai.Application' around every test by setting it up with the given 'SetupFunc' and inner resource.
+-- a
+-- This provides the port on which the application is running.
+waiSpecWithSetupFunc' :: (inner -> SetupFunc Application) -> TestDef outers PortNumber -> TestDef outers inner
+waiSpecWithSetupFunc' setupFunc = setupAroundWith $ \inner -> do
+  application <- setupFunc inner
+  applicationSetupFunc application
 
 -- | A 'SetupFunc' to run an application and provide its port.
-applicationSetupFunc :: SetupFunc Application PortNumber
-applicationSetupFunc = SetupFunc $ \func application ->
+applicationSetupFunc :: Application -> SetupFunc PortNumber
+applicationSetupFunc application = SetupFunc $ \func ->
   Warp.testWithApplication (pure application) $ \p ->
     func (fromIntegral p) -- Hopefully safe, because 'testWithApplication' should give us sensible port numbers
 

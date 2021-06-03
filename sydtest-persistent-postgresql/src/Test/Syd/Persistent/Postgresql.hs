@@ -6,7 +6,6 @@ module Test.Syd.Persistent.Postgresql
   ( persistPostgresqlSpec,
     withConnectionPool,
     connectionPoolSetupFunc,
-    connectionPoolSetupFunc',
     runSqlPool,
     runPostgresqlTest,
   )
@@ -48,16 +47,12 @@ persistPostgresqlSpec :: Migration -> SpecWith ConnectionPool -> SpecWith a
 persistPostgresqlSpec migration = aroundWith $ \func _ -> withConnectionPool migration func
 
 -- | Set up a postgresql connection and migrate it to run the given function.
-withConnectionPool :: Migration -> (ConnectionPool -> IO ()) -> IO ()
-withConnectionPool = flip $ unSetupFunc connectionPoolSetupFunc'
+withConnectionPool :: Migration -> (ConnectionPool -> IO r) -> IO r
+withConnectionPool = unSetupFunc . connectionPoolSetupFunc
 
 -- | The 'SetupFunc' version of 'withConnectionPool'.
-connectionPoolSetupFunc :: Migration -> SetupFunc () ConnectionPool
-connectionPoolSetupFunc = unwrapSetupFunc connectionPoolSetupFunc'
-
--- | A wrapped version of 'connectionPoolSetupFunc'
-connectionPoolSetupFunc' :: SetupFunc Migration ConnectionPool
-connectionPoolSetupFunc' = SetupFunc $ \takeConnectionPool migration -> do
+connectionPoolSetupFunc :: Migration -> SetupFunc ConnectionPool
+connectionPoolSetupFunc migration = SetupFunc $ \takeConnectionPool -> do
   errOrRes <- Temp.with $ \db ->
     runNoLoggingT $
       withPostgresqlPool (toConnectionString db) 1 $ \pool -> do

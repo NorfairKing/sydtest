@@ -1,5 +1,4 @@
-resolver: lts-16.12
-allow-newer: false
+resolver: nightly-2021-05-10
 packages:
 - sydtest
 - sydtest-aeson

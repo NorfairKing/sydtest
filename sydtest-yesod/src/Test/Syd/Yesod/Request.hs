@@ -44,7 +44,7 @@ import Yesod.Test.TransversingCSS as CSS
 
 -- | Make a @GET@ request for the given route
 --
--- > yit "returns 200 on the home route" $ do
+-- > it "returns 200 on the home route" $ do
 -- >   get HomeR
 -- >   statusIs 200
 get :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
@@ -52,7 +52,7 @@ get = performMethod methodGet
 
 -- | Make a @POST@ request for the given route
 --
--- > yit "returns 200 on the start processing route" $ do
+-- > it "returns 200 on the start processing route" $ do
 -- >   post StartProcessingR
 -- >   statusIs 200
 post :: (Yesod site, RedirectUrl site url) => url -> YesodClientM site ()
@@ -66,7 +66,7 @@ performMethod method route = request $ do
 
 -- | Assert the status of the most recently received response.
 --
--- > yit "returns 200 on the home route" $ do
+-- > it "returns 200 on the home route" $ do
 -- >   get HomeR
 -- >   statusIs 200
 statusIs :: HasCallStack => Int -> YesodClientM site ()
@@ -80,7 +80,7 @@ statusIs i = do
 
 -- | Assert the redirect location of the most recently received response.
 --
--- > yit "redirects to the overview on the home route" $ do
+-- > it "redirects to the overview on the home route" $ do
 -- >   get HomeR
 -- >   statusIs 301
 -- >   locationShouldBe OverviewR
@@ -227,7 +227,7 @@ runRequestBuilder (RequestBuilder func) = do
 
 -- | Perform the request that is built by the given 'RequestBuilder'.
 --
--- > yit "returns 200 on this post request" $ do
+-- > it "returns 200 on this post request" $ do
 -- >   request $ do
 -- >     setUrl StartProcessingR
 -- >     setMethod "POST"

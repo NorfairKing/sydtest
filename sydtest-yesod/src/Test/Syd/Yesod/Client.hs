@@ -76,7 +76,12 @@ newtype YesodClientM site a = YesodClientM
 instance IsTest (YesodClientM site ()) where
   type Arg1 (YesodClientM site ()) = ()
   type Arg2 (YesodClientM site ()) = YesodClient site
-  runTest func = runTest (\() yesodClient -> runYesodClientM yesodClient func)
+  runTest func = runTest (\() -> func)
+
+instance IsTest (outerArgs -> YesodClientM site ()) where
+  type Arg1 (outerArgs -> YesodClientM site ()) = outerArgs
+  type Arg2 (outerArgs -> YesodClientM site ()) = YesodClient site
+  runTest func = runTest (\outerArgs yesodClient -> runYesodClientM yesodClient (func outerArgs))
 
 -- | For backward compatibility
 type YesodExample site a = YesodClientM site a

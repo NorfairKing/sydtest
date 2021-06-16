@@ -13,7 +13,7 @@
 -- > spec =
 -- >   waiClientSpec exampleApplication $
 -- >     describe "get" $
--- >       wit "can GET the root and get a 200" $ do
+-- >       it "can GET the root and get a 200" $ do
 -- >         resp <- get "/"
 -- >         liftIO $ responseStatus resp `shouldBe` ok200
 module Test.Syd.Wai
@@ -30,7 +30,6 @@ module Test.Syd.Wai
     waiClientSpecWith,
     waiClientSpecWithSetupFunc,
     waiClientSpecWithSetupFunc',
-    wit,
 
     -- ** A test suite that uses a single HTTP manager accross tests
     managerSpec,

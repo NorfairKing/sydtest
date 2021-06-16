@@ -1,7 +1,10 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Syd.Servant
   ( servantSpec,
@@ -59,3 +62,13 @@ testClientOrError = flip runClientM
 testClientOrError :: ClientEnv -> ClientM a -> IO (Either ServantError a)
 testClientOrError = flip runClientM
 #endif
+
+instance IsTest (ClientM ()) where
+  type Arg1 (ClientM ()) = ()
+  type Arg2 (ClientM ()) = ClientEnv
+  runTest func = runTest (\() -> func)
+
+instance IsTest (outerArgs -> ClientM ()) where
+  type Arg1 (outerArgs -> ClientM ()) = outerArgs
+  type Arg2 (outerArgs -> ClientM ()) = ClientEnv
+  runTest func = runTest (\outerArgs clientEnv -> testClient clientEnv (func outerArgs))

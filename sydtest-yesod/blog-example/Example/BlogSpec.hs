@@ -23,12 +23,12 @@ testDB func = do
 spec :: Spec
 spec = yesodSpecWithSiteSupplier appSupplier $ do
   -- A simple read-only test: We can request the home page succesfully.
-  yit "can GET the home page" $ do
+  it "can GET the home page" $ do
     get HomeR
     statusIs 200
 
   -- A simple test that shows a post request, and shows that empty forms will not be accepted.
-  yit "cannot post if the form data is missing" $ do
+  it "cannot post if the form data is missing" $ do
     get NewThoughtR
     statusIs 200
     request $ do
@@ -40,7 +40,7 @@ spec = yesodSpecWithSiteSupplier appSupplier $ do
   -- A simple form POST request test.
   -- Each part of the form needs to be added using 'addPostParam'
   -- Don't forget the 'addToken' piece to make sure you don't run into CSRF errors.
-  yit "can post this example blogpost" $ do
+  it "can post this example blogpost" $ do
     get NewThoughtR
     statusIs 200
     request $ do

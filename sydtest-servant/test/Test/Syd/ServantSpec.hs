@@ -13,11 +13,10 @@ exampleSetupFunc = SetupFunc $ \func -> do
 
 spec :: Spec
 spec = servantSpecWithSetupFunc exampleAPI exampleSetupFunc $ do
-  it "gets zero at the start" $ \cenv -> do
-    r <- testClient cenv clientGet
-    r `shouldBe` 0
-  it "can add 1 to get 1" $ \cenv -> do
-    r <- testClient cenv $ do
-      NoContent <- clientAdd 1
-      clientGet
-    r `shouldBe` 1
+  it "gets zero at the start" $ do
+    r <- clientGet
+    liftIO $ r `shouldBe` 0
+  it "can add 1 to get 1" $ do
+    NoContent <- clientAdd 1
+    r <- clientGet
+    liftIO $ r `shouldBe` 1

@@ -114,7 +114,7 @@ instance IsTest (outerArgs -> innerArg -> IO ()) where
 instance IsTest (ReaderT env IO ()) where
   type Arg1 (ReaderT env IO ()) = ()
   type Arg2 (ReaderT env IO ()) = env
-  runTest func = runTest (\() env -> runReaderT func env)
+  runTest func = runTest (\() -> func)
 
 instance IsTest (outerArgs -> ReaderT env IO ()) where
   type Arg1 (outerArgs -> ReaderT env IO ()) = outerArgs

@@ -7,7 +7,6 @@
 
 module Test.Syd.Wai.Def where
 
-import GHC.Stack (HasCallStack)
 import Network.HTTP.Client as HTTP
 import Network.Socket (PortNumber)
 import Network.Wai as Wai
@@ -54,28 +53,6 @@ waiClientSetupFunc man application env = do
             waiClientPort = p
           }
   pure client
-
--- | Define a test in the 'WaiClientM site' monad instead of 'IO'.
---
--- Example usage:
---
--- > waiClientSpec exampleApplication $ do
--- >   describe "/" $ do
--- >     wit "works with a get" $
--- >       get "/" `shouldRespondWith` 200
--- >     wit "works with a post" $
--- >       post "/" `shouldRespondWith` ""
-wit ::
-  forall env e outers.
-  ( HasCallStack,
-    IsTest (WaiClient env -> IO e),
-    Arg1 (WaiClient env -> IO e) ~ (),
-    Arg2 (WaiClient env -> IO e) ~ WaiClient env
-  ) =>
-  String ->
-  WaiClientM env e ->
-  TestDefM outers (WaiClient env) ()
-wit s f = it s ((\cenv -> runWaiClientM cenv f) :: WaiClient env -> IO e)
 
 -- | Run a given 'Wai.Application' around every test.
 --

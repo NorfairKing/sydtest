@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 module Test.Syd.Wai.Client where
@@ -53,6 +55,16 @@ newtype WaiClientM env a = WaiClientM
       MonadState WaiClientState,
       MonadFail
     )
+
+instance IsTest (WaiClientM env ()) where
+  type Arg1 (WaiClientM env ()) = ()
+  type Arg2 (WaiClientM env ()) = WaiClient env
+  runTest func = runTest (\() -> func)
+
+instance IsTest (outerArgs -> WaiClientM env ()) where
+  type Arg1 (outerArgs -> WaiClientM env ()) = outerArgs
+  type Arg2 (outerArgs -> WaiClientM env ()) = WaiClient env
+  runTest func = runTest (\outerArgs waiClient -> runWaiClientM waiClient (func outerArgs))
 
 -- | For compatibility with @hspec-wai@
 type WaiSession st a = WaiClientM st a

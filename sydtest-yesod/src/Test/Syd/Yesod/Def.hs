@@ -176,16 +176,12 @@ type YesodSpec site = TestDef '[HTTP.Manager] (YesodClient site)
 
 -- | Define a test in the 'YesodClientM site' monad instead of 'IO'.
 yit ::
-  forall site e.
-  ( HasCallStack,
-    IsTest (YesodClient site -> IO e),
-    Arg1 (YesodClient site -> IO e) ~ (),
-    Arg2 (YesodClient site -> IO e) ~ YesodClient site
-  ) =>
+  forall site.
+  HasCallStack =>
   String ->
-  YesodClientM site e ->
+  YesodClientM site () ->
   YesodSpec site
-yit s f = it s ((\cenv -> runYesodClientM cenv f) :: YesodClient site -> IO e)
+yit = it
 
 -- | For compatibility with `yesod-test`
 --

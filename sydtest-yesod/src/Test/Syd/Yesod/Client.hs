@@ -1,10 +1,12 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints -fno-warn-unused-imports #-}
 
 module Test.Syd.Yesod.Client where
@@ -70,6 +72,11 @@ newtype YesodClientM site a = YesodClientM
       MonadFail,
       MonadThrow
     )
+
+instance IsTest (YesodClientM site ()) where
+  type Arg1 (YesodClientM site ()) = ()
+  type Arg2 (YesodClientM site ()) = YesodClient site
+  runTest func = runTest (\() yesodClient -> runYesodClientM yesodClient func)
 
 -- | For backward compatibility
 type YesodExample site a = YesodClientM site a

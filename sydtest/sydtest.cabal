@@ -28,7 +28,6 @@ library
       Test.Syd.Def
       Test.Syd.Def.Around
       Test.Syd.Def.AroundAll
-      Test.Syd.Def.Env
       Test.Syd.Def.Golden
       Test.Syd.Def.Scenario
       Test.Syd.Def.SetupFunc

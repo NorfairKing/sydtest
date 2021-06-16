@@ -1,6 +1,13 @@
 # Changelog
 
-## [0.2.0.0] - Unreleased
+## [0.3.0.0] - Unreleased
+
+### Deleted
+
+* `Test.Syd.Def.Env`, which contained `eit` and `withTestEnv`
+  Now that `ReaderT env IO a` is also in `IsTest`, you can just use `it` for this.
+
+## [0.2.0.0] - 2021-06-03
 
 ### Added
 

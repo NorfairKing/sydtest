@@ -13,6 +13,7 @@ module Test.Syd.Run where
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.IO.Class
+import Control.Monad.Reader
 import Data.IORef
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -109,6 +110,16 @@ instance IsTest (outerArgs -> innerArg -> IO ()) where
   type Arg1 (outerArgs -> innerArg -> IO ()) = outerArgs
   type Arg2 (outerArgs -> innerArg -> IO ()) = innerArg
   runTest = runIOTestWithArg
+
+instance IsTest (ReaderT env IO ()) where
+  type Arg1 (ReaderT env IO ()) = ()
+  type Arg2 (ReaderT env IO ()) = env
+  runTest func = runTest (\() env -> runReaderT func env)
+
+instance IsTest (outerArgs -> ReaderT env IO ()) where
+  type Arg1 (outerArgs -> ReaderT env IO ()) = outerArgs
+  type Arg2 (outerArgs -> ReaderT env IO ()) = env
+  runTest func = runTest (\outerArgs env -> runReaderT (func outerArgs) env)
 
 runIOTestWithArg ::
   (outerArgs -> innerArg -> IO ()) ->

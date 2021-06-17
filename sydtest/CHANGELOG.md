@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.3.0.0] - Unreleased
+## [0.3.0.0] - 2021-06-17
+
+### Added
+
+* An `IsTest (ReaderT env IO a)` instance.
 
 ### Deleted
 

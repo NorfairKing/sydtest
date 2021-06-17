@@ -44,7 +44,7 @@ library
     , mtl
     , network
     , pretty-show
-    , sydtest >=0.3
+    , sydtest >=0.3.0.0
     , sydtest-wai
     , text
     , time

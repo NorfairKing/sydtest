@@ -16,6 +16,7 @@ import Control.Monad.Reader
 import Database.Persist.Postgresql
 import Database.Postgres.Temp as Temp
 import Test.Syd
+import Test.Syd.Persistent
 
 -- | Declare a test suite that uses a database connection.
 --
@@ -62,14 +63,6 @@ connectionPoolSetupFunc migration = SetupFunc $ \takeConnectionPool -> do
     Left err -> liftIO $ expectationFailure $ show err
     Right r -> pure r
 
-#if MIN_VERSION_persistent(2,10,2)
-migrationRunner :: MonadIO m => Migration -> ReaderT SqlBackend m ()
-migrationRunner = void . runMigrationQuiet
-#else
-migrationRunner :: MonadIO m => Migration -> ReaderT SqlBackend m ()
-migrationRunner = runMigration
-#endif
-
 -- | A flipped version of 'runSqlPool' to run your tests
-runPostgresqlTest :: ConnectionPool -> SqlPersistT IO a -> IO a
-runPostgresqlTest = flip runSqlPool
+runPostgresqlTest :: ConnectionPool -> SqlPersistM a -> IO a
+runPostgresqlTest = runPersistentTest

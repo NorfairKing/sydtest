@@ -1,13 +1,13 @@
-name: sydtest-persistent-sqlite
-version: 0.2.0.0
+name: sydtest-persistent
+version: 0.0.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
-copyright: "Copyright (c) 2020-2021 Tom Sydney Kerckhove"
+copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
 category: Testing
-synopsis: A persistent-sqlite companion library for sydtest
+synopsis: A persistent companion library for sydtest
 
 
 dependencies:
@@ -19,10 +19,8 @@ library:
   - monad-logger
   - mtl
   - persistent
-  - persistent-sqlite
   - persistent-template
   - sydtest
-  - sydtest-persistent
 
 tests:
   sydtest-persistent-sqlite-test:
@@ -34,8 +32,9 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - monad-logger
     - persistent
     - persistent-sqlite
     - persistent-template
     - sydtest
-    - sydtest-persistent-sqlite
+    - sydtest-persistent

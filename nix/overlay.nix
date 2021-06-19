@@ -26,6 +26,7 @@ with final.haskell.lib;
       "sydtest-hspec" = sydtestPkg "sydtest-hspec";
       "sydtest-aeson" = sydtestPkg "sydtest-aeson";
       "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";
+      "sydtest-persistent" = sydtestPkg "sydtest-persistent";
       "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
       "sydtest-process" = sydtestPkg "sydtest-process";
       "sydtest-servant" = sydtestPkg "sydtest-servant";

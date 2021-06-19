@@ -4,9 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           sydtest-persistent-postgresql
-version:        0.2.0.0
-synopsis:       An persistent-postgresql companion library for sydtest
+name:           sydtest-persistent
+version:        0.0.0.0
+synopsis:       A persistent companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -21,16 +21,11 @@ source-repository head
   type: git
   location: https://github.com/NorfairKing/sydtest
 
-flag sydtest_integration_tests
-  description: Whether to allow building integration tests
-  manual: False
-  default: True
-
 library
   exposed-modules:
-      Test.Syd.Persistent.Postgresql
+      Test.Syd.Persistent
   other-modules:
-      Paths_sydtest_persistent_postgresql
+      Paths_sydtest_persistent
   hs-source-dirs:
       src
   build-depends:
@@ -38,33 +33,28 @@ library
     , monad-logger
     , mtl
     , persistent
-    , persistent-postgresql
+    , persistent-template
     , sydtest
-    , sydtest-persistent
-    , tmp-postgres
   default-language: Haskell2010
 
-test-suite sydtest-persistent-postgresql-test
+test-suite sydtest-persistent-sqlite-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
       Test.Syd.Persistent.Example
-      Test.Syd.Persistent.PostgresqlSpec
-      Paths_sydtest_persistent_postgresql
+      Test.Syd.PersistentSpec
+      Paths_sydtest_persistent
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
+    , monad-logger
     , persistent
-    , persistent-postgresql
+    , persistent-sqlite
     , persistent-template
     , sydtest
-    , sydtest-persistent-postgresql
-  if flag(sydtest_integration_tests)
-    buildable: True
-  else
-    buildable: False
+    , sydtest-persistent
   default-language: Haskell2010

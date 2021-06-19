@@ -17,6 +17,7 @@ import Control.Monad.Reader
 import Database.Persist.Sql
 import Database.Persist.Sqlite
 import Test.Syd
+import Test.Syd.Persistent
 
 -- | Declare a test suite that uses a database connection.
 --
@@ -61,14 +62,5 @@ connectionPoolSetupFunc migration = SetupFunc $ \takeConnectionPool ->
       liftIO $ takeConnectionPool pool
 
 -- | A flipped version of 'runSqlPool' to run your tests
-runSqliteTest :: ConnectionPool -> SqlPersistT IO a -> IO a
-runSqliteTest = flip runSqlPool
-
--- | Helper function that works accross versions of @persistent@.
-#if MIN_VERSION_persistent(2,10,2)
-migrationRunner :: MonadIO m => Migration -> ReaderT SqlBackend m ()
-migrationRunner = void . runMigrationQuiet
-#else
-migrationRunner :: MonadIO m => Migration -> ReaderT SqlBackend m ()
-migrationRunner = runMigration
-#endif
+runSqliteTest :: ConnectionPool -> SqlPersistM a -> IO a
+runSqliteTest = runPersistentTest

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0.1] - 2021-06-17
+
+### Changed
+
+* Fixed that the error message for `locationShouldBe` was backwards.
+
 ## [0.2.0.0] - 2021-06-17
 
 ### Added

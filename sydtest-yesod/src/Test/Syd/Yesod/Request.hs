@@ -90,7 +90,7 @@ locationShouldBe expected =
     errOrLoc <- getLocation
     liftIO $ case errOrLoc of
       Left err -> expectationFailure (T.unpack err)
-      Right actual -> expected `shouldBe` actual
+      Right actual -> actual `shouldBe` expected
 
 -- | Assert the last response has the given text.
 --

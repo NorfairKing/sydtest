@@ -264,6 +264,20 @@ spec = do
             tabulate "List elements" (map show xs) $
               tabulate "List magnitudes" (map (show . magnitude) xs) $
                 sort xs `shouldBe` (xs :: [Int])
+  modifyMaxSize (const 30) $ -- Bigger than the 20 below
+    modifyMaxShrinks (const 30) $ -- Definitely not zero
+      describe "Shrinking" $ do
+        var <- liftIO newEmptyMVar
+        let withVar func = do
+              putMVar var ()
+              r <- func
+              takeMVar var
+              pure r
+        around_ withVar $
+          it "can grab the mvar during shrinking" $
+            forAllShrink (sized $ \n -> pure n) shrink $ \i -> do
+              () <- readMVar var
+              i `shouldSatisfy` (< 20)
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

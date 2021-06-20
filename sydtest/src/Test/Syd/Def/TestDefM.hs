@@ -60,7 +60,7 @@ execTestDefM sets = fmap snd . runTestDefM sets
 runTestDefM :: Settings -> TestDefM outers inner result -> IO (result, TestForest outers inner)
 runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
-  (a, _, testForest) <- runRWST func (toTestRunSettings sets) () -- TODO allow passing in settings from the command-line
+  (a, _, testForest) <- runRWST func (toTestRunSettings sets) ()
   let testForest' = filterTestForest (settingFilter sets) testForest
   let testForest'' =
         if settingRandomiseExecutionOrder sets

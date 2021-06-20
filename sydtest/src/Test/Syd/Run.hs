@@ -147,7 +147,7 @@ runIOTestWithArg func TestRunSettings {} wrapper = do
 instance IsTest Property where
   type Arg1 Property = ()
   type Arg2 Property = ()
-  runTest func = runTest (\() () -> func)
+  runTest func = runTest (\() -> func)
 
 instance IsTest (arg -> Property) where
   type Arg1 (arg -> Property) = ()
@@ -346,13 +346,13 @@ exceptionHandlers =
 type Test = IO ()
 
 data TestRunSettings = TestRunSettings
-  { testRunSettingSeed :: Int,
-    testRunSettingMaxSuccess :: Int,
-    testRunSettingMaxSize :: Int,
-    testRunSettingMaxDiscardRatio :: Int,
-    testRunSettingMaxShrinks :: Int,
-    testRunSettingGoldenStart :: Bool,
-    testRunSettingGoldenReset :: Bool
+  { testRunSettingSeed :: !Int,
+    testRunSettingMaxSuccess :: !Int,
+    testRunSettingMaxSize :: !Int,
+    testRunSettingMaxDiscardRatio :: !Int,
+    testRunSettingMaxShrinks :: !Int,
+    testRunSettingGoldenStart :: !Bool,
+    testRunSettingGoldenReset :: !Bool
   }
   deriving (Show, Generic)
 

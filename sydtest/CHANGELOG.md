@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0.1] - 2021-06-20
+
+### Changed
+
+* Turned off shrinking when using `around` and friends. See https://github.com/nick8325/quickcheck/issues/331.
+
 ## [0.3.0.0] - 2021-06-17
 
 ### Added

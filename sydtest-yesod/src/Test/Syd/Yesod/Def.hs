@@ -23,6 +23,7 @@ where
 
 import GHC.Stack (HasCallStack)
 import Network.HTTP.Client as HTTP
+import Network.URI
 import Test.Syd
 import Test.Syd.Wai
 import Test.Syd.Yesod.Client
@@ -167,7 +168,16 @@ yesodClientSetupFunc man site = do
         YesodClient
           { yesodClientManager = man,
             yesodClientSite = site,
-            yesodClientSitePort = p
+            yesodClientSiteURI =
+              nullURI
+                { uriScheme = "http:",
+                  uriAuthority =
+                    Just $
+                      nullURIAuth
+                        { uriRegName = "localhost",
+                          uriPort = ':' : show p
+                        }
+                }
           }
   pure client
 

@@ -30,7 +30,7 @@ import qualified Data.Text.Encoding as TE
 import Data.Time
 import GHC.Stack
 import Network.HTTP.Client as HTTP
-import Network.HTTP.Client.Internal (httpRaw)
+import Network.HTTP.Client.Internal (httpRaw, toHttpException)
 import Network.HTTP.Client.MultipartFormData
 import Network.HTTP.Types as HTTP
 import Test.Syd
@@ -167,14 +167,21 @@ isFile = \case
 -- | Run a 'RequestBuilder' to make the 'Request' that it defines.
 runRequestBuilder :: RequestBuilder site a -> YesodClientM site Request
 runRequestBuilder (RequestBuilder func) = do
-  p <- asks yesodClientSitePort
-  cj <- State.gets yesodClientStateCookies
+  baseURI <- asks yesodClientSiteURI
   RequestBuilderData {..} <- execStateT func initialRequestBuilderData
   let requestStr = T.unpack requestBuilderDataUrl
 
-  req <- case parseRequest requestStr <|> parseRequest ("http://localhost" <> requestStr) of
-    Nothing -> liftIO $ expectationFailure $ "Failed to parse url: " <> requestStr
+  -- We try without the base URI first, just in case:
+  --
+  -- There is an absolute URI in a redirect that we're following
+  -- OR
+  -- you want to contact any URI other than the server under test
+  req <- case parseRequest requestStr of
     Just req -> pure req
+    Nothing ->
+      case parseRequest $ show baseURI <> requestStr of
+        Nothing -> liftIO $ expectationFailure $ "Failed to parse url: " <> requestStr
+        Just req -> pure req
   boundary <- liftIO webkitBoundary
   (body, contentTypeHeader) <- liftIO $ case requestBuilderDataPostData of
     MultipleItemsPostData [] -> pure (RequestBodyBS SB.empty, Nothing)
@@ -205,12 +212,12 @@ runRequestBuilder (RequestBuilder func) = do
               Just "application/x-www-form-urlencoded"
             )
     BinaryPostData sb -> pure (RequestBodyBS sb, Nothing)
+  cj <- State.gets yesodClientStateCookies
   now <- liftIO getCurrentTime
   let (req', cj') =
         insertCookiesIntoRequest
           ( req
-              { port = fromIntegral p, -- Safe because it is PortNumber -> Int
-                method = requestBuilderDataMethod,
+              { method = requestBuilderDataMethod,
                 requestHeaders =
                   concat
                     [ requestBuilderDataHeaders,
@@ -357,17 +364,25 @@ addTokenFromCookieNamedToHeaderNamed cookieName headerName = do
 performRequest :: Request -> YesodClientM site ()
 performRequest req = do
   man <- asks yesodClientManager
-  resp <- liftIO $ httpRaw req man >>= traverse (fmap LB.fromChunks . brConsume)
-  cj <- State.gets yesodClientStateCookies
-  now <- liftIO getCurrentTime
-  let (cj', _) = updateCookieJar resp req now cj
-  State.modify'
-    ( \s ->
-        s
-          { yesodClientStateLast = Just (req, resp),
-            yesodClientStateCookies = cj'
-          }
-    )
+  errOrResp <-
+    liftIO $
+      (Right <$> (httpRaw req man >>= traverse (fmap LB.fromChunks . brConsume)))
+        `catches` [ Handler $ \e -> pure $ Left $ toHttpException req e,
+                    Handler $ \e -> pure $ Left (e :: HttpException)
+                  ]
+  case errOrResp of
+    Left err -> liftIO $ expectationFailure $ "HTTPException: " <> displayException err
+    Right resp -> do
+      cj <- State.gets yesodClientStateCookies
+      now <- liftIO getCurrentTime
+      let (cj', _) = updateCookieJar resp req now cj
+      State.modify'
+        ( \s ->
+            s
+              { yesodClientStateLast = Just (req, resp),
+                yesodClientStateCookies = cj'
+              }
+        )
 
 -- | For backward compatibiilty, you can use the 'MonadState' constraint to get access to the 'CookieJar' directly.
 getRequestCookies :: RequestBuilder site (Map ByteString SetCookie)

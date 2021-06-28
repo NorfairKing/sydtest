@@ -26,6 +26,7 @@ library:
     - http-types
     - mtl
     - network
+    - network-uri
     - pretty-show
     - sydtest >=0.3.0.0
     - sydtest-wai

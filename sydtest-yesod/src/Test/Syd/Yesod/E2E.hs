@@ -8,29 +8,16 @@
 module Test.Syd.Yesod.E2E where
 
 import Control.Arrow (second)
-import Control.Monad.Catch
-import Control.Monad.Fail
-import Control.Monad.Reader
-import Control.Monad.State
-import qualified Control.Monad.State as State
 import qualified Data.Binary.Builder as BB
-import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 import Data.Function
-import qualified Data.Map as M
-import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
-import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
-import Network.Socket (PortNumber)
 import Test.Syd
-import Test.Syd.Wai.Client (lastRequestResponseContext)
 import Test.Syd.Yesod.Client
 import Test.Syd.Yesod.Def
 import Yesod.Core
-import Yesod.Core.Unsafe (runFakeHandler)
 
 localToE2EClient :: YesodClient site -> YesodClient (E2E site)
 localToE2EClient yc =

@@ -7,7 +7,6 @@ import Data.Text (Text)
 import Test.Syd
 import Test.Syd.Yesod
 import Test.Syd.Yesod.App
-import Test.Syd.Yesod.E2E
 import Yesod.Core
 
 spec :: Spec

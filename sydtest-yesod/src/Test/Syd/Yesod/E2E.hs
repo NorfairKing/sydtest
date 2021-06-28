@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -14,6 +15,7 @@ import qualified Data.ByteString.Lazy as LB
 import Data.Function
 import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
+import Network.HTTP.Client as HTTP
 import Network.HTTP.Client.TLS
 import Network.HTTP.Types as HTTP
 import Network.URI
@@ -22,26 +24,52 @@ import Test.Syd.Yesod.Client
 import Test.Syd.Yesod.Def
 import Yesod.Core
 
+-- | Run an end-to-end yesod test suite against a remote server at the given 'URI'.
+--
+-- If you would like to write tests that can be run against both a local and a remote instance of your site, you can use the following type:
+--
+-- > mySpec :: (Yesod site, RedirectUrl site (Route App)) => YesodSpec site
+-- > mySpec = do
+-- >   it "responds 200 OK to GET HomeR" $ do
+-- >     get HomeR
+-- >     statusIs 200
 yesodE2ESpec :: URI -> YesodSpec (E2E site) -> Spec
-yesodE2ESpec uri =
-  beforeAll newTlsManager
-    . beforeWith'
-      ( \man () -> do
-          pure
-            YesodClient
-              { yesodClientManager = man,
-                yesodClientSite = E2E,
-                yesodClientSiteURI = uri
-              }
-      )
+yesodE2ESpec uri = beforeAll newTlsManager . yesodE2ESpec' uri
 
+-- | Like 'yesodE2ESpec', but doesn't set up the 'HTTP.Manager' for you.
+--
+-- If you are running the end-to-end test against a server that uses
+-- @https://@, make sure to use a TLS-enabled 'HTTP.Manager'.
+--
+-- You can do this using @beforeAll newTlsManager@.
+yesodE2ESpec' :: URI -> YesodSpec (E2E site) -> TestDef '[HTTP.Manager] ()
+yesodE2ESpec' uri =
+  beforeWith'
+    ( \man () -> do
+        pure
+          YesodClient
+            { yesodClientManager = man,
+              yesodClientSite = E2E,
+              yesodClientSiteURI = uri
+            }
+    )
+
+-- | Turn a local 'YesodClient site' into a remote 'YesodClient (E2E site)'.
 localToE2EClient :: YesodClient site -> YesodClient (E2E site)
 localToE2EClient yc = yc {yesodClientSite = E2E}
 
 -- | See 'localToE2EClient'
+--
+-- Turn an end-to-end yesod test suite into a local yesod test suite by
+-- treating a local instance as remote.
 localToE2ESpec :: YesodSpec (E2E site) -> YesodSpec site
 localToE2ESpec = beforeWith (\yc -> pure $ localToE2EClient yc)
 
+-- | A dummy type that is an instance of 'Yesod', with as a phantom type, the app that it represents.
+--
+-- That is to say, @E2E site@ is an instance of 'Yesod' that pretends to be a
+-- @site@. You can treat it as a @site@ in end-to-end tests, except that you
+-- cannot use the @site@ value because there is none in there.
 data E2E site = E2E
   deriving (Show, Eq, Generic)
 

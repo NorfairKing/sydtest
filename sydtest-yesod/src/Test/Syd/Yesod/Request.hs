@@ -84,7 +84,7 @@ statusIs i = do
 -- >   get HomeR
 -- >   statusIs 301
 -- >   locationShouldBe OverviewR
-locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM site2 ()
+locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM localSite ()
 locationShouldBe expected =
   withLastRequestContext $ do
     errOrLoc <- getLocation
@@ -360,7 +360,7 @@ addTokenFromCookieNamedToHeaderNamed cookieName headerName = do
 -- | Perform the given request as-is.
 --
 -- Note that this function does not check whether you are making a request to the site under test.
--- You could make a request to https://google.com if you wanted.
+-- You could make a request to https://example.com if you wanted.
 performRequest :: Request -> YesodClientM site ()
 performRequest req = do
   man <- asks yesodClientManager
@@ -412,6 +412,13 @@ htmlQuery query = do
 --
 -- (We consider a request a redirect if the status is
 -- 301, 302, 303, 307 or 308, and the Location header is set.)
+--
+-- >  it "redirects home" $ do
+-- >    get RedirectHomeR
+-- >    statusIs 303
+-- >    locationShouldBe HomeR
+-- >    _ <- followRedirect
+-- >    statusIs 200
 followRedirect ::
   Yesod site =>
   -- | 'Left' with an error message if not a redirect, 'Right' with the redirected URL if it was

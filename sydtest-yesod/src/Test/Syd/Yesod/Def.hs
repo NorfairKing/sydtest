@@ -185,7 +185,12 @@ yesodClientSetupFunc man site = do
 -- | For backward compatibility with yesod-test
 type YesodSpec site = TestDef '[HTTP.Manager] (YesodClient site)
 
--- | Define a test in the 'YesodClientM site' monad instead of 'IO'.
+-- | Define a test in the @YesodClientM site@ monad instead of 'IO'.
+--
+-- The @YesodClientM site ()@ type is a member of 'IsTest', so 'yit' is defined as 'it'.
+-- This function is only here for backward compatibility.
+--
+-- > yit = it
 yit ::
   forall site.
   HasCallStack =>
@@ -194,7 +199,7 @@ yit ::
   YesodSpec site
 yit = it
 
--- | For compatibility with `yesod-test`
+-- | For compatibility with @yesod-test@
 --
 -- > ydescribe = describe
 ydescribe :: String -> YesodSpec site -> YesodSpec site

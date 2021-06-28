@@ -9,6 +9,8 @@
 -- For a fully-worked example, see sydtest-yesod/blog-example.
 module Test.Syd.Yesod
   ( -- * Functions to run a test suite
+
+    -- ** Tests against a local instance of a site
     yesodSpec,
     yesodSpecWithSiteGenerator,
     yesodSpecWithSiteGeneratorAndArgument,
@@ -19,6 +21,13 @@ module Test.Syd.Yesod
 
     -- *** Setup functions
     yesodClientSetupFunc,
+
+    -- ** Tests against a remote instance of a site
+    yesodE2ESpec,
+    yesodE2ESpec',
+    E2E (..),
+    localToE2ESpec,
+    localToE2EClient,
 
     -- ** Core
     YesodSpec,
@@ -77,6 +86,7 @@ module Test.Syd.Yesod
     module Test.Syd.Yesod.Client,
     module Test.Syd.Yesod.Def,
     module Test.Syd.Yesod.Request,
+    module Test.Syd.Yesod.E2E,
 
     -- * Reexports
     module HTTP,
@@ -87,4 +97,5 @@ import Network.HTTP.Client as HTTP
 import Network.HTTP.Types as HTTP
 import Test.Syd.Yesod.Client
 import Test.Syd.Yesod.Def
+import Test.Syd.Yesod.E2E
 import Test.Syd.Yesod.Request

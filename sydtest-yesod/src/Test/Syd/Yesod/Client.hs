@@ -35,7 +35,7 @@ data YesodClient site = YesodClient
     yesodClientSite :: !site,
     -- | The 'HTTP.Manager' to make the requests
     yesodClientManager :: !HTTP.Manager,
-    -- | The base uri that the site is running on, using @warp@
+    -- | The base 'URI' that the site is running on
     yesodClientSiteURI :: !URI
   }
   deriving (Generic)
@@ -104,7 +104,7 @@ getLast :: YesodClientM site (Maybe (Request, Response LB.ByteString))
 getLast = State.gets yesodClientStateLast
 
 -- | Get the 'Location' header of most recently received response.
-getLocation :: ParseRoute site => YesodClientM site2 (Either Text (Route site))
+getLocation :: ParseRoute site => YesodClientM localSite (Either Text (Route site))
 getLocation = do
   mr <- getResponse
   case mr of

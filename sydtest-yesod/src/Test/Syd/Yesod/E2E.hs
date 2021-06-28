@@ -14,17 +14,17 @@ import qualified Data.ByteString.Lazy as LB
 import Data.Function
 import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
+import Network.HTTP.Client.TLS
 import Network.HTTP.Types as HTTP
 import Network.URI
 import Test.Syd
-import Test.Syd.Wai
 import Test.Syd.Yesod.Client
 import Test.Syd.Yesod.Def
 import Yesod.Core
 
 yesodE2ESpec :: URI -> YesodSpec (E2E site) -> Spec
 yesodE2ESpec uri =
-  managerSpec
+  beforeAll newTlsManager
     . beforeWith'
       ( \man () -> do
           pure

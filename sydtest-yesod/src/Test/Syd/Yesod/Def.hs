@@ -173,8 +173,9 @@ yesodClientSetupFunc man site = do
                 { uriScheme = "http:",
                   uriAuthority =
                     Just $
-                      nullURIAuth
-                        { uriRegName = "localhost",
+                      URIAuth
+                        { uriUserInfo = "",
+                          uriRegName = "localhost",
                           uriPort = ':' : show p
                         }
                 }

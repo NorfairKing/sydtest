@@ -19,6 +19,7 @@ library:
     - bytestring
     - case-insensitive
     - containers
+    - binary
     - cookie
     - exceptions
     - http-client
@@ -54,6 +55,7 @@ tests:
     - sydtest-yesod
     - text
     - yesod
+    - yesod-core
     - yesod-form
 
   sydtest-yesod-blog-example-test:

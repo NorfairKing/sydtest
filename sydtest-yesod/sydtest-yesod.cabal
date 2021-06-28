@@ -26,6 +26,7 @@ library
       Test.Syd.Yesod
       Test.Syd.Yesod.Client
       Test.Syd.Yesod.Def
+      Test.Syd.Yesod.E2E
       Test.Syd.Yesod.Request
   other-modules:
       Paths_sydtest_yesod
@@ -33,6 +34,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , binary
     , blaze-builder
     , bytestring
     , case-insensitive
@@ -106,5 +108,6 @@ test-suite sydtest-yesod-test
     , sydtest-yesod
     , text
     , yesod
+    , yesod-core
     , yesod-form
   default-language: Haskell2010

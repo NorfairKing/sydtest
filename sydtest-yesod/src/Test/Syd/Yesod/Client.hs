@@ -103,7 +103,7 @@ getLast :: YesodClientM site (Maybe (Request, Response LB.ByteString))
 getLast = State.gets yesodClientStateLast
 
 -- | Get the 'Location' header of most recently received response.
-getLocation :: ParseRoute site => YesodClientM site (Either Text (Route site))
+getLocation :: ParseRoute site => YesodClientM site2 (Either Text (Route site))
 getLocation = do
   mr <- getResponse
   case mr of

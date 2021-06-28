@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.YesodSpec (spec) where
@@ -6,9 +7,16 @@ import Data.Text (Text)
 import Test.Syd
 import Test.Syd.Yesod
 import Test.Syd.Yesod.App
+import Test.Syd.Yesod.E2E
+import Yesod.Core
 
 spec :: Spec
 spec = yesodSpec App $ do
+  describe "Local" blogSpec
+  describe "E2E" $ localToE2ESpec blogSpec
+
+blogSpec :: (Yesod site, RedirectUrl site (Route App)) => YesodSpec site
+blogSpec = do
   it "responds 200 OK to GET HomeR" $ do
     get HomeR
     statusIs 200

@@ -84,7 +84,7 @@ statusIs i = do
 -- >   get HomeR
 -- >   statusIs 301
 -- >   locationShouldBe OverviewR
-locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM site ()
+locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM site2 ()
 locationShouldBe expected =
   withLastRequestContext $ do
     errOrLoc <- getLocation

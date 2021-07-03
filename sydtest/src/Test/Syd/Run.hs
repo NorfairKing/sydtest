@@ -336,7 +336,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
 exceptionHandlers :: [Handler (Either (Either String Assertion) a)]
 exceptionHandlers =
   [ -- Re-throw AsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
-    Handler (\e -> throw (e :: AsyncException)),
+    Handler (\e -> throwIO (e :: AsyncException)),
     -- Catch assertions first because we know what to do with them.
     Handler $ \(a :: Assertion) -> pure (Left $ Right a),
     -- Catch all the rest as a string

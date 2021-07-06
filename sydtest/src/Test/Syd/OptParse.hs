@@ -152,7 +152,10 @@ instance YamlSchema Configuration where
     objectParser "Configuration" $
       Configuration
         <$> optionalField "seed" "Seed for random generation of test cases"
-        <*> optionalField "randomise-execution-order" "Randomise the execution order of the tests in the test suite"
+        <*> alternatives
+          [ optionalField "randomise-execution-order" "Randomise the execution order of the tests in the test suite",
+            optionalField "randomize-execution-order" "Randomize the execution order of the tests in the test suite"
+          ]
         <*> optionalField "parallelism" "How parallel to execute the tests"
         <*> optionalField "max-success" "Number of quickcheck examples to run"
         <*> optionalField "max-size" "Maximum size parameter to pass to generators"
@@ -160,7 +163,10 @@ instance YamlSchema Configuration where
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
         <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet"
         <*> optionalField "golden-reset" "Whether to overwrite golden tests instead of having them fail"
-        <*> optionalField "colour" "Whether to use coloured output"
+        <*> alternatives
+          [ optionalField "colour" "Whether to use coloured output",
+            optionalField "color" "Whether to use colored output"
+          ]
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
         <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness"
@@ -226,7 +232,9 @@ environmentParser =
     Environment
       <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (mE <> Env.help "Config file")
         <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
-        <*> Env.var (fmap Just . Env.auto) "RANDOMISE_EXECUTION_ORDER" (mE <> Env.help "Randomise the execution order of the tests in the test suite")
+        <*> ( Env.var (fmap Just . Env.auto) "RANDOMISE_EXECUTION_ORDER" (mE <> Env.help "Randomise the execution order of the tests in the test suite")
+                <|> Env.var (fmap Just . Env.auto) "RANDOMIZE_EXECUTION_ORDER" (mE <> Env.help "Randomize the execution order of the tests in the test suite")
+            )
         <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
         <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
         <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
@@ -234,7 +242,9 @@ environmentParser =
         <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
         <*> Env.var (fmap Just . Env.auto) "GOLDEN_START" (mE <> Env.help "Whether to write golden tests if they do not exist yet")
         <*> Env.var (fmap Just . Env.auto) "GOLDEN_RESET" (mE <> Env.help "Whether to overwrite golden tests instead of having them fail")
-        <*> Env.var (fmap Just . Env.auto) "COLOUR" (mE <> Env.help "Whether to use coloured output")
+        <*> ( Env.var (fmap Just . Env.auto) "COLOUR" (mE <> Env.help "Whether to use coloured output")
+                <|> Env.var (fmap Just . Env.auto) "COLOR" (mE <> Env.help "Whether to use colored output")
+            )
         <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (mE <> Env.help "Whether to stop executing upon the first test failure")
         <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (mE <> Env.help "How many iterations to use to look diagnose flakiness")
@@ -324,6 +334,7 @@ parseFlags =
           False
           ( mconcat
               [ long "no-randomise-execution-order",
+                long "no-randomize-execution-order",
                 help "Randomise the execution order of the tests in the test suite"
               ]
           )

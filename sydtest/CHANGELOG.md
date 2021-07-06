@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0.2] - 2021-07-06
+
+### Changed
+
+* Accept options using American spelling as well.
+
 ## [0.3.0.1] - 2021-06-20
 
 ### Changed

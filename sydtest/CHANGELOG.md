@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0.3] - 2021-08-07
+
+### Changed
+
+* Show the total number of examples in the output as well
+
 ## [0.3.0.2] - 2021-07-06
 
 ### Changed

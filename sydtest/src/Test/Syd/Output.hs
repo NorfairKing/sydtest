@@ -75,7 +75,12 @@ outputStats (Timed TestSuiteStats {..} timing) =
       totalTimeSeconds = fromIntegral timing / 1_000_000_000
    in map (padding :) $
         concat
-          [ [ [ chunk "Passed:                       ",
+          [ [ [ chunk "Examples:                     ",
+                fore green $ chunk (T.pack (show testSuiteStatExamples))
+              ]
+              | testSuiteStatExamples /= testSuiteStatSuccesses
+            ],
+            [ [ chunk "Passed:                       ",
                 fore green $ chunk (T.pack (show testSuiteStatSuccesses))
               ],
               [ chunk "Failed:                       ",

@@ -17,6 +17,7 @@
 module Test.Syd.SpecDef where
 
 import Data.Kind
+import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
@@ -177,6 +178,9 @@ computeTestSuiteStats = goF []
           { testSuiteStatSuccesses = case testRunResultStatus of
               TestPassed -> 1
               TestFailed -> 0,
+            testSuiteStatExamples = case testRunResultStatus of
+              TestPassed -> fromMaybe 1 testRunResultNumTests
+              TestFailed -> fromMaybe 1 testRunResultNumTests + fromMaybe 0 testRunResultNumShrinks,
             testSuiteStatFailures = case testRunResultStatus of
               TestPassed -> 0
               TestFailed -> 1,
@@ -187,6 +191,7 @@ computeTestSuiteStats = goF []
       PendingNode _ _ ->
         TestSuiteStats
           { testSuiteStatSuccesses = 0,
+            testSuiteStatExamples = 0,
             testSuiteStatFailures = 0,
             testSuiteStatPending = 1,
             testSuiteStatSumTime = 0,
@@ -197,6 +202,7 @@ computeTestSuiteStats = goF []
 
 data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
+    testSuiteStatExamples :: !Word,
     testSuiteStatFailures :: !Word,
     testSuiteStatPending :: !Word,
     testSuiteStatSumTime :: !Word64,
@@ -208,6 +214,7 @@ instance Semigroup TestSuiteStats where
   (<>) tss1 tss2 =
     TestSuiteStats
       { testSuiteStatSuccesses = testSuiteStatSuccesses tss1 + testSuiteStatSuccesses tss2,
+        testSuiteStatExamples = testSuiteStatExamples tss1 + testSuiteStatExamples tss2,
         testSuiteStatFailures = testSuiteStatFailures tss1 + testSuiteStatFailures tss2,
         testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2,
         testSuiteStatSumTime = testSuiteStatSumTime tss1 + testSuiteStatSumTime tss2,
@@ -223,6 +230,7 @@ instance Monoid TestSuiteStats where
   mempty =
     TestSuiteStats
       { testSuiteStatSuccesses = 0,
+        testSuiteStatExamples = 0,
         testSuiteStatFailures = 0,
         testSuiteStatPending = 0,
         testSuiteStatSumTime = 0,

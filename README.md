@@ -222,7 +222,8 @@ To migrate, replace your occurrences of `context` by `describe`.
 
 ### `beforeAll` and `afterAll`
 
-The `*All` resource functions from hspec will still work, but inside them you will need to use `itWithOuter` instead of `it.
+The `*All` resource functions from hspec will still work, but inside them you
+will need to use `itWithOuter` instead of `it`.
 
 ## Features in detail
 
@@ -274,7 +275,7 @@ You can use `-j` or `--jobs` to set the number of threads to use or `--synchrono
 
 You can specify, as part of the test suite definition, whether tests in a given test group are allowed to be run in parallel with other tests.
 You can use the `parallel` combinator to declare that tests may be run in parallel.
-You can use the and `sequential` combinator to declare that tests must be run sequentially.
+You can use the `sequential` combinator to declare that tests must be run sequentially.
 When using `sequential`, it is guaranteed that each test in the group will be the only one running during its execution.
 
 ### Automatic test discovery

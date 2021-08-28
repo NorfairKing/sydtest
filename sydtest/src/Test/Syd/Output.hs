@@ -345,8 +345,8 @@ outputFailures rf =
                   map (padFailureDetails . (: []) . chunk . T.pack) $
                     case (testRunResultNumTests, testRunResultNumShrinks) of
                       (Nothing, _) -> []
-                      (Just numTests, Nothing) -> [printf "Failled after %d tests" numTests]
-                      (Just numTests, Just 0) -> [printf "Failled after %d tests" numTests]
+                      (Just numTests, Nothing) -> [printf "Failed after %d tests" numTests]
+                      (Just numTests, Just 0) -> [printf "Failed after %d tests" numTests]
                       (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
                   map (padFailureDetails . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
                   map padFailureDetails $ outputFailureLabels testRunResultLabels,

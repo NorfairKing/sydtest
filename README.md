@@ -109,6 +109,7 @@ This repository contains many companion libraries to write integration tests wit
 | Parallel test execution                                                                   | ✔️       | ✔️                                                           | ✔️                                                                |
 | Parallel or sequential test-group execution                                               | ✔️       | ✔️                                                           | ✔️                                                                |
 | Automatic test discovery [1]                                                              | ✔️       | ✔️                                                           | ✔️                                                                |
+| Automatic test discovery with shared resources                                            | ✔️       | [✖](https://github.com/hspec/hspec/issues/404)              | ?                                                                |
 | First-class support for pure tests                                                        | ✔️       | ✔️                                                           | C                                                                |
 | First-class support for integration tests                                                 | ✔️       | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-hunit)           |    
 | First-class support for property tests with QuickCheck                                    | ✔️       | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-quickcheck)      |
@@ -293,6 +294,31 @@ You can also only generate a top-level `spec :: Spec` and write the main functio
 ``` haskell
 {-# OPTIONS_GHC -F -pgmF sydtest-discover -optF --no-main #-}
 ```
+
+### Automatic test discovery with shared resources
+
+The `sydtest-discover` tool does not care about whether the specs it discovers use resources, as long as they all use the same resources.
+This means that if you use the same outer resource in your entire test suite, it only needs to be spawned once for the entire test suite, instead of once per module.
+
+For example, you could use this `Spec.hs` file to discover `spec`s but not generate a main function:
+
+``` haskell
+{-# OPTIONS_GHC -F -pgmF sydtest-discover -optF --no-main #-}
+```
+
+Then you can write your own main module to spawn the outer resource:
+
+``` haskell
+module Main where
+
+import Spec (spec)
+import Test.Syd
+import Test.Syd.Webdriver
+
+main :: IO ()
+main = sydTest $ webdriverSpec spec
+```
+
 
 ### First-class support for pure tests
 

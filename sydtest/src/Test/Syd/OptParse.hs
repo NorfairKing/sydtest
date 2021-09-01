@@ -55,7 +55,9 @@ data Settings = Settings
     -- | Whether to stop upon the first test failure
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
-    settingIterations :: Iterations
+    settingIterations :: Iterations,
+    -- | Debug mode
+    settingDebug :: !Bool
   }
   deriving (Show, Eq, Generic)
 
@@ -75,7 +77,8 @@ defaultSettings =
           settingColour = Nothing,
           settingFilter = Nothing,
           settingFailFast = False,
-          settingIterations = OneIteration
+          settingIterations = OneIteration,
+          settingDebug = False
         }
 
 data Threads
@@ -100,11 +103,16 @@ data Iterations
 combineToSettings :: Flags -> Environment -> Maybe Configuration -> IO Settings
 combineToSettings Flags {..} Environment {..} mConf = do
   let d func = func defaultSettings
+  let debugMode = fromMaybe (d settingDebug) $ flagDebug <|> envDebug <|> mc configDebug
   pure
     Settings
       { settingSeed = fromMaybe (d settingSeed) $ flagSeed <|> envSeed <|> mc configSeed,
-        settingRandomiseExecutionOrder = fromMaybe (d settingRandomiseExecutionOrder) $ flagRandomiseExecutionOrder <|> envRandomiseExecutionOrder <|> mc configRandomiseExecutionOrder,
-        settingThreads = fromMaybe (d settingThreads) $ flagThreads <|> envThreads <|> mc configThreads,
+        settingRandomiseExecutionOrder =
+          fromMaybe (d settingRandomiseExecutionOrder || debugMode) $
+            flagRandomiseExecutionOrder <|> envRandomiseExecutionOrder <|> mc configRandomiseExecutionOrder,
+        settingThreads =
+          fromMaybe (if debugMode then Synchronous else d settingThreads) $
+            flagThreads <|> envThreads <|> mc configThreads,
         settingMaxSuccess = fromMaybe (d settingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess,
         settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
         settingMaxDiscard = fromMaybe (d settingMaxDiscard) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
@@ -113,8 +121,12 @@ combineToSettings Flags {..} Environment {..} mConf = do
         settingGoldenReset = fromMaybe (d settingGoldenReset) $ flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
         settingColour = flagColour <|> envColour <|> mc configColour,
         settingFilter = flagFilter <|> envFilter <|> mc configFilter,
-        settingFailFast = fromMaybe (d settingFailFast) $ flagFailFast <|> envFailFast <|> mc configFailFast,
-        settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations
+        settingFailFast =
+          fromMaybe
+            (d settingFailFast || debugMode)
+            (flagFailFast <|> envFailFast <|> mc configFailFast),
+        settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations,
+        settingDebug = debugMode
       }
   where
     mc :: (Configuration -> Maybe a) -> Maybe a
@@ -139,7 +151,8 @@ data Configuration = Configuration
     configColour :: !(Maybe Bool),
     configFilter :: !(Maybe Text),
     configFailFast :: !(Maybe Bool),
-    configIterations :: !(Maybe Iterations)
+    configIterations :: !(Maybe Iterations),
+    configDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -170,6 +183,7 @@ instance YamlSchema Configuration where
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
         <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness"
+        <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true"
 
 instance YamlSchema Threads where
   yamlSchema = flip fmap yamlSchema $ \case
@@ -218,7 +232,8 @@ data Environment = Environment
     envColour :: !(Maybe Bool),
     envFilter :: !(Maybe Text),
     envFailFast :: !(Maybe Bool),
-    envIterations :: !(Maybe Iterations)
+    envIterations :: !(Maybe Iterations),
+    envDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -248,6 +263,7 @@ environmentParser =
         <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (mE <> Env.help "Whether to stop executing upon the first test failure")
         <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (mE <> Env.help "How many iterations to use to look diagnose flakiness")
+        <*> Env.var (fmap Just . Env.auto) "DEBUG" (mE <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
   where
     parseThreads :: Int -> Either e Threads
     parseThreads 1 = Right Synchronous
@@ -302,7 +318,8 @@ data Flags = Flags
     flagColour :: !(Maybe Bool),
     flagFilter :: !(Maybe Text),
     flagFailFast :: !(Maybe Bool),
-    flagIterations :: !(Maybe Iterations)
+    flagIterations :: !(Maybe Iterations),
+    flagDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -451,4 +468,12 @@ parseFlags =
                   help "Run the test suite over and over again until it fails, to diagnose flakiness"
                 ]
             )
+      )
+    <*> optional
+      ( switch
+          ( mconcat
+              [ long "debug",
+                help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous and --fail-fast."
+              ]
+          )
       )

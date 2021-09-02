@@ -108,7 +108,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
     Settings
       { settingSeed = fromMaybe (d settingSeed) $ flagSeed <|> envSeed <|> mc configSeed,
         settingRandomiseExecutionOrder =
-          fromMaybe (d settingRandomiseExecutionOrder || debugMode) $
+          fromMaybe (if debugMode then False else d settingRandomiseExecutionOrder) $
             flagRandomiseExecutionOrder <|> envRandomiseExecutionOrder <|> mc configRandomiseExecutionOrder,
         settingThreads =
           fromMaybe (if debugMode then Synchronous else d settingThreads) $
@@ -123,7 +123,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
         settingFilter = flagFilter <|> envFilter <|> mc configFilter,
         settingFailFast =
           fromMaybe
-            (d settingFailFast || debugMode)
+            (if debugMode then True else d settingFailFast)
             (flagFailFast <|> envFailFast <|> mc configFailFast),
         settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations,
         settingDebug = debugMode
@@ -237,6 +237,26 @@ data Environment = Environment
   }
   deriving (Show, Eq, Generic)
 
+defaultEnvironment :: Environment
+defaultEnvironment =
+  Environment
+    { envConfigFile = Nothing,
+      envSeed = Nothing,
+      envRandomiseExecutionOrder = Nothing,
+      envThreads = Nothing,
+      envMaxSize = Nothing,
+      envMaxSuccess = Nothing,
+      envMaxDiscard = Nothing,
+      envMaxShrinks = Nothing,
+      envGoldenStart = Nothing,
+      envGoldenReset = Nothing,
+      envColour = Nothing,
+      envFilter = Nothing,
+      envFailFast = Nothing,
+      envIterations = Nothing,
+      envDebug = Nothing
+    }
+
 getEnvironment :: IO Environment
 getEnvironment = Env.parse (Env.header "Environment") environmentParser
 
@@ -322,6 +342,26 @@ data Flags = Flags
     flagDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
+
+defaultFlags :: Flags
+defaultFlags =
+  Flags
+    { flagConfigFile = Nothing,
+      flagSeed = Nothing,
+      flagRandomiseExecutionOrder = Nothing,
+      flagThreads = Nothing,
+      flagMaxSuccess = Nothing,
+      flagMaxSize = Nothing,
+      flagMaxDiscard = Nothing,
+      flagMaxShrinks = Nothing,
+      flagGoldenStart = Nothing,
+      flagGoldenReset = Nothing,
+      flagColour = Nothing,
+      flagFilter = Nothing,
+      flagFailFast = Nothing,
+      flagIterations = Nothing,
+      flagDebug = Nothing
+    }
 
 -- | The 'optparse-applicative' parser for the 'Flags'.
 parseFlags :: OptParse.Parser Flags

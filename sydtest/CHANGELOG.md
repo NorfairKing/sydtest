@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0.0] - 2021-09-02
+
+### Added
+
+* The `--debug` option.
+
 ## [0.3.0.3] - 2021-08-07
 
 ### Changed

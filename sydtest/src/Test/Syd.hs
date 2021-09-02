@@ -245,6 +245,7 @@ import Text.Show.Pretty (ppShow)
 sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
+  print sets
   sydTestWith sets spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'

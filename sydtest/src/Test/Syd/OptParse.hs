@@ -385,17 +385,7 @@ parseFlags =
               ]
           )
       )
-    <*> optional
-      ( flag
-          True
-          False
-          ( mconcat
-              [ long "no-randomise-execution-order",
-                long "no-randomize-execution-order",
-                help "Randomise the execution order of the tests in the test suite"
-              ]
-          )
-      )
+    <*> doubleSwitch ["randomise-execution-order", "randomize-execution-order"] (help "Randomise the execution order of the tests in the test suite")
     <*> optional
       ( ( ( \case
               1 -> Synchronous
@@ -445,30 +435,9 @@ parseFlags =
               ]
           )
       )
-    <*> optional
-      ( flag
-          True
-          False
-          ( mconcat
-              [ long "no-golden-start",
-                help "Whether to write golden tests if they do not exist yet"
-              ]
-          )
-      )
-    <*> optional
-      ( flag
-          False
-          True
-          ( mconcat
-              [ long "golden-reset",
-                help "Whether to overwrite golden tests instead of having them fail"
-              ]
-          )
-      )
-    <*> optional
-      ( flag' True (mconcat [long "colour", long "color", help "Always use colour in output"])
-          <|> flag' False (mconcat [long "no-colour", long "no-color", help "Never use colour in output"])
-      )
+    <*> doubleSwitch ["golden-start"] (help "Whether to write golden tests if they do not exist yet")
+    <*> doubleSwitch ["golden-reset"] (help "Whether to overwrite golden tests instead of having them fail")
+    <*> doubleSwitch ["colour", "color"] (help "Use colour in output")
     <*> optional
       ( strOption
           ( mconcat
@@ -478,14 +447,7 @@ parseFlags =
               ]
           )
       )
-    <*> optional
-      ( switch
-          ( mconcat
-              [ long "fail-fast",
-                help "Whether to stop upon the first test failure"
-              ]
-          )
-      )
+    <*> doubleSwitch ["fail-fast"] (help "Stop upon the first test failure")
     <*> optional
       ( ( ( \case
               0 -> Continuous
@@ -509,11 +471,10 @@ parseFlags =
                 ]
             )
       )
-    <*> optional
-      ( switch
-          ( mconcat
-              [ long "debug",
-                help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous and --fail-fast."
-              ]
-          )
-      )
+    <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous and --fail-fast.")
+
+doubleSwitch :: [String] -> OptParse.Mod FlagFields (Maybe Bool) -> OptParse.Parser (Maybe Bool)
+doubleSwitch suffixes mods =
+  flag' (Just True) (hidden <> internal <> foldMap long suffixes <> mods)
+    <|> flag' (Just False) (hidden <> internal <> foldMap long suffixes <> mods)
+    <|> flag' Nothing (foldMap (\suffix -> long ("[no-]" <> suffix)) suffixes <> mods)

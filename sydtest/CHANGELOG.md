@@ -6,6 +6,11 @@
 
 * The `--debug` option.
 
+### Changed
+
+* Redid the entire flags parsing.
+  This should be backward compatible, and result in a nicer `--help` overview.
+
 ## [0.3.0.3] - 2021-08-07
 
 ### Changed

@@ -381,7 +381,8 @@ parseFlags =
           auto
           ( mconcat
               [ long "seed",
-                help "Seed for random generation of test cases"
+                help "Seed for random generation of test cases",
+                metavar "SEED"
               ]
           )
       )
@@ -391,9 +392,23 @@ parseFlags =
               1 -> Synchronous
               i -> Asynchronous i
           )
-            <$> option auto (mconcat [short 'j', long "jobs", help "How parallel to execute the tests"])
+            <$> option
+              auto
+              ( mconcat
+                  [ short 'j',
+                    long "jobs",
+                    help "How parallel to execute the tests",
+                    metavar "JOBS"
+                  ]
+              )
         )
-          <|> flag' Synchronous (mconcat [long "synchronous", help "execute tests synchronously"])
+          <|> flag'
+            Synchronous
+            ( mconcat
+                [ long "synchronous",
+                  help "Execute tests synchronously"
+                ]
+            )
       )
     <*> optional
       ( option
@@ -401,7 +416,8 @@ parseFlags =
           ( mconcat
               [ long "max-success",
                 long "qc-max-success",
-                help "Number of quickcheck examples to run"
+                help "Number of quickcheck examples to run",
+                metavar "NUMBER_OF_SUCCESSES"
               ]
           )
       )
@@ -411,7 +427,8 @@ parseFlags =
           ( mconcat
               [ long "max-size",
                 long "qc-max-size",
-                help "Maximum size parameter to pass to generators"
+                help "Maximum size parameter to pass to generators",
+                metavar "MAXIMUM_SIZE_PARAMETER"
               ]
           )
       )
@@ -421,7 +438,8 @@ parseFlags =
           ( mconcat
               [ long "max-discard",
                 long "qc-max-discard",
-                help "Maximum number of discarded tests per successful test before giving up"
+                help "Maximum number of discarded tests per successful test before giving up",
+                metavar "MAXIMUM_DISCARD_RATIO"
               ]
           )
       )
@@ -431,7 +449,8 @@ parseFlags =
           ( mconcat
               [ long "max-shrinks",
                 long "qc-max-shrinks",
-                help "Maximum number of shrinks of a failing test input"
+                help "Maximum number of shrinks of a failing test input",
+                metavar "MAXIMUM_SHRINKS"
               ]
           )
       )
@@ -443,7 +462,8 @@ parseFlags =
           ( mconcat
               [ long "filter",
                 long "match",
-                help "Filter to select which parts of the test tree to run"
+                help "Filter to select which parts of the test tree to run",
+                metavar "FILTER"
               ]
           )
       )
@@ -458,12 +478,12 @@ parseFlags =
               auto
               ( mconcat
                   [ long "iterations",
-                    help "How many iterations to use to look diagnose flakiness"
+                    help "How many iterations to use to look diagnose flakiness",
+                    metavar "ITERATIONS"
                   ]
               )
         )
-          <|> flag
-            OneIteration
+          <|> flag'
             Continuous
             ( mconcat
                 [ long "continuous",
@@ -478,3 +498,4 @@ doubleSwitch suffixes mods =
   flag' (Just True) (hidden <> internal <> foldMap long suffixes <> mods)
     <|> flag' (Just False) (hidden <> internal <> foldMap long suffixes <> mods)
     <|> flag' Nothing (foldMap (\suffix -> long ("[no-]" <> suffix)) suffixes <> mods)
+    <|> pure Nothing

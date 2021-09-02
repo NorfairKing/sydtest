@@ -403,7 +403,7 @@ parseFlags =
           )
             <$> option auto (mconcat [short 'j', long "jobs", help "How parallel to execute the tests"])
         )
-          <|> flag ByCapabilities Synchronous (mconcat [long "synchronous", help "execute tests synchronously"])
+          <|> flag' Synchronous (mconcat [long "synchronous", help "execute tests synchronously"])
       )
     <*> optional
       ( option

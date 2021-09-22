@@ -1,0 +1,37 @@
+From 4961547d05376023fdc7a4664aba4d933d43e7b5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Niklas=20Hamb=C3=BCchen?= <mail@nh2.me>
+Date: Sun, 23 May 2021 16:26:34 +0200
+Subject: [PATCH] libredirect: Fix redirects not working for subprocesses
+
+---
+ pkgs/build-support/libredirect/libredirect.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/libredirect.c b/libredirect.c
+index dfa2978e9f440..5b0ef4856708c 100644
+--- a/libredirect.c
++++ b/libredirect.c
+@@ -17,15 +17,22 @@ static int nrRedirects = 0;
+ static char * from[MAX_REDIRECTS];
+ static char * to[MAX_REDIRECTS];
+ 
++static int isInitialized = 0;
++
+ // FIXME: might run too late.
+ static void init() __attribute__((constructor));
+ 
+ static void init()
+ {
++    if (isInitialized) return;
++
+     char * spec = getenv("NIX_REDIRECTS");
+     if (!spec) return;
+ 
+-    unsetenv("NIX_REDIRECTS");
++    // Ensure we only run this code once.
++    // We do not do `unsetenv("NIX_REDIRECTS")` to ensure that redirects
++    // also get initialized for subprocesses.
++    isInitialized = 1;
+ 
+     char * spec2 = malloc(strlen(spec) + 1);
+     strcpy(spec2, spec);

@@ -48,7 +48,13 @@ with final.haskell.lib;
       });
       "sydtest-mongo" = overrideCabal (sydtestPkg "sydtest-mongo") (old: {
         buildDepends = (old.buildDepends or [ ]) ++ [ final.mongodb ];
-        doCheck = false;
+        preCheck = (old.preCheck or "") + ''
+          export NIX_REDIRECTS=/etc/protocols=${final.iana-etc}/etc/protocols
+          export LD_PRELOAD=${final.libredirect}/lib/libredirect.so
+        '';
+        postCheck = (old.postCheck or "") + ''
+          unset NIX_REDIRECTS LD_PRELOAD
+        '';
       });
     };
 
@@ -57,6 +63,11 @@ with final.haskell.lib;
       name = "sydtest-release";
       paths = final.lib.attrValues final.sydtestPackages;
     };
+
+  # Remove after https://github.com/NixOS/nixpkgs/pull/124157 is in the nixpkgs we use.
+  libredirect = previous.libredirect.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./fix-libredirect-for-subprocesses.patch ];
+  });
 
   haskellPackages =
     previous.haskellPackages.override (

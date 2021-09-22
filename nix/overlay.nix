@@ -48,6 +48,24 @@ with final.haskell.lib;
       });
       "sydtest-mongo" = overrideCabal (sydtestPkg "sydtest-mongo") (old: {
         buildDepends = (old.buildDepends or [ ]) ++ [ final.mongodb ];
+        # The mongodb library uses network-bsd's function getProtocolByName
+        # to lookup the port that corresponds to the tcp protocol:
+        # https://hackage.haskell.org/package/network-bsd-2.8.1.0/docs/Network-BSD.html#v:getProtocolByName
+        # This consults a system database that is in /etc/protocols, see
+        # https://linux.die.net/man/3/getprotobyname and
+        # https://linux.die.net/man/5/protocols
+        #
+        # However, this file doesn't exist in the nix sandbox, so we need to
+        # somehowe make the test suite think that it does.
+        # 
+        # There's no way to put something at /etc/protocols in the test suite,
+        # but we can use LD_PRELOAD to use libredirect to replace the openat
+        # glibc calls that the test suite makes by openat calls that look for a
+        # different filename.
+        #
+        # This mapping from expected filename to actual filename is given in a
+        # NIX_REDIRECTS environment variable, and the /etc/protocols file that
+        # we want to use is in iana-etc.
         preCheck = (old.preCheck or "") + ''
           export NIX_REDIRECTS=/etc/protocols=${final.iana-etc}/etc/protocols
           export LD_PRELOAD=${final.libredirect}/lib/libredirect.so
@@ -64,7 +82,14 @@ with final.haskell.lib;
       paths = final.lib.attrValues final.sydtestPackages;
     };
 
-  # Remove after https://github.com/NixOS/nixpkgs/pull/124157 is in the nixpkgs we use.
+  # Remove after https://github.com/NixOS/nixpkgs/pull/124157 is in the nixpkgs
+  # we use.
+  # The libredirect program does not work with subprocesses, like the test
+  # suite when cabal test execve's it.
+  # So we need to apply a fix that is already in nixpkgs master but not yet in
+  # the nixpkgs version that we use.
+  # We put it in the ./fix-libredirect-for-subprocesses.patch file in this
+  # directory and apply it to our current libredirect here.
   libredirect = previous.libredirect.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [ ./fix-libredirect-for-subprocesses.patch ];
   });

@@ -132,8 +132,9 @@ with final.haskell.lib;
                 final.sydtestPackages // {
                   envparse = envparsePkg;
                   # The haskell package mongoDB-2.7.0.0 is marked as broken, these three un-break it.
+                  mongoDB = unmarkBroken super.mongoDB;
                   bson = appendConfigureFlag
-                    (super.bson.override {
+                    ((unmarkBroken super.bson).override {
                       network = self.network-bsd;
                     }) "-f-_old_network";
                 }

@@ -46,6 +46,10 @@ with final.haskell.lib;
       "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ final.redis ];
       });
+      # The haskell package tmp-postgres-1.34.1.0 is marked as broken.
+      # "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
+      #   testDepends = (old.testDepends or [ ]) ++ [ final.postgresql ];
+      # });
       "sydtest-mongo" = overrideCabal (sydtestPkg "sydtest-mongo") (old: {
         buildDepends = (old.buildDepends or [ ]) ++ [ final.mongodb ];
         # The mongodb library uses network-bsd's function getProtocolByName

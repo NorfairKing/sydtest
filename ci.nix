@@ -3,7 +3,6 @@ let
   sources = import ./nix/sources.nix;
 
   versions = {
-    "lts-14_23" = "a87b506140a7267477103759c3f8da5b2e8d994e";
     "lts-16_11" = "89db531aea80df58584c9a9e3504ffd9617e6b48";
   };
 

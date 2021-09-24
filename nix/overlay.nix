@@ -46,10 +46,9 @@ with final.haskell.lib;
       "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ final.redis ];
       });
-      # The haskell package tmp-postgres-1.34.1.0 is marked as broken.
-      # "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
-      #   testDepends = (old.testDepends or [ ]) ++ [ final.postgresql ];
-      # });
+      "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
+        testDepends = (old.testDepends or [ ]) ++ [ final.postgresql ];
+      });
       "sydtest-mongo" = overrideCabal (sydtestPkg "sydtest-mongo") (old: {
         buildDepends = (old.buildDepends or [ ]) ++ [ final.mongodb ];
         # The mongodb library uses network-bsd's function getProtocolByName
@@ -131,12 +130,16 @@ with final.haskell.lib;
                 in
                 final.sydtestPackages // {
                   envparse = envparsePkg;
+
                   # The haskell package mongoDB-2.7.0.0 is marked as broken, these three un-break it.
                   mongoDB = unmarkBroken super.mongoDB;
                   bson = appendConfigureFlag
                     ((unmarkBroken super.bson).override {
                       network = self.network-bsd;
                     }) "-f-_old_network";
+
+                  # The haskell package tmp-postgres-1.34.1.0 is marked as broken.
+                  tmp-postgres = dontCheck (unmarkBroken super.tmp-postgres);
                 }
             );
       }

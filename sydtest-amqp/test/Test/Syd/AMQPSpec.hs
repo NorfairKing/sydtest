@@ -37,6 +37,7 @@ spec = do
             Just (m, e) -> do
               msgBody m `shouldBe` body
               ackEnv e
+
         it "can write a message (to make sure the next test cannot read it)" $ \conn -> do
           chan <- openChannel conn
 

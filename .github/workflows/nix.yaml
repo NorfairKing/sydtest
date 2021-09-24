@@ -28,7 +28,6 @@ jobs:
           - ubuntu-latest
           - macos-latest
         lts:
-          - lts-14_23
           - lts-16_11
           - release
 

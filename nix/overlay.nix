@@ -35,12 +35,12 @@ with final.haskell.lib;
       "sydtest-yesod" = sydtestPkg "sydtest-yesod";
       "sydtest-amqp" = overrideCabal (sydtestPkg "sydtest-amqp") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ final.rabbitmq-server ];
-        # Turn off testing because the rabbitmq server doesn't actually work on older nixpkgs versions.
+        # Turn off testing because it hangs for unknown reasons?
         doCheck = false;
       });
       "sydtest-rabbitmq" = overrideCabal (sydtestPkg "sydtest-rabbitmq") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ final.rabbitmq-server ];
-        # Turn off testing because the rabbitmq server doesn't actually work on older nixpkgs versions.
+        # Turn off testing because it hangs for unknown reasons?
         doCheck = false;
       });
       "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
@@ -139,6 +139,7 @@ with final.haskell.lib;
                     }) "-f-_old_network";
 
                   # The haskell package tmp-postgres-1.34.1.0 is marked as broken.
+                  # It's because the test suite fails, but nothing seems to be _very_ broken
                   tmp-postgres = dontCheck (unmarkBroken super.tmp-postgres);
                 }
             );

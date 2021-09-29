@@ -3,6 +3,8 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 015aadd2e8c2b0fce716064298eab80a3c1a4a842bc7d95d3fe033d71369b763
 
 name:           sydtest
 version:        0.4.1.0
@@ -70,11 +72,16 @@ library
     , random-shuffle
     , safe
     , safe-coloured-text
-    , safe-coloured-text-terminfo
     , split
     , text
     , yaml
     , yamlparse-applicative
+  if os(windows)
+    build-depends:
+        ansi-terminal
+  else
+    build-depends:
+        safe-coloured-text-terminfo
   default-language: Haskell2010
 
 test-suite sydtest-output-test
@@ -92,9 +99,11 @@ test-suite sydtest-output-test
     , path
     , path-io
     , safe-coloured-text
-    , safe-coloured-text-terminfo
     , sydtest
     , text
+  if !os(windows)
+    build-depends:
+        safe-coloured-text-terminfo
   default-language: Haskell2010
 
 test-suite sydtest-test

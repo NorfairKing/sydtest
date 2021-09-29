@@ -18,7 +18,6 @@ import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
 import Text.Colour
-import Text.Colour.Capabilities.FromEnv
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
 
@@ -34,7 +33,7 @@ main = do
   tc <- case settingColour sets of
     Just False -> pure WithoutColours
     Just True -> pure With24BitColours
-    Nothing -> getTerminalCapabilitiesFromEnv
+    Nothing -> detectTerminalCapabilities
 
   _ <- runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) testForest
   _ <- runSpecForestInterleavedWithOutputAsynchronously tc (settingFailFast sets) 8 testForest

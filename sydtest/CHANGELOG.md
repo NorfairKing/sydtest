@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1.0] - 2021-10-10
+
+### Added
+
+* The `--random-seed` option to use random seeds instead of the fixed seed that is used by default.
+
 ## [0.4.0.0] - 2021-09-02
 
 ### Added

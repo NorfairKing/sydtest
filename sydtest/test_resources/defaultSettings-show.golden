@@ -1,5 +1,5 @@
 Settings
-  { settingSeed = 42
+  { settingSeed = FixedSeed 42
   , settingRandomiseExecutionOrder = True
   , settingThreads = ByCapabilities
   , settingMaxSuccess = 100

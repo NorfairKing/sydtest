@@ -62,9 +62,12 @@ runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
   (a, _, testForest) <- runRWST func (toTestRunSettings sets) ()
   let testForest' = filterTestForest (settingFilter sets) testForest
+  stdgen <- case settingSeed sets of
+    FixedSeed seed -> pure $ mkStdGen seed
+    RandomSeed -> newStdGen
   let testForest'' =
         if settingRandomiseExecutionOrder sets
-          then evalRand (randomiseTestForest testForest') (mkStdGen (settingSeed sets))
+          then evalRand (randomiseTestForest testForest') stdgen
           else testForest'
   pure (a, testForest'')
 

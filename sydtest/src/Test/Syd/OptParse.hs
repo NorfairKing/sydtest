@@ -31,7 +31,7 @@ getSettings = do
 -- | Test suite definition and run settings
 data Settings = Settings
   { -- | The seed to use for deterministic randomness
-    settingSeed :: !Int,
+    settingSeed :: !SeedSetting,
     -- | Randomise the execution order of the tests in the test suite
     settingRandomiseExecutionOrder :: !Bool,
     -- | How parallel to run the test suite
@@ -139,7 +139,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
 --
 -- Use 'YamlParse.readConfigFile' or 'YamlParse.readFirstConfigFile' to read a configuration.
 data Configuration = Configuration
-  { configSeed :: !(Maybe Int),
+  { configSeed :: !(Maybe SeedSetting),
     configRandomiseExecutionOrder :: !(Maybe Bool),
     configThreads :: !(Maybe Threads),
     configMaxSize :: !(Maybe Int),
@@ -220,7 +220,7 @@ defaultConfigFile = resolveFile' ".sydtest.yaml"
 -- For example, use 'Text', not 'SqliteConfig'.
 data Environment = Environment
   { envConfigFile :: Maybe FilePath,
-    envSeed :: !(Maybe Int),
+    envSeed :: !(Maybe SeedSetting),
     envRandomiseExecutionOrder :: !(Maybe Bool),
     envThreads :: !(Maybe Threads),
     envMaxSize :: !(Maybe Int),
@@ -265,25 +265,25 @@ environmentParser :: Env.Parser Env.Error Environment
 environmentParser =
   Env.prefixed "SYDTEST_" $
     Environment
-      <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (mE <> Env.help "Config file")
-        <*> Env.var (fmap Just . Env.auto) "SEED" (mE <> Env.help "Seed for random generation of test cases")
-        <*> ( Env.var (fmap Just . Env.auto) "RANDOMISE_EXECUTION_ORDER" (mE <> Env.help "Randomise the execution order of the tests in the test suite")
-                <|> Env.var (fmap Just . Env.auto) "RANDOMIZE_EXECUTION_ORDER" (mE <> Env.help "Randomize the execution order of the tests in the test suite")
+      <$> Env.var (fmap Just . Env.str) "CONFIG_FILE" (Env.def Nothing <> Env.help "Config file")
+        <*> seedSettingEnvironmentParser
+        <*> ( Env.var (fmap Just . Env.auto) "RANDOMISE_EXECUTION_ORDER" (Env.def Nothing <> Env.help "Randomise the execution order of the tests in the test suite")
+                <|> Env.var (fmap Just . Env.auto) "RANDOMIZE_EXECUTION_ORDER" (Env.def Nothing <> Env.help "Randomize the execution order of the tests in the test suite")
             )
-        <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (mE <> Env.help "How parallel to execute the tests")
-        <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (mE <> Env.help "Number of quickcheck examples to run")
-        <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (mE <> Env.help "Maximum size parameter to pass to generators")
-        <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (mE <> Env.help "Maximum number of discarded tests per successful test before giving up")
-        <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (mE <> Env.help "Maximum number of shrinks of a failing test input")
-        <*> Env.var (fmap Just . Env.auto) "GOLDEN_START" (mE <> Env.help "Whether to write golden tests if they do not exist yet")
-        <*> Env.var (fmap Just . Env.auto) "GOLDEN_RESET" (mE <> Env.help "Whether to overwrite golden tests instead of having them fail")
-        <*> ( Env.var (fmap Just . Env.auto) "COLOUR" (mE <> Env.help "Whether to use coloured output")
-                <|> Env.var (fmap Just . Env.auto) "COLOR" (mE <> Env.help "Whether to use colored output")
+        <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (Env.def Nothing <> Env.help "How parallel to execute the tests")
+        <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (Env.def Nothing <> Env.help "Number of quickcheck examples to run")
+        <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (Env.def Nothing <> Env.help "Maximum size parameter to pass to generators")
+        <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (Env.def Nothing <> Env.help "Maximum number of discarded tests per successful test before giving up")
+        <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (Env.def Nothing <> Env.help "Maximum number of shrinks of a failing test input")
+        <*> Env.var (fmap Just . Env.auto) "GOLDEN_START" (Env.def Nothing <> Env.help "Whether to write golden tests if they do not exist yet")
+        <*> Env.var (fmap Just . Env.auto) "GOLDEN_RESET" (Env.def Nothing <> Env.help "Whether to overwrite golden tests instead of having them fail")
+        <*> ( Env.var (fmap Just . Env.auto) "COLOUR" (Env.def Nothing <> Env.help "Whether to use coloured output")
+                <|> Env.var (fmap Just . Env.auto) "COLOR" (Env.def Nothing <> Env.help "Whether to use colored output")
             )
-        <*> Env.var (fmap Just . Env.str) "FILTER" (mE <> Env.help "Filter to select which parts of the test tree to run")
-        <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (mE <> Env.help "Whether to stop executing upon the first test failure")
-        <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (mE <> Env.help "How many iterations to use to look diagnose flakiness")
-        <*> Env.var (fmap Just . Env.auto) "DEBUG" (mE <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
+        <*> Env.var (fmap Just . Env.str) "FILTER" (Env.def Nothing <> Env.help "Filter to select which parts of the test tree to run")
+        <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (Env.def Nothing <> Env.help "Whether to stop executing upon the first test failure")
+        <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (Env.def Nothing <> Env.help "How many iterations to use to look diagnose flakiness")
+        <*> Env.var (fmap Just . Env.auto) "DEBUG" (Env.def Nothing <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
   where
     parseThreads :: Int -> Either e Threads
     parseThreads 1 = Right Synchronous
@@ -292,7 +292,15 @@ environmentParser =
     parseIterations 0 = Right Continuous
     parseIterations 1 = Right OneIteration
     parseIterations i = Right (Iterations i)
-    mE = Env.def Nothing
+
+seedSettingEnvironmentParser :: Env.Parser Env.Error (Maybe SeedSetting)
+seedSettingEnvironmentParser =
+  combine
+    <$> Env.var (fmap Just . Env.auto) "SEED" (Env.def Nothing <> Env.help "Seed for random generation of test cases")
+    <*> Env.switch "RANDOM_SEED" (Env.help "Use a random seed for every test case")
+  where
+    combine :: Maybe Int -> Bool -> Maybe SeedSetting
+    combine mSeed random = if random then Just RandomSeed else FixedSeed <$> mSeed
 
 -- | Get the command-line flags
 getFlags :: IO Flags
@@ -326,7 +334,7 @@ flagsParser =
 -- | The flags that are common across commands.
 data Flags = Flags
   { flagConfigFile :: !(Maybe FilePath),
-    flagSeed :: !(Maybe Int),
+    flagSeed :: !(Maybe SeedSetting),
     flagRandomiseExecutionOrder :: !(Maybe Bool),
     flagThreads :: !(Maybe Threads),
     flagMaxSuccess :: !(Maybe Int),
@@ -376,16 +384,7 @@ parseFlags =
               ]
           )
       )
-    <*> optional
-      ( option
-          auto
-          ( mconcat
-              [ long "seed",
-                help "Seed for random generation of test cases",
-                metavar "SEED"
-              ]
-          )
-      )
+    <*> seedSettingFlags
     <*> doubleSwitch ["randomise-execution-order", "randomize-execution-order"] (help "Randomise the execution order of the tests in the test suite")
     <*> optional
       ( ( ( \case
@@ -492,6 +491,27 @@ parseFlags =
             )
       )
     <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous and --fail-fast.")
+
+seedSettingFlags :: OptParse.Parser (Maybe SeedSetting)
+seedSettingFlags =
+  optional $
+    ( FixedSeed
+        <$> option
+          auto
+          ( mconcat
+              [ long "seed",
+                help "Seed for random generation of test cases",
+                metavar "SEED"
+              ]
+          )
+    )
+      <|> flag'
+        RandomSeed
+        ( mconcat
+            [ long "random-seed",
+              help "Use a random seed instead of a fixed seed"
+            ]
+        )
 
 doubleSwitch :: [String] -> OptParse.Mod FlagFields (Maybe Bool) -> OptParse.Parser (Maybe Bool)
 doubleSwitch suffixes mods =

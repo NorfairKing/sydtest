@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -28,6 +29,7 @@ import Test.QuickCheck.Property hiding (Result (..))
 import qualified Test.QuickCheck.Property as QCP
 import Test.QuickCheck.Random
 import Text.Printf
+import YamlParse.Applicative
 
 class IsTest e where
   -- | The argument from 'aroundAll'
@@ -162,7 +164,9 @@ instance IsTest (outerArgs -> innerArg -> Property) where
 makeQuickCheckArgs :: TestRunSettings -> Args
 makeQuickCheckArgs TestRunSettings {..} =
   stdArgs
-    { replay = Just (mkQCGen testRunSettingSeed, 0),
+    { replay = case testRunSettingSeed of
+        RandomSeed -> Nothing
+        FixedSeed s -> Just (mkQCGen s, 0),
       chatty = False,
       maxSuccess = testRunSettingMaxSuccess,
       maxDiscardRatio = testRunSettingMaxDiscardRatio,
@@ -346,7 +350,7 @@ exceptionHandlers =
 type Test = IO ()
 
 data TestRunSettings = TestRunSettings
-  { testRunSettingSeed :: !Int,
+  { testRunSettingSeed :: !SeedSetting,
     testRunSettingMaxSuccess :: !Int,
     testRunSettingMaxSize :: !Int,
     testRunSettingMaxDiscardRatio :: !Int,
@@ -359,7 +363,7 @@ data TestRunSettings = TestRunSettings
 defaultTestRunSettings :: TestRunSettings
 defaultTestRunSettings =
   TestRunSettings
-    { testRunSettingSeed = 42, -- This is set by default because we want reproducability by default.
+    { testRunSettingSeed = FixedSeed 42, -- This is set by default because we want reproducability by default.
       testRunSettingMaxSuccess = maxSuccess stdArgs,
       testRunSettingMaxSize = maxSize stdArgs,
       testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,
@@ -367,6 +371,18 @@ defaultTestRunSettings =
       testRunSettingGoldenStart = True,
       testRunSettingGoldenReset = False
     }
+
+data SeedSetting
+  = RandomSeed
+  | FixedSeed !Int
+  deriving (Show, Eq, Generic)
+
+instance YamlSchema SeedSetting where
+  yamlSchema =
+    alternatives
+      [ RandomSeed <$ literalString "random",
+        FixedSeed <$> yamlSchema
+      ]
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,

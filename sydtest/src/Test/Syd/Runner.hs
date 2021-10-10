@@ -84,9 +84,15 @@ sydTestIterations totalIterations sets spec =
           pure r
 
     let go iteration = do
-          let newSeed = settingSeed sets + iteration
-          putStrLn $ printf "Running iteration: %4d with seed %4d" iteration newSeed
-          rf <- runOnce $ sets {settingSeed = newSeed}
+          newSeedSetting <- case settingSeed sets of
+            FixedSeed seed -> do
+              let newSeed = seed + iteration
+              putStrLn $ printf "Running iteration: %4d with seed %4d" iteration newSeed
+              pure $ FixedSeed newSeed
+            RandomSeed -> do
+              putStrLn $ printf "Running iteration: %4d with random seeds" iteration
+              pure RandomSeed
+          rf <- runOnce $ sets {settingSeed = newSeedSetting}
           if shouldExitFail (timedValue rf)
             then pure rf
             else case totalIterations of

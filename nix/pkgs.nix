@@ -1,13 +1,15 @@
 { sources ? import ./sources.nix
 , pkgsf ? import sources.nixpkgs
+, system ? builtins.currentSystem
 }:
 let
-  pkgs = pkgsf { };
+  pkgs = pkgsf { inherit system; };
   pre-commit-hooks = import sources.pre-commit-hooks;
   yamlparse-applicative-overlay = import (sources.yamlparse-applicative + "/nix/overlay.nix");
   safe-coloured-text-overlay = import (sources.safe-coloured-text + "/nix/overlay.nix");
   sydtestPkgs =
     pkgsf {
+      inherit system;
       overlays =
         [
           yamlparse-applicative-overlay

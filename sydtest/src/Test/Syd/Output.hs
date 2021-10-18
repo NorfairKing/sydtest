@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NumericUnderscores #-}
@@ -27,6 +28,13 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
 import Text.Printf
+
+#ifdef mingw32_HOST_OS
+import System.Console.ANSI (hSupportsANSIColor)
+import System.IO (stdout)
+#else
+import Text.Colour.Capabilities.FromEnv
+#endif
 
 printOutputSpecForest :: TerminalCapabilities -> Timed ResultForest -> IO ()
 printOutputSpecForest tc results = do
@@ -509,3 +517,15 @@ orange = colour256 166
 
 darkRed :: Colour
 darkRed = colour256 160
+
+detectTerminalCapabilities :: IO TerminalCapabilities
+detectTerminalCapabilities = do
+
+#ifdef mingw32_HOST_OS
+  supports <- hSupportsANSIColor stdout
+  if supports
+    then pure With8BitColours
+    else pure WithoutColours
+#else
+  getTerminalCapabilitiesFromEnv
+#endif

@@ -19,6 +19,16 @@ copyright:      Copyright (c) 2020-2021 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+    LICENSE.md
+    test_resources/defaultSettings-show.golden
+    test_resources/even/2
+    test_resources/even/4
+    test_resources/even/odd/3
+    test_resources/odd/3
+    test_resources/odd/deep/5
+    test_resources/output.golden
 
 source-repository head
   type: git

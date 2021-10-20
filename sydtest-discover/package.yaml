@@ -9,6 +9,9 @@ copyright: "Copyright (c) 2020-2021 Tom Sydney Kerckhove"
 category: Testing
 synopsis: Automatic test suite discovery for sydtest
 
+extra-source-files:
+- LICENSE.md
+
 dependencies:
 - base >= 4.7 && < 5
 

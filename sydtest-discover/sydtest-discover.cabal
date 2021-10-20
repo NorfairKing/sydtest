@@ -16,6 +16,8 @@ copyright:      Copyright (c) 2020-2021 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
+extra-source-files:
+    LICENSE.md
 
 source-repository head
   type: git

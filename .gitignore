@@ -3,3 +3,4 @@ stack.yaml.lock
 .pre-commit-config.yaml
 result*
 *.dump
+*.tix

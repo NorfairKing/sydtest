@@ -194,6 +194,11 @@ computeTestSuiteStats = goF []
             testSuiteStatFailures = case testRunResultStatus of
               TestPassed -> 0
               TestFailed -> 1,
+            testSuiteStatFlakyTests = case testRunResultStatus of
+              TestFailed -> 0
+              TestPassed -> case testRunResultRetries of
+                Nothing -> 0
+                Just _ -> 1,
             testSuiteStatPending = 0,
             testSuiteStatSumTime = t,
             testSuiteStatLongestTime = Just (T.intercalate "." (ts ++ [tn]), t)
@@ -203,6 +208,7 @@ computeTestSuiteStats = goF []
           { testSuiteStatSuccesses = 0,
             testSuiteStatExamples = 0,
             testSuiteStatFailures = 0,
+            testSuiteStatFlakyTests = 0,
             testSuiteStatPending = 1,
             testSuiteStatSumTime = 0,
             testSuiteStatLongestTime = Nothing
@@ -214,6 +220,7 @@ data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
     testSuiteStatExamples :: !Word,
     testSuiteStatFailures :: !Word,
+    testSuiteStatFlakyTests :: !Word,
     testSuiteStatPending :: !Word,
     testSuiteStatSumTime :: !Word64,
     testSuiteStatLongestTime :: !(Maybe (Text, Word64))
@@ -226,6 +233,7 @@ instance Semigroup TestSuiteStats where
       { testSuiteStatSuccesses = testSuiteStatSuccesses tss1 + testSuiteStatSuccesses tss2,
         testSuiteStatExamples = testSuiteStatExamples tss1 + testSuiteStatExamples tss2,
         testSuiteStatFailures = testSuiteStatFailures tss1 + testSuiteStatFailures tss2,
+        testSuiteStatFlakyTests = testSuiteStatFlakyTests tss1 + testSuiteStatFlakyTests tss2,
         testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2,
         testSuiteStatSumTime = testSuiteStatSumTime tss1 + testSuiteStatSumTime tss2,
         testSuiteStatLongestTime = case (testSuiteStatLongestTime tss1, testSuiteStatLongestTime tss2) of
@@ -242,6 +250,7 @@ instance Monoid TestSuiteStats where
       { testSuiteStatSuccesses = 0,
         testSuiteStatExamples = 0,
         testSuiteStatFailures = 0,
+        testSuiteStatFlakyTests = 0,
         testSuiteStatPending = 0,
         testSuiteStatSumTime = 0,
         testSuiteStatLongestTime = Nothing

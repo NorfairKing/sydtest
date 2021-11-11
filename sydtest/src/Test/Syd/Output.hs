@@ -99,6 +99,11 @@ outputStats (Timed TestSuiteStats {..} timing) =
                   $ chunk (T.pack (show testSuiteStatFailures))
               ]
             ],
+            [ [ chunk "Flaky:                        ",
+                fore red $ chunk (T.pack (show testSuiteStatFlakyTests))
+              ]
+              | testSuiteStatFlakyTests > 0
+            ],
             [ [ chunk "Pending:                      ",
                 fore magenta $ chunk (T.pack (show testSuiteStatPending))
               ]

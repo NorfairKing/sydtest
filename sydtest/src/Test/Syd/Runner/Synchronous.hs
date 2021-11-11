@@ -21,42 +21,42 @@ import Test.Syd.SpecForest
 import Text.Colour
 
 runSpecForestSynchronously :: Bool -> TestForest '[] () -> IO ResultForest
-runSpecForestSynchronously failFast = fmap extractNext . goForest HNil
+runSpecForestSynchronously failFast = fmap extractNext . goForest MayNotBeFlaky HNil
   where
-    goForest :: HList a -> TestForest a () -> IO (Next ResultForest)
-    goForest _ [] = pure (Continue [])
-    goForest l (tt : rest) = do
-      nrt <- goTree l tt
+    goForest :: FlakinessMode -> HList a -> TestForest a () -> IO (Next ResultForest)
+    goForest _ _ [] = pure (Continue [])
+    goForest f hl (tt : rest) = do
+      nrt <- goTree f hl tt
       case nrt of
         Continue rt -> do
-          nf <- goForest l rest
+          nf <- goForest f hl rest
           pure $ (rt :) <$> nf
         Stop rt -> pure $ Stop [rt]
-    goTree :: forall a. HList a -> TestTree a () -> IO (Next ResultTree)
-    goTree l = \case
+    goTree :: forall a. FlakinessMode -> HList a -> TestTree a () -> IO (Next ResultTree)
+    goTree fm hl = \case
       DefSpecifyNode t td () -> do
-        let runFunc = testDefVal td (\f -> f l ())
-        result <- timeItT runFunc
+        result <- timeItT $ runSingleTestWithFlakinessMode hl td fm
         let td' = td {testDefVal = result}
         let r = failFastNext failFast td'
         pure $ SpecifyNode t <$> r
       DefPendingNode t mr -> pure $ Continue $ PendingNode t mr
-      DefDescribeNode t sdf -> fmap (DescribeNode t) <$> goForest l sdf
-      DefWrapNode func sdf -> fmap SubForestNode <$> applySimpleWrapper'' func (goForest l sdf)
+      DefDescribeNode t sdf -> fmap (DescribeNode t) <$> goForest fm hl sdf
+      DefWrapNode func sdf -> fmap SubForestNode <$> applySimpleWrapper'' func (goForest fm hl sdf)
       DefBeforeAllNode func sdf -> do
         fmap SubForestNode
           <$> ( do
                   b <- func
-                  goForest (HCons b l) sdf
+                  goForest fm (HCons b hl) sdf
               )
       DefAroundAllNode func sdf ->
-        fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest (HCons b l) sdf)
+        fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest fm (HCons b hl) sdf)
       DefAroundAllWithNode func sdf ->
-        let HCons x _ = l
-         in fmap SubForestNode <$> applySimpleWrapper func (\b -> goForest (HCons b l) sdf) x
-      DefAfterAllNode func sdf -> fmap SubForestNode <$> (goForest l sdf `finally` func l)
-      DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest l sdf -- Ignore, it's synchronous anyway
-      DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest l sdf
+        let HCons x _ = hl
+         in fmap SubForestNode <$> applySimpleWrapper func (\b -> goForest fm (HCons b hl) sdf) x
+      DefAfterAllNode func sdf -> fmap SubForestNode <$> (goForest fm hl sdf `finally` func hl)
+      DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest fm hl sdf -- Ignore, it's synchronous anyway
+      DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest fm hl sdf
+      DefFlakinessNode fm' sdf -> fmap SubForestNode <$> goForest fm' hl sdf
 
 runSpecForestInterleavedWithOutputSynchronously :: TerminalCapabilities -> Bool -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
@@ -68,20 +68,19 @@ runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
       treeWidth = specForestWidth testForest
   let pad :: Int -> [Chunk] -> [Chunk]
       pad level = (chunk (T.pack (replicate (paddingSize * level) ' ')) :)
-      goForest :: Int -> HList a -> TestForest a () -> IO (Next ResultForest)
-      goForest _ _ [] = pure (Continue [])
-      goForest level l (tt : rest) = do
-        nrt <- goTree level l tt
+      goForest :: Int -> FlakinessMode -> HList a -> TestForest a () -> IO (Next ResultForest)
+      goForest _ _ _ [] = pure (Continue [])
+      goForest level fm l (tt : rest) = do
+        nrt <- goTree level fm l tt
         case nrt of
           Continue rt -> do
-            nf <- goForest level l rest
+            nf <- goForest level fm l rest
             pure $ (rt :) <$> nf
           Stop rt -> pure $ Stop [rt]
-      goTree :: Int -> HList a -> TestTree a () -> IO (Next ResultTree)
-      goTree level a = \case
+      goTree :: Int -> FlakinessMode -> HList a -> TestTree a () -> IO (Next ResultTree)
+      goTree level fm hl = \case
         DefSpecifyNode t td () -> do
-          let runFunc = testDefVal td (\f -> f a ())
-          result <- timeItT runFunc
+          result <- timeItT $ runSingleTestWithFlakinessMode hl td fm
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
           let r = failFastNext failFast td'
@@ -91,24 +90,25 @@ runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
           pure $ Continue $ PendingNode t mr
         DefDescribeNode t sf -> do
           outputLine $ pad level $ outputDescribeLine t
-          fmap (DescribeNode t) <$> goForest (succ level) a sf
-        DefWrapNode func sdf -> fmap SubForestNode <$> applySimpleWrapper'' func (goForest level a sdf)
+          fmap (DescribeNode t) <$> goForest (succ level) fm hl sf
+        DefWrapNode func sdf -> fmap SubForestNode <$> applySimpleWrapper'' func (goForest level fm hl sdf)
         DefBeforeAllNode func sdf ->
           fmap SubForestNode
             <$> ( do
                     b <- func
-                    goForest level (HCons b a) sdf
+                    goForest level fm (HCons b hl) sdf
                 )
         DefAroundAllNode func sdf ->
-          fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest level (HCons b a) sdf)
+          fmap SubForestNode <$> applySimpleWrapper' func (\b -> goForest level fm (HCons b hl) sdf)
         DefAroundAllWithNode func sdf ->
-          let HCons x _ = a
-           in fmap SubForestNode <$> applySimpleWrapper func (\b -> goForest level (HCons b a) sdf) x
-        DefAfterAllNode func sdf -> fmap SubForestNode <$> (goForest level a sdf `finally` func a)
-        DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level a sdf -- Ignore, it's synchronous anyway
-        DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level a sdf
+          let HCons x _ = hl
+           in fmap SubForestNode <$> applySimpleWrapper func (\b -> goForest level fm (HCons b hl) sdf) x
+        DefAfterAllNode func sdf -> fmap SubForestNode <$> (goForest level fm hl sdf `finally` func hl)
+        DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level fm hl sdf -- Ignore, it's synchronous anyway
+        DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level fm hl sdf
+        DefFlakinessNode fm' sdf -> fmap SubForestNode <$> goForest level fm' hl sdf
   mapM_ outputLine outputTestsHeader
-  resultForest <- timeItT $ extractNext <$> goForest 0 HNil testForest
+  resultForest <- timeItT $ extractNext <$> goForest 0 MayNotBeFlaky HNil testForest
   outputLine [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading (timedValue resultForest)
   outputLine [chunk " "]
@@ -116,3 +116,26 @@ runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
   outputLine [chunk " "]
 
   pure resultForest
+
+runSingleTestWithFlakinessMode :: forall a t. HList a -> TDef (((HList a -> () -> t) -> t) -> IO TestRunResult) -> FlakinessMode -> IO TestRunResult
+runSingleTestWithFlakinessMode l td = \case
+  MayNotBeFlaky -> runFunc
+  MayBeFlakyUpTo i -> go i
+  where
+    runFunc = testDefVal td (\f -> f l ())
+    go i
+      | i <= 1 = runFunc
+      | otherwise = do
+        result <- runFunc
+        case testRunResultStatus result of
+          TestPassed -> pure result
+          TestFailed -> updateRetriesResult <$> go (pred i)
+      where
+        updateRetriesResult :: TestRunResult -> TestRunResult
+        updateRetriesResult trr =
+          trr
+            { testRunResultRetries =
+                case testRunResultRetries trr of
+                  Nothing -> Just 1
+                  Just r -> Just (succ r)
+            }

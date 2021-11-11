@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.0.0] - 2021-11-11
+
+### Added
+
+* The `flaky` combinator to mark a test group as potentially flaky.
+
 ## [0.4.1.0] - 2021-10-10
 
 ### Added

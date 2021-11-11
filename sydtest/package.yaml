@@ -82,6 +82,7 @@ tests:
     - bytestring
     - path
     - path-io
+    - random
     - safe-coloured-text
     - sydtest
     - text

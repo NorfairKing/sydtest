@@ -106,6 +106,11 @@ data SpecDefTree (outers :: [Type]) inner extra where
     ExecutionOrderRandomisation ->
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
+  DefFlakinessNode ::
+    -- | How many times to retry
+    FlakinessMode ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
 
 instance Functor (SpecDefTree a c) where
   fmap :: forall e f. (e -> f) -> SpecDefTree a c e -> SpecDefTree a c f
@@ -123,6 +128,7 @@ instance Functor (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p $ goF sdf
+          DefFlakinessNode p sdf -> DefFlakinessNode p $ goF sdf
 
 instance Foldable (SpecDefTree a c) where
   foldMap :: forall e m. Monoid m => (e -> m) -> SpecDefTree a c e -> m
@@ -140,6 +146,7 @@ instance Foldable (SpecDefTree a c) where
           DefAfterAllNode _ sdf -> goF sdf
           DefParallelismNode _ sdf -> goF sdf
           DefRandomisationNode _ sdf -> goF sdf
+          DefFlakinessNode _ sdf -> goF sdf
 
 instance Traversable (SpecDefTree a c) where
   traverse :: forall u w f. Applicative f => (u -> f w) -> SpecDefTree a c u -> f (SpecDefTree a c w)
@@ -157,10 +164,13 @@ instance Traversable (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p <$> goF sdf
+          DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
 
 data Parallelism = Parallel | Sequential
 
 data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecutionOrder
+
+data FlakinessMode = MayNotBeFlaky | MayBeFlakyUpTo !Int
 
 type ResultForest = SpecForest (TDef (Timed TestRunResult))
 

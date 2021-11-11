@@ -566,6 +566,7 @@ spec = do
 ```
 
 This way you can unblock your team while you go and investigate flakiness.
+You can use the `--fail-on-flaky` flag to help falsify flakiness.
 
 ## Acknowledgements
 

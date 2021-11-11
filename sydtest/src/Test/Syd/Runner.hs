@@ -92,7 +92,7 @@ sydTestIterations totalIterations sets spec =
               putStrLn $ printf "Running iteration: %4d with random seeds" iteration
               pure RandomSeed
           rf <- runOnce $ sets {settingSeed = newSeedSetting}
-          if shouldExitFail (timedValue rf)
+          if shouldExitFail sets (timedValue rf)
             then pure rf
             else case totalIterations of
               Nothing -> go $ succ iteration

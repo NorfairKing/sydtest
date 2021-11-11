@@ -24,6 +24,7 @@ import Data.Word
 import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
+import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecForest
 
@@ -256,5 +257,13 @@ instance Monoid TestSuiteStats where
         testSuiteStatLongestTime = Nothing
       }
 
-shouldExitFail :: ResultForest -> Bool
-shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . timedValue . testDefVal))
+shouldExitFail :: Settings -> ResultForest -> Bool
+shouldExitFail Settings {..} = any (any (problematic . timedValue . testDefVal))
+  where
+    problematic TestRunResult {..} =
+      or
+        [ -- Failed
+          testRunResultStatus == TestFailed,
+          -- Passed but flaky
+          settingFailOnFlaky && testRunResultStatus == TestPassed && isJust testRunResultRetries
+        ]

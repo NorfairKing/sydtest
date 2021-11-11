@@ -4,7 +4,9 @@
 
 ### Added
 
-* The `flaky` combinator to mark a test group as potentially flaky.
+* The flakiness combinators (`flaky`, `notFlaky`, and `withFlakiness`) to mark a test group as potentially flaky.
+* The `--fail-on-flaky` flag to falsify flakiness.
+
 
 ## [0.4.1.0] - 2021-10-10
 

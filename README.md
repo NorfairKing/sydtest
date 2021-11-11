@@ -156,6 +156,7 @@ This repository contains many companion libraries to write integration tests wit
 | Fully configurable via configuration file                                                 | ✔️       | ✔️                                                           | ✖️                                                                |
 | Pending tests                                                                             | ✔️       | ✔️                                                           | ✖️                                                                |
 | Iterative testing to diagnose flakiness                                                   | ✔️       | ✖️                                                           | ?                                                                |
+| Flakiness combinators to practically deal with flakiness                                  | ✔️       | ?                                                           | ?                                                                |
 
 * ✔️: Supported 
 * Lib: Possible with an extra library
@@ -549,6 +550,22 @@ spec = do
 To see if a test suite may be flaky, you can run it multiple times (with different, but still deterministic, randomness for each run) to diagnose the flakiness.
 You can use `--iterations 10` to run a test suite up to 10 times, or `--continuous` to run it over and over until failure.
 
+### Flakiness combinators to practically deal with flakiness
+
+You can declare that some tests are potentially flaky like so:
+
+``` haskell
+spec :: Spec
+spec = do
+  notFlaky $ it "does not retry if not allowed" $ 'a' `shouldBe` 'b'
+  flaky 3 $ it "can retry" $ 'a' `shouldBe` 'b'
+  flaky 100 $
+    it "can retry randomness" $ do
+      i <- randomRIO (1, 10)
+      i `shouldBe` (1 :: Int)
+```
+
+This way you can unblock your team while you go and investigate flakiness.
 
 ## Acknowledgements
 

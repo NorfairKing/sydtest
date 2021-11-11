@@ -139,7 +139,7 @@ makeSpecModule Settings {..} destination sources =
     ]
 
 moduleDeclaration :: String -> String
-moduleDeclaration mn = unwords ["module", mn, "where"]
+moduleDeclaration mn = unwords ["module", mn, "(spec) where"]
 
 mainDeclaration :: String
 mainDeclaration =

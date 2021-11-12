@@ -12,5 +12,6 @@ Settings
   , settingFilter = Nothing
   , settingFailFast = False
   , settingIterations = OneIteration
+  , settingFailOnFlaky = False
   , settingDebug = False
   }

@@ -14,6 +14,7 @@ import qualified Data.ByteString.Lazy as LB
 import Data.List
 import Data.Text (Text)
 import System.Exit
+import System.Random
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
@@ -277,6 +278,15 @@ spec = do
             forAllShrink (sized $ \n -> pure n) shrink $ \i -> do
               () <- readMVar var
               i `shouldSatisfy` (< 20)
+  describe "Flakiness" $ do
+    notFlaky $ it "does not retry if not allowed" False
+    flaky 3 $ do
+      it "can retry booleans" False
+      notFlaky $ it "can retry booleans" False
+    flaky 100 $
+      it "can retry randomness" $ do
+        i <- randomRIO (1, 10)
+        i `shouldBe` (1 :: Int)
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

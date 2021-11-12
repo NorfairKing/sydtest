@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0.0] - 2021-11-11
+
+### Added
+
+* The flakiness combinators (`flaky`, `notFlaky`, and `withFlakiness`) to mark a test group as potentially flaky.
+* The `--fail-on-flaky` flag to falsify flakiness.
+
+
 ## [0.4.1.0] - 2021-10-10
 
 ### Added

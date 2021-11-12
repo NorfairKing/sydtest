@@ -253,7 +253,7 @@ sydTest spec = do
 sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
   resultForest <- sydTestResult sets spec
-  when (shouldExitFail (timedValue resultForest)) (exitWith (ExitFailure 1))
+  when (shouldExitFail sets (timedValue resultForest)) (exitWith (ExitFailure 1))
 
 -- | Run a test suite during test suite definition.
 --

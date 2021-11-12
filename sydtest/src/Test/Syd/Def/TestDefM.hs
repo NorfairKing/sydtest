@@ -115,6 +115,7 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
       DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest dl sdf
+      DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest dl sdf
 
 randomiseTestForest :: MonadRandom m => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
 randomiseTestForest = goForest
@@ -132,6 +133,7 @@ randomiseTestForest = goForest
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest sdf
+      DefFlakinessNode i sdf -> DefFlakinessNode i <$> goForest sdf
       DefRandomisationNode eor sdf ->
         DefRandomisationNode eor <$> case eor of
           RandomiseExecutionOrder -> goForest sdf

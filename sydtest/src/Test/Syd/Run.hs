@@ -67,6 +67,7 @@ runPureTestWithArg ::
   IO TestRunResult
 runPureTestWithArg computeBool TestRunSettings {} wrapper = do
   let testRunResultNumTests = Nothing
+  let testRunResultRetries = Nothing
   resultBool <-
     applyWrapper2 wrapper $
       \outerArgs innerArg -> evaluate (computeBool outerArgs innerArg)
@@ -130,6 +131,7 @@ runIOTestWithArg ::
   IO TestRunResult
 runIOTestWithArg func TestRunSettings {} wrapper = do
   let testRunResultNumTests = Nothing
+  let testRunResultRetries = Nothing
   result <- liftIO $
     applyWrapper2 wrapper $
       \outerArgs innerArg ->
@@ -184,6 +186,7 @@ runPropertyTestWithArg p trs wrapper = do
   qcr <- quickCheckWithResult qcargs (aroundProperty wrapper p)
   let testRunResultGoldenCase = Nothing
   let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
+  let testRunResultRetries = Nothing
   case qcr of
     Success {} -> do
       let testRunResultStatus = TestPassed
@@ -328,6 +331,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
   let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
         Left e -> (TestFailed, Nothing, Just e)
         Right trip -> trip
+  let testRunResultRetries = Nothing
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing
   let testRunResultFailingInputs = []
@@ -386,6 +390,7 @@ instance YamlSchema SeedSetting where
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,
+    testRunResultRetries :: !(Maybe Int),
     testRunResultException :: !(Maybe (Either String Assertion)),
     testRunResultNumTests :: !(Maybe Word),
     testRunResultNumShrinks :: !(Maybe Word),

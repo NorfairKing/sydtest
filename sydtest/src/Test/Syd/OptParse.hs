@@ -56,6 +56,8 @@ data Settings = Settings
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
     settingIterations :: Iterations,
+    -- | Whether to fail when any flakiness is detected
+    settingFailOnFlaky :: !Bool,
     -- | Debug mode
     settingDebug :: !Bool
   }
@@ -78,6 +80,7 @@ defaultSettings =
           settingFilter = Nothing,
           settingFailFast = False,
           settingIterations = OneIteration,
+          settingFailOnFlaky = False,
           settingDebug = False
         }
 
@@ -126,6 +129,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
             (if debugMode then True else d settingFailFast)
             (flagFailFast <|> envFailFast <|> mc configFailFast),
         settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations,
+        settingFailOnFlaky = fromMaybe (d settingFailOnFlaky) $ flagFailOnFlaky <|> envFailOnFlaky <|> mc configFailOnFlaky,
         settingDebug = debugMode
       }
   where
@@ -152,6 +156,7 @@ data Configuration = Configuration
     configFilter :: !(Maybe Text),
     configFailFast :: !(Maybe Bool),
     configIterations :: !(Maybe Iterations),
+    configFailOnFlaky :: !(Maybe Bool),
     configDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -170,8 +175,8 @@ instance YamlSchema Configuration where
             optionalField "randomize-execution-order" "Randomize the execution order of the tests in the test suite"
           ]
         <*> optionalField "parallelism" "How parallel to execute the tests"
-        <*> optionalField "max-success" "Number of quickcheck examples to run"
         <*> optionalField "max-size" "Maximum size parameter to pass to generators"
+        <*> optionalField "max-success" "Number of quickcheck examples to run"
         <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
         <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
         <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet"
@@ -183,6 +188,7 @@ instance YamlSchema Configuration where
         <*> optionalField "filter" "Filter to select which parts of the test tree to run"
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
         <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness"
+        <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected"
         <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true"
 
 instance YamlSchema Threads where
@@ -233,6 +239,7 @@ data Environment = Environment
     envFilter :: !(Maybe Text),
     envFailFast :: !(Maybe Bool),
     envIterations :: !(Maybe Iterations),
+    envFailOnFlaky :: !(Maybe Bool),
     envDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -254,6 +261,7 @@ defaultEnvironment =
       envFilter = Nothing,
       envFailFast = Nothing,
       envIterations = Nothing,
+      envFailOnFlaky = Nothing,
       envDebug = Nothing
     }
 
@@ -271,8 +279,8 @@ environmentParser =
                 <|> Env.var (fmap Just . Env.auto) "RANDOMIZE_EXECUTION_ORDER" (Env.def Nothing <> Env.help "Randomize the execution order of the tests in the test suite")
             )
         <*> Env.var (fmap Just . (Env.auto >=> parseThreads)) "PARALLELISM" (Env.def Nothing <> Env.help "How parallel to execute the tests")
-        <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (Env.def Nothing <> Env.help "Number of quickcheck examples to run")
         <*> Env.var (fmap Just . Env.auto) "MAX_SIZE" (Env.def Nothing <> Env.help "Maximum size parameter to pass to generators")
+        <*> Env.var (fmap Just . Env.auto) "MAX_SUCCESS" (Env.def Nothing <> Env.help "Number of quickcheck examples to run")
         <*> Env.var (fmap Just . Env.auto) "MAX_DISCARD" (Env.def Nothing <> Env.help "Maximum number of discarded tests per successful test before giving up")
         <*> Env.var (fmap Just . Env.auto) "MAX_SHRINKS" (Env.def Nothing <> Env.help "Maximum number of shrinks of a failing test input")
         <*> Env.var (fmap Just . Env.auto) "GOLDEN_START" (Env.def Nothing <> Env.help "Whether to write golden tests if they do not exist yet")
@@ -283,6 +291,7 @@ environmentParser =
         <*> Env.var (fmap Just . Env.str) "FILTER" (Env.def Nothing <> Env.help "Filter to select which parts of the test tree to run")
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (Env.def Nothing <> Env.help "Whether to stop executing upon the first test failure")
         <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (Env.def Nothing <> Env.help "How many iterations to use to look diagnose flakiness")
+        <*> Env.var (fmap Just . Env.auto) "FAIL_ON_FLAKY" (Env.def Nothing <> Env.help "Whether to fail when flakiness is detected")
         <*> Env.var (fmap Just . Env.auto) "DEBUG" (Env.def Nothing <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
   where
     parseThreads :: Int -> Either e Threads
@@ -337,8 +346,8 @@ data Flags = Flags
     flagSeed :: !(Maybe SeedSetting),
     flagRandomiseExecutionOrder :: !(Maybe Bool),
     flagThreads :: !(Maybe Threads),
-    flagMaxSuccess :: !(Maybe Int),
     flagMaxSize :: !(Maybe Int),
+    flagMaxSuccess :: !(Maybe Int),
     flagMaxDiscard :: !(Maybe Int),
     flagMaxShrinks :: !(Maybe Int),
     flagGoldenStart :: !(Maybe Bool),
@@ -347,6 +356,7 @@ data Flags = Flags
     flagFilter :: !(Maybe Text),
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !(Maybe Iterations),
+    flagFailOnFlaky :: !(Maybe Bool),
     flagDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -358,8 +368,8 @@ defaultFlags =
       flagSeed = Nothing,
       flagRandomiseExecutionOrder = Nothing,
       flagThreads = Nothing,
-      flagMaxSuccess = Nothing,
       flagMaxSize = Nothing,
+      flagMaxSuccess = Nothing,
       flagMaxDiscard = Nothing,
       flagMaxShrinks = Nothing,
       flagGoldenStart = Nothing,
@@ -368,6 +378,7 @@ defaultFlags =
       flagFilter = Nothing,
       flagFailFast = Nothing,
       flagIterations = Nothing,
+      flagFailOnFlaky = Nothing,
       flagDebug = Nothing
     }
 
@@ -413,10 +424,10 @@ parseFlags =
       ( option
           auto
           ( mconcat
-              [ long "max-success",
-                long "qc-max-success",
-                help "Number of quickcheck examples to run",
-                metavar "NUMBER_OF_SUCCESSES"
+              [ long "max-size",
+                long "qc-max-size",
+                help "Maximum size parameter to pass to generators",
+                metavar "MAXIMUM_SIZE_PARAMETER"
               ]
           )
       )
@@ -424,10 +435,10 @@ parseFlags =
       ( option
           auto
           ( mconcat
-              [ long "max-size",
-                long "qc-max-size",
-                help "Maximum size parameter to pass to generators",
-                metavar "MAXIMUM_SIZE_PARAMETER"
+              [ long "max-success",
+                long "qc-max-success",
+                help "Number of quickcheck examples to run",
+                metavar "NUMBER_OF_SUCCESSES"
               ]
           )
       )
@@ -490,6 +501,7 @@ parseFlags =
                 ]
             )
       )
+    <*> doubleSwitch ["fail-on-flaky"] (help "Fail when any flakiness is detected")
     <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous and --fail-fast.")
 
 seedSettingFlags :: OptParse.Parser (Maybe SeedSetting)

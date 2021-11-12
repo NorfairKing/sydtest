@@ -99,6 +99,11 @@ outputStats (Timed TestSuiteStats {..} timing) =
                   $ chunk (T.pack (show testSuiteStatFailures))
               ]
             ],
+            [ [ chunk "Flaky:                        ",
+                fore red $ chunk (T.pack (show testSuiteStatFlakyTests))
+              ]
+              | testSuiteStatFlakyTests > 0
+            ],
             [ [ chunk "Pending:                      ",
                 fore magenta $ chunk (T.pack (show testSuiteStatPending))
               ]
@@ -183,6 +188,7 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
                 withTimingColour $ chunk executionTimeText
               ]
             ],
+            map pad $ retriesChunks testRunResultStatus testRunResultRetries,
             [ pad
                 [ chunk "passed for all of ",
                   case w of
@@ -198,6 +204,13 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
             map pad $ tablesChunks testRunResultTables,
             [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
           ]
+
+retriesChunks :: TestStatus -> Maybe Int -> [[Chunk]]
+retriesChunks status = \case
+  Nothing -> []
+  Just retries -> case status of
+    TestPassed -> [["Retries: ", chunk (T.pack (show retries)), fore red " !! FLAKY !!"]]
+    TestFailed -> [["Retries: ", chunk (T.pack (show retries)), " (likely not flaky)"]]
 
 labelsChunks :: Maybe (Map [String] Int) -> [[Chunk]]
 labelsChunks Nothing = []
@@ -505,6 +518,7 @@ specForestWidth = goF 0
       DefAfterAllNode _ sdf -> goF level sdf
       DefParallelismNode _ sdf -> goF level sdf
       DefRandomisationNode _ sdf -> goF level sdf
+      DefFlakinessNode _ sdf -> goF level sdf
 
 padding :: Chunk
 padding = chunk $ T.replicate paddingSize " "

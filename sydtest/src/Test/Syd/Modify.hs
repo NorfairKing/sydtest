@@ -22,6 +22,12 @@ module Test.Syd.Modify
     doNotRandomiseExecutionOrder,
     withExecutionOrderRandomisation,
     ExecutionOrderRandomisation (..),
+
+    -- * Declaring flakiness
+    flaky,
+    notFlaky,
+    withFlakiness,
+    FlakinessMode (..),
   )
 where
 
@@ -65,3 +71,21 @@ doNotRandomiseExecutionOrder = withExecutionOrderRandomisation DoNotRandomiseExe
 
 withExecutionOrderRandomisation :: ExecutionOrderRandomisation -> TestDefM a b c -> TestDefM a b c
 withExecutionOrderRandomisation p = censor ((: []) . DefRandomisationNode p)
+
+-- | Mark a test suite as "potentially flaky".
+--
+-- This will retry any test in the given test group up to the given number of tries, and pass a test if it passes once.
+-- The test output will show which tests were flaky.
+--
+-- WARNING: This is only a valid approach to dealing with test flakiness if it is true that tests never pass accidentally.
+-- In other words: tests using flaky must be guaranteed to fail every time if
+-- an error is introduced in the code, it should only be added to deal with
+-- accidental failures, never accidental passes.
+flaky :: Int -> TestDefM a b c -> TestDefM a b c
+flaky i = withFlakiness $ MayBeFlakyUpTo i
+
+notFlaky :: TestDefM a b c -> TestDefM a b c
+notFlaky = withFlakiness MayNotBeFlaky
+
+withFlakiness :: FlakinessMode -> TestDefM a b c -> TestDefM a b c
+withFlakiness f = censor ((: []) . DefFlakinessNode f)

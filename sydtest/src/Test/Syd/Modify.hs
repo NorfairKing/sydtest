@@ -78,7 +78,9 @@ withExecutionOrderRandomisation p = censor ((: []) . DefRandomisationNode p)
 -- The test output will show which tests were flaky.
 --
 -- WARNING: This is only a valid approach to dealing with test flakiness if it is true that tests never pass accidentally.
--- In other words: it must be true that a true positive test failure will fail every time.
+-- In other words: tests using flaky must be guaranteed to fail every time if
+-- an error is introduced in the code, it should only be added to deal with
+-- accidental failures, never accidental passes.
 flaky :: Int -> TestDefM a b c -> TestDefM a b c
 flaky i = withFlakiness $ MayBeFlakyUpTo i
 

@@ -9,7 +9,7 @@ with final.haskell.lib;
         doBenchmark (
           addBuildDepend
             (
-              failOnAllWarnings (
+              buildStrictly (
                 final.haskellPackages.callCabal2nixWithOptions name (final.gitignoreSource (../. + "/${name}")) "--no-hpack" { }
               )
             )

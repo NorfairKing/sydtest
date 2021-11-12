@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest
-version:        0.4.1.0
+version:        0.5.0.0
 synopsis:       A modern testing framework for Haskell with good defaults and advanced testing features.
 description:    A modern testing framework for Haskell with good defaults and advanced testing features. Sydtest aims to make the common easy and the hard possible. See https://github.com/NorfairKing/sydtest#readme for more information.
 category:       Testing
@@ -18,8 +18,9 @@ license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
 extra-source-files:
-    CHANGELOG.md
     LICENSE.md
+    CHANGELOG.md
+    CONTRIBUTORS
     test_resources/defaultSettings-show.golden
     test_resources/even/2
     test_resources/even/4

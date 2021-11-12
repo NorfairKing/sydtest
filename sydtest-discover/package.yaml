@@ -11,6 +11,7 @@ synopsis: Automatic test suite discovery for sydtest
 
 extra-source-files:
 - LICENSE.md
+- CHANGELOG.md
 
 dependencies:
 - base >= 4.7 && < 5

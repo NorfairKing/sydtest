@@ -532,14 +532,14 @@ orange = colour256 166
 darkRed :: Colour
 darkRed = colour256 160
 
+#ifdef mingw32_HOST_OS
 detectTerminalCapabilities :: IO TerminalCapabilities
 detectTerminalCapabilities = do
-
-#ifdef mingw32_HOST_OS
   supports <- hSupportsANSIColor stdout
   if supports
     then pure With8BitColours
     else pure WithoutColours
 #else
-  getTerminalCapabilitiesFromEnv
+detectTerminalCapabilities :: IO TerminalCapabilities
+detectTerminalCapabilities = getTerminalCapabilitiesFromEnv
 #endif

@@ -8,6 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -36,7 +37,8 @@ Thought
 |]
 
 data App = App
-  { appConnectionPool :: ConnectionPool
+  { appConnectionPool :: !ConnectionPool,
+    appSessionKeyFile :: !FilePath
   }
 
 mkYesod
@@ -49,7 +51,8 @@ mkYesod
 
 type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 
-instance Yesod App
+instance Yesod App where
+  makeSessionBackend App {..} = Just <$> defaultClientSessionBackend 30 appSessionKeyFile
 
 instance YesodPersist App where
   type YesodPersistBackend App = SqlBackend
@@ -123,4 +126,9 @@ main :: IO ()
 main = runStderrLoggingT $
   withSqlitePool "example.sqlite3" 1 $ \pool -> do
     runSqlPool (runMigration migrateThoughts) pool
-    liftIO $ Yesod.warp 3000 $ App {appConnectionPool = pool}
+    liftIO $
+      Yesod.warp 3000 $
+        App
+          { appConnectionPool = pool,
+            appSessionKeyFile = "client_session_key.aes"
+          }

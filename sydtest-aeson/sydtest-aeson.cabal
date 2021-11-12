@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2fe968a3a35d7b58c088bbfec8b58386928f7006a3424e650e765781459c162a
+-- hash: f5cbe255b8d2818baecf131c6f65ab3ef45c4742f709af6bb9535f9f63290796
 
 name:           sydtest-aeson
 version:        0.0.0.0
@@ -18,6 +18,10 @@ copyright:      Copyright (c) 2021 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
+extra-source-files:
+    LICENSE.md
+    test_resources/example.json
+    test_resources/pure-example.json
 
 source-repository head
   type: git

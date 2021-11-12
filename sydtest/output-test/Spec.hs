@@ -282,7 +282,7 @@ spec = do
     notFlaky $ it "does not retry if not allowed" False
     flaky 3 $ do
       it "can retry booleans" False
-      notFlaky $ it "can retry booleans" False
+      notFlaky $ it "does not retry booleans that have been explicitly marked as 'notFlaky'" False
     flaky 100 $
       it "can retry randomness" $ do
         i <- randomRIO (1, 10)

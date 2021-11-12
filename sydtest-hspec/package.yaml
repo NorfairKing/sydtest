@@ -9,6 +9,9 @@ copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
 category: Testing
 synopsis: An Hspec companion library for sydtest
 
+extra-source-files:
+- LICENSE.md
+
 dependencies:
 - base >= 4.7 && < 5
 

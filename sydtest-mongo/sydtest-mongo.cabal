@@ -16,6 +16,10 @@ copyright:      Copyright (c) 2021 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
+extra-source-files:
+    LICENSE.md
+    test_resources/example.bson
+    test_resources/pure-example.bson
 
 source-repository head
   type: git

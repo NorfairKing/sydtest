@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -12,7 +13,7 @@ import qualified Data.ByteString as SB
 import Web.Cookie
 import Yesod
 
-data App = App
+data App = App {appSessionKeyFile :: !FilePath}
 
 mkYesod
   "App"
@@ -34,7 +35,8 @@ mkYesod
     /form FormR GET POST
 |]
 
-instance Yesod App
+instance Yesod App where
+  makeSessionBackend App {..} = Just <$> defaultClientSessionBackend 30 appSessionKeyFile
 
 instance RenderMessage App FormMessage where
   renderMessage _ _ = defaultFormMessage

@@ -1,5 +1,5 @@
 name: sydtest
-version: 0.4.1.0
+version: 0.5.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -11,8 +11,9 @@ synopsis: A modern testing framework for Haskell with good defaults and advanced
 description: A modern testing framework for Haskell with good defaults and advanced testing features. Sydtest aims to make the common easy and the hard possible. See https://github.com/NorfairKing/sydtest#readme for more information.
 
 extra-source-files:
-- CHANGELOG.md
 - LICENSE.md
+- CHANGELOG.md
+- CONTRIBUTORS
 - test_resources/**/*
 
 dependencies:

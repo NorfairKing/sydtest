@@ -66,6 +66,8 @@ library
     , MonadRandom
     , QuickCheck
     , async
+    , autodocodec
+    , autodocodec-yaml
     , base >=4.7 && <5
     , bytestring
     , containers
@@ -84,7 +86,6 @@ library
     , split
     , text
     , yaml
-    , yamlparse-applicative
   if os(windows)
     build-depends:
         ansi-terminal

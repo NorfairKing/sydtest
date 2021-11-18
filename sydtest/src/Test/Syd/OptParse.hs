@@ -6,12 +6,14 @@
 
 module Test.Syd.OptParse where
 
+import Autodocodec
+import Autodocodec.Yaml
 import Control.Applicative
 import Control.Monad
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Yaml
+import qualified Data.Text.Encoding as TE
 import qualified Env
 import GHC.Generics (Generic)
 import Options.Applicative as OptParse
@@ -19,7 +21,6 @@ import qualified Options.Applicative.Help as OptParse (string)
 import Path
 import Path.IO
 import Test.Syd.Run
-import YamlParse.Applicative as YamlParse
 
 getSettings :: IO Settings
 getSettings = do
@@ -90,14 +91,14 @@ data Threads
   | -- | As many threads as 'getNumCapabilities' tells you you have
     ByCapabilities
   | -- | A given number of threads
-    Asynchronous Int
+    Asynchronous !Word
   deriving (Show, Eq, Generic)
 
 data Iterations
   = -- | Run the test suite once, the default
     OneIteration
   | -- | Run the test suite for the given number of iterations, or until we can find flakiness
-    Iterations Int
+    Iterations !Word
   | -- | Run the test suite over and over, until we can find some flakiness
     Continuous
   deriving (Show, Eq, Generic)
@@ -141,7 +142,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
 -- Do nothing clever here, just represent the configuration file.
 -- For example, use 'Maybe FilePath', not 'Path Abs File'.
 --
--- Use 'YamlParse.readConfigFile' or 'YamlParse.readFirstConfigFile' to read a configuration.
+-- Use 'readYamlConfigFile' or 'readFirstYamlConfigFile' to read a configuration.
 data Configuration = Configuration
   { configSeed :: !(Maybe SeedSetting),
     configRandomiseExecutionOrder :: !(Maybe Bool),
@@ -161,48 +162,57 @@ data Configuration = Configuration
   }
   deriving (Show, Eq, Generic)
 
-instance FromJSON Configuration where
-  parseJSON = viaYamlSchema
-
 -- | We use 'yamlparse-applicative' for parsing a YAML config.
-instance YamlSchema Configuration where
-  yamlSchema =
-    objectParser "Configuration" $
+instance HasCodec Configuration where
+  codec =
+    object "Configuration" $
       Configuration
-        <$> optionalField "seed" "Seed for random generation of test cases"
-        <*> alternatives
-          [ optionalField "randomise-execution-order" "Randomise the execution order of the tests in the test suite",
-            optionalField "randomize-execution-order" "Randomize the execution order of the tests in the test suite"
-          ]
-        <*> optionalField "parallelism" "How parallel to execute the tests"
-        <*> optionalField "max-size" "Maximum size parameter to pass to generators"
-        <*> optionalField "max-success" "Number of quickcheck examples to run"
-        <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
-        <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
-        <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet"
-        <*> optionalField "golden-reset" "Whether to overwrite golden tests instead of having them fail"
-        <*> alternatives
-          [ optionalField "colour" "Whether to use coloured output",
-            optionalField "color" "Whether to use colored output"
-          ]
-        <*> optionalField "filter" "Filter to select which parts of the test tree to run"
-        <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
-        <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness"
-        <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected"
-        <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true"
+        <$> optionalField "seed" "Seed for random generation of test cases" .= configSeed
+        <*> parseAlternative
+          (optionalField "randomise-execution-order" "Randomise the execution order of the tests in the test suite")
+          (optionalField "randomize-execution-order" "American spelling")
+          .= configRandomiseExecutionOrder
+        <*> optionalField "parallelism" "How parallel to execute the tests" .= configThreads
+        <*> optionalField "max-size" "Maximum size parameter to pass to generators" .= configMaxSize
+        <*> optionalField "max-success" "Number of quickcheck examples to run" .= configMaxSuccess
+        <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up" .= configMaxDiscard
+        <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input" .= configMaxShrinks
+        <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet" .= configGoldenStart
+        <*> optionalField "golden-reset" "Whether to overwrite golden tests instead of having them fail" .= configGoldenReset
+        <*> parseAlternative
+          (optionalField "colour" "Whether to use coloured output")
+          (optionalField "color" "American spelling")
+          .= configColour
+        <*> optionalField "filter" "Filter to select which parts of the test tree to run" .= configFilter
+        <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure" .= configFailFast
+        <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness" .= configIterations
+        <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected" .= configFailOnFlaky
+        <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true" .= configDebug
 
-instance YamlSchema Threads where
-  yamlSchema = flip fmap yamlSchema $ \case
-    Nothing -> ByCapabilities
-    Just 1 -> Synchronous
-    Just n -> Asynchronous n
+instance HasCodec Threads where
+  codec = dimapCodec f g codec
+    where
+      f = \case
+        Nothing -> ByCapabilities
+        Just 1 -> Synchronous
+        Just n -> Asynchronous n
+      g = \case
+        ByCapabilities -> Nothing
+        Synchronous -> Just 1
+        Asynchronous n -> Just n
 
-instance YamlSchema Iterations where
-  yamlSchema = flip fmap yamlSchema $ \case
-    Nothing -> OneIteration
-    Just 0 -> Continuous
-    Just 1 -> OneIteration
-    Just n -> Iterations n
+instance HasCodec Iterations where
+  codec = dimapCodec f g codec
+    where
+      f = \case
+        Nothing -> OneIteration
+        Just 0 -> Continuous
+        Just 1 -> OneIteration
+        Just n -> Iterations n
+      g = \case
+        OneIteration -> Nothing
+        Continuous -> Just 0
+        Iterations n -> Just n
 
 -- | Get the configuration
 --
@@ -211,10 +221,10 @@ instance YamlSchema Iterations where
 getConfiguration :: Flags -> Environment -> IO (Maybe Configuration)
 getConfiguration Flags {..} Environment {..} =
   case flagConfigFile <|> envConfigFile of
-    Nothing -> defaultConfigFile >>= YamlParse.readConfigFile
+    Nothing -> defaultConfigFile >>= readYamlConfigFile
     Just cf -> do
       afp <- resolveFile' cf
-      YamlParse.readConfigFile afp
+      readYamlConfigFile afp
 
 -- | Where to get the configuration file by default.
 defaultConfigFile :: IO (Path Abs File)
@@ -294,10 +304,10 @@ environmentParser =
         <*> Env.var (fmap Just . Env.auto) "FAIL_ON_FLAKY" (Env.def Nothing <> Env.help "Whether to fail when flakiness is detected")
         <*> Env.var (fmap Just . Env.auto) "DEBUG" (Env.def Nothing <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
   where
-    parseThreads :: Int -> Either e Threads
+    parseThreads :: Word -> Either e Threads
     parseThreads 1 = Right Synchronous
     parseThreads i = Right (Asynchronous i)
-    parseIterations :: Int -> Either e Iterations
+    parseIterations :: Word -> Either e Iterations
     parseIterations 0 = Right Continuous
     parseIterations 1 = Right OneIteration
     parseIterations i = Right (Iterations i)
@@ -337,7 +347,7 @@ flagsParser =
         [ Env.helpDoc environmentParser,
           "",
           "Configuration file format:",
-          T.unpack (YamlParse.prettyColourisedSchemaDoc @Configuration)
+          T.unpack (TE.decodeUtf8 (renderColouredSchemaViaCodec @Configuration))
         ]
 
 -- | The flags that are common across commands.

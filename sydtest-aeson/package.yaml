@@ -9,6 +9,9 @@ copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
 category: Testing
 synopsis: An aeson companion library for sydtest
 
+extra-source-files:
+- LICENSE.md
+- test_resources/**/*
 
 dependencies:
 - base >= 4.7 && < 5

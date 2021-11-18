@@ -1,5 +1,5 @@
 name: sydtest
-version: 0.4.1.0
+version: 0.5.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -10,6 +10,11 @@ category: Testing
 synopsis: A modern testing framework for Haskell with good defaults and advanced testing features.
 description: A modern testing framework for Haskell with good defaults and advanced testing features. Sydtest aims to make the common easy and the hard possible. See https://github.com/NorfairKing/sydtest#readme for more information.
 
+extra-source-files:
+- LICENSE.md
+- CHANGELOG.md
+- CONTRIBUTORS
+- test_resources/**/*
 
 dependencies:
 - base >= 4.7 && < 5
@@ -35,11 +40,18 @@ library:
     - random-shuffle
     - safe
     - safe-coloured-text
-    - safe-coloured-text-terminfo
     - split
     - text
     - yaml
     - yamlparse-applicative
+  when:
+    - condition: 'os(windows)'
+      then:
+        dependencies:
+          - ansi-terminal
+      else:
+        dependencies:
+          - safe-coloured-text-terminfo
 
 tests:
   sydtest-test:
@@ -71,7 +83,11 @@ tests:
     - bytestring
     - path
     - path-io
+    - random
     - safe-coloured-text
-    - safe-coloured-text-terminfo
     - sydtest
     - text
+    when:
+      - condition: '!os(windows)'
+        dependencies:
+          - safe-coloured-text-terminfo

@@ -9,6 +9,8 @@ copyright: "Copyright (c) 2020-2021 Tom Sydney Kerckhove"
 category: Testing
 synopsis: An amqp companion library for sydtest
 
+extra-source-files:
+- LICENSE.md
 
 dependencies:
 - base >= 4.7 && < 5

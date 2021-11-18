@@ -26,7 +26,6 @@ import Test.Syd.Runner.Asynchronous
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
 import Text.Colour
-import Text.Colour.Capabilities.FromEnv
 import Text.Printf
 
 sydTestResult :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
@@ -45,7 +44,7 @@ sydTestOnce sets spec = do
   tc <- case settingColour sets of
     Just False -> pure WithoutColours
     Just True -> pure With8BitColours
-    Nothing -> getTerminalCapabilitiesFromEnv
+    Nothing -> detectTerminalCapabilities
   withArgs [] $ case settingThreads sets of
     Synchronous -> runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) specForest
     ByCapabilities -> do
@@ -93,7 +92,7 @@ sydTestIterations totalIterations sets spec =
               putStrLn $ printf "Running iteration: %4d with random seeds" iteration
               pure RandomSeed
           rf <- runOnce $ sets {settingSeed = newSeedSetting}
-          if shouldExitFail (timedValue rf)
+          if shouldExitFail sets (timedValue rf)
             then pure rf
             else case totalIterations of
               Nothing -> go $ succ iteration
@@ -105,6 +104,6 @@ sydTestIterations totalIterations sets spec =
     tc <- case settingColour sets of
       Just False -> pure WithoutColours
       Just True -> pure With8BitColours
-      Nothing -> getTerminalCapabilitiesFromEnv
+      Nothing -> detectTerminalCapabilities
     printOutputSpecForest tc rf
     pure rf

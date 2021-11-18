@@ -22,7 +22,7 @@ Limitations:
 
 
 
-**Contributors listed in [CONTRIBUTORS](./CONTRIBUTORS.md) or [GitHub sponsors of NorfairKing](https://github.com/sponsors/NorfairKing)** can use this software to test their software under the following conditions:
+**Contributors listed in [CONTRIBUTORS](./CONTRIBUTORS) or [GitHub sponsors of NorfairKing](https://github.com/sponsors/NorfairKing)** can use this software to test their software under the following conditions:
 
 Permissions: Any
 

@@ -4,15 +4,27 @@
 module Test.Syd.YesodSpec (spec) where
 
 import Data.Text (Text)
+import Network.HTTP.Client as HTTP
+import Path
+import Path.IO
 import Test.Syd
+import Test.Syd.Path
+import Test.Syd.Wai (managerSpec)
 import Test.Syd.Yesod
 import Test.Syd.Yesod.App
 import Yesod.Core
 
 spec :: Spec
-spec = yesodSpec App $ do
-  describe "Local" blogSpec
-  describe "E2E" $ localToE2ESpec blogSpec
+spec = managerSpec $
+  yesodSpecWithSiteSetupFunc appSetupFunc $ do
+    describe "Local" blogSpec
+    describe "E2E" $ localToE2ESpec blogSpec
+
+appSetupFunc :: HTTP.Manager -> SetupFunc App
+appSetupFunc _ = do
+  tdir <- tempDirSetupFunc "sydtest-yesod"
+  sessionKeyFile <- resolveFile tdir "client_session_key.aes"
+  pure $ App {appSessionKeyFile = fromAbsFile sessionKeyFile}
 
 blogSpec :: (Yesod site, RedirectUrl site (Route App)) => YesodSpec site
 blogSpec = do

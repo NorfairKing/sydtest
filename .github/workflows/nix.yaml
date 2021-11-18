@@ -11,9 +11,9 @@ jobs:
     name: Pre-commit hooks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: cachix/install-nix-action@v12
-    - uses: cachix/cachix-action@v8
+    - uses: actions/checkout@v2.3.5
+    - uses: cachix/install-nix-action@v14.1
+    - uses: cachix/cachix-action@v10
       with:
         name: sydtest
         extraPullNames: yamlparse
@@ -34,9 +34,9 @@ jobs:
     name: CI Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: cachix/install-nix-action@v12
-    - uses: cachix/cachix-action@v8
+    - uses: actions/checkout@v2.3.5
+    - uses: cachix/install-nix-action@v14.1
+    - uses: cachix/cachix-action@v10
       with:
         name: sydtest
         extraPullNames: yamlparse

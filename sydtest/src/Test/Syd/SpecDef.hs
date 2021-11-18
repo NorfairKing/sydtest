@@ -24,6 +24,7 @@ import Data.Word
 import GHC.Stack
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
+import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecForest
 
@@ -106,6 +107,11 @@ data SpecDefTree (outers :: [Type]) inner extra where
     ExecutionOrderRandomisation ->
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
+  DefFlakinessNode ::
+    -- | How many times to retry
+    FlakinessMode ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
 
 instance Functor (SpecDefTree a c) where
   fmap :: forall e f. (e -> f) -> SpecDefTree a c e -> SpecDefTree a c f
@@ -123,6 +129,7 @@ instance Functor (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p $ goF sdf
+          DefFlakinessNode p sdf -> DefFlakinessNode p $ goF sdf
 
 instance Foldable (SpecDefTree a c) where
   foldMap :: forall e m. Monoid m => (e -> m) -> SpecDefTree a c e -> m
@@ -140,6 +147,7 @@ instance Foldable (SpecDefTree a c) where
           DefAfterAllNode _ sdf -> goF sdf
           DefParallelismNode _ sdf -> goF sdf
           DefRandomisationNode _ sdf -> goF sdf
+          DefFlakinessNode _ sdf -> goF sdf
 
 instance Traversable (SpecDefTree a c) where
   traverse :: forall u w f. Applicative f => (u -> f w) -> SpecDefTree a c u -> f (SpecDefTree a c w)
@@ -157,10 +165,13 @@ instance Traversable (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p <$> goF sdf
+          DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
 
 data Parallelism = Parallel | Sequential
 
 data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecutionOrder
+
+data FlakinessMode = MayNotBeFlaky | MayBeFlakyUpTo !Int
 
 type ResultForest = SpecForest (TDef (Timed TestRunResult))
 
@@ -184,6 +195,11 @@ computeTestSuiteStats = goF []
             testSuiteStatFailures = case testRunResultStatus of
               TestPassed -> 0
               TestFailed -> 1,
+            testSuiteStatFlakyTests = case testRunResultStatus of
+              TestFailed -> 0
+              TestPassed -> case testRunResultRetries of
+                Nothing -> 0
+                Just _ -> 1,
             testSuiteStatPending = 0,
             testSuiteStatSumTime = t,
             testSuiteStatLongestTime = Just (T.intercalate "." (ts ++ [tn]), t)
@@ -193,6 +209,7 @@ computeTestSuiteStats = goF []
           { testSuiteStatSuccesses = 0,
             testSuiteStatExamples = 0,
             testSuiteStatFailures = 0,
+            testSuiteStatFlakyTests = 0,
             testSuiteStatPending = 1,
             testSuiteStatSumTime = 0,
             testSuiteStatLongestTime = Nothing
@@ -204,6 +221,7 @@ data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
     testSuiteStatExamples :: !Word,
     testSuiteStatFailures :: !Word,
+    testSuiteStatFlakyTests :: !Word,
     testSuiteStatPending :: !Word,
     testSuiteStatSumTime :: !Word64,
     testSuiteStatLongestTime :: !(Maybe (Text, Word64))
@@ -216,6 +234,7 @@ instance Semigroup TestSuiteStats where
       { testSuiteStatSuccesses = testSuiteStatSuccesses tss1 + testSuiteStatSuccesses tss2,
         testSuiteStatExamples = testSuiteStatExamples tss1 + testSuiteStatExamples tss2,
         testSuiteStatFailures = testSuiteStatFailures tss1 + testSuiteStatFailures tss2,
+        testSuiteStatFlakyTests = testSuiteStatFlakyTests tss1 + testSuiteStatFlakyTests tss2,
         testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2,
         testSuiteStatSumTime = testSuiteStatSumTime tss1 + testSuiteStatSumTime tss2,
         testSuiteStatLongestTime = case (testSuiteStatLongestTime tss1, testSuiteStatLongestTime tss2) of
@@ -232,10 +251,19 @@ instance Monoid TestSuiteStats where
       { testSuiteStatSuccesses = 0,
         testSuiteStatExamples = 0,
         testSuiteStatFailures = 0,
+        testSuiteStatFlakyTests = 0,
         testSuiteStatPending = 0,
         testSuiteStatSumTime = 0,
         testSuiteStatLongestTime = Nothing
       }
 
-shouldExitFail :: ResultForest -> Bool
-shouldExitFail = any (any ((== TestFailed) . testRunResultStatus . timedValue . testDefVal))
+shouldExitFail :: Settings -> ResultForest -> Bool
+shouldExitFail Settings {..} = any (any (problematic . timedValue . testDefVal))
+  where
+    problematic TestRunResult {..} =
+      or
+        [ -- Failed
+          testRunResultStatus == TestFailed,
+          -- Passed but flaky
+          settingFailOnFlaky && testRunResultStatus == TestPassed && isJust testRunResultRetries
+        ]

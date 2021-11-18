@@ -22,6 +22,7 @@ import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.Output
 import Test.Syd.Run
+import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
@@ -63,15 +64,15 @@ runner failFast nbThreads failFastVar handleForest = do
         as <- readIORef jobs
         mapM_ wait as
         writeIORef jobs S.empty
-  let goForest :: Parallelism -> HList a -> HandleForest a () -> IO ()
-      goForest p a = mapM_ (goTree p a)
-      goTree :: Parallelism -> HList a -> HandleTree a () -> IO ()
-      goTree p a = \case
+  let goForest :: Parallelism -> FlakinessMode -> HList a -> HandleForest a () -> IO ()
+      goForest p fm a = mapM_ (goTree p fm a)
+      goTree :: Parallelism -> FlakinessMode -> HList a -> HandleTree a () -> IO ()
+      goTree p fm a = \case
         DefSpecifyNode _ td var -> do
           mDone <- tryReadMVar failFastVar
           case mDone of
             Nothing -> do
-              let runNow = timeItT $ testDefVal td (\f -> f a ())
+              let runNow = timeItT $ runSingleTestWithFlakinessMode a td fm
               -- Wait before spawning a thread so that we don't spawn too many threads
               let quantity = case p of
                     -- When the test wants to be executed sequentially, we take n locks because we must make sure that
@@ -94,20 +95,21 @@ runner failFast nbThreads failFastVar handleForest = do
               link jobAsync
             Just () -> pure ()
         DefPendingNode _ _ -> pure ()
-        DefDescribeNode _ sdf -> goForest p a sdf
-        DefWrapNode func sdf -> func (goForest p a sdf >> waitForCurrentlyRunning)
+        DefDescribeNode _ sdf -> goForest p fm a sdf
+        DefWrapNode func sdf -> func (goForest p fm a sdf >> waitForCurrentlyRunning)
         DefBeforeAllNode func sdf -> do
           b <- func
-          goForest p (HCons b a) sdf
+          goForest p fm (HCons b a) sdf
         DefAroundAllNode func sdf ->
-          func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning)
+          func (\b -> goForest p fm (HCons b a) sdf >> waitForCurrentlyRunning)
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
-           in func (\b -> goForest p (HCons b a) sdf >> waitForCurrentlyRunning) x
-        DefAfterAllNode func sdf -> goForest p a sdf `finally` (waitForCurrentlyRunning >> func a)
-        DefParallelismNode p' sdf -> goForest p' a sdf
-        DefRandomisationNode _ sdf -> goForest p a sdf
-  goForest Parallel HNil handleForest
+           in func (\b -> goForest p fm (HCons b a) sdf >> waitForCurrentlyRunning) x
+        DefAfterAllNode func sdf -> goForest p fm a sdf `finally` (waitForCurrentlyRunning >> func a)
+        DefParallelismNode p' sdf -> goForest p' fm a sdf
+        DefRandomisationNode _ sdf -> goForest p fm a sdf
+        DefFlakinessNode fm' sdf -> goForest p fm' a sdf
+  goForest Parallel MayNotBeFlaky HNil handleForest
 
 printer :: TerminalCapabilities -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
 printer tc failFastVar handleForest = do
@@ -154,6 +156,7 @@ printer tc failFastVar handleForest = do
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level sdf
+        DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest level sdf
   mapM_ outputLine outputTestsHeader
   resultForest <- timeItT $ fromMaybe [] <$> goForest 0 handleForest
   outputLine [chunk " "]
@@ -189,4 +192,5 @@ waiter failFastVar handleForest = do
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level sdf
+        DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest level sdf
   fromMaybe [] <$> goForest 0 handleForest

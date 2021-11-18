@@ -16,6 +16,9 @@ copyright:      Copyright (c) 2020-2021 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
+extra-source-files:
+    LICENSE.md
+    CHANGELOG.md
 
 source-repository head
   type: git
@@ -76,11 +79,15 @@ test-suite sydtest-yesod-blog-example-test
     , http-client
     , monad-logger
     , mtl
+    , path
+    , path-io
     , persistent
     , persistent-sqlite
     , persistent-template
     , sydtest
+    , sydtest-persistent
     , sydtest-persistent-sqlite
+    , sydtest-wai
     , sydtest-yesod
     , text
     , yesod
@@ -104,9 +111,13 @@ test-suite sydtest-yesod-test
     , bytestring
     , conduit
     , cookie
+    , http-client
     , http-types
+    , path
+    , path-io
     , resourcet
     , sydtest
+    , sydtest-wai
     , sydtest-yesod
     , text
     , yesod

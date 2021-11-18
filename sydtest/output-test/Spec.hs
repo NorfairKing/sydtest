@@ -14,11 +14,11 @@ import qualified Data.ByteString.Lazy as LB
 import Data.List
 import Data.Text (Text)
 import System.Exit
+import System.Random
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
 import Text.Colour
-import Text.Colour.Capabilities.FromEnv
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
 
@@ -34,7 +34,7 @@ main = do
   tc <- case settingColour sets of
     Just False -> pure WithoutColours
     Just True -> pure With24BitColours
-    Nothing -> getTerminalCapabilitiesFromEnv
+    Nothing -> detectTerminalCapabilities
 
   _ <- runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) testForest
   _ <- runSpecForestInterleavedWithOutputAsynchronously tc (settingFailFast sets) 8 testForest
@@ -278,6 +278,15 @@ spec = do
             forAllShrink (sized $ \n -> pure n) shrink $ \i -> do
               () <- readMVar var
               i `shouldSatisfy` (< 20)
+  describe "Flakiness" $ do
+    notFlaky $ it "does not retry if not allowed" False
+    flaky 3 $ do
+      it "can retry booleans" False
+      notFlaky $ it "does not retry booleans that have been explicitly marked as 'notFlaky'" False
+    flaky 100 $
+      it "can retry randomness" $ do
+        i <- randomRIO (1, 10)
+        i `shouldBe` (1 :: Int)
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-discover
-version:        0.0.0.0
+version:        0.0.0.1
 synopsis:       Automatic test suite discovery for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
@@ -16,6 +16,9 @@ copyright:      Copyright (c) 2020-2021 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
+extra-source-files:
+    LICENSE.md
+    CHANGELOG.md
 
 source-repository head
   type: git

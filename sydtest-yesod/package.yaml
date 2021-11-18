@@ -9,6 +9,10 @@ copyright: "Copyright (c) 2020-2021 Tom Sydney Kerckhove"
 category: Testing
 synopsis: A yesod companion library for sydtest
 
+extra-source-files:
+- LICENSE.md
+- CHANGELOG.md
+
 dependencies:
 - base >= 4.7 && < 5
 
@@ -51,9 +55,13 @@ tests:
     - bytestring
     - conduit
     - cookie
+    - http-client
     - http-types
+    - path
+    - path-io
     - resourcet
     - sydtest
+    - sydtest-wai
     - sydtest-yesod
     - text
     - yesod
@@ -73,11 +81,15 @@ tests:
     - http-client
     - monad-logger
     - mtl
+    - path
+    - path-io
     - persistent
     - persistent-sqlite
     - persistent-template
     - sydtest
+    - sydtest-persistent
     - sydtest-persistent-sqlite
+    - sydtest-wai
     - sydtest-yesod
     - text
     - yesod

@@ -162,7 +162,7 @@ data Configuration = Configuration
   }
   deriving (Show, Eq, Generic)
 
--- | We use 'yamlparse-applicative' for parsing a YAML config.
+-- | We use 'autodocodec' for parsing a YAML config.
 instance HasCodec Configuration where
   codec =
     object "Configuration" $

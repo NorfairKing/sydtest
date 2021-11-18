@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0.0] - 2021-11-12
+
+### Changed
+
+* Started using `autodocodec` instead of `yamlparse-applicative`.
+
 ## [0.5.0.0] - 2021-11-12
 
 ### Added
@@ -8,7 +14,7 @@
 * The `--fail-on-flaky` flag to falsify flakiness.
 * Experimental Windows support
 
-## Changed
+### Changed
 
 * Fixed the interpretation of `max-size` vs `max-success` in the configuration file and environment parsing.
 

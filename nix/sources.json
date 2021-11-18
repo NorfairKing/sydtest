@@ -1,4 +1,16 @@
 {
+    "autodocodec": {
+        "branch": "master",
+        "description": null,
+        "homepage": null,
+        "owner": "NorfairKing",
+        "repo": "autodocodec",
+        "rev": "604ce108bd9bbe9b29e88955f6c981f65d89c153",
+        "sha256": "0xhq66l4a62lzvj7lvq6xb65ll2blx4yfr3f92fw31fadh2n081w",
+        "type": "tarball",
+        "url": "https://github.com/NorfairKing/autodocodec/archive/604ce108bd9bbe9b29e88955f6c981f65d89c153.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "gitignore": {
         "branch": "master",
         "description": "Nix function for filtering local git sources",
@@ -57,18 +69,6 @@
         "sha256": "06ca0fzlly630dhlc2cv76b0ax0xjyr4ilw4nz2bb5f8acclq8q0",
         "type": "tarball",
         "url": "https://github.com/NorfairKing/safe-coloured-text/archive/d840dd7b0f13f4d0fd693c1dd93be33f9ee94605.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "yamlparse-applicative": {
-        "branch": "master",
-        "description": "An optparse-applicative -style explainable yaml parser",
-        "homepage": "https://cs-syd.eu/posts/2020-06-28-yamlparse-applicative",
-        "owner": "NorfairKing",
-        "repo": "yamlparse-applicative",
-        "rev": "7a329d06ffa45595963cf98f34910887115eb471",
-        "sha256": "0mffjivg17qbyap6a4g33m9dpkf1v10l5wczwar0b21d642bz6w4",
-        "type": "tarball",
-        "url": "https://github.com/NorfairKing/yamlparse-applicative/archive/7a329d06ffa45595963cf98f34910887115eb471.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

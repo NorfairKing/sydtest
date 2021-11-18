@@ -48,7 +48,7 @@ sydTestOnce sets spec = do
   withArgs [] $ case settingThreads sets of
     Synchronous -> runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) specForest
     ByCapabilities -> do
-      i <- getNumCapabilities
+      i <- fromIntegral <$> getNumCapabilities
 
       when (i == 1) $ do
         let outputLine :: [Chunk] -> IO ()
@@ -68,10 +68,10 @@ sydTestOnce sets spec = do
     Asynchronous i ->
       runSpecForestInterleavedWithOutputAsynchronously tc (settingFailFast sets) i specForest
 
-sydTestIterations :: Maybe Int -> Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
+sydTestIterations :: Maybe Word -> Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestIterations totalIterations sets spec =
   withArgs [] $ do
-    nbCapabilities <- getNumCapabilities
+    nbCapabilities <- fromIntegral <$> getNumCapabilities
 
     let runOnce sets_ = do
           specForest <- execTestDefM sets_ spec
@@ -85,7 +85,7 @@ sydTestIterations totalIterations sets spec =
     let go iteration = do
           newSeedSetting <- case settingSeed sets of
             FixedSeed seed -> do
-              let newSeed = seed + iteration
+              let newSeed = seed + fromIntegral iteration
               putStrLn $ printf "Running iteration: %4d with seed %4d" iteration newSeed
               pure $ FixedSeed newSeed
             RandomSeed -> do

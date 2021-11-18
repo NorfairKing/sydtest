@@ -27,7 +27,7 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
 
-runSpecForestAsynchronously :: Bool -> Int -> TestForest '[] () -> IO ResultForest
+runSpecForestAsynchronously :: Bool -> Word -> TestForest '[] () -> IO ResultForest
 runSpecForestAsynchronously failFast nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
@@ -36,7 +36,7 @@ runSpecForestAsynchronously failFast nbThreads testForest = do
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-runSpecForestInterleavedWithOutputAsynchronously :: TerminalCapabilities -> Bool -> Int -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputAsynchronously :: TerminalCapabilities -> Bool -> Word -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputAsynchronously tc failFast nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
@@ -54,9 +54,9 @@ makeHandleForest = traverse $
   traverse $ \() ->
     newEmptyMVar
 
-runner :: Bool -> Int -> MVar () -> HandleForest '[] () -> IO ()
+runner :: Bool -> Word -> MVar () -> HandleForest '[] () -> IO ()
 runner failFast nbThreads failFastVar handleForest = do
-  sem <- liftIO $ newQSemN nbThreads
+  sem <- liftIO $ newQSemN $ fromIntegral nbThreads
   jobs <- newIORef (S.empty :: Set (Async ()))
   -- This is used to make sure that the 'after' part of the resources actually happens after the tests are done, not just when they are started.
   let waitForCurrentlyRunning :: IO ()
@@ -80,7 +80,7 @@ runner failFast nbThreads failFastVar handleForest = do
                     -- 2. no other tests are started during execution.
                     Sequential -> nbThreads
                     Parallel -> 1
-              liftIO $ waitQSemN sem quantity
+              liftIO $ waitQSemN sem $ fromIntegral quantity
               let job :: IO ()
                   job = do
                     result <- runNow
@@ -89,7 +89,7 @@ runner failFast nbThreads failFastVar handleForest = do
                       putMVar failFastVar ()
                       as <- readIORef jobs
                       mapM_ cancel as
-                    liftIO $ signalQSemN sem quantity
+                    liftIO $ signalQSemN sem $ fromIntegral quantity
               jobAsync <- async job
               modifyIORef jobs (S.insert jobAsync)
               link jobAsync

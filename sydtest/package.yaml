@@ -26,6 +26,8 @@ library:
     - MonadRandom
     - QuickCheck
     - async
+    - autodocodec
+    - autodocodec-yaml
     - bytestring
     - containers
     - dlist
@@ -43,7 +45,6 @@ library:
     - split
     - text
     - yaml
-    - yamlparse-applicative
   when:
     - condition: 'os(windows)'
       then:

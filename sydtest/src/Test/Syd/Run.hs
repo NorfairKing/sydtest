@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -11,6 +12,7 @@
 -- | This module defines the 'IsTest' class and the different instances for it.
 module Test.Syd.Run where
 
+import Autodocodec
 import Control.Concurrent
 import Control.Exception
 import Control.Monad.IO.Class
@@ -29,7 +31,6 @@ import Test.QuickCheck.Property hiding (Result (..))
 import qualified Test.QuickCheck.Property as QCP
 import Test.QuickCheck.Random
 import Text.Printf
-import YamlParse.Applicative
 
 class IsTest e where
   -- | The argument from 'aroundAll'
@@ -381,12 +382,15 @@ data SeedSetting
   | FixedSeed !Int
   deriving (Show, Eq, Generic)
 
-instance YamlSchema SeedSetting where
-  yamlSchema =
-    alternatives
-      [ RandomSeed <$ literalString "random",
-        FixedSeed <$> yamlSchema
-      ]
+instance HasCodec SeedSetting where
+  codec = dimapCodec f g $ eitherCodec (literalTextCodec "random") codec
+    where
+      f = \case
+        Left _ -> RandomSeed
+        Right i -> FixedSeed i
+      g = \case
+        RandomSeed -> Left "random"
+        FixedSeed i -> Right i
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,

@@ -18,15 +18,17 @@ packages:
 - sydtest-yesod
 extra-deps:
 - envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842
-- github: NorfairKing/yamlparse-applicative
-  commit: 9059edbd30c7d3b07cd97306158c4f2f33bb7a44
-  subdirs:
-    - yamlparse-applicative
 - github: NorfairKing/safe-coloured-text
   commit: d840dd7b0f13f4d0fd693c1dd93be33f9ee94605
   subdirs:
     - safe-coloured-text
     - safe-coloured-text-terminfo
+- github: NorfairKing/autodocodec
+  commit: 604ce108bd9bbe9b29e88955f6c981f65d89c153
+  subdirs:
+    - autodocodec
+    - autodocodec-schema
+    - autodocodec-yaml
 
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef

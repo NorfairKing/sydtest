@@ -100,36 +100,7 @@ with final.haskell.lib;
             )
             (
               self: super:
-                let
-                  # envparse
-                  envparseRepo =
-                    final.fetchFromGitHub {
-                      owner = "supki";
-                      repo = "envparse";
-                      rev = "de5944fb09e9d941fafa35c0f05446af348e7b4d";
-                      sha256 =
-                        "sha256:0piljyzplj3bjylnxqfl4zpc3vc88i9fjhsj06bk7xj48dv3jg3b";
-                    };
-                  envparsePkg =
-                    dontCheck (
-                      self.callCabal2nix "envparse" envparseRepo { }
-                    );
-
-                in
-                final.sydtestPackages // {
-                  envparse = envparsePkg;
-
-                  # The haskell package mongoDB-2.7.0.0 is marked as broken, these three un-break it.
-                  mongoDB = unmarkBroken super.mongoDB;
-                  bson = appendConfigureFlag
-                    ((unmarkBroken super.bson).override {
-                      network = self.network-bsd;
-                    }) "-f-_old_network";
-
-                  # The haskell package tmp-postgres-1.34.1.0 is marked as broken.
-                  # It's because the test suite fails, but nothing seems to be _very_ broken
-                  tmp-postgres = dontCheck (unmarkBroken super.tmp-postgres);
-                }
+                final.sydtestPackages
             );
       }
     );

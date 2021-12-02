@@ -2,9 +2,7 @@
 let
   sources = import ./nix/sources.nix;
 
-  versions = {
-    "lts-16_11" = "89db531aea80df58584c9a9e3504ffd9617e6b48";
-  };
+  versions = { };
 
   mkReleaseForVersion = version: rev:
     let

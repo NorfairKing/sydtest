@@ -85,18 +85,6 @@ with final.haskell.lib;
       paths = final.lib.attrValues final.sydtestPackages;
     };
 
-  # Remove after https://github.com/NixOS/nixpkgs/pull/124157 is in the nixpkgs
-  # we use.
-  # The libredirect program does not work with subprocesses, like the test
-  # suite when cabal test execve's it.
-  # So we need to apply a fix that is already in nixpkgs master but not yet in
-  # the nixpkgs version that we use.
-  # We put it in the ./fix-libredirect-for-subprocesses.patch file in this
-  # directory and apply it to our current libredirect here.
-  libredirect = previous.libredirect.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./fix-libredirect-for-subprocesses.patch ];
-  });
-
   haskellPackages =
     previous.haskellPackages.override (
       old:

@@ -78,12 +78,8 @@ rabbitMQServerSetupFunc' td = do
   generatedConfigDir <- resolveDir td "generated-config"
   logDir <- resolveDir td "log"
   ensureDir logDir
-  let getFreePort_ = liftIO $ do
-        (portInt, _socket) <- openFreePort
-        close _socket
-        pure portInt
-  portInt <- liftIO getFreePort_
-  distPortInt <- liftIO getFreePort_
+  portInt <- liftIO getFreePort
+  distPortInt <- liftIO getFreePort
   oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
   let e =
         [ ("RABBITMQ_BASE", fromAbsDir td),
@@ -96,12 +92,15 @@ rabbitMQServerSetupFunc' td = do
           ("RABBITMQ_PLUGINS_EXPAND_DIR", fromAbsDir pluginsExpandDir),
           ("RABBITMQ_GENERATED_CONFIG_DIR", fromAbsDir generatedConfigDir),
           ("RABBITMQ_LOG_BASE", fromAbsDir logDir),
-          ("RABBITMQ_LOGS", fromAbsDir logDir), -- Just to be sure
           ("RABBITMQ_NODE_PORT", show portInt),
           ("RABBITMQ_DIST_PORT", show distPortInt)
         ]
           ++ oldEnv
-  let pc = setWorkingDir (fromAbsDir td) $ setStdout createPipe $ setStderr createPipe $ setEnv e $ proc "rabbitmq-server" []
+  let pc =
+        setWorkingDir (fromAbsDir td) $
+          setStdout createPipe $
+            setStderr createPipe $
+              setEnv e $ proc "rabbitmq-server" []
   ph <- typedProcessSetupFunc pc
   liftIO $ Socket.wait "127.0.0.1" portInt
   let pn = fromIntegral portInt -- (hopefully) safe because it came from 'getFreePort'.

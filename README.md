@@ -373,6 +373,12 @@ Every test failure is annotated with a source location of the test code that pro
 Test suites can be filtered using the `--match` or `--filter` flags.
 Empty groups are removed so that their resources are not even set up when there are no tests that need them.
 
+Examples:
+```
+stack test --test-arguments="--match MyTest"
+cabal test --test-option="--match MyTest"
+```
+
 ### Individual test execution timing and helpful output to find slow tests
 
 Every test is timed and the execution (wall clock) time is shown at the right-hand side of the output.

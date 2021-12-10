@@ -283,7 +283,7 @@ spec = do
     flaky 3 $ do
       it "can retry booleans" False
       notFlaky $ it "does not retry booleans that have been explicitly marked as 'notFlaky'" False
-    flaky 100 $
+    flakyWith 100 "We're on it!" $
       it "can retry randomness" $ do
         i <- randomRIO (1, 10)
         i `shouldBe` (1 :: Int)

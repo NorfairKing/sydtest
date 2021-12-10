@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1.0] - 2021-12-10
+
+### Added
+
+* The `flakyWith` combinator, which is like `flaky`, but lets you also add a message to your team.
+
 ## [0.6.0.0] - 2021-11-12
 
 ### Changed

@@ -60,15 +60,19 @@ sequential = withParallelism Sequential
 parallel :: TestDefM a b c -> TestDefM a b c
 parallel = withParallelism Parallel
 
+-- | Annotate a test group with 'Parallelism'.
 withParallelism :: Parallelism -> TestDefM a b c -> TestDefM a b c
 withParallelism p = censor ((: []) . DefParallelismNode p)
 
-randomiseExecutionOrder :: TestDefM a b c -> TestDefM a b c
-randomiseExecutionOrder = withExecutionOrderRandomisation RandomiseExecutionOrder
-
+-- | Declare that the order of execution of all tests below must not be randomised.
 doNotRandomiseExecutionOrder :: TestDefM a b c -> TestDefM a b c
 doNotRandomiseExecutionOrder = withExecutionOrderRandomisation DoNotRandomiseExecutionOrder
 
+-- | Declare that the order of execution of all tests below may be randomised.
+randomiseExecutionOrder :: TestDefM a b c -> TestDefM a b c
+randomiseExecutionOrder = withExecutionOrderRandomisation RandomiseExecutionOrder
+
+-- | Annotate a test group with 'ExecutionOrderRandomisation'.
 withExecutionOrderRandomisation :: ExecutionOrderRandomisation -> TestDefM a b c -> TestDefM a b c
 withExecutionOrderRandomisation p = censor ((: []) . DefRandomisationNode p)
 
@@ -84,8 +88,12 @@ withExecutionOrderRandomisation p = censor ((: []) . DefRandomisationNode p)
 flaky :: Int -> TestDefM a b c -> TestDefM a b c
 flaky i = withFlakiness $ MayBeFlakyUpTo i
 
+-- | Mark a test suite as "must not be flaky".
+--
+-- This is useful to have a subgroup of a group marked as 'flaky' that must not be flaky afteral.
 notFlaky :: TestDefM a b c -> TestDefM a b c
 notFlaky = withFlakiness MayNotBeFlaky
 
+-- | Annotate a test group with 'FlakinessMode'.
 withFlakiness :: FlakinessMode -> TestDefM a b c -> TestDefM a b c
 withFlakiness f = censor ((: []) . DefFlakinessNode f)

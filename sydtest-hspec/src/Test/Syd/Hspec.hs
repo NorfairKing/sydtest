@@ -108,5 +108,6 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs wrapper = do
   let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
+  let testRunResultFlakinessMessage = Nothing
 
   pure TestRunResult {..}

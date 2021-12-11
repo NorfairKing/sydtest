@@ -25,6 +25,7 @@ module Test.Syd.Modify
 
     -- * Declaring flakiness
     flaky,
+    flakyWith,
     notFlaky,
     withFlakiness,
     FlakinessMode (..),
@@ -86,7 +87,15 @@ withExecutionOrderRandomisation p = censor ((: []) . DefRandomisationNode p)
 -- an error is introduced in the code, it should only be added to deal with
 -- accidental failures, never accidental passes.
 flaky :: Int -> TestDefM a b c -> TestDefM a b c
-flaky i = withFlakiness $ MayBeFlakyUpTo i
+flaky i = withFlakiness $ MayBeFlakyUpTo i Nothing
+
+-- | Like 'flaky', but also shows the given message to the user whenever the test is flaky.
+--
+-- You could use it like this:
+--
+-- >>> flakyWith 3 "Something sometimes goes wrong with the database, see issue 6346" ourTestSuite
+flakyWith :: Int -> String -> TestDefM a b c -> TestDefM a b c
+flakyWith i message = withFlakiness $ MayBeFlakyUpTo i (Just message)
 
 -- | Mark a test suite as "must not be flaky".
 --

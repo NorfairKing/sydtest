@@ -120,22 +120,27 @@ runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
 runSingleTestWithFlakinessMode :: forall a t. HList a -> TDef (((HList a -> () -> t) -> t) -> IO TestRunResult) -> FlakinessMode -> IO TestRunResult
 runSingleTestWithFlakinessMode l td = \case
   MayNotBeFlaky -> runFunc
-  MayBeFlakyUpTo i -> go i
+  MayBeFlakyUpTo retries mMsg -> updateFlakinessMessage <$> go retries
+    where
+      updateFlakinessMessage :: TestRunResult -> TestRunResult
+      updateFlakinessMessage trr = case mMsg of
+        Nothing -> trr
+        Just msg -> trr {testRunResultFlakinessMessage = Just msg}
+      go i
+        | i <= 1 = runFunc
+        | otherwise = do
+          result <- runFunc
+          case testRunResultStatus result of
+            TestPassed -> pure result
+            TestFailed -> updateRetriesResult <$> go (pred i)
+        where
+          updateRetriesResult :: TestRunResult -> TestRunResult
+          updateRetriesResult trr =
+            trr
+              { testRunResultRetries =
+                  case testRunResultRetries trr of
+                    Nothing -> Just 1
+                    Just r -> Just (succ r)
+              }
   where
     runFunc = testDefVal td (\f -> f l ())
-    go i
-      | i <= 1 = runFunc
-      | otherwise = do
-        result <- runFunc
-        case testRunResultStatus result of
-          TestPassed -> pure result
-          TestFailed -> updateRetriesResult <$> go (pred i)
-      where
-        updateRetriesResult :: TestRunResult -> TestRunResult
-        updateRetriesResult trr =
-          trr
-            { testRunResultRetries =
-                case testRunResultRetries trr of
-                  Nothing -> Just 1
-                  Just r -> Just (succ r)
-            }

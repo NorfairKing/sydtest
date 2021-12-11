@@ -82,6 +82,7 @@ runPureTestWithArg computeBool TestRunSettings {} wrapper = do
   let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
+  let testRunResultFlakinessMessage = Nothing
   pure TestRunResult {..}
 
 applyWrapper2 ::
@@ -147,6 +148,7 @@ runIOTestWithArg func TestRunSettings {} wrapper = do
   let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
+  let testRunResultFlakinessMessage = Nothing
   pure TestRunResult {..}
 
 instance IsTest Property where
@@ -188,6 +190,7 @@ runPropertyTestWithArg p trs wrapper = do
   let testRunResultGoldenCase = Nothing
   let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
   let testRunResultRetries = Nothing
+  let testRunResultFlakinessMessage = Nothing
   case qcr of
     Success {} -> do
       let testRunResultStatus = TestPassed
@@ -340,6 +343,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
   let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
+  let testRunResultFlakinessMessage = Nothing
   pure TestRunResult {..}
 
 exceptionHandlers :: [Handler (Either (Either String Assertion) a)]
@@ -403,7 +407,8 @@ data TestRunResult = TestRunResult
     testRunResultClasses :: !(Maybe (Map String Int)),
     testRunResultTables :: !(Maybe (Map String (Map String Int))),
     testRunResultGoldenCase :: !(Maybe GoldenCase),
-    testRunResultExtraInfo :: !(Maybe String)
+    testRunResultExtraInfo :: !(Maybe String),
+    testRunResultFlakinessMessage :: !(Maybe String)
   }
   deriving (Show, Eq, Generic)
 

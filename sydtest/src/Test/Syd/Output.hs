@@ -188,7 +188,7 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
                 withTimingColour $ chunk executionTimeText
               ]
             ],
-            map pad $ retriesChunks testRunResultStatus testRunResultRetries,
+            map pad $ retriesChunks testRunResultStatus testRunResultRetries testRunResultFlakinessMessage,
             [ pad
                 [ chunk "passed for all of ",
                   case w of
@@ -205,11 +205,15 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
             [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
           ]
 
-retriesChunks :: TestStatus -> Maybe Int -> [[Chunk]]
-retriesChunks status = \case
+retriesChunks :: TestStatus -> Maybe Int -> Maybe String -> [[Chunk]]
+retriesChunks status mRetries mMessage = case mRetries of
   Nothing -> []
   Just retries -> case status of
-    TestPassed -> [["Retries: ", chunk (T.pack (show retries)), fore red " !! FLAKY !!"]]
+    TestPassed ->
+      concat
+        [ [["Retries: ", chunk (T.pack (show retries)), fore red " !!! FLAKY !!!"]],
+          [[fore magenta $ chunk $ T.pack message] | message <- maybeToList mMessage]
+        ]
     TestFailed -> [["Retries: ", chunk (T.pack (show retries)), " (likely not flaky)"]]
 
 labelsChunks :: Maybe (Map [String] Int) -> [[Chunk]]

@@ -13,6 +13,7 @@ import Control.Monad.IO.Class
 import qualified Data.ByteString.Char8 as SB8
 import qualified Data.Text as T
 import Test.Syd.HList
+import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner.Wrappers
@@ -20,8 +21,8 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
 
-runSpecForestSynchronously :: Bool -> TestForest '[] () -> IO ResultForest
-runSpecForestSynchronously failFast = fmap extractNext . goForest MayNotBeFlaky HNil
+runSpecForestSynchronously :: Settings -> TestForest '[] () -> IO ResultForest
+runSpecForestSynchronously settings = fmap extractNext . goForest MayNotBeFlaky HNil
   where
     goForest :: FlakinessMode -> HList a -> TestForest a () -> IO (Next ResultForest)
     goForest _ _ [] = pure (Continue [])
@@ -37,7 +38,7 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest MayNotBeFlaky 
       DefSpecifyNode t td () -> do
         result <- timeItT $ runSingleTestWithFlakinessMode hl td fm
         let td' = td {testDefVal = result}
-        let r = failFastNext failFast td'
+        let r = failFastNext (settingFailFast settings) td'
         pure $ SpecifyNode t <$> r
       DefPendingNode t mr -> pure $ Continue $ PendingNode t mr
       DefDescribeNode t sdf -> fmap (DescribeNode t) <$> goForest fm hl sdf
@@ -58,8 +59,9 @@ runSpecForestSynchronously failFast = fmap extractNext . goForest MayNotBeFlaky 
       DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest fm hl sdf
       DefFlakinessNode fm' sdf -> fmap SubForestNode <$> goForest fm' hl sdf
 
-runSpecForestInterleavedWithOutputSynchronously :: TerminalCapabilities -> Bool -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
+runSpecForestInterleavedWithOutputSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputSynchronously settings testForest = do
+  tc <- deriveTerminalCapababilities settings
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
         putChunksWith tc lineChunks
@@ -83,7 +85,7 @@ runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
           result <- timeItT $ runSingleTestWithFlakinessMode hl td fm
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
-          let r = failFastNext failFast td'
+          let r = failFastNext (settingFailFast settings) td'
           pure $ SpecifyNode t <$> r
         DefPendingNode t mr -> do
           mapM_ (outputLine . pad level) $ outputPendingLines t mr
@@ -110,7 +112,7 @@ runSpecForestInterleavedWithOutputSynchronously tc failFast testForest = do
   mapM_ outputLine outputTestsHeader
   resultForest <- timeItT $ extractNext <$> goForest 0 MayNotBeFlaky HNil testForest
   outputLine [chunk " "]
-  mapM_ outputLine $ outputFailuresWithHeading (timedValue resultForest)
+  mapM_ outputLine $ outputFailuresWithHeading settings (timedValue resultForest)
   outputLine [chunk " "]
   mapM_ outputLine $ outputStats (computeTestSuiteStats <$> resultForest)
   outputLine [chunk " "]

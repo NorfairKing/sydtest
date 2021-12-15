@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0.0] - 2021-12-15
+
+### Added
+
+* Flaky tests now show up in the failure report when `--fail-on-flaky` is active.
+* Flakiness information like the number of retries is now shown in the failure report for real (non-flaky) failures.
+
+### Changed
+
+* Simplified the way settings are passed around.
+
 ## [0.6.1.0] - 2021-12-10
 
 ### Added

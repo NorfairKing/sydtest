@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -21,6 +22,14 @@ import qualified Options.Applicative.Help as OptParse (string)
 import Path
 import Path.IO
 import Test.Syd.Run
+import Text.Colour
+
+#ifdef mingw32_HOST_OS
+import System.Console.ANSI (hSupportsANSIColor)
+import System.IO (stdout)
+#else
+import Text.Colour.Capabilities.FromEnv
+#endif
 
 getSettings :: IO Settings
 getSettings = do
@@ -84,6 +93,24 @@ defaultSettings =
           settingFailOnFlaky = False,
           settingDebug = False
         }
+
+deriveTerminalCapababilities :: Settings -> IO TerminalCapabilities
+deriveTerminalCapababilities settings = case settingColour settings of
+  Just False -> pure WithoutColours
+  Just True -> pure With8BitColours
+  Nothing -> detectTerminalCapabilities
+
+#ifdef mingw32_HOST_OS
+detectTerminalCapabilities :: IO TerminalCapabilities
+detectTerminalCapabilities = do
+  supports <- hSupportsANSIColor stdout
+  if supports
+    then pure With8BitColours
+    else pure WithoutColours
+#else
+detectTerminalCapabilities :: IO TerminalCapabilities
+detectTerminalCapabilities = getTerminalCapabilitiesFromEnv
+#endif
 
 data Threads
   = -- | One thread

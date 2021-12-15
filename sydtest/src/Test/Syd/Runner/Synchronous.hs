@@ -59,8 +59,9 @@ runSpecForestSynchronously settings = fmap extractNext . goForest MayNotBeFlaky 
       DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest fm hl sdf
       DefFlakinessNode fm' sdf -> fmap SubForestNode <$> goForest fm' hl sdf
 
-runSpecForestInterleavedWithOutputSynchronously :: Settings -> TerminalCapabilities -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputSynchronously settings tc testForest = do
+runSpecForestInterleavedWithOutputSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputSynchronously settings testForest = do
+  tc <- deriveTerminalCapababilities settings
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
         putChunksWith tc lineChunks

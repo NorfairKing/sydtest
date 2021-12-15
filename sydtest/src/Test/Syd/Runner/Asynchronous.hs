@@ -37,12 +37,12 @@ runSpecForestAsynchronously settings nbThreads testForest = do
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-runSpecForestInterleavedWithOutputAsynchronously :: Settings -> TerminalCapabilities -> Word -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputAsynchronously settings tc nbThreads testForest = do
+runSpecForestInterleavedWithOutputAsynchronously :: Settings -> Word -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
   let runRunner = runner settings nbThreads failFastVar handleForest
-      runPrinter = liftIO $ printer settings tc failFastVar handleForest
+      runPrinter = liftIO $ printer settings failFastVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
@@ -110,8 +110,10 @@ runner settings nbThreads failFastVar handleForest = do
         DefFlakinessNode fm' sdf -> goForest p fm' a sdf
   goForest Parallel MayNotBeFlaky HNil handleForest
 
-printer :: Settings -> TerminalCapabilities -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
-printer settings tc failFastVar handleForest = do
+printer :: Settings -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
+printer settings failFastVar handleForest = do
+  tc <- deriveTerminalCapababilities settings
+
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
         putChunksWith tc lineChunks

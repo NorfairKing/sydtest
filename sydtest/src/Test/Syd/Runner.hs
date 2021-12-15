@@ -41,12 +41,9 @@ sydTestResult settings spec = do
 sydTestOnce :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestOnce settings spec = do
   specForest <- execTestDefM settings spec
-  tc <- case settingColour settings of
-    Just False -> pure WithoutColours
-    Just True -> pure With8BitColours
-    Nothing -> detectTerminalCapabilities
+  tc <- deriveTerminalCapababilities settings
   withArgs [] $ case settingThreads settings of
-    Synchronous -> runSpecForestInterleavedWithOutputSynchronously settings tc specForest
+    Synchronous -> runSpecForestInterleavedWithOutputSynchronously settings specForest
     ByCapabilities -> do
       i <- fromIntegral <$> getNumCapabilities
 
@@ -64,9 +61,9 @@ sydTestOnce settings spec = do
             chunk "         -threaded -rtsopts -with-rtsopts=-N",
             chunk "         (This is important for correctness as well as speed, as a parallell test suite can find thread safety problems.)"
           ]
-      runSpecForestInterleavedWithOutputAsynchronously settings tc i specForest
+      runSpecForestInterleavedWithOutputAsynchronously settings i specForest
     Asynchronous i ->
-      runSpecForestInterleavedWithOutputAsynchronously settings tc i specForest
+      runSpecForestInterleavedWithOutputAsynchronously settings i specForest
 
 sydTestIterations :: Maybe Word -> Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestIterations totalIterations settings spec =
@@ -101,9 +98,5 @@ sydTestIterations totalIterations settings spec =
                 | otherwise -> go $ succ iteration
 
     rf <- go 0
-    tc <- case settingColour settings of
-      Just False -> pure WithoutColours
-      Just True -> pure With8BitColours
-      Nothing -> detectTerminalCapabilities
-    printOutputSpecForest settings tc rf
+    printOutputSpecForest settings rf
     pure rf

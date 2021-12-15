@@ -31,17 +31,12 @@ main :: IO ()
 main = do
   settings <- getSettings
   testForest <- execTestDefM settings spec
-  tc <- case settingColour settings of
-    Just False -> pure WithoutColours
-    Just True -> pure With24BitColours
-    Nothing -> detectTerminalCapabilities
-
-  _ <- runSpecForestInterleavedWithOutputSynchronously settings tc testForest
-  _ <- runSpecForestInterleavedWithOutputAsynchronously settings tc 8 testForest
+  _ <- runSpecForestInterleavedWithOutputSynchronously settings testForest
+  _ <- runSpecForestInterleavedWithOutputAsynchronously settings 8 testForest
   rf1 <- timeItT $ runSpecForestSynchronously settings testForest
-  printOutputSpecForest settings tc rf1
+  printOutputSpecForest settings rf1
   rf2 <- timeItT $ runSpecForestAsynchronously settings 8 testForest
-  printOutputSpecForest settings tc rf2
+  printOutputSpecForest settings rf2
   pure ()
 
 spec :: Spec

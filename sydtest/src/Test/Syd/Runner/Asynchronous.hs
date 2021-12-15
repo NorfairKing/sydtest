@@ -20,6 +20,7 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
+import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
@@ -27,21 +28,21 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
 
-runSpecForestAsynchronously :: Bool -> Word -> TestForest '[] () -> IO ResultForest
-runSpecForestAsynchronously failFast nbThreads testForest = do
+runSpecForestAsynchronously :: Settings -> Word -> TestForest '[] () -> IO ResultForest
+runSpecForestAsynchronously settings nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
-  let runRunner = runner failFast nbThreads failFastVar handleForest
+  let runRunner = runner settings nbThreads failFastVar handleForest
       runPrinter = liftIO $ waiter failFastVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-runSpecForestInterleavedWithOutputAsynchronously :: TerminalCapabilities -> Bool -> Word -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestInterleavedWithOutputAsynchronously tc failFast nbThreads testForest = do
+runSpecForestInterleavedWithOutputAsynchronously :: Settings -> TerminalCapabilities -> Word -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputAsynchronously settings tc nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
-  let runRunner = runner failFast nbThreads failFastVar handleForest
-      runPrinter = liftIO $ printer tc failFastVar handleForest
+  let runRunner = runner settings nbThreads failFastVar handleForest
+      runPrinter = liftIO $ printer settings tc failFastVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
@@ -50,12 +51,10 @@ type HandleForest a b = SpecDefForest a b (MVar (Timed TestRunResult))
 type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunResult))
 
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
-makeHandleForest = traverse $
-  traverse $ \() ->
-    newEmptyMVar
+makeHandleForest = traverse $ traverse $ \() -> newEmptyMVar
 
-runner :: Bool -> Word -> MVar () -> HandleForest '[] () -> IO ()
-runner failFast nbThreads failFastVar handleForest = do
+runner :: Settings -> Word -> MVar () -> HandleForest '[] () -> IO ()
+runner settings nbThreads failFastVar handleForest = do
   sem <- liftIO $ newQSemN $ fromIntegral nbThreads
   jobs <- newIORef (S.empty :: Set (Async ()))
   -- This is used to make sure that the 'after' part of the resources actually happens after the tests are done, not just when they are started.
@@ -85,7 +84,7 @@ runner failFast nbThreads failFastVar handleForest = do
                   job = do
                     result <- runNow
                     putMVar var result
-                    when (failFast && testRunResultStatus (timedValue result) == TestFailed) $ do
+                    when (settingFailFast settings && testRunResultStatus (timedValue result) == TestFailed) $ do
                       putMVar failFastVar ()
                       as <- readIORef jobs
                       mapM_ cancel as
@@ -111,8 +110,8 @@ runner failFast nbThreads failFastVar handleForest = do
         DefFlakinessNode fm' sdf -> goForest p fm' a sdf
   goForest Parallel MayNotBeFlaky HNil handleForest
 
-printer :: TerminalCapabilities -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
-printer tc failFastVar handleForest = do
+printer :: Settings -> TerminalCapabilities -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
+printer settings tc failFastVar handleForest = do
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
         putChunksWith tc lineChunks
@@ -160,7 +159,7 @@ printer tc failFastVar handleForest = do
   mapM_ outputLine outputTestsHeader
   resultForest <- timeItT $ fromMaybe [] <$> goForest 0 handleForest
   outputLine [chunk " "]
-  mapM_ outputLine $ outputFailuresWithHeading (timedValue resultForest)
+  mapM_ outputLine $ outputFailuresWithHeading settings (timedValue resultForest)
   outputLine [chunk " "]
   mapM_ outputLine $ outputStats (computeTestSuiteStats <$> resultForest)
   outputLine [chunk " "]

@@ -23,6 +23,7 @@ import qualified Data.Text as T
 import GHC.Stack
 import Safe
 import Test.QuickCheck.IO ()
+import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
@@ -36,27 +37,27 @@ import System.IO (stdout)
 import Text.Colour.Capabilities.FromEnv
 #endif
 
-printOutputSpecForest :: TerminalCapabilities -> Timed ResultForest -> IO ()
-printOutputSpecForest tc results = do
-  forM_ (outputResultReport results) $ \chunks -> do
+printOutputSpecForest :: Settings -> TerminalCapabilities -> Timed ResultForest -> IO ()
+printOutputSpecForest settings tc results = do
+  forM_ (outputResultReport settings results) $ \chunks -> do
     putChunksWith tc chunks
     SB8.putStrLn ""
 
-renderResultReport :: TerminalCapabilities -> Timed ResultForest -> Builder
-renderResultReport tc rf =
+renderResultReport :: Settings -> TerminalCapabilities -> Timed ResultForest -> Builder
+renderResultReport settings tc rf =
   mconcat $
     L.intersperse (SBB.char7 '\n') $
-      map (renderChunks tc) (outputResultReport rf)
+      map (renderChunks tc) (outputResultReport settings rf)
 
-outputResultReport :: Timed ResultForest -> [[Chunk]]
-outputResultReport trf@(Timed rf _) =
+outputResultReport :: Settings -> Timed ResultForest -> [[Chunk]]
+outputResultReport settings trf@(Timed rf _) =
   concat
     [ outputTestsHeader,
       outputSpecForest 0 (resultForestWidth rf) rf,
       [ [chunk ""],
         [chunk ""]
       ],
-      outputFailuresWithHeading rf,
+      outputFailuresWithHeading settings rf,
       [[chunk ""]],
       outputStats (computeTestSuiteStats <$> trf),
       [[chunk ""]]
@@ -65,13 +66,13 @@ outputResultReport trf@(Timed rf _) =
 outputFailuresHeader :: [[Chunk]]
 outputFailuresHeader = outputHeader "Failures:"
 
-outputFailuresWithHeading :: ResultForest -> [[Chunk]]
-outputFailuresWithHeading rf =
-  if any testFailed (flattenSpecForest rf)
+outputFailuresWithHeading :: Settings -> ResultForest -> [[Chunk]]
+outputFailuresWithHeading settings rf =
+  if shouldExitFail settings rf
     then
       concat
         [ outputFailuresHeader,
-          outputFailures rf
+          outputFailures settings rf
         ]
     else []
 
@@ -333,12 +334,9 @@ spacingChunk level descriptionText executionTimeText treeWidth = chunk $ T.pack 
           actualMaxWidth = max totalNecessaryWidth preferredMaxWidth
        in actualMaxWidth - paddingSize * level - actualTimingWidth - actualDescriptionWidth
 
-testFailed :: (a, TDef (Timed TestRunResult)) -> Bool
-testFailed = (== TestFailed) . testRunResultStatus . timedValue . testDefVal . snd
-
-outputFailures :: ResultForest -> [[Chunk]]
-outputFailures rf =
-  let failures = filter testFailed $ flattenSpecForest rf
+outputFailures :: Settings -> ResultForest -> [[Chunk]]
+outputFailures settings rf =
+  let failures = filter (testFailed settings . timedValue . testDefVal . snd) $ flattenSpecForest rf
       nbDigitsInFailureCount :: Int
       nbDigitsInFailureCount = floor (logBase 10 (L.genericLength failures) :: Double)
       padFailureDetails = (chunk (T.pack (replicate (nbDigitsInFailureCount + 4) ' ')) :)
@@ -367,6 +365,7 @@ outputFailures rf =
                         chunk $ T.intercalate "." ts
                       ]
                   ],
+                  map padFailureDetails $ retriesChunks testRunResultStatus testRunResultRetries testRunResultFlakinessMessage,
                   map (padFailureDetails . (: []) . chunk . T.pack) $
                     case (testRunResultNumTests, testRunResultNumShrinks) of
                       (Nothing, _) -> []

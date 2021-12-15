@@ -29,19 +29,19 @@ instance ToUnit Int -- No implementation on purpose
 
 main :: IO ()
 main = do
-  sets <- getSettings
-  testForest <- execTestDefM sets spec
-  tc <- case settingColour sets of
+  settings <- getSettings
+  testForest <- execTestDefM settings spec
+  tc <- case settingColour settings of
     Just False -> pure WithoutColours
     Just True -> pure With24BitColours
     Nothing -> detectTerminalCapabilities
 
-  _ <- runSpecForestInterleavedWithOutputSynchronously tc (settingFailFast sets) testForest
-  _ <- runSpecForestInterleavedWithOutputAsynchronously tc (settingFailFast sets) 8 testForest
-  rf1 <- timeItT $ runSpecForestSynchronously (settingFailFast sets) testForest
-  printOutputSpecForest tc rf1
-  rf2 <- timeItT $ runSpecForestAsynchronously (settingFailFast sets) 8 testForest
-  printOutputSpecForest tc rf2
+  _ <- runSpecForestInterleavedWithOutputSynchronously settings tc testForest
+  _ <- runSpecForestInterleavedWithOutputAsynchronously settings tc 8 testForest
+  rf1 <- timeItT $ runSpecForestSynchronously settings testForest
+  printOutputSpecForest settings tc rf1
+  rf2 <- timeItT $ runSpecForestAsynchronously settings 8 testForest
+  printOutputSpecForest settings tc rf2
   pure ()
 
 spec :: Spec
@@ -151,7 +151,7 @@ spec = do
       it "outputs the same as last time" $ do
         pureGoldenByteStringFile
           "test_resources/output.golden"
-          (LB.toStrict $ SBB.toLazyByteString $ renderResultReport With24BitColours (Timed [] 0))
+          (LB.toStrict $ SBB.toLazyByteString $ renderResultReport defaultSettings With24BitColours (Timed [] 0))
 
   doNotRandomiseExecutionOrder $
     describe "Around" $

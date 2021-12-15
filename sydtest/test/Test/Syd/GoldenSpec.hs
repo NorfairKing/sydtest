@@ -14,6 +14,6 @@ spec = do
     it "outputs the same as last time" $ do
       pureGoldenByteStringFile
         "test_resources/output.golden"
-        (LB.toStrict $ SBB.toLazyByteString $ renderResultReport With24BitColours (Timed [] 0))
+        (LB.toStrict $ SBB.toLazyByteString $ renderResultReport defaultSettings With24BitColours (Timed [] 0))
   describe "defaultSettings" $ do
     it "is the same thing as last time" $ goldenPrettyShowInstance "test_resources/defaultSettings-show.golden" defaultSettings

@@ -262,12 +262,13 @@ instance Monoid TestSuiteStats where
       }
 
 shouldExitFail :: Settings -> ResultForest -> Bool
-shouldExitFail Settings {..} = any (any (problematic . timedValue . testDefVal))
-  where
-    problematic TestRunResult {..} =
-      or
-        [ -- Failed
-          testRunResultStatus == TestFailed,
-          -- Passed but flaky
-          settingFailOnFlaky && testRunResultStatus == TestPassed && isJust testRunResultRetries
-        ]
+shouldExitFail settings = any (any (testFailed settings . timedValue . testDefVal))
+
+testFailed :: Settings -> TestRunResult -> Bool
+testFailed Settings {..} TestRunResult {..} =
+  or
+    [ -- Failed
+      testRunResultStatus == TestFailed,
+      -- Passed but flaky and flakiness isn't allowed
+      settingFailOnFlaky && testRunResultStatus == TestPassed && isJust testRunResultRetries
+    ]

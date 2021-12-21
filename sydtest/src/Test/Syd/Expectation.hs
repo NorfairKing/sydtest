@@ -67,7 +67,7 @@ infix 1 `shouldNotReturn`
 
 -- | Assert that the given list has the given prefix
 shouldStartWith :: (HasCallStack, Show a, Eq a) => [a] -> [a] -> Expectation
-shouldStartWith a i = shouldSatisfyNamed a ("has infix\n" <> ppShow i) (isInfixOf i)
+shouldStartWith a i = shouldSatisfyNamed a ("has prefix\n" <> ppShow i) (isPrefixOf i)
 
 infix 1 `shouldStartWith`
 

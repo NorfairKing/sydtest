@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.0.1] - 2021-12-23
+
+### Changed
+
+* Fixed `shouldStartWith` to test on the prefix rather then infix
+
 ## [0.7.0.0] - 2021-12-15
 
 ### Added

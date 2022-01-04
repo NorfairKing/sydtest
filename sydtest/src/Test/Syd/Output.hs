@@ -214,7 +214,7 @@ retriesChunks status mRetries mMessage = case mRetries of
 labelsChunks :: Maybe (Map [String] Int) -> [[Chunk]]
 labelsChunks Nothing = []
 labelsChunks (Just labels)
-  | M.size labels <= 1 = []
+  | M.size labels < 1 = []
   | otherwise =
     [chunk "labels"] :
     map

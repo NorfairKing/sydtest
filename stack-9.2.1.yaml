@@ -41,6 +41,8 @@ extra-deps:
     - persistent
     - persistent-test
     - persistent-template
+    - persistent-postgresql
+  
 # https://github.com/NorfairKing/validity/pull/100
 - github: srid/validity
   commit: 3d95a17f1223615b7f55e4e7bf9350227023ee9d # ghc921
@@ -84,13 +86,15 @@ extra-deps:
     - 'validity-unordered-containers'
     - 'validity-uuid'
     - 'validity-vector'
-- github: NorfairKing/safe-coloured-text
-  commit: d840dd7b0f13f4d0fd693c1dd93be33f9ee94605
+# https://github.com/NorfairKing/safe-coloured-text/pull/5
+- github: srid/safe-coloured-text
+  commit: f64782b8f0be392f7a93261ddaa2e017c51a6d75
   subdirs:
     - safe-coloured-text
     - safe-coloured-text-terminfo
-- github: NorfairKing/autodocodec
-  commit: 604ce108bd9bbe9b29e88955f6c981f65d89c153
+# https://github.com/NorfairKing/autodocodec/pull/12
+- github: srid/autodocodec
+  commit: 10dfd6c1941accef8f0974b3bacc0fe583c227c0
   subdirs:
     - autodocodec
     - autodocodec-schema

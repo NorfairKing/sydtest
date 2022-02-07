@@ -1,0 +1,106 @@
+resolver: nightly-2022-02-07
+compiler: ghc-9.2.1
+packages:
+- sydtest
+- sydtest-aeson
+- sydtest-amqp
+- sydtest-discover
+- sydtest-hedis
+- sydtest-hspec
+- sydtest-mongo
+- sydtest-persistent
+- sydtest-persistent-postgresql
+- sydtest-persistent-sqlite
+- sydtest-process
+- sydtest-rabbitmq
+- sydtest-servant
+- sydtest-typed-process
+- sydtest-wai
+- sydtest-yesod
+extra-deps:
+- envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842
+- aeson-2.0.3.0
+- base-compat-0.12.1
+- base-compat-batteries-0.12.1
+- yaml-0.11.7.0 # aeson 2
+# https://github.com/haskell-foundation/foundation/pull/555
+- github: TomMD/foundation
+  commit: 0bb195e1fea06d144dafc5af9a0ff79af0a5f4a0 # branch: fix/ghc-9.2
+  subdirs:
+    - basement
+# https://github.com/vincenthz/hs-memory/pull/87
+- github: tfausak/hs-memory
+  commit: 3cf661a8a9a8ac028df77daa88e8d65c55a3347a  # gh-86-ghc-9.2.1
+# https://github.com/haskell-crypto/cryptonite/pull/354
+- github: josephcsible/cryptonite
+  commit: 3b081e3ad027b0550fc87f171dffecbb20dedafe # ghc92
+# https://github.com/yesodweb/persistent/pull/1338
+- github: brandon-leapyear/persistent
+  commit: ef4d8a2a62e833e3600bfb833b4e6afe984a81d6 # chinn/aeson2
+  subdirs:
+    - persistent
+    - persistent-test
+    - persistent-template
+# https://github.com/NorfairKing/validity/pull/100
+- github: srid/validity
+  commit: 3d95a17f1223615b7f55e4e7bf9350227023ee9d # ghc921
+  subdirs:
+    - 'genvalidity'
+    - 'genvalidity-aeson'
+    - 'genvalidity-bytestring'
+    - 'genvalidity-containers'
+    - 'genvalidity-criterion'
+    - 'genvalidity-hspec'
+    - 'genvalidity-hspec-aeson'
+    - 'genvalidity-hspec-binary'
+    - 'genvalidity-hspec-cereal'
+    - 'genvalidity-hspec-hashable'
+    - 'genvalidity-hspec-optics'
+    - 'genvalidity-hspec-persistent'
+    - 'genvalidity-path'
+    - 'genvalidity-persistent'
+    - 'genvalidity-property'
+    - 'genvalidity-scientific'
+    - 'genvalidity-sydtest'
+    - 'genvalidity-sydtest-aeson'
+    - 'genvalidity-sydtest-hashable'
+    - 'genvalidity-sydtest-lens'
+    - 'genvalidity-sydtest-persistent'
+    - 'genvalidity-text'
+    - 'genvalidity-time'
+    - 'genvalidity-unordered-containers'
+    - 'genvalidity-uuid'
+    - 'genvalidity-vector'
+    - 'validity'
+    - 'validity-aeson'
+    - 'validity-bytestring'
+    - 'validity-containers'
+    - 'validity-path'
+    - 'validity-persistent'
+    - 'validity-primitive'
+    - 'validity-scientific'
+    - 'validity-text'
+    - 'validity-time'
+    - 'validity-unordered-containers'
+    - 'validity-uuid'
+    - 'validity-vector'
+- github: NorfairKing/safe-coloured-text
+  commit: d840dd7b0f13f4d0fd693c1dd93be33f9ee94605
+  subdirs:
+    - safe-coloured-text
+    - safe-coloured-text-terminfo
+- github: NorfairKing/autodocodec
+  commit: 604ce108bd9bbe9b29e88955f6c981f65d89c153
+  subdirs:
+    - autodocodec
+    - autodocodec-schema
+    - autodocodec-yaml
+
+ghc-options:
+  "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef
+
+# To allow newer base-compat (etc.).
+allow-newer: true
+
+nix:
+  shell-file: shell.nix

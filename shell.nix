@@ -12,6 +12,7 @@ pkgs.haskell.lib.buildStackProject {
     rabbitmq-server
     redis
     zlib
+    pkgs.haskell.compiler.ghc921
   ] ++ pre-commit.tools;
   shellHook = ''
     export TMPDIR=/tmp

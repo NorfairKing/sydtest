@@ -11,7 +11,7 @@
 -- | This module defines all the functions you will use to define your test suite.
 module Test.Syd.Def.AroundAll where
 
-import Control.Monad.RWS.Strict
+import Control.Monad.Writer.Strict
 import Test.QuickCheck.IO ()
 import Test.Syd.Def.TestDefM
 import Test.Syd.HList
@@ -23,7 +23,7 @@ beforeAll ::
   IO outer ->
   TestDefM (outer ': otherOuters) inner result ->
   TestDefM otherOuters inner result
-beforeAll action = wrapRWST $ \forest -> DefBeforeAllNode action forest
+beforeAll action = wrapForest $ \forest -> DefBeforeAllNode action forest
 
 -- | Run a custom action before all spec items in a group without setting up any outer resources.
 beforeAll_ ::
@@ -57,7 +57,7 @@ afterAll' ::
   (HList outers -> IO ()) ->
   TestDefM outers inner result ->
   TestDefM outers inner result
-afterAll' func = wrapRWST $ \forest -> DefAfterAllNode func forest
+afterAll' func = wrapForest $ \forest -> DefAfterAllNode func forest
 
 -- | Run a custom action after all spec items without using any outer resources.
 afterAll_ ::
@@ -75,7 +75,7 @@ aroundAll ::
   ((outer -> IO ()) -> IO ()) ->
   TestDefM (outer ': otherOuters) inner result ->
   TestDefM otherOuters inner result
-aroundAll func = wrapRWST $ \forest -> DefAroundAllNode func forest
+aroundAll func = wrapForest $ \forest -> DefAroundAllNode func forest
 
 -- | Run a custom action before and/or after all spec items in a group without accessing any resources.
 --
@@ -115,7 +115,7 @@ aroundAll_ ::
   (IO () -> IO ()) ->
   TestDefM outers inner result ->
   TestDefM outers inner result
-aroundAll_ func = wrapRWST $ \forest -> DefWrapNode func forest
+aroundAll_ func = wrapForest $ \forest -> DefWrapNode func forest
 
 -- | Run a custom action before and/or after all spec items in a group to provide access to a resource 'a' while using a resource 'b'
 --
@@ -126,16 +126,16 @@ aroundAllWith ::
   ((newOuter -> IO ()) -> (oldOuter -> IO ())) ->
   TestDefM (newOuter ': oldOuter ': otherOuters) inner result ->
   TestDefM (oldOuter ': otherOuters) inner result
-aroundAllWith func = wrapRWST $ \forest -> DefAroundAllWithNode func forest
+aroundAllWith func = wrapForest $ \forest -> DefAroundAllWithNode func forest
 
 -- | Declare a node in the spec def forest
-wrapRWST ::
+wrapForest ::
   -- | The wrapper node
   (TestForest outers1 inner1 -> TestTree outers2 inner2) ->
   TestDefM outers1 inner1 result ->
   TestDefM outers2 inner2 result
-wrapRWST func (TestDefM rwst) = TestDefM $
-  flip mapRWST rwst $ \inner -> do
-    (res, s, forest) <- inner
+wrapForest func (TestDefM rwst) = TestDefM $
+  flip mapWriterT rwst $ \inner -> do
+    (res, forest) <- inner
     let forest' = [func forest]
-    pure (res, s, forest')
+    pure (res, forest')

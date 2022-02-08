@@ -15,8 +15,9 @@
 module Test.Syd.Def.TestDefM where
 
 import Control.Monad
-import Control.Monad.RWS.Strict
 import Control.Monad.Random
+import Control.Monad.Reader
+import Control.Monad.Writer.Strict
 import Data.DList (DList)
 import qualified Data.DList as DList
 import Data.Kind
@@ -52,7 +53,7 @@ type TestDef outers inner = TestDefM outers inner ()
 --
 -- In practice, all of these three parameters should be '()' at the top level.
 newtype TestDefM (outers :: [Type]) inner result = TestDefM
-  { unTestDefM :: RWST TestDefEnv (TestForest outers inner) () IO result
+  { unTestDefM :: WriterT (TestForest outers inner) (ReaderT TestDefEnv IO) result
   }
   deriving
     ( Functor,
@@ -60,8 +61,7 @@ newtype TestDefM (outers :: [Type]) inner result = TestDefM
       Monad,
       MonadIO,
       MonadReader TestDefEnv,
-      MonadWriter (TestForest outers inner),
-      MonadState ()
+      MonadWriter (TestForest outers inner)
     )
 
 data TestDefEnv = TestDefEnv
@@ -81,7 +81,7 @@ runTestDefM sets defFunc = do
           { testDefEnvDescriptionPath = [],
             testDefEnvTestRunSettings = toTestRunSettings sets
           }
-  (a, _, testForest) <- runRWST func testDefEnv ()
+  (a, testForest) <- runReaderT (runWriterT func) testDefEnv
   let testForest' = filterTestForest (settingFilter sets) testForest
   stdgen <- case settingSeed sets of
     FixedSeed seed -> pure $ mkStdGen seed

@@ -50,6 +50,7 @@ module Test.Syd
     specifyWithBoth,
     specifyWithAll,
     prop,
+    getTestDescriptionPath,
 
     -- ** Commented-out tests
     xdescribe,

@@ -66,7 +66,10 @@ describe ::
   String ->
   TestDefM outers inner () ->
   TestDefM outers inner ()
-describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
+describe s =
+  let t = T.pack s
+   in local (\tde -> tde {testDefEnvDescriptionPath = t : testDefEnvDescriptionPath tde})
+        . censor ((: []) . DefDescribeNode t)
 
 -- TODO maybe we want to keep all tests below but replace them with a "Pending" instead.
 xdescribe :: String -> TestDefM outers inner () -> TestDefM outers inner ()

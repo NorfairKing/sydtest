@@ -65,7 +65,8 @@ newtype TestDefM (outers :: [Type]) inner result = TestDefM
     )
 
 data TestDefEnv = TestDefEnv
-  { testDefEnvTestRunSettings :: !TestRunSettings
+  { testDefEnvDescriptionPath :: ![Text],
+    testDefEnvTestRunSettings :: !TestRunSettings
   }
   deriving (Show, Eq, Generic)
 
@@ -77,7 +78,8 @@ runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
   let testDefEnv =
         TestDefEnv
-          { testDefEnvTestRunSettings = toTestRunSettings sets
+          { testDefEnvDescriptionPath = [],
+            testDefEnvTestRunSettings = toTestRunSettings sets
           }
   (a, _, testForest) <- runRWST func testDefEnv ()
   let testForest' = filterTestForest (settingFilter sets) testForest
@@ -89,6 +91,21 @@ runTestDefM sets defFunc = do
           then evalRand (randomiseTestForest testForest') stdgen
           else testForest'
   pure (a, testForest'')
+
+-- | Get the path of 'describe' strings upwards.
+--
+-- Note that using this function makes tests less movable, depending on what
+-- you do with these strings.
+-- For example, if you use these strings to define the path to a golden test
+-- file, then that path will change if you move the tests somewhere else.
+-- This combines unfortunately with the way @sydtest-discover@ makes the module
+-- name part of this path.
+-- Indeed: moving your tests to another module will change their path as well,
+-- if you use @sydtest-discover@.
+-- Also note that while test forests can be randomised, their description path
+-- upwards will not, because of how trees are structured.
+getTestDescriptionPath :: TestDefM outers inner [Text]
+getTestDescriptionPath = asks testDefEnvDescriptionPath
 
 toTestRunSettings :: Settings -> TestRunSettings
 toTestRunSettings Settings {..} =

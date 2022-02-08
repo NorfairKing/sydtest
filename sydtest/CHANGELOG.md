@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased: [0.8.0.0]
+
+### Changed
+
+* The `TestDefM` now contains a `TestDefEnv` which also contains the test description path, along with `TestRunSettings`.
+* Removed the `MonadState ()` instance of `TestDefM`. It was just silly.
+* Changed the internals of `TestDefM` to use `ReaderT` and a strict `WriterT` instead of `RWST`.
+* Renamed `wrapRWST` to `wrapForest`.
+
+### Added
+
+* `getTestDescriptionPath` to get the test description path upwards from inside a test definition.
+
+
 ## [0.7.0.1] - 2021-12-23
 
 ### Changed

@@ -11,7 +11,8 @@
 module Test.Syd.Def.Around where
 
 import Control.Exception
-import Control.Monad.RWS.Strict
+import Control.Monad.Reader
+import Control.Monad.Writer.Strict
 import Data.Kind
 import Test.QuickCheck.IO ()
 import Test.Syd.Def.TestDefM
@@ -175,10 +176,10 @@ aroundWith' ::
   TestDefM outers newInner result ->
   TestDefM outers oldInner result
 aroundWith' func (TestDefM rwst) =
-  local (\trs -> trs {testRunSettingMaxShrinks = 0}) $
+  local (\tde -> tde {testDefEnvTestRunSettings = (testDefEnvTestRunSettings tde) {testRunSettingMaxShrinks = 0}}) $
     TestDefM $
-      flip mapRWST rwst $ \inner -> do
-        (res, s, forest) <- inner
+      flip mapWriterT rwst $ \inner -> do
+        (res, forest) <- inner
         -- a: outers
         -- c: newInner
         -- d: oldInner
@@ -221,4 +222,4 @@ aroundWith' func (TestDefM rwst) =
             modifyForest = map modifyTree
         let forest' :: SpecDefForest outers oldInner ()
             forest' = modifyForest forest
-        pure (res, s, forest')
+        pure (res, forest')

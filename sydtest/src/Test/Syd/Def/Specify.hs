@@ -66,7 +66,10 @@ describe ::
   String ->
   TestDefM outers inner () ->
   TestDefM outers inner ()
-describe s func = censor ((: []) . DefDescribeNode (T.pack s)) func
+describe s =
+  let t = T.pack s
+   in local (\tde -> tde {testDefEnvDescriptionPath = t : testDefEnvDescriptionPath tde})
+        . censor ((: []) . DefDescribeNode t)
 
 -- TODO maybe we want to keep all tests below but replace them with a "Pending" instead.
 xdescribe :: String -> TestDefM outers inner () -> TestDefM outers inner ()
@@ -170,7 +173,7 @@ it ::
   test ->
   TestDefM outers inner ()
 it s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->
@@ -271,7 +274,7 @@ itWithOuter ::
   test ->
   TestDefM (outer ': otherOuters) inner ()
 itWithOuter s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->
@@ -369,7 +372,7 @@ itWithBoth ::
   test ->
   TestDefM (outer ': otherOuters) inner ()
 itWithBoth s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->
@@ -437,7 +440,7 @@ itWithAll ::
   test ->
   TestDefM outers inner ()
 itWithAll s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->

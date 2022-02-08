@@ -39,7 +39,7 @@ import Test.Syd.Run
 import Test.Syd.SpecDef
 
 modifyRunSettings :: (TestRunSettings -> TestRunSettings) -> TestDefM a b c -> TestDefM a b c
-modifyRunSettings = local
+modifyRunSettings func = local (\tde -> tde {testDefEnvTestRunSettings = func $ testDefEnvTestRunSettings tde})
 
 modifyMaxSuccess :: (Int -> Int) -> TestDefM a b c -> TestDefM a b c
 modifyMaxSuccess func = modifyRunSettings $ \trs -> trs {testRunSettingMaxSuccess = func (testRunSettingMaxSuccess trs)}

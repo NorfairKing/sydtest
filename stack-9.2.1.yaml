@@ -88,13 +88,13 @@ extra-deps:
     - 'validity-vector'
 # https://github.com/NorfairKing/safe-coloured-text/pull/5
 - github: srid/safe-coloured-text
-  commit: f64782b8f0be392f7a93261ddaa2e017c51a6d75
+  commit: 034f3612525568b422e0c62b52417d77b7cf31c2
   subdirs:
     - safe-coloured-text
     - safe-coloured-text-terminfo
 # https://github.com/NorfairKing/autodocodec/pull/12
 - github: srid/autodocodec
-  commit: 10dfd6c1941accef8f0974b3bacc0fe583c227c0
+  commit: 303824f637b22781c86428b4958b0d5b03e54d2f
   subdirs:
     - autodocodec
     - autodocodec-schema

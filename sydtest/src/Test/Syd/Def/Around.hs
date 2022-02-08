@@ -175,7 +175,7 @@ aroundWith' ::
   TestDefM outers newInner result ->
   TestDefM outers oldInner result
 aroundWith' func (TestDefM rwst) =
-  local (\trs -> trs {testRunSettingMaxShrinks = 0}) $
+  local (\tde -> tde {testDefEnvTestRunSettings = (testDefEnvTestRunSettings tde) {testRunSettingMaxShrinks = 0}}) $
     TestDefM $
       flip mapRWST rwst $ \inner -> do
         (res, s, forest) <- inner

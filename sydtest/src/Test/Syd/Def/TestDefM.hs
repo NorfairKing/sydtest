@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -22,6 +23,7 @@ import Data.Kind
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
+import GHC.Generics (Generic)
 import System.Random.Shuffle
 import Test.QuickCheck.IO ()
 import Test.Syd.OptParse
@@ -50,9 +52,22 @@ type TestDef outers inner = TestDefM outers inner ()
 --
 -- In practice, all of these three parameters should be '()' at the top level.
 newtype TestDefM (outers :: [Type]) inner result = TestDefM
-  { unTestDefM :: RWST TestRunSettings (TestForest outers inner) () IO result
+  { unTestDefM :: RWST TestDefEnv (TestForest outers inner) () IO result
   }
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader TestRunSettings, MonadWriter (TestForest outers inner), MonadState ())
+  deriving
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadReader TestDefEnv,
+      MonadWriter (TestForest outers inner),
+      MonadState ()
+    )
+
+data TestDefEnv = TestDefEnv
+  { testDefEnvTestRunSettings :: !TestRunSettings
+  }
+  deriving (Show, Eq, Generic)
 
 execTestDefM :: Settings -> TestDefM outers inner result -> IO (TestForest outers inner)
 execTestDefM sets = fmap snd . runTestDefM sets
@@ -60,7 +75,11 @@ execTestDefM sets = fmap snd . runTestDefM sets
 runTestDefM :: Settings -> TestDefM outers inner result -> IO (result, TestForest outers inner)
 runTestDefM sets defFunc = do
   let func = unTestDefM defFunc
-  (a, _, testForest) <- runRWST func (toTestRunSettings sets) ()
+  let testDefEnv =
+        TestDefEnv
+          { testDefEnvTestRunSettings = toTestRunSettings sets
+          }
+  (a, _, testForest) <- runRWST func testDefEnv ()
   let testForest' = filterTestForest (settingFilter sets) testForest
   stdgen <- case settingSeed sets of
     FixedSeed seed -> pure $ mkStdGen seed

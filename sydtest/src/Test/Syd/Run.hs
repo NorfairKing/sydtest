@@ -367,7 +367,7 @@ data TestRunSettings = TestRunSettings
     testRunSettingGoldenStart :: !Bool,
     testRunSettingGoldenReset :: !Bool
   }
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 defaultTestRunSettings :: TestRunSettings
 defaultTestRunSettings =

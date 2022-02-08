@@ -170,7 +170,7 @@ it ::
   test ->
   TestDefM outers inner ()
 it s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->
@@ -271,7 +271,7 @@ itWithOuter ::
   test ->
   TestDefM (outer ': otherOuters) inner ()
 itWithOuter s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->
@@ -369,7 +369,7 @@ itWithBoth ::
   test ->
   TestDefM (outer ': otherOuters) inner ()
 itWithBoth s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->
@@ -437,7 +437,7 @@ itWithAll ::
   test ->
   TestDefM outers inner ()
 itWithAll s t = do
-  sets <- ask
+  sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
           { testDefVal = \supplyArgs ->

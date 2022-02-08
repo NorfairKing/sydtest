@@ -1,4 +1,5 @@
 stack.yaml.lock
+stack-9.2.1.yaml.lock
 .stack-work
 .pre-commit-config.yaml
 result*

@@ -8,6 +8,7 @@
 * Removed the `MonadState ()` instance of `TestDefM`. It was just silly.
 * Changed the internals of `TestDefM` to use `ReaderT` and a strict `WriterT` instead of `RWST`.
 * Renamed `wrapRWST` to `wrapForest`.
+* Fixed the property label output to use the right total.
 
 ### Added
 

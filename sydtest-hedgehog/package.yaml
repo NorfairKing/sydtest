@@ -1,0 +1,37 @@
+name: sydtest-hedgehog
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2022 Tom Sydney Kerckhove"
+category: Testing
+synopsis: A Hedgehog companion library for sydtest
+
+extra-source-files:
+- LICENSE.md
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+    - containers
+    - hedgehog
+    - sydtest
+
+tests:
+  sydtest-hedgehog-test:
+    main: Main.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hedgehog
+    - sydtest
+    - sydtest-hedgehog

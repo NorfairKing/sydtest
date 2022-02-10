@@ -194,7 +194,7 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
               | testRunResultStatus == TestPassed,
                 w <- maybeToList testRunResultNumTests
             ],
-            map pad $ labelsChunks testRunResultLabels,
+            map pad $ labelsChunks (fromMaybe 1 testRunResultNumTests) testRunResultLabels,
             map pad $ classesChunks testRunResultClasses,
             map pad $ tablesChunks testRunResultTables,
             [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
@@ -211,18 +211,21 @@ retriesChunks status mRetries mMessage = case mRetries of
         ]
     TestFailed -> [["Retries: ", chunk (T.pack (show retries)), " (likely not flaky)"]]
 
-labelsChunks :: Maybe (Map [String] Int) -> [[Chunk]]
-labelsChunks Nothing = []
-labelsChunks (Just labels)
+labelsChunks :: Word -> Maybe (Map [String] Int) -> [[Chunk]]
+labelsChunks _ Nothing = []
+labelsChunks totalCount (Just labels)
   | M.size labels < 1 = []
   | otherwise =
-    [chunk "labels"] :
+    [chunk "Labels"] :
     map
       ( pad
           . ( \(ss, i) ->
                 [ chunk
                     ( T.pack
-                        ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) (commaList (map show ss))
+                        ( printf
+                            "%5.2f%% %s"
+                            (100 * fromIntegral i / fromIntegral totalCount :: Double)
+                            (commaList (map show ss))
                         )
                     )
                 ]
@@ -231,14 +234,13 @@ labelsChunks (Just labels)
       (M.toList labels)
   where
     pad = (chunk (T.pack (replicate paddingSize ' ')) :)
-    total = sum $ map snd $ M.toList labels
 
 classesChunks :: Maybe (Map String Int) -> [[Chunk]]
 classesChunks Nothing = []
 classesChunks (Just classes)
   | M.null classes = []
   | otherwise =
-    [chunk "classes"] :
+    [chunk "Classes"] :
     map
       ( pad
           . ( \(s, i) ->

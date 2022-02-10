@@ -113,7 +113,7 @@ This repository contains many companion libraries to write integration tests wit
 | First-class support for pure tests                                                        | ✔️       | ✔️                                                           | C                                                                |
 | First-class support for integration tests                                                 | ✔️       | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-hunit)           |    
 | First-class support for property tests with QuickCheck                                    | ✔️       | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-quickcheck)      |
-| First-class support for property tests with Hedgehog                                      | 🚧      | [Lib](https://hackage.haskell.org/package/hspec-hedgehog)   | [Lib](https://hackage.haskell.org/package/tasty-hedgehog)        |
+| First-class support for property tests with Hedgehog                                      | ✔️       | [Lib](https://hackage.haskell.org/package/hspec-hedgehog)   | [Lib](https://hackage.haskell.org/package/tasty-hedgehog)        |
 | First-class support for property tests with Smallcheck                                    | 🚧      | [Lib](https://hackage.haskell.org/package/hspec-smallcheck) | [Lib](https://hackage.haskell.org/package/tasty-smallcheck)      |
 | First-class support for golden tests                                                      | ✔️       | [Lib](https://hackage.haskell.org/package/hspec-golden)     | [Lib](https://hackage.haskell.org/package/tasty-golden)          |
 | Source location annotations for tests in test output                                      | ✔️       | ✔️                                                           | Lib [3]                                                          |
@@ -343,9 +343,9 @@ spec =
     it "does not crash" $ (main :: IO ())
 ```
 
-### First-class support for property tests with quickcheck
+### First-class support for property tests with QuickCheck
 
-Any `Property` value is considered a test.
+Any `Test.QuickCheck.Property` value is considered a test.
 
 ``` haskell
 spec :: Spec
@@ -354,6 +354,20 @@ spec =
     specify "reversing twice is the same as not reversing" $ 
       property $ \ls ->
         reverse (reverse ls) `shouldBe` ls
+```
+
+### First-class support for property tests with Hedgehog
+
+Any `Hedgehog.Property` value is considered a test.
+
+``` haskell
+spec :: Spec
+spec = 
+  describe "reverse" $
+    specify "reversing twice is the same as not reversing" $ 
+      property $ do
+        xs <- forAll $ Gen.list (Range.linear 0 100) Gen.alpha
+        reverse (reverse xs) === xs
 ```
 
 ### First-class support for golden tests

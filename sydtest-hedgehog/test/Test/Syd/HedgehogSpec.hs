@@ -5,11 +5,17 @@ module Test.Syd.HedgehogSpec (spec) where
 import Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
-import qualified Test.Syd as Syd
+import Test.Syd as Syd
 import qualified Test.Syd.Hedgehog as Syd
 
 spec :: Syd.Spec
-spec = Syd.fromHedgehogGroup exampleHedgehogGroup
+spec = do
+  describe "Adapter" $ Syd.fromHedgehogGroup exampleHedgehogGroup
+  describe "reverse" $
+    specify "reversing twice is the same as not reversing" $
+      property $ do
+        xs <- forAll $ Gen.list (Range.linear 0 100) Gen.alpha
+        reverse (reverse xs) === xs
 
 exampleHedgehogGroup :: Hedgehog.Group
 exampleHedgehogGroup =

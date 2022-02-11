@@ -16,12 +16,17 @@
 -- | This module defines all the functions you will use to define your test suite.
 module Test.Syd.SpecDef where
 
+import Control.Monad
+import Control.Monad.Random
+import Data.DList (DList)
+import qualified Data.DList as DList
 import Data.Kind
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
 import GHC.Stack
+import System.Random.Shuffle
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.OptParse
@@ -166,6 +171,62 @@ instance Traversable (SpecDefTree a c) where
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p <$> goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
+
+filterTestForest :: Maybe Text -> SpecDefForest outers inner result -> SpecDefForest outers inner result
+filterTestForest mf = fromMaybe [] . goForest DList.empty
+  where
+    goForest :: DList Text -> SpecDefForest a b c -> Maybe (SpecDefForest a b c)
+    goForest ts sdf = do
+      let sdf' = mapMaybe (goTree ts) sdf
+      guard $ not $ null sdf'
+      pure sdf'
+
+    filterGuard :: DList Text -> Bool
+    filterGuard dl = case mf of
+      Just f -> f `T.isInfixOf` T.intercalate "." (DList.toList dl)
+      Nothing -> True
+
+    goTree :: DList Text -> SpecDefTree a b c -> Maybe (SpecDefTree a b c)
+    goTree dl = \case
+      DefSpecifyNode t td e -> do
+        let tl = DList.snoc dl t
+        guard $ filterGuard tl
+        pure $ DefSpecifyNode t td e
+      DefPendingNode t mr -> do
+        let tl = DList.snoc dl t
+        guard $ filterGuard tl
+        pure $ DefPendingNode t mr
+      DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
+      DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
+      DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
+      DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest dl sdf
+      DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
+      DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
+      DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
+      DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest dl sdf
+      DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest dl sdf
+
+randomiseTestForest :: MonadRandom m => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
+randomiseTestForest = goForest
+  where
+    goForest :: MonadRandom m => SpecDefForest a b c -> m (SpecDefForest a b c)
+    goForest = traverse goTree >=> shuffleM
+    goTree :: MonadRandom m => SpecDefTree a b c -> m (SpecDefTree a b c)
+    goTree = \case
+      DefSpecifyNode t td e -> pure $ DefSpecifyNode t td e
+      DefPendingNode t mr -> pure $ DefPendingNode t mr
+      DefDescribeNode t sdf -> DefDescribeNode t <$> goForest sdf
+      DefWrapNode func sdf -> DefWrapNode func <$> goForest sdf
+      DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest sdf
+      DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest sdf
+      DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest sdf
+      DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest sdf
+      DefParallelismNode func sdf -> DefParallelismNode func <$> goForest sdf
+      DefFlakinessNode i sdf -> DefFlakinessNode i <$> goForest sdf
+      DefRandomisationNode eor sdf ->
+        DefRandomisationNode eor <$> case eor of
+          RandomiseExecutionOrder -> goForest sdf
+          DoNotRandomiseExecutionOrder -> pure sdf
 
 data Parallelism = Parallel | Sequential
 

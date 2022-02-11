@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.Aeson
   ( -- * Golden tests

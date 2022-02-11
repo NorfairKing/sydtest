@@ -6,14 +6,16 @@ in
 {
   tools = with nix-pre-commit-hooks; [
     hlint
+    hpack
     nixpkgs-fmt
     ormolu
   ];
   check = nix-pre-commit-hooks.run {
     src = ../.;
     hooks = {
-      nixpkgs-fmt.enable = true;
       hlint.enable = true;
+      hpack.enable = true;
+      nixpkgs-fmt.enable = true;
       ormolu.enable = true;
     };
   };

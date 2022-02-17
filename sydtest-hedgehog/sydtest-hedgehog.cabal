@@ -1,0 +1,57 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.6.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-hedgehog
+version:        0.0.0.0
+synopsis:       A Hedgehog companion library for sydtest
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+copyright:      Copyright (c) 2022 Tom Sydney Kerckhove
+license:        OtherLicense
+license-file:   LICENSE.md
+build-type:     Simple
+extra-source-files:
+    LICENSE.md
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd.Hedgehog
+  other-modules:
+      Paths_sydtest_hedgehog
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , hedgehog
+    , sydtest
+  default-language: Haskell2010
+
+test-suite sydtest-hedgehog-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Spec
+      Test.Syd.HedgehogSpec
+      Paths_sydtest_hedgehog
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      base >=4.7 && <5
+    , hedgehog
+    , sydtest
+    , sydtest-hedgehog
+  default-language: Haskell2010

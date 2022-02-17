@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased: [0.8.0.0]
+## [0.8.0.0] - 2022-02-11
 
 ### Changed
 
@@ -8,6 +8,8 @@
 * Removed the `MonadState ()` instance of `TestDefM`. It was just silly.
 * Changed the internals of `TestDefM` to use `ReaderT` and a strict `WriterT` instead of `RWST`.
 * Renamed `wrapRWST` to `wrapForest`.
+* Fixed the property label output to use the right total.
+* Moved `filterTestForest` and `randomiseTestForest` from `Test.Syd.TestDefM` to `Test.Syd.SpecDef`, where `SpecDefForest` is defined.
 
 ### Added
 

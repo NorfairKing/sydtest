@@ -4,6 +4,7 @@ packages:
 - sydtest-aeson
 - sydtest-amqp
 - sydtest-discover
+- sydtest-hedgehog
 - sydtest-hedis
 - sydtest-hspec
 - sydtest-mongo

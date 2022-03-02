@@ -16,6 +16,8 @@ Copyright (c) 2020-2022 Tom Sydney Kerckhove
 ### Conditions:
 
 * _The software under test is not used for commercial purposes._
+  **OR**
+  _The software under test is open-source software licensed according to an [OSI-approved Open Source license](https://opensource.org/licenses)._
 * Any modifications to the licensed software must be made public under the same license with the same copyright holder.
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 

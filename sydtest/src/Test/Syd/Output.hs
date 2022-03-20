@@ -214,7 +214,8 @@ retriesChunks status mRetries mMessage = case mRetries of
 labelsChunks :: Word -> Maybe (Map [String] Int) -> [[Chunk]]
 labelsChunks _ Nothing = []
 labelsChunks totalCount (Just labels)
-  | M.size labels < 1 = []
+  | M.null labels = []
+  | map fst (M.toList labels) == [[]] = []
   | otherwise =
     [chunk "Labels"] :
     map

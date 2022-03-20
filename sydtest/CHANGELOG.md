@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0.1] - 2022-02-11
+
+### Changed
+
+* Fixed property tests without labels still showing labels in the output.
+
 ## [0.8.0.0] - 2022-02-11
 
 ### Changed

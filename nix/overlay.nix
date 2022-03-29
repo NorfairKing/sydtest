@@ -98,8 +98,8 @@ in with final.haskell.lib;
 
   haskell = previous.haskell // {
     packages = final.lib.mapAttrs
-      (compiler: _:
-        previous.haskell.packages.${compiler}.override (
+      (compiler: haskellPackages:
+        haskellPackages.override (
           old:
           {
             overrides =

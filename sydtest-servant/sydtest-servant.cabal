@@ -46,7 +46,9 @@ test-suite sydtest-servant-test
   main-is: Spec.hs
   other-modules:
       Test.Syd.Servant.Example
+      Test.Syd.Servant.ExampleWithContext
       Test.Syd.ServantSpec
+      Test.Syd.ServantWithContextSpec
       Paths_sydtest_servant
   hs-source-dirs:
       test

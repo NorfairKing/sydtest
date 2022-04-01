@@ -63,4 +63,5 @@ test-suite sydtest-servant-test
     , stm
     , sydtest
     , sydtest-servant
+    , sydtest-wai
   default-language: Haskell2010

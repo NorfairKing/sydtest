@@ -42,3 +42,4 @@ tests:
     - stm
     - sydtest
     - sydtest-servant
+    - sydtest-wai

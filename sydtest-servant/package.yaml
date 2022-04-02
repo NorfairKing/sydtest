@@ -1,5 +1,5 @@
 name: sydtest-servant
-version: 0.2.0.0
+version: 0.2.0.1
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -42,3 +42,4 @@ tests:
     - stm
     - sydtest
     - sydtest-servant
+    - sydtest-wai

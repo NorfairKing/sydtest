@@ -4,12 +4,16 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Syd.Servant
   ( servantSpec,
     servantSpecWithSetupFunc,
     clientEnvSetupFunc,
+    servantSpecWithContext,
+    servantSpecWithSetupFuncWithContext,
+    clientEnvSetupFuncWithContext,
     testClient,
     testClientOrError,
   )
@@ -37,6 +41,59 @@ servantSpecWithSetupFunc' py serverSetupFunc = managerSpec . setupAroundWith' (\
 clientEnvSetupFunc :: forall api. HasServer api '[] => Servant.Proxy api -> HTTP.Manager -> ServerT api Handler -> SetupFunc ClientEnv
 clientEnvSetupFunc py man server = do
   let application = serve py server
+  p <- applicationSetupFunc application
+  pure $
+    mkClientEnv
+      man
+      ( BaseUrl
+          Http
+          "127.0.0.1"
+          (fromIntegral p) -- Safe because it is PortNumber -> Int
+          ""
+      )
+
+-- | Like 'servantSpec', but allows setting a context. Useful for example when your server uses basic auth.
+servantSpecWithContext ::
+  forall api (ctx :: [*]).
+  (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
+  Servant.Proxy api ->
+  Context ctx ->
+  ServerT api Handler ->
+  ServantSpec ->
+  Spec
+servantSpecWithContext py ctx server = servantSpecWithSetupFuncWithContext py ctx (pure server)
+
+-- | Like 'servantSpecWithSetupFunc', but allows setting a context. Useful for example when your server uses basic auth.
+servantSpecWithSetupFuncWithContext ::
+  forall api (ctx :: [*]).
+  (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
+  Servant.Proxy api ->
+  Context ctx ->
+  SetupFunc (ServerT api Handler) ->
+  ServantSpec ->
+  Spec
+servantSpecWithSetupFuncWithContext py ctx setupFunc = servantSpecWithSetupFuncWithContext' py ctx $ \() -> setupFunc
+
+servantSpecWithSetupFuncWithContext' ::
+  forall api (ctx :: [*]) inner.
+  (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
+  Servant.Proxy api ->
+  Context ctx ->
+  (inner -> SetupFunc (ServerT api Handler)) ->
+  ServantSpec ->
+  SpecWith inner
+servantSpecWithSetupFuncWithContext' py ctx serverSetupFunc = managerSpec . setupAroundWith' (\man inner -> serverSetupFunc inner >>= clientEnvSetupFuncWithContext py ctx man)
+
+clientEnvSetupFuncWithContext ::
+  forall api (ctx :: [*]).
+  (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
+  Servant.Proxy api ->
+  Context ctx ->
+  HTTP.Manager ->
+  ServerT api Handler ->
+  SetupFunc ClientEnv
+clientEnvSetupFuncWithContext py x man server = do
+  let application = serveWithContext py x server
   p <- applicationSetupFunc application
   pure $
     mkClientEnv

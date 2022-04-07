@@ -5,7 +5,7 @@ A modern testing framework for Haskell with good defaults and advanced testing f
 
 ## License
 
-Copyright (c) 2020 Tom Sydney Kerckhove
+Copyright (c) 2020-2022 Tom Sydney Kerckhove
 
 All Rights Reserved
 
@@ -133,7 +133,7 @@ This repository contains many companion libraries to write integration tests wit
 | Contextual failures                                                                       | ✔️       | ✖️                                                           | ✖️                                                                |
 | Named predicates                                                                          | ✔️       | ✖️                                                           | ?                                                                |
 | Inter-test progress output during test suite execution                                    | ✔️       | ✔️                                                           | ✔️                                                                |
-| Intra-test progress output during test suite execution                                    | 🚧      | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-quickcheck)      |
+| Intra-test progress output during test suite execution                                    | ✔️       | ✔️                                                           | [Lib](https://hackage.haskell.org/package/tasty-quickcheck)      |
 | Optional standard output and standard error suppression [2]                               | ✖️       | ✖️                                                           | ✖️                                                                |
 | Acquire and release a resource for every test in a group (`before` and `after`)            | ✔️       | ✔️                                                           | C                                                                |
 | Acquire and release a resource once for an entire test group (`beforeAll` and `afterAll`)  | ✔️       | ✔️                                                           | ✔️                                                                |
@@ -380,7 +380,7 @@ You can use `--golden-reset` to reset golden tests if they fail.
 
 Every test failure is annotated with a source location of the test code that produced it.
 
-![Source location](assets/source-location.png)
+![Test suite filtering](assets/source-location.png)
 
 ### Test Suite Filtering
 
@@ -481,6 +481,13 @@ thing2
 ### Inter-test progress output during test suite execution
 
 The test suite report is printed bit by bit, after every test run.
+
+### Intra-test progress output during test suite execution
+
+To diagnose misbehaving tests, you can turn on `--progress` (or do the same via `--debug`).
+This lets you investigate which part of the test is executing: Generation, shrinking, or execution, and the number of the example this is happening for along with its timing.
+
+![Intra-test progress](assets/intra-test-progress.png)
 
 ### The `before`, `after` and `around` combinators
 

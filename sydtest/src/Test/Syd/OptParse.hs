@@ -21,6 +21,7 @@ import Options.Applicative as OptParse
 import qualified Options.Applicative.Help as OptParse (string)
 import Path
 import Path.IO
+import System.Exit
 import Test.Syd.Run
 import Text.Colour
 
@@ -68,6 +69,8 @@ data Settings = Settings
     settingIterations :: Iterations,
     -- | Whether to fail when any flakiness is detected
     settingFailOnFlaky :: !Bool,
+    -- | How to report progress
+    settingReportProgress :: !ReportProgress,
     -- | Debug mode
     settingDebug :: !Bool
   }
@@ -91,6 +94,7 @@ defaultSettings =
           settingFailFast = False,
           settingIterations = OneIteration,
           settingFailOnFlaky = False,
+          settingReportProgress = ReportNoProgress,
           settingDebug = False
         }
 
@@ -119,7 +123,7 @@ data Threads
     ByCapabilities
   | -- | A given number of threads
     Asynchronous !Word
-  deriving (Show, Eq, Generic)
+  deriving (Show, Read, Eq, Generic)
 
 data Iterations
   = -- | Run the test suite once, the default
@@ -128,22 +132,48 @@ data Iterations
     Iterations !Word
   | -- | Run the test suite over and over, until we can find some flakiness
     Continuous
-  deriving (Show, Eq, Generic)
+  deriving (Show, Read, Eq, Generic)
+
+data ReportProgress
+  = -- | Don't report any progress, the default
+    ReportNoProgress
+  | -- | Report progress
+    ReportProgress
+  deriving (Show, Read, Eq, Generic)
 
 -- | Combine everything to 'Settings'
 combineToSettings :: Flags -> Environment -> Maybe Configuration -> IO Settings
 combineToSettings Flags {..} Environment {..} mConf = do
   let d func = func defaultSettings
   let debugMode = fromMaybe (d settingDebug) $ flagDebug <|> envDebug <|> mc configDebug
+  let threads =
+        fromMaybe (if debugMode then Synchronous else d settingThreads) $
+          flagThreads <|> envThreads <|> mc configThreads
+  setReportProgress <-
+    case flagReportProgress <|> envReportProgress <|> mc configReportProgress of
+      Nothing ->
+        pure $
+          if threads == Synchronous
+            then
+              if debugMode
+                then ReportProgress
+                else d settingReportProgress
+            else d settingReportProgress
+      Just progress ->
+        if progress
+          then
+            if threads /= Synchronous
+              then die "Reporting progress in asynchronous runners is not supported. You can use --synchronous or --debug to use a synchronous runner."
+              else pure ReportProgress
+          else pure ReportNoProgress
+
   pure
     Settings
       { settingSeed = fromMaybe (d settingSeed) $ flagSeed <|> envSeed <|> mc configSeed,
         settingRandomiseExecutionOrder =
           fromMaybe (if debugMode then False else d settingRandomiseExecutionOrder) $
             flagRandomiseExecutionOrder <|> envRandomiseExecutionOrder <|> mc configRandomiseExecutionOrder,
-        settingThreads =
-          fromMaybe (if debugMode then Synchronous else d settingThreads) $
-            flagThreads <|> envThreads <|> mc configThreads,
+        settingThreads = threads,
         settingMaxSuccess = fromMaybe (d settingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess,
         settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
         settingMaxDiscard = fromMaybe (d settingMaxDiscard) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
@@ -158,6 +188,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
             (flagFailFast <|> envFailFast <|> mc configFailFast),
         settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations,
         settingFailOnFlaky = fromMaybe (d settingFailOnFlaky) $ flagFailOnFlaky <|> envFailOnFlaky <|> mc configFailOnFlaky,
+        settingReportProgress = setReportProgress,
         settingDebug = debugMode
       }
   where
@@ -185,6 +216,7 @@ data Configuration = Configuration
     configFailFast :: !(Maybe Bool),
     configIterations :: !(Maybe Iterations),
     configFailOnFlaky :: !(Maybe Bool),
+    configReportProgress :: !(Maybe Bool),
     configDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -214,6 +246,7 @@ instance HasCodec Configuration where
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure" .= configFailFast
         <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness" .= configIterations
         <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected" .= configFailOnFlaky
+        <*> optionalField "progress" "How to report progres" .= configReportProgress
         <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true" .= configDebug
 
 instance HasCodec Threads where
@@ -277,6 +310,7 @@ data Environment = Environment
     envFailFast :: !(Maybe Bool),
     envIterations :: !(Maybe Iterations),
     envFailOnFlaky :: !(Maybe Bool),
+    envReportProgress :: !(Maybe Bool),
     envDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -299,6 +333,7 @@ defaultEnvironment =
       envFailFast = Nothing,
       envIterations = Nothing,
       envFailOnFlaky = Nothing,
+      envReportProgress = Nothing,
       envDebug = Nothing
     }
 
@@ -329,6 +364,7 @@ environmentParser =
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (Env.def Nothing <> Env.help "Whether to stop executing upon the first test failure")
         <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (Env.def Nothing <> Env.help "How many iterations to use to look diagnose flakiness")
         <*> Env.var (fmap Just . Env.auto) "FAIL_ON_FLAKY" (Env.def Nothing <> Env.help "Whether to fail when flakiness is detected")
+        <*> Env.var (fmap Just . Env.auto) "PROGRESS" (Env.def Nothing <> Env.help "Report progress as tests run")
         <*> Env.var (fmap Just . Env.auto) "DEBUG" (Env.def Nothing <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
   where
     parseThreads :: Word -> Either e Threads
@@ -394,6 +430,7 @@ data Flags = Flags
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !(Maybe Iterations),
     flagFailOnFlaky :: !(Maybe Bool),
+    flagReportProgress :: !(Maybe Bool),
     flagDebug :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -416,6 +453,7 @@ defaultFlags =
       flagFailFast = Nothing,
       flagIterations = Nothing,
       flagFailOnFlaky = Nothing,
+      flagReportProgress = Nothing,
       flagDebug = Nothing
     }
 
@@ -539,7 +577,8 @@ parseFlags =
             )
       )
     <*> doubleSwitch ["fail-on-flaky"] (help "Fail when any flakiness is detected")
-    <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous and --fail-fast.")
+    <*> doubleSwitch ["progress"] (help "Report progress")
+    <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous, --progress and --fail-fast.")
 
 seedSettingFlags :: OptParse.Parser (Maybe SeedSetting)
 seedSettingFlags =

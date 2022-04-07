@@ -25,7 +25,7 @@ spec = doNotRandomiseExecutionOrder $ do
     threadDelay 100_000
   it "takes at least 100 milliseconds (property) " $
     property $ \() -> do
-      threadDelay 1_000
+      threadDelay 10_000
 
 {-# NOINLINE take10ms #-}
 take10ms :: IO ()

@@ -59,7 +59,7 @@ data SpecDefTree (outers :: [Type]) inner extra where
     -- | The description of the test
     Text ->
     -- | How the test can be run given a function that provides the resources
-    TDef (((HList outers -> inner -> IO ()) -> IO ()) -> IO TestRunResult) ->
+    TDef (ProgressReporter -> ((HList outers -> inner -> IO ()) -> IO ()) -> IO TestRunResult) ->
     extra ->
     SpecDefTree outers inner extra
   -- | Define a pending test

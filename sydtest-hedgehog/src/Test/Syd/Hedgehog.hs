@@ -6,6 +6,7 @@
 
 module Test.Syd.Hedgehog (fromHedgehogGroup) where
 
+import Control.Concurrent.STM
 import Control.Monad
 import qualified Data.Map as M
 import qualified Hedgehog
@@ -32,70 +33,98 @@ instance IsTest Hedgehog.Property where
   type Arg2 Hedgehog.Property = ()
   runTest = runHedgehogProperty
 
-runHedgehogProperty :: Hedgehog.Property -> Syd.TestRunSettings -> ((() -> () -> IO ()) -> IO ()) -> IO TestRunResult
-runHedgehogProperty hedgehogProp TestRunSettings {..} wrapper = do
-  let config =
-        (Hedgehog.propertyConfig hedgehogProp)
-          { Hedgehog.propertyDiscardLimit = Hedgehog.DiscardLimit testRunSettingMaxDiscardRatio,
-            Hedgehog.propertyShrinkLimit = Hedgehog.ShrinkLimit testRunSettingMaxShrinks
-          }
-  let size = Hedgehog.Size testRunSettingMaxSize
-  seed <- case testRunSettingSeed of
-    RandomSeed -> Seed.random
-    FixedSeed i -> pure $ Seed.from (fromIntegral i)
-  errOrReport <- applyWrapper2 wrapper $ \() () ->
-    Hedgehog.checkReport
-      config
-      size
-      seed
-      (Hedgehog.propertyTest hedgehogProp)
-      (\_ -> pure ()) -- Don't report progress
-  ( testRunResultStatus,
-    testRunResultException,
-    testRunResultNumTests,
-    testRunResultLabels,
-    testRunResultNumShrinks,
-    testRunResultFailingInputs
-    ) <- case errOrReport of
-    Left e -> pure (TestFailed, Just e, Nothing, Nothing, Nothing, [])
-    Right report -> do
-      let Hedgehog.TestCount testCountInt = Hedgehog.reportTests report
-          numTests = Just $ fromIntegral testCountInt
-          labelList =
-            M.toList
-              . Hedgehog.coverageLabels
-              $ Hedgehog.reportCoverage report
+runHedgehogProperty ::
+  Hedgehog.Property ->
+  Syd.TestRunSettings ->
+  Syd.ProgressReporter ->
+  ((() -> () -> IO ()) -> IO ()) ->
+  IO TestRunResult
+runHedgehogProperty
+  hedgehogProp
+  TestRunSettings {..}
+  progressReporter
+  wrapper = do
+    let report = reportProgress progressReporter
+    let config =
+          (Hedgehog.propertyConfig hedgehogProp)
+            { Hedgehog.propertyDiscardLimit = Hedgehog.DiscardLimit testRunSettingMaxDiscardRatio,
+              Hedgehog.propertyShrinkLimit = Hedgehog.ShrinkLimit testRunSettingMaxShrinks,
+              Hedgehog.propertyTerminationCriteria = Hedgehog.NoConfidenceTermination $ Hedgehog.TestLimit testRunSettingMaxSuccess
+            }
+    let size = Hedgehog.Size testRunSettingMaxSize
+    seed <- case testRunSettingSeed of
+      RandomSeed -> Seed.random
+      FixedSeed i -> pure $ Seed.from (fromIntegral i)
 
-          labels =
-            if null labelList
-              then Nothing
-              else
-                Just
-                  . M.fromList
-                  . map
-                    ( \(labelName, label) ->
-                        ([Hedgehog.unLabelName labelName], Hedgehog.unCoverCount $ Hedgehog.labelAnnotation label)
-                    )
-                  $ labelList
-      case Hedgehog.reportStatus report of
-        Hedgehog.OK -> pure (TestPassed, Nothing, numTests, labels, Nothing, [])
-        Hedgehog.GaveUp -> pure (TestFailed, Nothing, numTests, labels, Nothing, [])
-        Hedgehog.Failed failureReport -> do
-          s <-
-            Hedgehog.renderResult
-              Hedgehog.EnableColor
-              Nothing
-              report
-          let Hedgehog.ShrinkCount shrinkCountInt = Hedgehog.failureShrinks failureReport
-              numShrinks = Just $ fromIntegral shrinkCountInt
-              exception = Just $ Left s
-              inputs = map Hedgehog.failedValue $ Hedgehog.failureAnnotations failureReport
-          pure (TestFailed, exception, numTests, labels, numShrinks, inputs) -- TODO
-  let testRunResultRetries = Nothing
-  let testRunResultGoldenCase = Nothing
-  let testRunResultExtraInfo = Nothing
-  let testRunResultClasses = Nothing
-  let testRunResultTables = Nothing
-  let testRunResultFlakinessMessage = Nothing
+    exampleCounter <- newTVarIO 1
+    let totalExamples = (fromIntegral :: Int -> Word) testRunSettingMaxSuccess
+    report ProgressTestStarting
+    -- We make the same tradeoff here as in sydtest-hspec.
+    -- We show ProgressExampleStarting for non-property tests as well so that
+    -- we can attach timing information.
+    -- In the case of hedgehog, non-property tests should be rarer so that
+    -- should matter even less.
+    errOrReport <- applyWrapper2 wrapper $ \() () ->
+      Hedgehog.checkReport
+        config
+        size
+        seed
+        ( do
+            exampleNr <- liftIO $ readTVarIO exampleCounter
+            liftIO $ report $ ProgressExampleStarting totalExamples exampleNr
+            timedResult <- timeItT $ Hedgehog.propertyTest hedgehogProp
+            liftIO $ report $ ProgressExampleDone totalExamples exampleNr $ timedTime timedResult
+            liftIO $ atomically $ modifyTVar' exampleCounter succ
+            pure $ timedValue timedResult
+        )
+        (\_ -> pure ()) -- Don't report progress
+    report ProgressTestDone
+    ( testRunResultStatus,
+      testRunResultException,
+      testRunResultNumTests,
+      testRunResultLabels,
+      testRunResultNumShrinks,
+      testRunResultFailingInputs
+      ) <- case errOrReport of
+      Left e -> pure (TestFailed, Just e, Nothing, Nothing, Nothing, [])
+      Right hedgehogReport -> do
+        let Hedgehog.TestCount testCountInt = Hedgehog.reportTests hedgehogReport
+            numTests = Just $ fromIntegral testCountInt
+            labelList =
+              M.toList
+                . Hedgehog.coverageLabels
+                $ Hedgehog.reportCoverage hedgehogReport
 
-  pure TestRunResult {..}
+            labels =
+              if null labelList
+                then Nothing
+                else
+                  Just
+                    . M.fromList
+                    . map
+                      ( \(labelName, label) ->
+                          ([Hedgehog.unLabelName labelName], Hedgehog.unCoverCount $ Hedgehog.labelAnnotation label)
+                      )
+                    $ labelList
+        case Hedgehog.reportStatus hedgehogReport of
+          Hedgehog.OK -> pure (TestPassed, Nothing, numTests, labels, Nothing, [])
+          Hedgehog.GaveUp -> pure (TestFailed, Nothing, numTests, labels, Nothing, [])
+          Hedgehog.Failed failureReport -> do
+            s <-
+              Hedgehog.renderResult
+                Hedgehog.EnableColor
+                Nothing
+                hedgehogReport
+            let Hedgehog.ShrinkCount shrinkCountInt = Hedgehog.failureShrinks failureReport
+                numShrinks = Just $ fromIntegral shrinkCountInt
+                exception = Just $ Left s
+                inputs = map Hedgehog.failedValue $ Hedgehog.failureAnnotations failureReport
+            pure (TestFailed, exception, numTests, labels, numShrinks, inputs) -- TODO
+    let testRunResultRetries = Nothing
+    let testRunResultGoldenCase = Nothing
+    let testRunResultExtraInfo = Nothing
+    let testRunResultClasses = Nothing
+    let testRunResultTables = Nothing
+    let testRunResultFlakinessMessage = Nothing
+
+    pure TestRunResult {..}

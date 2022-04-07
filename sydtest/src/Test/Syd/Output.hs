@@ -19,6 +19,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Word
 import GHC.Stack
 import Safe
 import Test.QuickCheck.IO ()
@@ -162,25 +163,16 @@ outputDescribeLine t = [fore yellow $ chunk t]
 
 outputSpecifyLines :: Int -> Int -> Text -> TDef (Timed TestRunResult) -> [[Chunk]]
 outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} executionTime) _) =
-  let t = fromIntegral executionTime / 1_000_000 :: Double -- milliseconds
-      executionTimeText = T.pack (printf "%10.2f ms" t)
-      withTimingColour =
-        if
-            | t < 10 -> fore green
-            | t < 100 -> fore yellow
-            | t < 1000 -> fore orange
-            | t < 10000 -> fore red
-            | otherwise -> fore darkRed
-
-      withStatusColour = fore (statusColour testRunResultStatus)
+  let withStatusColour = fore (statusColour testRunResultStatus)
       pad = (chunk (T.pack (replicate paddingSize ' ')) :)
+      timeChunk = timeChunkFor executionTime
    in filter
         (not . null)
         $ concat
           [ [ [ withStatusColour $ chunk (statusCheckMark testRunResultStatus),
                 withStatusColour $ chunk specifyText,
-                spacingChunk level specifyText executionTimeText treeWidth,
-                withTimingColour $ chunk executionTimeText
+                spacingChunk level specifyText (chunkText timeChunk) treeWidth,
+                timeChunk
               ]
             ],
             map pad $ retriesChunks testRunResultStatus testRunResultRetries testRunResultFlakinessMessage,
@@ -199,6 +191,26 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
             map pad $ tablesChunks testRunResultTables,
             [pad $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase]
           ]
+
+exampleNrChunk :: Word -> Word -> Chunk
+exampleNrChunk total current =
+  let digits :: Word
+      digits = max 2 $ succ $ floor $ logBase 10 $ (fromIntegral :: Word -> Double) total
+      formatStr = "%" <> show digits <> "d"
+   in chunk $ T.pack $ printf formatStr current
+
+timeChunkFor :: Word64 -> Chunk
+timeChunkFor executionTime =
+  let t = fromIntegral executionTime / 1_000_000 :: Double -- milliseconds
+      executionTimeText = T.pack (printf "%10.2f ms" t)
+      withTimingColour =
+        if
+            | t < 10 -> fore green
+            | t < 100 -> fore yellow
+            | t < 1000 -> fore orange
+            | t < 10000 -> fore red
+            | otherwise -> fore darkRed
+   in withTimingColour $ chunk executionTimeText
 
 retriesChunks :: TestStatus -> Maybe Int -> Maybe String -> [[Chunk]]
 retriesChunks status mRetries mMessage = case mRetries of

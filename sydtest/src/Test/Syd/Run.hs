@@ -14,6 +14,7 @@ module Test.Syd.Run where
 
 import Autodocodec
 import Control.Concurrent
+import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad.IO.Class
 import Control.Monad.Reader
@@ -43,6 +44,7 @@ class IsTest e where
   runTest ::
     e ->
     TestRunSettings ->
+    ProgressReporter ->
     ((Arg1 e -> Arg2 e -> IO ()) -> IO ()) ->
     IO TestRunResult
 
@@ -64,14 +66,18 @@ instance IsTest (outerArgs -> innerArg -> Bool) where
 runPureTestWithArg ::
   (outerArgs -> innerArg -> Bool) ->
   TestRunSettings ->
+  ProgressReporter ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runPureTestWithArg computeBool TestRunSettings {} wrapper = do
+runPureTestWithArg computeBool TestRunSettings {} progressReporter wrapper = do
+  let report = reportProgress progressReporter
   let testRunResultNumTests = Nothing
   let testRunResultRetries = Nothing
+  report ProgressTestStarting
   resultBool <-
     applyWrapper2 wrapper $
       \outerArgs innerArg -> evaluate (computeBool outerArgs innerArg)
+  report ProgressTestDone
   let (testRunResultStatus, testRunResultException) = case resultBool of
         Left ex -> (TestFailed, Just ex)
         Right bool -> (if bool then TestPassed else TestFailed, Nothing)
@@ -129,15 +135,22 @@ instance IsTest (outerArgs -> ReaderT env IO ()) where
 runIOTestWithArg ::
   (outerArgs -> innerArg -> IO ()) ->
   TestRunSettings ->
+  ProgressReporter ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runIOTestWithArg func TestRunSettings {} wrapper = do
+runIOTestWithArg func TestRunSettings {} progressReporter wrapper = do
+  let report = reportProgress progressReporter
+
   let testRunResultNumTests = Nothing
   let testRunResultRetries = Nothing
+
+  report ProgressTestStarting
   result <- liftIO $
     applyWrapper2 wrapper $
       \outerArgs innerArg ->
         func outerArgs innerArg >>= evaluate
+  report ProgressTestDone
+
   let (testRunResultStatus, testRunResultException) = case result of
         Left ex -> (TestFailed, Just ex)
         Right () -> (TestPassed, Nothing)
@@ -180,13 +193,31 @@ makeQuickCheckArgs TestRunSettings {..} =
     }
 
 runPropertyTestWithArg ::
+  forall outerArgs innerArg.
   (outerArgs -> innerArg -> Property) ->
   TestRunSettings ->
+  ProgressReporter ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runPropertyTestWithArg p trs wrapper = do
+runPropertyTestWithArg p trs progressReporter wrapper = do
+  let report = reportProgress progressReporter
   let qcargs = makeQuickCheckArgs trs
-  qcr <- quickCheckWithResult qcargs (aroundProperty wrapper p)
+
+  exampleCounter <- newTVarIO 1
+  let totalExamples = (fromIntegral :: Int -> Word) (maxSuccess qcargs)
+  let wrapperWithProgress :: (outerArgs -> innerArg -> IO ()) -> IO ()
+      wrapperWithProgress func = wrapper $ \outers inner -> do
+        exampleNr <- readTVarIO exampleCounter
+        report $ ProgressExampleStarting totalExamples exampleNr
+        timedResult <- timeItT $ func outers inner
+        report $ ProgressExampleDone totalExamples exampleNr $ timedTime timedResult
+        atomically $ modifyTVar' exampleCounter succ
+        pure $ timedValue timedResult
+
+  report ProgressTestStarting
+  qcr <- quickCheckWithResult qcargs (aroundProperty wrapperWithProgress p)
+  report ProgressTestDone
+
   let testRunResultGoldenCase = Nothing
   let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
   let testRunResultRetries = Nothing
@@ -308,9 +339,10 @@ instance IsTest (outerArgs -> innerArg -> IO (GoldenTest a)) where
 runGoldenTestWithArg ::
   (outerArgs -> innerArg -> IO (GoldenTest a)) ->
   TestRunSettings ->
+  ProgressReporter ->
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runGoldenTestWithArg createGolden TestRunSettings {..} wrapper = do
+runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
   errOrTrip <- applyWrapper2 wrapper $ \outerArgs innerArgs -> do
     GoldenTest {..} <- createGolden outerArgs innerArgs
     mGolden <- goldenTestRead
@@ -440,6 +472,31 @@ data GoldenCase
   | GoldenStarted
   | GoldenReset
   deriving (Show, Eq, Typeable, Generic)
+
+type ProgressReporter = Progress -> IO ()
+
+noProgressReporter :: ProgressReporter
+noProgressReporter _ = pure ()
+
+reportProgress :: ProgressReporter -> Progress -> IO ()
+reportProgress = id
+
+data Progress
+  = ProgressTestStarting
+  | ProgressExampleStarting
+      !Word
+      -- ^ Total examples
+      !Word
+      -- ^ Example number
+  | ProgressExampleDone
+      !Word
+      -- ^ Total examples
+      !Word
+      -- ^ Example number
+      !Word64
+      -- ^ Time it took
+  | ProgressTestDone
+  deriving (Show, Eq, Generic)
 
 -- | Time an action and return the result as well as how long it took in seconds.
 --

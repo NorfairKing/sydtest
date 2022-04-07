@@ -6,10 +6,13 @@
 
 module Test.Syd.Hspec (fromHspec) where
 
+import Control.Concurrent
+import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad.Writer
 import Data.List
 import qualified Test.Hspec.Core.Spec as Hspec
+import Test.QuickCheck
 import Test.Syd as Syd
 
 -- | Import an Hspec 'Test.Hspec.Spec' as a Sydtest 'Test.Syd.Spec'.
@@ -24,7 +27,9 @@ import Test.Syd as Syd
 fromHspec :: Hspec.Spec -> Syd.Spec
 fromHspec (Hspec.SpecM specWriter) = do
   (result, trees) <- liftIO $ runWriterT specWriter
-  mapM_ importSpecTree trees
+  -- We have to use 'doNotRandomiseExecutionOrder' and 'sequential' because otherwise
+  -- passing hspec tests would stop working when imported into sydtest
+  doNotRandomiseExecutionOrder $ sequential $ mapM_ importSpecTree trees
   pure result
 
 importSpecTree :: Hspec.SpecTree () -> Syd.Spec
@@ -53,52 +58,86 @@ instance IsTest (ImportedItem a) where
   type Arg2 (ImportedItem a) = a
   runTest = runImportedItem
 
+applyWrapper2' ::
+  forall r outerArgs innerArg.
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
+  (outerArgs -> innerArg -> IO r) ->
+  IO r
+applyWrapper2' wrapper func = do
+  var <- newEmptyMVar
+  wrapper $ \outerArgs innerArg -> do
+    res <- func outerArgs innerArg >>= evaluate
+    putMVar var res
+  readMVar var
+
 runImportedItem ::
   ImportedItem inner ->
   TestRunSettings ->
+  ProgressReporter ->
   ((() -> inner -> IO ()) -> IO ()) ->
   IO TestRunResult
-runImportedItem (ImportedItem Hspec.Item {..}) trs wrapper = do
-  errOrRes <- applyWrapper2 wrapper $ \() inner -> do
-    let params :: Hspec.Params
-        params =
-          Hspec.Params
-            { Hspec.paramsQuickCheckArgs = makeQuickCheckArgs trs,
-              -- TODO use the right depth when sydtest supports smallcheck
-              Hspec.paramsSmallCheckDepth = Hspec.paramsSmallCheckDepth Hspec.defaultParams
-            }
-        callback :: Hspec.ProgressCallback
-        callback = const $ pure ()
-    itemExample params (\takeInner -> takeInner inner) callback
-  let (testRunResultStatus, testRunResultException) = case errOrRes of
-        Left ex -> (TestFailed, Just ex)
-        Right result -> case Hspec.resultStatus result of
-          Hspec.Success -> (TestPassed, Nothing)
-          -- This is certainly a debatable choice, but there's no need to make
-          -- tests fail here, and there's no way to know ahead of time whether
-          -- a test is pending so we have no choice.
-          Hspec.Pending _ _ -> (TestPassed, Nothing)
-          Hspec.Failure mloc fr ->
-            let withExtraContext :: Maybe String -> Assertion -> Assertion
-                withExtraContext = maybe id (\extraContext a -> Context a extraContext)
-                niceLocation :: Hspec.Location -> String
-                niceLocation Hspec.Location {..} = intercalate ":" [locationFile, show locationLine, show locationColumn]
-                withLocationContext :: Assertion -> Assertion
-                withLocationContext = withExtraContext $ niceLocation <$> mloc
-                assertion = case fr of
-                  Hspec.NoReason -> Right $ ExpectationFailed "Hspec had no more information about this failure."
-                  Hspec.Reason s -> Right $ ExpectationFailed s
-                  Hspec.ExpectedButGot mExtraContext expected actual -> Right $ withExtraContext mExtraContext $ NotEqualButShouldHaveBeenEqual actual expected
-                  Hspec.Error mExtraContext e -> withExtraContext mExtraContext <$> Left (displayException e)
-             in ( TestFailed,
-                  Just
-                    ( Context
-                        <$> ( withLocationContext <$> assertion
-                            )
-                          <*> pure
-                            (Hspec.resultInfo result)
-                    )
-                )
+runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
+  let report = reportProgress progressReporter
+  let qcargs = makeQuickCheckArgs trs
+  let params :: Hspec.Params
+      params =
+        Hspec.Params
+          { Hspec.paramsQuickCheckArgs = qcargs,
+            -- TODO use the right depth when sydtest supports smallcheck
+            Hspec.paramsSmallCheckDepth = Hspec.paramsSmallCheckDepth Hspec.defaultParams
+          }
+      callback :: Hspec.ProgressCallback
+      callback = const $ pure ()
+  exampleCounter <- newTVarIO 1
+  let totalExamples = (fromIntegral :: Int -> Word) (maxSuccess qcargs)
+  -- There's no real nice way to do progress reporting here because:
+  --   * hspec does not tell us whether we're using a property or not
+  --   * we could use the 'callback' above, but then we cannot time the examples.
+  --
+  -- The tradeoff that we are making is that the output is more verbose:
+  -- You'll see 'ProgressExampleStarting' even for unit tests, but at least the
+  -- examples in a property test are timed.
+  report ProgressTestStarting
+  result <-
+    itemExample
+      params
+      ( \takeInner -> applyWrapper2' wrapper $ \() inner -> do
+          exampleNr <- readTVarIO exampleCounter
+          report $ ProgressExampleStarting totalExamples exampleNr
+          timedResult <- timeItT $ takeInner inner
+          report $ ProgressExampleDone totalExamples exampleNr $ timedTime timedResult
+          atomically $ modifyTVar' exampleCounter succ
+          pure $ timedValue timedResult
+      )
+      callback
+  report ProgressTestDone
+  let (testRunResultStatus, testRunResultException) = case Hspec.resultStatus result of
+        Hspec.Success -> (TestPassed, Nothing)
+        -- This is certainly a debatable choice, but there's no need to make
+        -- tests fail here, and there's no way to know ahead of time whether
+        -- a test is pending so we have no choice.
+        Hspec.Pending _ _ -> (TestPassed, Nothing)
+        Hspec.Failure mloc fr ->
+          let withExtraContext :: Maybe String -> Assertion -> Assertion
+              withExtraContext = maybe id (\extraContext a -> Context a extraContext)
+              niceLocation :: Hspec.Location -> String
+              niceLocation Hspec.Location {..} = intercalate ":" [locationFile, show locationLine, show locationColumn]
+              withLocationContext :: Assertion -> Assertion
+              withLocationContext = withExtraContext $ niceLocation <$> mloc
+              assertion = case fr of
+                Hspec.NoReason -> Right $ ExpectationFailed "Hspec had no more information about this failure."
+                Hspec.Reason s -> Right $ ExpectationFailed s
+                Hspec.ExpectedButGot mExtraContext expected actual -> Right $ withExtraContext mExtraContext $ NotEqualButShouldHaveBeenEqual actual expected
+                Hspec.Error mExtraContext e -> withExtraContext mExtraContext <$> Left (displayException e)
+           in ( TestFailed,
+                Just
+                  ( Context
+                      <$> ( withLocationContext <$> assertion
+                          )
+                        <*> pure
+                          (Hspec.resultInfo result)
+                  )
+              )
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing
   let testRunResultRetries = Nothing

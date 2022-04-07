@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.5.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-hspec
-version:        0.0.0.1
+version:        0.1.0.0
 synopsis:       An Hspec companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
@@ -17,6 +17,7 @@ license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
 extra-source-files:
+    CHANGELOG.md
     LICENSE.md
 
 source-repository head
@@ -31,10 +32,12 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , hspec-core
     , mtl
-    , sydtest >=0.6.1.0
+    , stm
+    , sydtest >=0.9.0.0
   default-language: Haskell2010
 
 test-suite sydtest-hspec-test
@@ -52,6 +55,7 @@ test-suite sydtest-hspec-test
   build-depends:
       base >=4.7 && <5
     , hspec
+    , stm
     , sydtest
     , sydtest-hspec
   default-language: Haskell2010

@@ -71,7 +71,7 @@ runner settings nbThreads failFastVar handleForest = do
           mDone <- tryReadMVar failFastVar
           case mDone of
             Nothing -> do
-              let runNow = timeItT $ runSingleTestWithFlakinessMode a td fm
+              let runNow = timeItT $ runSingleTestWithFlakinessMode noProgressReporter a td fm
               -- Wait before spawning a thread so that we don't spawn too many threads
               let quantity = case p of
                     -- When the test wants to be executed sequentially, we take n locks because we must make sure that

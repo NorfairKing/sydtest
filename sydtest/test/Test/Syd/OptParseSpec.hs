@@ -25,6 +25,7 @@ spec = do
               { settingThreads = Synchronous,
                 settingRandomiseExecutionOrder = False,
                 settingFailFast = True,
+                settingReportProgress = ReportProgress,
                 settingDebug = True
               }
       combineToSettings flags environment mConf `shouldReturn` settings

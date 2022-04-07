@@ -78,6 +78,7 @@ with final.haskell.lib;
           unset NIX_REDIRECTS LD_PRELOAD
         '';
       });
+      "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
     };
 
   sydtestRelease =

@@ -6,5 +6,6 @@ import Test.Syd.OptParse
 
 main :: IO ()
 main = do
-  _ <- sydTestResult defaultSettings spec
+  settings <- getSettings
+  _ <- sydTestResult settings spec
   pure ()

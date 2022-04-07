@@ -1,0 +1,21 @@
+name: sydtest-misbehaved-test-suite
+version: 0.0.0.0
+
+dependencies:
+- base >= 4.7 && < 5
+- sydtest
+- QuickCheck
+
+library:
+  source-dirs: src
+
+executables:
+  sydtest-misbehaved-test-suite-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest-misbehaved-test-suite

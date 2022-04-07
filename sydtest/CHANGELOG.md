@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.0.0] - 2022-04-13
+
+### Added
+
+* Optional type-safe progress reporting for property tests.
+
 ## [0.8.0.1] - 2022-02-11
 
 ### Changed

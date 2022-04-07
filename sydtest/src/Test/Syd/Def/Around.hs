@@ -186,10 +186,11 @@ aroundWith' func (TestDefM rwst) =
         let modifyVal ::
               forall x.
               HContains x outer =>
-              (((HList x -> newInner -> IO ()) -> IO ()) -> IO TestRunResult) ->
+              (ProgressReporter -> ((HList x -> newInner -> IO ()) -> IO ()) -> IO TestRunResult) ->
+              ProgressReporter ->
               ((HList x -> oldInner -> IO ()) -> IO ()) ->
               IO TestRunResult
-            modifyVal takeSupplyXC supplyXD =
+            modifyVal takeSupplyXC progressReporter supplyXD =
               let supplyXC :: (HList x -> newInner -> IO ()) -> IO ()
                   supplyXC takeXC =
                     let takeXD :: HList x -> oldInner -> IO ()
@@ -197,7 +198,7 @@ aroundWith' func (TestDefM rwst) =
                           let takeAC _ c = takeXC x c
                            in func takeAC (getElem x) d
                      in supplyXD takeXD
-               in takeSupplyXC supplyXC
+               in takeSupplyXC progressReporter supplyXC
 
             -- For this function to work recursively, the first parameter of the input and the output types must be the same
             modifyTree ::

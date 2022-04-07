@@ -1,5 +1,5 @@
 name: sydtest
-version: 0.8.0.1
+version: 0.9.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -43,6 +43,7 @@ library:
     - safe
     - safe-coloured-text
     - split
+    - stm
     - text
     - yaml
   when:

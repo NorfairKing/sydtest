@@ -13,5 +13,6 @@ Settings
   , settingFailFast = False
   , settingIterations = OneIteration
   , settingFailOnFlaky = False
+  , settingReportProgress = ReportNoProgress
   , settingDebug = False
   }

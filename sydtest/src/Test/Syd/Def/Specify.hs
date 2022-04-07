@@ -175,10 +175,11 @@ it s t = do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
-          { testDefVal = \supplyArgs ->
+          { testDefVal = \progressReporter supplyArgs ->
               runTest
                 t
                 sets
+                progressReporter
                 ( \func -> supplyArgs (\_ arg2 -> func () arg2)
                 ),
             testDefCallStack = callStack
@@ -276,10 +277,11 @@ itWithOuter s t = do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
-          { testDefVal = \supplyArgs ->
+          { testDefVal = \progressReporter supplyArgs ->
               runTest
                 t
                 sets
+                progressReporter
                 (\func -> supplyArgs $ \(HCons outerArgs _) innerArg -> func innerArg outerArgs),
             testDefCallStack = callStack
           }
@@ -374,10 +376,11 @@ itWithBoth s t = do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
-          { testDefVal = \supplyArgs ->
+          { testDefVal = \progressReporter supplyArgs ->
               runTest
                 t
                 sets
+                progressReporter
                 (\func -> supplyArgs $ \(HCons outerArgs _) innerArg -> func outerArgs innerArg),
             testDefCallStack = callStack
           }
@@ -442,10 +445,11 @@ itWithAll s t = do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
-          { testDefVal = \supplyArgs ->
+          { testDefVal = \progressReporter supplyArgs ->
               runTest
                 t
                 sets
+                progressReporter
                 (\func -> supplyArgs func),
             testDefCallStack = callStack
           }

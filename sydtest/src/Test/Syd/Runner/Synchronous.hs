@@ -36,7 +36,7 @@ runSpecForestSynchronously settings = fmap extractNext . goForest MayNotBeFlaky 
     goTree :: forall a. FlakinessMode -> HList a -> TestTree a () -> IO (Next ResultTree)
     goTree fm hl = \case
       DefSpecifyNode t td () -> do
-        result <- timeItT $ runSingleTestWithFlakinessMode hl td fm
+        result <- timeItT $ runSingleTestWithFlakinessMode noProgressReporter hl td fm
         let td' = td {testDefVal = result}
         let r = failFastNext (settingFailFast settings) td'
         pure $ SpecifyNode t <$> r
@@ -82,7 +82,27 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
       goTree :: Int -> FlakinessMode -> HList a -> TestTree a () -> IO (Next ResultTree)
       goTree level fm hl = \case
         DefSpecifyNode t td () -> do
-          result <- timeItT $ runSingleTestWithFlakinessMode hl td fm
+          let progressReporter :: Progress -> IO ()
+              progressReporter =
+                outputLine . pad (succ (succ level)) . \case
+                  ProgressTestStarting ->
+                    [ fore cyan "Test starting: ",
+                      fore yellow $ chunk t
+                    ]
+                  ProgressExampleStarting totalExamples exampleNr ->
+                    [ fore cyan "Example starting:  ",
+                      fore yellow $ exampleNrChunk totalExamples exampleNr
+                    ]
+                  ProgressExampleDone totalExamples exampleNr executionTime ->
+                    [ fore cyan "Example done:      ",
+                      fore yellow $ exampleNrChunk totalExamples exampleNr,
+                      timeChunkFor executionTime
+                    ]
+                  ProgressTestDone ->
+                    [ fore cyan "Test done: ",
+                      fore yellow $ chunk t
+                    ]
+          result <- timeItT $ runSingleTestWithFlakinessMode progressReporter hl td fm
           let td' = td {testDefVal = result}
           mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
           let r = failFastNext (settingFailFast settings) td'
@@ -119,8 +139,8 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
 
   pure resultForest
 
-runSingleTestWithFlakinessMode :: forall a t. HList a -> TDef (((HList a -> () -> t) -> t) -> IO TestRunResult) -> FlakinessMode -> IO TestRunResult
-runSingleTestWithFlakinessMode l td = \case
+runSingleTestWithFlakinessMode :: forall a t. ProgressReporter -> HList a -> TDef (ProgressReporter -> ((HList a -> () -> t) -> t) -> IO TestRunResult) -> FlakinessMode -> IO TestRunResult
+runSingleTestWithFlakinessMode progressReporter l td = \case
   MayNotBeFlaky -> runFunc
   MayBeFlakyUpTo retries mMsg -> updateFlakinessMessage <$> go retries
     where
@@ -145,4 +165,5 @@ runSingleTestWithFlakinessMode l td = \case
                     Just r -> Just (succ r)
               }
   where
-    runFunc = testDefVal td (\f -> f l ())
+    runFunc :: IO TestRunResult
+    runFunc = testDefVal td progressReporter (\f -> f l ())

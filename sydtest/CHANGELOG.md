@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+* Allow supplying filters without a flag, so `hello` instead of `--filter hello` or `--match hello`.
+
 ## [0.9.0.0] - 2022-04-13
 
 ### Added

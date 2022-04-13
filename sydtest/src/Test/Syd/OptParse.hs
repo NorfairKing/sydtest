@@ -542,16 +542,25 @@ parseFlags =
     <*> doubleSwitch ["golden-start"] (help "Whether to write golden tests if they do not exist yet")
     <*> doubleSwitch ["golden-reset"] (help "Whether to overwrite golden tests instead of having them fail")
     <*> doubleSwitch ["colour", "color"] (help "Use colour in output")
-    <*> optional
-      ( strOption
-          ( mconcat
-              [ long "filter",
-                long "match",
-                help "Filter to select which parts of the test tree to run",
-                metavar "FILTER"
-              ]
-          )
-      )
+    <*> ( optional
+            ( strArgument
+                ( mconcat
+                    [ help "Filter to select which parts of the test tree to run",
+                      metavar "FILTER"
+                    ]
+                )
+            )
+            <|> optional
+              ( strOption
+                  ( mconcat
+                      [ long "filter",
+                        long "match",
+                        help "Filter to select which parts of the test tree to run",
+                        metavar "FILTER"
+                      ]
+                  )
+              )
+        )
     <*> doubleSwitch ["fail-fast"] (help "Stop upon the first test failure")
     <*> optional
       ( ( ( \case

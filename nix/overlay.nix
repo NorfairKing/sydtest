@@ -78,8 +78,15 @@ with final.haskell.lib;
           unset NIX_REDIRECTS LD_PRELOAD
         '';
       });
-      "sydtest-webdriver" = sydtestPkg "sydtest-webdriver";
-      "sydtest-misbehaved-test-suite" = overrideCabal (sydtestPkg "sydtest-misbehaved-test-suite") (old: {
+      "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
+      "sydtest-webdriver" = overrideCabal (sydtestPkg "sydtest-webdriver") (old: {
+        testDepends = (old.testDepends or [ ]) ++ (with final; [
+          chromedriver
+          chromium
+          selenium-server-standalone
+        ]);
+      });
+      "sydtest-webdriver-yesod" = overrideCabal (sydtestPkg "sydtest-webdriver-yesod") (old: {
         testDepends = (old.testDepends or [ ]) ++ (with final; [
           chromedriver
           chromium

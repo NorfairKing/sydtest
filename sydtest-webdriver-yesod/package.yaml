@@ -1,4 +1,4 @@
-name: sydtest-webdriver
+name: sydtest-webdriver-yesod
 version: 0.0.0.0
 
 dependencies:
@@ -7,30 +7,25 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - JuicyPixels
-  - aeson
-  - aeson
   - bytestring
   - http-client
   - http-types
-  - monad-control
   - mtl
-  - network
   - network-uri
   - path
   - path-io
-  - port-utils
   - sydtest
-  - sydtest-typed-process
   - sydtest-wai
-  - transformers-base
-  - typed-process
+  - sydtest-webdriver
+  - sydtest-yesod
+  - text
   - webdriver
+  - yesod
 
 
 
 tests:
-  sydtest-webdriver-test:
+  sydtest-webdriver-yesod-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -38,9 +33,9 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - http-types
-    - network-uri
+    - path
+    - path-io
     - sydtest
-    - sydtest-wai
     - sydtest-webdriver
-    - wai 
+    - sydtest-webdriver-yesod
+    - yesod

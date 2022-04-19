@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -55,7 +55,6 @@ test-suite sydtest-wai-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Syd.Wai.Example
       Test.Syd.WaiSpec
       Paths_sydtest_wai
   hs-source-dirs:

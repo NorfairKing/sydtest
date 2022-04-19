@@ -16,20 +16,14 @@
 module Test.Syd.Webdriver where
 
 import Codec.Picture as Picture
-import Control.Arrow
 import Control.Monad.Base
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Data.Aeson as JSON
 import qualified Data.ByteString as SB
-import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Lazy as LB
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import GHC.Stack
 import Network.HTTP.Client as HTTP
-import qualified Network.HTTP.Types as HTTP
 import Network.Socket
 import Network.Socket.Free
 import Network.Socket.Wait as Port
@@ -42,14 +36,14 @@ import Test.Syd
 import Test.Syd.Path
 import Test.Syd.Process.Typed
 import Test.Syd.Wai
-import Test.Syd.Yesod
 import Test.WebDriver as WD hiding (setWindowSize)
 import Test.WebDriver.Class (WebDriver (..))
 import qualified Test.WebDriver.Commands.Internal as WD
 import qualified Test.WebDriver.JSON as WD
 import Test.WebDriver.Session (WDSessionState (..))
-import qualified Yesod
 
+-- | A monad for webdriver tests.
+-- This instantiates the 'WebDriver' class, as well as the 'IsTest' class.
 newtype WebdriverTestM app a = WebdriverTestM
   { unWebdriverTestM :: ReaderT (WebdriverTestEnv app) WD a
   }
@@ -70,7 +64,9 @@ data WebdriverTestEnv app = WebdriverTestEnv
     webdriverTestEnvURI :: !URI,
     -- | The webdriver configuration
     webdriverTestEnvConfig :: !WDConfig,
-    -- | The Yesod app that we'll test.
+    -- | The app that we'll test.
+    --
+    -- You can put any piece of data here. In the case of yesod tests, we'll put an @App@ here.
     webdriverTestEnvApp :: !app
   }
 
@@ -91,6 +87,7 @@ instance IsTest (WebdriverTestM app (GoldenTest a)) where
   type Arg2 (WebdriverTestM app (GoldenTest a)) = WebdriverTestEnv app
   runTest wdTestFunc = runTest (\() wdte -> runWebdriverTestM wdte wdTestFunc)
 
+-- | Run a webdriver test.
 runWebdriverTestM :: WebdriverTestEnv app -> WebdriverTestM app a -> IO a
 runWebdriverTestM env (WebdriverTestM func) = WD.runSession (webdriverTestEnvConfig env) $
   WD.finallyClose $ do
@@ -99,66 +96,28 @@ runWebdriverTestM env (WebdriverTestM func) = WD.runSession (webdriverTestEnvCon
     setPageLoadTimeout 10_000
     runReaderT func env
 
-openRoute ::
-  Yesod.RenderRoute app =>
-  Route app ->
-  WebdriverTestM app ()
-openRoute route = openRouteWithParams route []
-
-openRouteWithParams ::
-  Yesod.RenderRoute app =>
-  Route app ->
-  [(Text, Text)] ->
-  WebdriverTestM app ()
-openRouteWithParams route extraParams = do
+openPath :: String -> WebdriverTestM app ()
+openPath p = do
   uri <- asks webdriverTestEnvURI
-  let (pathPieces, queryParams) = Yesod.renderRoute route
-  let q = queryTextToQuery $ map (second Just) (queryParams <> extraParams)
-  let pathBS = encodePath pathPieces q
-  case TE.decodeUtf8' (LB.toStrict (BB.toLazyByteString pathBS)) of
-    Left err -> liftIO $ die $ show err
-    Right t -> openPage $ show uri <> T.unpack t
-
-getCurrentRoute ::
-  Yesod.ParseRoute app =>
-  WebdriverTestM app (Route app)
-getCurrentRoute = do
-  currentUrl <- getCurrentURL
-  case parseURI currentUrl of
-    Nothing -> liftIO $ expectationFailure $ "Should have been able to parse the current url into an URI: " <> currentUrl
-    Just URI {..} -> do
-      let (textPieces, query_) = HTTP.decodePath $ TE.encodeUtf8 $ T.pack $ concat [uriPath, uriQuery]
-          queryPieces = map unJust $ HTTP.queryToQueryText query_
-      case Yesod.parseRoute (textPieces, queryPieces) of
-        Nothing ->
-          liftIO $
-            expectationFailure $
-              unlines
-                [ "Should have been able to parse an App route from " <> currentUrl,
-                  ppShow (textPieces, queryPieces)
-                ]
-        Just route -> pure route
-  where
-    unJust (a, Just b) = (a, b)
-    unJust (a, Nothing) = (a, "")
+  let url = show uri <> p
+  openPage url
 
 type WebdriverSpec app = TestDef '[SeleniumServerHandle, HTTP.Manager] (WebdriverTestEnv app)
 
 webdriverSpec ::
-  Yesod.YesodDispatch app =>
-  (HTTP.Manager -> SetupFunc app) ->
+  (HTTP.Manager -> SetupFunc (URI, app)) ->
   WebdriverSpec app ->
   Spec
 webdriverSpec appSetupFunc =
   managerSpec
     . modifyMaxSuccess (`div` 50)
-    . yesodSpecWithSiteSetupFunc appSetupFunc
+    . setupAroundWith' (\man () -> appSetupFunc man)
     . setupAroundAll seleniumServerSetupFunc
     . webdriverTestEnvSpec
 
 webdriverTestEnvSpec ::
   TestDef '[SeleniumServerHandle, HTTP.Manager] (WebdriverTestEnv app) ->
-  TestDef '[SeleniumServerHandle, HTTP.Manager] (YesodClient app)
+  TestDef '[SeleniumServerHandle, HTTP.Manager] (URI, app)
 webdriverTestEnvSpec = setupAroundWith' go2 . setupAroundWith' go1
   where
     go1 ::
@@ -168,16 +127,17 @@ webdriverTestEnvSpec = setupAroundWith' go2 . setupAroundWith' go1
     go1 ssh func = func ssh
     go2 ::
       HTTP.Manager ->
-      YesodClient app ->
+      (URI, app) ->
       SetupFunc (SeleniumServerHandle -> SetupFunc (WebdriverTestEnv app))
-    go2 man yc = pure $ \ssh -> webdriverTestEnvSetupFunc ssh man yc
+    go2 man (uri, app) = pure $ \ssh -> webdriverTestEnvSetupFunc ssh man uri app
 
 webdriverTestEnvSetupFunc ::
   SeleniumServerHandle ->
   HTTP.Manager ->
-  YesodClient app ->
+  URI ->
+  app ->
   SetupFunc (WebdriverTestEnv app)
-webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager YesodClient {..} = do
+webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager uri app = do
   chromeExecutable <- liftIO $ do
     chromeFile <- parseRelFile "chromium"
     mExecutable <- findExecutable chromeFile
@@ -211,8 +171,8 @@ webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager YesodClient {..} = d
             wdHTTPManager = Just manager,
             wdCapabilities = caps
           }
-  let webdriverTestEnvURI = yesodClientSiteURI
-      webdriverTestEnvApp = yesodClientSite
+  let webdriverTestEnvURI = uri
+      webdriverTestEnvApp = app
   pure WebdriverTestEnv {..}
 
 seleniumServerSetupFunc :: SetupFunc SeleniumServerHandle

@@ -1,19 +1,20 @@
 module Test.Syd.WebdriverSpec (spec) where
 
-import Path
-import Path.IO
+import Network.URI
 import Test.Syd
-import Test.Syd.Path
+import Test.Syd.Wai
 import Test.Syd.Webdriver
 import Test.Syd.Webdriver.App
 
 spec :: Spec
 spec = exampleAppSpec $ do
   it "can navigate to home" $
-    openRoute HomeR
+    openPath "/"
 
-exampleAppSpec :: WebdriverSpec App -> Spec
+exampleAppSpec :: WebdriverSpec () -> Spec
 exampleAppSpec = webdriverSpec $ \_ -> do
-  tdir <- tempDirSetupFunc "sydtest-yesod"
-  sessionKeyFile <- resolveFile tdir "client_session_key.aes"
-  pure $ App {appSessionKeyFile = fromAbsFile sessionKeyFile}
+  portNumber <- applicationSetupFunc exampleApplication
+  let uriStr = "http://127.0.0.1:" <> show portNumber
+  case parseURI uriStr of
+    Nothing -> liftIO $ expectationFailure $ "Failed to parse uri as string: " <> show uriStr
+    Just uri -> pure (uri, ())

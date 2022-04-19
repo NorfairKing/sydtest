@@ -19,25 +19,6 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - monad-logger
   - mtl
   - persistent
-  - persistent-template
   - sydtest
-
-tests:
-  sydtest-persistent-sqlite-test:
-    main: Spec.hs
-    source-dirs: test
-    build-tools: sydtest-discover
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - monad-logger
-    - persistent
-    - persistent-sqlite
-    - persistent-template
-    - sydtest
-    - sydtest-persistent

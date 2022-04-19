@@ -23,7 +23,6 @@ library:
   - mtl
   - persistent
   - persistent-sqlite
-  - persistent-template
   - sydtest
   - sydtest-persistent
 
@@ -39,6 +38,5 @@ tests:
     dependencies:
     - persistent
     - persistent-sqlite
-    - persistent-template
     - sydtest
     - sydtest-persistent-sqlite

@@ -34,7 +34,6 @@ library
   build-depends:
       base >=4.7 && <5
     , http-client
-    , servant
     , servant-client
     , servant-server
     , sydtest >=0.3.0.0
@@ -57,7 +56,6 @@ test-suite sydtest-servant-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
-    , servant
     , servant-client
     , servant-server
     , stm

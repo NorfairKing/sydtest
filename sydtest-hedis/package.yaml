@@ -18,7 +18,6 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - bytestring
   - hedis
   - network
   - path

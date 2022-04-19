@@ -40,7 +40,6 @@ tests:
     dependencies:
     - persistent
     - persistent-postgresql
-    - persistent-template
     - sydtest
     - sydtest-persistent-postgresql
     when:

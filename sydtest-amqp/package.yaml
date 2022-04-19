@@ -18,21 +18,9 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - aeson
   - amqp
-  - async
-  - bytestring
-  - network
-  - path
-  - path-io
-  - port-utils
-  - process
-  - stm
   - sydtest
   - sydtest-rabbitmq
-  - sydtest-typed-process
-  - text
-  - typed-process
 
 tests:
   sydtest-amqp-test:

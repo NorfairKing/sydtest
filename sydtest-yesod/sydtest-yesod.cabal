@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -38,7 +38,6 @@ library
   build-depends:
       base >=4.7 && <5
     , binary
-    , blaze-builder
     , bytestring
     , case-insensitive
     , containers
@@ -50,12 +49,10 @@ library
     , mtl
     , network
     , network-uri
-    , pretty-show
     , sydtest >=0.3.0.0
     , sydtest-wai
     , text
     , time
-    , wai
     , xml-conduit
     , yesod-core
     , yesod-test
@@ -83,15 +80,12 @@ test-suite sydtest-yesod-blog-example-test
     , path-io
     , persistent
     , persistent-sqlite
-    , persistent-template
     , sydtest
-    , sydtest-persistent
     , sydtest-persistent-sqlite
     , sydtest-wai
     , sydtest-yesod
     , text
     , yesod
-    , yesod-form
   default-language: Haskell2010
 
 test-suite sydtest-yesod-test
@@ -115,12 +109,10 @@ test-suite sydtest-yesod-test
     , http-types
     , path
     , path-io
-    , resourcet
     , sydtest
     , sydtest-wai
     , sydtest-yesod
     , text
     , yesod
     , yesod-core
-    , yesod-form
   default-language: Haskell2010

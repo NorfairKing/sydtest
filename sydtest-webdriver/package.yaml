@@ -47,4 +47,8 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - path
+    - path-io
+    - sydtest
     - sydtest-webdriver
+    - yesod

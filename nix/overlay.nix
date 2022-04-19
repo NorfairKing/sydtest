@@ -86,6 +86,13 @@ with final.haskell.lib;
           selenium-server-standalone
         ]);
       });
+      "sydtest-webdrivers-screenshot" = overrideCabal (sydtestPkg "sydtest-webdriver-screenshot") (old: {
+        testDepends = (old.testDepends or [ ]) ++ (with final; [
+          chromedriver
+          chromium
+          selenium-server-standalone
+        ]);
+      });
       "sydtest-webdriver-yesod" = overrideCabal (sydtestPkg "sydtest-webdriver-yesod") (old: {
         testDepends = (old.testDepends or [ ]) ++ (with final; [
           chromedriver

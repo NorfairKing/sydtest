@@ -4,44 +4,39 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           sydtest-webdriver
+name:           sydtest-webdriver-screenshot
 version:        0.0.0.0
 build-type:     Simple
 
 library
   exposed-modules:
-      Test.Syd.Webdriver
+      Test.Syd.Webdriver.Screenshot
   other-modules:
-      Paths_sydtest_webdriver
+      Paths_sydtest_webdriver_screenshot
   hs-source-dirs:
       src
   build-depends:
-      aeson
+      JuicyPixels
     , base >=4.7 && <5
-    , http-client
+    , bytestring
     , http-types
-    , monad-control
     , mtl
-    , network
     , network-uri
     , path
     , path-io
-    , port-utils
     , sydtest
-    , sydtest-typed-process
     , sydtest-wai
-    , transformers-base
-    , typed-process
+    , sydtest-webdriver
     , webdriver
   default-language: Haskell2010
 
-test-suite sydtest-webdriver-test
+test-suite sydtest-webdriver-screenshot-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Syd.Webdriver.App
-      Test.Syd.WebdriverSpec
-      Paths_sydtest_webdriver
+      Test.Syd.Webdriver.Screenshot.App
+      Test.Syd.Webdriver.ScreenshotSpec
+      Paths_sydtest_webdriver_screenshot
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
@@ -52,5 +47,6 @@ test-suite sydtest-webdriver-test
     , sydtest
     , sydtest-wai
     , sydtest-webdriver
+    , sydtest-webdriver-screenshot
     , wai
   default-language: Haskell2010

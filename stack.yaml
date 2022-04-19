@@ -17,6 +17,7 @@ packages:
 - sydtest-typed-process
 - sydtest-wai
 - sydtest-webdriver
+- sydtest-webdriver-screenshot
 - sydtest-webdriver-yesod
 - sydtest-yesod
 

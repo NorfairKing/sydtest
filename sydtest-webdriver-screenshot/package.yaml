@@ -1,4 +1,4 @@
-name: sydtest-webdriver
+name: sydtest-webdriver-screenshot
 version: 0.0.0.0
 
 dependencies:
@@ -7,27 +7,20 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - aeson
-  - http-client
+  - JuicyPixels
+  - bytestring
   - http-types
-  - monad-control
   - mtl
-  - network
   - network-uri
   - path
   - path-io
-  - port-utils
   - sydtest
-  - sydtest-typed-process
   - sydtest-wai
-  - transformers-base
-  - typed-process
+  - sydtest-webdriver
   - webdriver
 
-
-
 tests:
-  sydtest-webdriver-test:
+  sydtest-webdriver-screenshot-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -40,4 +33,5 @@ tests:
     - sydtest
     - sydtest-wai
     - sydtest-webdriver
+    - sydtest-webdriver-screenshot
     - wai 

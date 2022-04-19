@@ -1,0 +1,54 @@
+name: sydtest-webdriver
+version: 0.0.0.0
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2022 Tom Sydney Kerckhove"
+category: Testing
+synopsis: A webdriver companion library for sydtest
+
+extra-source-files:
+- LICENSE.md
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - aeson
+  - http-client
+  - http-types
+  - monad-control
+  - mtl
+  - network
+  - network-uri
+  - path
+  - path-io
+  - port-utils
+  - sydtest
+  - sydtest-typed-process
+  - sydtest-wai
+  - transformers-base
+  - typed-process
+  - webdriver
+
+
+
+tests:
+  sydtest-webdriver-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - http-types
+    - network-uri
+    - sydtest
+    - sydtest-wai
+    - sydtest-webdriver
+    - wai 

@@ -1,0 +1,52 @@
+name: sydtest-webdriver-yesod
+version: 0.0.0.0
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2022 Tom Sydney Kerckhove"
+category: Testing
+synopsis: A webdriver+yesod companion library for sydtest
+
+extra-source-files:
+- LICENSE.md
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - bytestring
+  - http-client
+  - http-types
+  - mtl
+  - network-uri
+  - path
+  - path-io
+  - sydtest
+  - sydtest-wai
+  - sydtest-webdriver
+  - sydtest-yesod
+  - text
+  - webdriver
+  - yesod
+
+
+
+tests:
+  sydtest-webdriver-yesod-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - path
+    - path-io
+    - sydtest
+    - sydtest-webdriver
+    - sydtest-webdriver-yesod
+    - yesod

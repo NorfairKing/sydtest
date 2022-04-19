@@ -78,6 +78,36 @@ with final.haskell.lib;
           unset NIX_REDIRECTS LD_PRELOAD
         '';
       });
+      "sydtest-webdriver" = overrideCabal (sydtestPkg "sydtest-webdriver") (old: {
+        testDepends = (old.testDepends or [ ]) ++ (with final; [
+          chromedriver
+          chromium
+          selenium-server-standalone
+        ]);
+        preConfigure = (old.preConfigure or "") + ''
+          export FONTCONFIG_SYSROOT=${final.callPackage ./fonts-conf.nix {}}
+        '';
+      });
+      "sydtest-webdriver-screenshot" = overrideCabal (sydtestPkg "sydtest-webdriver-screenshot") (old: {
+        testDepends = (old.testDepends or [ ]) ++ (with final; [
+          chromedriver
+          chromium
+          selenium-server-standalone
+        ]);
+        preConfigure = (old.preConfigure or "") + ''
+          export FONTCONFIG_SYSROOT=${final.callPackage ./fonts-conf.nix {}}
+        '';
+      });
+      "sydtest-webdriver-yesod" = overrideCabal (sydtestPkg "sydtest-webdriver-yesod") (old: {
+        testDepends = (old.testDepends or [ ]) ++ (with final; [
+          chromedriver
+          chromium
+          selenium-server-standalone
+        ]);
+        preConfigure = (old.preConfigure or "") + ''
+          export FONTCONFIG_SYSROOT=${final.callPackage ./fonts-conf.nix {}}
+        '';
+      });
       "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
     };
 

@@ -1,0 +1,48 @@
+name: sydtest-webdriver-screenshot
+version: 0.0.0.0
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2022 Tom Sydney Kerckhove"
+category: Testing
+synopsis: A webdriver screenshot companion library for sydtest
+                     
+extra-source-files:  
+- LICENSE.md         
+                     
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - JuicyPixels
+  - bytestring
+  - http-types
+  - mtl
+  - network-uri
+  - path
+  - path-io
+  - sydtest
+  - sydtest-wai
+  - sydtest-webdriver
+  - webdriver
+
+tests:
+  sydtest-webdriver-screenshot-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - http-types
+    - network-uri
+    - sydtest
+    - sydtest-wai
+    - sydtest-webdriver
+    - sydtest-webdriver-screenshot
+    - wai 

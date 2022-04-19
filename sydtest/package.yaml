@@ -45,7 +45,6 @@ library:
     - split
     - stm
     - text
-    - yaml
   when:
     - condition: 'os(windows)'
       then:

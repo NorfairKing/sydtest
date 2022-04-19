@@ -4,59 +4,51 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           sydtest-wai
-version:        0.2.0.0
-synopsis:       A wai companion library for sydtest
+name:           sydtest-webdriver-yesod
+version:        0.0.0.0
+synopsis:       A webdriver+yesod companion library for sydtest
 category:       Testing
-homepage:       https://github.com/NorfairKing/sydtest#readme
-bug-reports:    https://github.com/NorfairKing/sydtest/issues
 author:         Tom Sydney Kerckhove
 maintainer:     syd@cs-syd.eu
-copyright:      Copyright (c) 2020 Tom Sydney Kerckhove
+copyright:      Copyright (c) 2022 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
 extra-source-files:
     LICENSE.md
-    CHANGELOG.md
-
-source-repository head
-  type: git
-  location: https://github.com/NorfairKing/sydtest
 
 library
   exposed-modules:
-      Test.Syd.Wai
-      Test.Syd.Wai.Client
-      Test.Syd.Wai.Def
-      Test.Syd.Wai.Matcher
-      Test.Syd.Wai.Request
+      Test.Syd.Webdriver.Yesod
   other-modules:
-      Paths_sydtest_wai
+      Paths_sydtest_webdriver_yesod
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , case-insensitive
     , http-client
     , http-types
     , mtl
-    , network
-    , sydtest >=0.3.0.0
+    , network-uri
+    , path
+    , path-io
+    , sydtest
+    , sydtest-wai
+    , sydtest-webdriver
+    , sydtest-yesod
     , text
-    , time
-    , wai
-    , warp
+    , webdriver
+    , yesod
   default-language: Haskell2010
 
-test-suite sydtest-wai-test
+test-suite sydtest-webdriver-yesod-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Syd.Wai.Example
-      Test.Syd.WaiSpec
-      Paths_sydtest_wai
+      Test.Syd.Webdriver.Yesod.App
+      Test.Syd.Webdriver.YesodSpec
+      Paths_sydtest_webdriver_yesod
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
@@ -64,9 +56,10 @@ test-suite sydtest-wai-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
-    , http-client
-    , http-types
+    , path
+    , path-io
     , sydtest
-    , sydtest-wai
-    , wai
+    , sydtest-webdriver
+    , sydtest-webdriver-yesod
+    , yesod
   default-language: Haskell2010

@@ -86,7 +86,6 @@ library
     , split
     , stm
     , text
-    , yaml
   if os(windows)
     build-depends:
         ansi-terminal

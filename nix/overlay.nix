@@ -19,7 +19,18 @@ with final.haskell.lib;
         exeName: name:
         generateOptparseApplicativeCompletion exeName (sydtestPkg name);
       sydtestPkgWithOwnComp = name: sydtestPkgWithComp name name;
-
+      fontsConfig = final.callPackage ./fonts-conf.nix { };
+      setupFontsConfigScript = ''
+        export FONTCONFIG_SYSROOT=${fontsConfig}
+      '';
+      enableWebdriver = haskellPkg: overrideCabal haskellPkg (old: {
+        testDepends = (old.testDepends or [ ]) ++ (with final; [
+          chromedriver
+          chromium
+          selenium-server-standalone
+        ]);
+        preConfigure = (old.preConfigure or "") + setupFontsConfigScript;
+      });
     in
     {
       "sydtest" = sydtestPkg "sydtest";
@@ -78,36 +89,15 @@ with final.haskell.lib;
           unset NIX_REDIRECTS LD_PRELOAD
         '';
       });
-      "sydtest-webdriver" = overrideCabal (sydtestPkg "sydtest-webdriver") (old: {
-        testDepends = (old.testDepends or [ ]) ++ (with final; [
-          chromedriver
-          chromium
-          selenium-server-standalone
-        ]);
-        preConfigure = (old.preConfigure or "") + ''
-          export FONTCONFIG_SYSROOT=${final.callPackage ./fonts-conf.nix {}}
-        '';
+      "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
+        passthru = {
+          inherit fontsConfig;
+          inherit setupFontsConfigScript;
+          inherit enableWebdriver;
+        };
       });
-      "sydtest-webdriver-screenshot" = overrideCabal (sydtestPkg "sydtest-webdriver-screenshot") (old: {
-        testDepends = (old.testDepends or [ ]) ++ (with final; [
-          chromedriver
-          chromium
-          selenium-server-standalone
-        ]);
-        preConfigure = (old.preConfigure or "") + ''
-          export FONTCONFIG_SYSROOT=${final.callPackage ./fonts-conf.nix {}}
-        '';
-      });
-      "sydtest-webdriver-yesod" = overrideCabal (sydtestPkg "sydtest-webdriver-yesod") (old: {
-        testDepends = (old.testDepends or [ ]) ++ (with final; [
-          chromedriver
-          chromium
-          selenium-server-standalone
-        ]);
-        preConfigure = (old.preConfigure or "") + ''
-          export FONTCONFIG_SYSROOT=${final.callPackage ./fonts-conf.nix {}}
-        '';
-      });
+      "sydtest-webdriver-screenshot" = enableWebdriver (sydtestPkg "sydtest-webdriver-screenshot");
+      "sydtest-webdriver-yesod" = enableWebdriver (sydtestPkg "sydtest-webdriver-yesod");
       "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
     };
 

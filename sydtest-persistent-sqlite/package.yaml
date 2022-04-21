@@ -5,7 +5,7 @@ license: OtherLicense
 license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
-copyright: "Copyright (c) 2020-2021 Tom Sydney Kerckhove"
+copyright: "Copyright (c) 2020-2022 Tom Sydney Kerckhove"
 category: Testing
 synopsis: A persistent-sqlite companion library for sydtest
 

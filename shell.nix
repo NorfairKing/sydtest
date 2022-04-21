@@ -1,7 +1,6 @@
 let
   pkgs = import ./nix/pkgs.nix { };
   pre-commit = import ./nix/pre-commit.nix;
-  fontconfigDir = pkgs.callPackage ./nix/fonts-conf.nix { };
 in
 pkgs.haskell.lib.buildStackProject {
   name = "sydtest-shell";
@@ -20,6 +19,6 @@ pkgs.haskell.lib.buildStackProject {
   shellHook = ''
     export TMPDIR=/tmp
     ${pre-commit.check.shellHook}
-    export FONTCONFIG_SYSROOT=${fontconfigDir}
+    ${pkgs.haskellPackages.sydtest-webdriver.setupFontsConfigScript}
   '';
 }

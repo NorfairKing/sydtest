@@ -25,7 +25,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macos-latest
         lts:
           - release
           - nixos-21_11

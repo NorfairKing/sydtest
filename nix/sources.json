@@ -1,14 +1,14 @@
 {
     "autodocodec": {
-        "branch": "lts-19.3",
+        "branch": "master",
         "description": null,
         "homepage": null,
         "owner": "NorfairKing",
         "repo": "autodocodec",
-        "rev": "fa655f633a7af200b02b1ddd7d6d853167ba9c09",
-        "sha256": "0lhk0g735dx3x131a99w5p515jb3ria9lk0bm04jzym61nrpbzax",
+        "rev": "de3a6efbfad165d2265f9d222a570d9a938c162d",
+        "sha256": "0jaq0ck6v4g8lxwdwd3ksz0dry6kag74zwh950lzh0jir2a7lhds",
         "type": "tarball",
-        "url": "https://github.com/NorfairKing/autodocodec/archive/fa655f633a7af200b02b1ddd7d6d853167ba9c09.tar.gz",
+        "url": "https://github.com/NorfairKing/autodocodec/archive/de3a6efbfad165d2265f9d222a570d9a938c162d.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "gitignore": {
@@ -72,15 +72,15 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "validity": {
-        "branch": "lts-19.3",
+        "branch": "master",
         "description": "Validity and validity-based testing",
         "homepage": "https://www.youtube.com/watch?v=eIs9qNh17SM",
         "owner": "NorfairKing",
         "repo": "validity",
-        "rev": "258414b8e2341cd92a859af7f9d0e847c13dba64",
-        "sha256": "1psi68mxx863mmnasfm6hxafzm5nf266vkh32zjg19apmp72byj9",
+        "rev": "160e846cc5de8e92e6758172da341f5d81fe0374",
+        "sha256": "03a4s2gq1mjjd452xbhs0h1iycjpdidxprpvjiwy55hx0lzqfpli",
         "type": "tarball",
-        "url": "https://github.com/NorfairKing/validity/archive/258414b8e2341cd92a859af7f9d0e847c13dba64.tar.gz",
+        "url": "https://github.com/NorfairKing/validity/archive/160e846cc5de8e92e6758172da341f5d81fe0374.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "webdriver": {

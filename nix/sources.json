@@ -84,7 +84,7 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "webdriver": {
-        "branch": "master",
+        "branch": "all-patches-gt",
         "description": "A Haskell client for the Selenium WebDriver protocol.",
         "homepage": "http://hackage.haskell.org/package/webdriver",
         "owner": "georgefst",

@@ -21,7 +21,10 @@ in
             (
               self: super:
                 {
-                  webdriver = final.haskellPackages.callCabal2nix "webdriver" sources.webdriver { };
+                  webdriver =
+                    if final.lib.versionAtLeast self.aeson.version "2"
+                    then (final.haskellPackages.callCabal2nix "webdriver" sources.webdriver { })
+                    else super.webdriver;
                 }
             );
       }

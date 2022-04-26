@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0.1] - 2022-04-26
+
+### Added
+
+* Compatibility with `GHC >= 9`
+
 ## [0.2.0.0] - 2021-06-19
 
 ### Added

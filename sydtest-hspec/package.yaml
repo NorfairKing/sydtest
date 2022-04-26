@@ -1,5 +1,5 @@
 name: sydtest-hspec
-version: 0.1.0.0
+version: 0.2.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -20,7 +20,7 @@ library:
   source-dirs: src
   dependencies:
     - QuickCheck
-    - hspec-core
+    - hspec-core >=2.8
     - mtl
     - stm
     - sydtest >=0.9.0.0

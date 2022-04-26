@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.6.
+-- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-servant
-version:        0.2.0.1
+version:        0.2.0.2
 synopsis:       A servant companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme

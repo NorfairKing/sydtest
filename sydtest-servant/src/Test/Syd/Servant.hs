@@ -19,6 +19,7 @@ module Test.Syd.Servant
   )
 where
 
+import Data.Kind
 import Network.HTTP.Client as HTTP
 import Servant
 import Servant.Client
@@ -54,7 +55,7 @@ clientEnvSetupFunc py man server = do
 
 -- | Like 'servantSpec', but allows setting a context. Useful for example when your server uses basic auth.
 servantSpecWithContext ::
-  forall api (ctx :: [*]).
+  forall api (ctx :: [Type]).
   (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
   Servant.Proxy api ->
   Context ctx ->
@@ -65,7 +66,7 @@ servantSpecWithContext py ctx server = servantSpecWithSetupFuncWithContext py ct
 
 -- | Like 'servantSpecWithSetupFunc', but allows setting a context. Useful for example when your server uses basic auth.
 servantSpecWithSetupFuncWithContext ::
-  forall api (ctx :: [*]).
+  forall api (ctx :: [Type]).
   (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
   Servant.Proxy api ->
   Context ctx ->
@@ -75,7 +76,7 @@ servantSpecWithSetupFuncWithContext ::
 servantSpecWithSetupFuncWithContext py ctx setupFunc = servantSpecWithSetupFuncWithContext' py ctx $ \() -> setupFunc
 
 servantSpecWithSetupFuncWithContext' ::
-  forall api (ctx :: [*]) inner.
+  forall api (ctx :: [Type]) inner.
   (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
   Servant.Proxy api ->
   Context ctx ->
@@ -85,7 +86,7 @@ servantSpecWithSetupFuncWithContext' ::
 servantSpecWithSetupFuncWithContext' py ctx serverSetupFunc = managerSpec . setupAroundWith' (\man inner -> serverSetupFunc inner >>= clientEnvSetupFuncWithContext py ctx man)
 
 clientEnvSetupFuncWithContext ::
-  forall api (ctx :: [*]).
+  forall api (ctx :: [Type]).
   (HasServer api ctx, HasContextEntry (ctx .++ DefaultErrorFormatters) ErrorFormatters) =>
   Servant.Proxy api ->
   Context ctx ->

@@ -16,7 +16,6 @@ jobs:
     - uses: cachix/cachix-action@v10
       with:
         name: sydtest
-        extraPullNames: yamlparse
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: nix-build ci.nix -A pre-commit-check
 
@@ -29,6 +28,8 @@ jobs:
           - macos-latest
         lts:
           - release
+          - nixos-21_05
+          - nixos-21_11
 
     name: CI Build
     runs-on: ubuntu-latest
@@ -38,7 +39,6 @@ jobs:
     - uses: cachix/cachix-action@v10
       with:
         name: sydtest
-        extraPullNames: yamlparse
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: nix-build ci.nix -A ${{ matrix.lts }}
 

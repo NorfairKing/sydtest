@@ -40,7 +40,7 @@ importSpecTree = go
       Hspec.Node d ts -> describe d $ mapM_ go ts
       -- Hspec.NodeWithCleanup's semantics are so weird that we can only do
       -- this translation if inner equals ().
-      Hspec.NodeWithCleanup cleanup ts -> afterAll_ (cleanup ()) $ mapM_ go ts
+      Hspec.NodeWithCleanup _ cleanup ts -> afterAll_ (cleanup ()) $ mapM_ go ts
 
 importItem :: forall inner. Hspec.Item inner -> Syd.TestDefM '[] inner ()
 importItem item@Hspec.Item {..} =

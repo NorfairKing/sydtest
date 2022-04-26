@@ -49,7 +49,7 @@ persistPostgresqlSpec migration = aroundWith $ \func _ -> withConnectionPool mig
 
 -- | Set up a postgresql connection and migrate it to run the given function.
 withConnectionPool :: Migration -> (ConnectionPool -> IO r) -> IO r
-withConnectionPool = unSetupFunc . connectionPoolSetupFunc
+withConnectionPool migration func = unSetupFunc (connectionPoolSetupFunc migration) func
 
 -- | The 'SetupFunc' version of 'withConnectionPool'.
 connectionPoolSetupFunc :: Migration -> SetupFunc ConnectionPool

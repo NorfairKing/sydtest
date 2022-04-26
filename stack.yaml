@@ -1,4 +1,4 @@
-resolver: lts-18.16
+resolver: lts-19.3
 packages:
 - sydtest
 - sydtest-aeson
@@ -31,11 +31,52 @@ extra-deps:
     - safe-coloured-text
     - safe-coloured-text-terminfo
 - github: NorfairKing/autodocodec
-  commit: 604ce108bd9bbe9b29e88955f6c981f65d89c153
+  commit: fa655f633a7af200b02b1ddd7d6d853167ba9c09
   subdirs:
     - autodocodec
     - autodocodec-schema
     - autodocodec-yaml
+
+- github: NorfairKing/validity
+  commit: 258414b8e2341cd92a859af7f9d0e847c13dba64
+  subdirs:
+  - validity
+  - validity-aeson
+  - validity-bytestring
+  - validity-case-insensitive
+  - validity-containers
+  - validity-path
+  - validity-persistent
+  - validity-primitive
+  - validity-scientific
+  - validity-text
+  - validity-time
+  - validity-unordered-containers
+  - validity-uuid
+  - validity-vector
+  - genvalidity
+  - genvalidity-aeson
+  - genvalidity-bytestring
+  - genvalidity-case-insensitive
+  - genvalidity-containers
+  - genvalidity-criterion
+  - genvalidity-path
+  - genvalidity-persistent
+  - genvalidity-property
+  - genvalidity-scientific
+  - genvalidity-sydtest
+  - genvalidity-sydtest-aeson
+  - genvalidity-sydtest-hashable
+  - genvalidity-sydtest-lens
+  - genvalidity-sydtest-persistent
+  - genvalidity-text
+  - genvalidity-time
+  - genvalidity-unordered-containers
+  - genvalidity-uuid
+  - genvalidity-vector
+
+- github: georgefst/hs-webdriver
+  commit: cf9c387de7c1525ffbcd58125ccb3f798a97a2bb
 
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef

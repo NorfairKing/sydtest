@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- | Testing with an in-memory sqlite database using persistent-sqlite
 module Test.Syd.Persistent.Sqlite
@@ -51,7 +52,7 @@ persistSqliteSpec migration = aroundWith $ \func _ -> withConnectionPool migrati
 
 -- | Set up a sqlite connection and migrate it to run the given function.
 withConnectionPool :: Migration -> (ConnectionPool -> IO r) -> IO r
-withConnectionPool = unSetupFunc . connectionPoolSetupFunc
+withConnectionPool migration func = unSetupFunc (connectionPoolSetupFunc migration) func
 
 -- | The 'SetupFunc' version of 'withConnectionPool'.
 connectionPoolSetupFunc :: Migration -> SetupFunc ConnectionPool

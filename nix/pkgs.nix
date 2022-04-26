@@ -4,19 +4,18 @@
 }:
 let
   pkgs = pkgsf { inherit system; };
-  pre-commit-hooks = import sources.pre-commit-hooks;
-  autodocodec-overlay = import (sources.autodocodec + "/nix/overlay.nix");
-  safe-coloured-text-overlay = import (sources.safe-coloured-text + "/nix/overlay.nix");
   sydtestPkgs =
     pkgsf {
       inherit system;
       overlays =
         [
-          autodocodec-overlay
-          safe-coloured-text-overlay
+          (import (sources.validity + "/nix/overlay.nix"))
+          (import (sources.autodocodec + "/nix/overlay.nix"))
+          (import (sources.safe-coloured-text + "/nix/overlay.nix"))
           (final: previous: { niv = (import sources.niv { }).niv; })
           (final: previous: { inherit (import sources.gitignore { inherit (final) lib; }) gitignoreSource; })
           (import ./overlay.nix)
+          (import ./fixes-overlay.nix)
         ];
       config.allowUnfree = true;
     };

@@ -28,7 +28,6 @@ jobs:
           - macos-latest
         lts:
           - release
-          - nixos-21_05
           - nixos-21_11
 
     name: CI Build

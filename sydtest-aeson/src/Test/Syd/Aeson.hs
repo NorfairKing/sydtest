@@ -9,6 +9,8 @@ module Test.Syd.Aeson
   )
 where
 
+import Control.DeepSeq
+import Control.Exception
 import Control.Monad
 import Data.Aeson as JSON
 import Data.Aeson.Encode.Pretty as JSON
@@ -34,9 +36,10 @@ goldenJSONFile fp produceActualValue =
             Right r -> pure r,
       goldenTestProduce = produceActualValue,
       goldenTestWrite = \v -> do
+        value <- evaluate $ force $ toJSON v
         p <- resolveFile' fp
         ensureDir (parent p)
-        SB.writeFile (fromAbsFile p) $ LB.toStrict $ JSON.encodePretty v,
+        SB.writeFile (fromAbsFile p) $ LB.toStrict $ JSON.encodePretty value,
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing
@@ -74,9 +77,10 @@ goldenJSONValueFile fp produceActualValue =
             Right r -> pure r,
       goldenTestProduce = produceActualValue,
       goldenTestWrite = \v -> do
+        value <- evaluate $ force $ toJSON v
         p <- resolveFile' fp
         ensureDir (parent p)
-        SB.writeFile (fromAbsFile p) $ LB.toStrict $ JSON.encodePretty v,
+        SB.writeFile (fromAbsFile p) $ LB.toStrict $ JSON.encodePretty value,
       goldenTestCompare = \actual expected ->
         if actual == expected
           then Nothing

@@ -1,26 +1,28 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f5cbe255b8d2818baecf131c6f65ab3ef45c4742f709af6bb9535f9f63290796
+-- hash: 146fca0f19cd3781f36f8b0224fcd12370fa9dc1506f8adbd22c3078a82992fd
 
 name:           sydtest-aeson
-version:        0.0.0.0
+version:        0.1.0.0
 synopsis:       An aeson companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
 author:         Tom Sydney Kerckhove
 maintainer:     syd@cs-syd.eu
-copyright:      Copyright (c) 2021 Tom Sydney Kerckhove
+copyright:      Copyright (c) 2021-2022 Tom Sydney Kerckhove
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
 extra-source-files:
     LICENSE.md
+    test_resources/example-value.json
     test_resources/example.json
+    test_resources/pure-example-value.json
     test_resources/pure-example.json
 
 source-repository head
@@ -39,6 +41,7 @@ library
     , aeson-pretty
     , base >=4.7 && <5
     , bytestring
+    , deepseq
     , path
     , path-io
     , sydtest
@@ -59,6 +62,7 @@ test-suite sydtest-aeson-test
   build-depends:
       aeson
     , base >=4.7 && <5
+    , directory
     , sydtest
     , sydtest-aeson
     , text

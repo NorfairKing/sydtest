@@ -348,12 +348,12 @@ runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
       Nothing ->
         if testRunSettingGoldenStart
           then do
-            actual <- goldenTestProduce
+            actual <- goldenTestProduce >>= evaluate
             goldenTestWrite actual
             pure (TestPassed, Just GoldenStarted, Nothing)
           else pure (TestFailed, Just GoldenNotFound, Nothing)
       Just golden -> do
-        actual <- goldenTestProduce
+        actual <- goldenTestProduce >>= evaluate
         case goldenTestCompare actual golden of
           Nothing -> pure (TestPassed, Nothing, Nothing)
           Just assertion ->

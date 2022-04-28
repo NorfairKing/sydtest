@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0.0] - 2022-04-28
+
+### Added
+
+* Compatibility with `sydtest >=0.10`
+
 ## [0.2.0.0] - 2022-04-26
 
 ### Added

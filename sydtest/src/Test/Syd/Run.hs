@@ -95,7 +95,7 @@ applyWrapper2 ::
   forall r outerArgs innerArg.
   ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   (outerArgs -> innerArg -> IO r) ->
-  IO (Either (Either String Assertion) r)
+  IO (Either SomeException r)
 applyWrapper2 wrapper func = do
   var <- liftIO newEmptyMVar
   r <- (`catches` exceptionHandlers) $
@@ -105,7 +105,7 @@ applyWrapper2 wrapper func = do
         liftIO $ putMVar var res
   case r of
     Right () -> liftIO $ readMVar var
-    Left e -> pure (Left e :: Either (Either String Assertion) r)
+    Left e -> pure (Left e :: Either SomeException r)
 
 instance IsTest (IO ()) where
   type Arg1 (IO ()) = ()
@@ -247,9 +247,7 @@ runPropertyTestWithArg p trs progressReporter wrapper = do
       let testRunResultStatus = TestFailed
       let testRunResultException = do
             se <- theException qcr
-            pure $ case fromException se of
-              Just a -> Right a
-              Nothing -> Left $ displayException se
+            pure (se :: SomeException)
       let testRunResultNumShrinks = Just $ fromIntegral $ numShrinks qcr
       let testRunResultFailingInputs = failingTestCase qcr
       let testRunResultExtraInfo = Nothing
@@ -363,7 +361,7 @@ runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
               then do
                 goldenTestWrite actual
                 pure (TestPassed, Just GoldenReset, Nothing)
-              else pure (TestFailed, Nothing, Just $ Right assertion)
+              else pure (TestFailed, Nothing, Just $ SomeException assertion)
   let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
         Left e -> (TestFailed, Nothing, Just e)
         Right trip -> trip
@@ -378,14 +376,12 @@ runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
   let testRunResultFlakinessMessage = Nothing
   pure TestRunResult {..}
 
-exceptionHandlers :: [Handler (Either (Either String Assertion) a)]
+exceptionHandlers :: [Handler (Either SomeException a)]
 exceptionHandlers =
   [ -- Re-throw AsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
     Handler (\e -> throwIO (e :: AsyncException)),
-    -- Catch assertions first because we know what to do with them.
-    Handler $ \(a :: Assertion) -> pure (Left $ Right a),
-    -- Catch all the rest as a string
-    Handler (\e -> return $ Left (Left (displayException (e :: SomeException))))
+    -- Catch all the rest
+    Handler (\e -> return $ Left (e :: SomeException))
   ]
 
 type Test = IO ()
@@ -431,7 +427,7 @@ instance HasCodec SeedSetting where
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,
     testRunResultRetries :: !(Maybe Int),
-    testRunResultException :: !(Maybe (Either String Assertion)),
+    testRunResultException :: !(Maybe SomeException),
     testRunResultNumTests :: !(Maybe Word),
     testRunResultNumShrinks :: !(Maybe Word),
     testRunResultFailingInputs :: [String],
@@ -442,7 +438,7 @@ data TestRunResult = TestRunResult
     testRunResultExtraInfo :: !(Maybe String),
     testRunResultFlakinessMessage :: !(Maybe String)
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
 
 data TestStatus = TestPassed | TestFailed
   deriving (Show, Eq, Generic)
@@ -466,6 +462,14 @@ data Assertion
   deriving (Show, Eq, Typeable, Generic)
 
 instance Exception Assertion
+
+data Contextual = Contextual !SomeException !String
+  deriving (Show, Typeable, Generic)
+
+instance Exception Contextual
+
+addContextToException :: Exception e => e -> String -> Contextual
+addContextToException e = Contextual (SomeException e)
 
 data GoldenCase
   = GoldenNotFound

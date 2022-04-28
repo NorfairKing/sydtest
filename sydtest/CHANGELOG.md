@@ -1,10 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [0.10.0.0] - 2022-04-28
 
 ### Added
 
 * Allow supplying filters without a flag, so `hello` instead of `--filter hello` or `--match hello`.
+* Simplified the way exceptions work to allow for attaching context to any failure instead of only `Assertion`s.
 
 ## [0.9.0.0] - 2022-04-13
 

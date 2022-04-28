@@ -7,6 +7,7 @@
 module Test.Syd.Hedgehog (fromHedgehogGroup) where
 
 import Control.Concurrent.STM
+import Control.Exception
 import Control.Monad
 import qualified Data.Map as M
 import qualified Hedgehog
@@ -117,7 +118,7 @@ runHedgehogProperty
                 hedgehogReport
             let Hedgehog.ShrinkCount shrinkCountInt = Hedgehog.failureShrinks failureReport
                 numShrinks = Just $ fromIntegral shrinkCountInt
-                exception = Just $ Left s
+                exception = Just $ SomeException $ ExpectationFailed s
                 inputs = map Hedgehog.failedValue $ Hedgehog.failureAnnotations failureReport
             pure (TestFailed, exception, numTests, labels, numShrinks, inputs) -- TODO
     let testRunResultRetries = Nothing

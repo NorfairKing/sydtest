@@ -118,25 +118,20 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
         -- a test is pending so we have no choice.
         Hspec.Pending _ _ -> (TestPassed, Nothing)
         Hspec.Failure mloc fr ->
-          let withExtraContext :: Maybe String -> Assertion -> Assertion
-              withExtraContext = maybe id (\extraContext a -> Context a extraContext)
+          let withExtraContext :: Maybe String -> SomeException -> SomeException
+              withExtraContext = maybe id (\extraContext se -> SomeException $ addContextToException se extraContext)
               niceLocation :: Hspec.Location -> String
               niceLocation Hspec.Location {..} = intercalate ":" [locationFile, show locationLine, show locationColumn]
-              withLocationContext :: Assertion -> Assertion
+              withLocationContext :: SomeException -> SomeException
               withLocationContext = withExtraContext $ niceLocation <$> mloc
-              assertion = case fr of
-                Hspec.NoReason -> Right $ ExpectationFailed "Hspec had no more information about this failure."
-                Hspec.Reason s -> Right $ ExpectationFailed s
-                Hspec.ExpectedButGot mExtraContext expected actual -> Right $ withExtraContext mExtraContext $ NotEqualButShouldHaveBeenEqual actual expected
-                Hspec.Error mExtraContext e -> withExtraContext mExtraContext <$> Left (displayException e)
+              exception :: SomeException
+              exception = case fr of
+                Hspec.NoReason -> SomeException $ ExpectationFailed "Hspec had no more information about this failure."
+                Hspec.Reason s -> SomeException $ ExpectationFailed s
+                Hspec.ExpectedButGot mExtraContext expected actual -> withExtraContext mExtraContext $ SomeException $ NotEqualButShouldHaveBeenEqual actual expected
+                Hspec.Error mExtraContext e -> withExtraContext mExtraContext e
            in ( TestFailed,
-                Just
-                  ( Context
-                      <$> ( withLocationContext <$> assertion
-                          )
-                        <*> pure
-                          (Hspec.resultInfo result)
-                  )
+                Just $ SomeException $ addContextToException (withLocationContext exception) (Hspec.resultInfo result)
               )
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing

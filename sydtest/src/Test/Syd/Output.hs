@@ -7,6 +7,7 @@
 
 module Test.Syd.Output where
 
+import Control.Exception
 import Control.Monad.Reader
 import Data.Algorithm.Diff
 import Data.ByteString.Builder (Builder)
@@ -384,15 +385,19 @@ outputFailures settings rf =
                   map (padFailureDetails . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
                   map padFailureDetails $ outputFailureLabels testRunResultLabels,
                   map padFailureDetails $ outputFailureClasses testRunResultClasses,
-                  map padFailureDetails $
-                    case testRunResultException of
-                      Nothing -> []
-                      Just (Left s) -> stringChunks s
-                      Just (Right a) -> outputAssertion a,
+                  map padFailureDetails $ maybe [] outputSomeException testRunResultException,
                   [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
                   concat [map padFailureDetails $ stringChunks ei | ei <- maybeToList testRunResultExtraInfo],
                   [[chunk ""]]
                 ]
+
+outputSomeException :: SomeException -> [[Chunk]]
+outputSomeException se =
+  case fromException se of
+    Just (Contextual se' s) -> outputSomeException se' ++ stringChunks s
+    Nothing -> case fromException se of
+      Just a -> outputAssertion a
+      Nothing -> stringChunks $ displayException se
 
 outputAssertion :: Assertion -> [[Chunk]]
 outputAssertion = \case

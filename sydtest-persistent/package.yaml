@@ -1,11 +1,11 @@
 name: sydtest-persistent
-version: 0.0.0.0
+version: 0.0.0.1
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
-copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
+copyright: "Copyright (c) 2021-2022 Tom Sydney Kerckhove"
 category: Testing
 synopsis: A persistent companion library for sydtest
 
@@ -19,6 +19,9 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - bytestring
   - mtl
   - persistent
   - sydtest
+  - text
+  - unliftio

@@ -9,6 +9,8 @@ import Test.Syd.Persistent.Sqlite
 spec :: Spec
 spec =
   describe "persistSqliteSpec" $ do
+    sqliteMigrationSucceedsSpec "test_resources/migration.sql" migrateExample
+
     persistSqliteSpec migrateExample $ do
       it "can write and read this example person" $ \pool ->
         runSqliteTest pool $ do

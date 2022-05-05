@@ -1,11 +1,11 @@
 name: sydtest-persistent-postgresql
-version: 0.2.0.1
+version: 0.2.0.2
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
-copyright: "Copyright (c) 2021 Tom Sydney Kerckhove"
+copyright: "Copyright (c) 2021-2022 Tom Sydney Kerckhove"
 category: Testing
 synopsis: An persistent-postgresql companion library for sydtest
 

@@ -8,6 +8,7 @@ module Test.Syd.Persistent.Postgresql
     connectionPoolSetupFunc,
     runSqlPool,
     runPostgresqlTest,
+    postgresqlMigrationSucceedsSpec,
   )
 where
 
@@ -66,3 +67,9 @@ connectionPoolSetupFunc migration = SetupFunc $ \takeConnectionPool -> do
 -- | A flipped version of 'runSqlPool' to run your tests
 runPostgresqlTest :: ConnectionPool -> SqlPersistM a -> IO a
 runPostgresqlTest = runPersistentTest
+
+-- | Test that the given migration succeeds, when applied to the current database.
+--
+-- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
+postgresqlMigrationSucceedsSpec :: FilePath -> Migration -> Spec
+postgresqlMigrationSucceedsSpec = migrationsSucceedsSpecHelper connectionPoolSetupFunc

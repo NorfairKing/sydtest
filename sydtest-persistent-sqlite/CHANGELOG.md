@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0.2] - 2022-05-05
+
+### Added
+
+* `sqliteMigrationSucceedsSpec`
+
 ## [0.2.0.1] - 2022-04-26
 
 ### Added

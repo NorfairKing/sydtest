@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -8,12 +9,19 @@ module Test.Syd.Persistent
   ( runSqlPool,
     runPersistentTest,
     migrationRunner,
+    migrationsSucceedsSpecHelper,
   )
 where
 
 import Control.Monad.Reader
+import qualified Data.ByteString as SB
+import Data.List
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Database.Persist.Sql
 import Test.Syd
+import UnliftIO
 
 instance IsTest (SqlPersistM ()) where
   type Arg1 (SqlPersistM ()) = ()
@@ -37,3 +45,89 @@ migrationRunner = void . runMigrationQuiet
 migrationRunner :: MonadIO m => Migration -> ReaderT SqlBackend m ()
 migrationRunner = runMigration
 #endif
+
+-- | Test that the given migration succeeds, when applied to the current database.
+--
+-- This uses two tests:
+--
+-- 1. A golden test for the current migration.
+-- 2. A test that first applies the golden migration, and then the current migration, tee see if that fails.
+migrationsSucceedsSpecHelper ::
+  -- | Setupfunc for a ConnectionPool. This will be passed an empty migration
+  (Migration -> SetupFunc ConnectionPool) ->
+  FilePath ->
+  Migration ->
+  Spec
+migrationsSucceedsSpecHelper connectionPoolSetupFunc migrationFile currentMigration =
+  let emptyMigration = pure ()
+   in setupAround (connectionPoolSetupFunc emptyMigration) $
+        doNotRandomiseExecutionOrder $
+          sequential $ do
+            descriptionPathHere <- getTestDescriptionPath
+
+            let migrationTestDescription = "Can automatically migrate from the previous database schema"
+                migrationTestPath = intercalate "." $ reverse $ migrationTestDescription : map T.unpack descriptionPathHere
+
+                helpTextInMigrationFile =
+                  [ "ATTENTION CODE REVIEWER",
+                    "If this file has been updated, please make sure to check",
+                    "whether this test failed before that happened:",
+                    show migrationTestPath,
+                    "If this test failed beforehand, but this golden test has",
+                    "been updated anyway, that means the current migration is",
+                    "dangerous with respect to the current database."
+                  ]
+
+                renderStatements :: [Text] -> Text
+                renderStatements ss =
+                  T.pack $
+                    unlines $
+                      concat
+                        [ map ((<> ";") . T.unpack) ss,
+                          [""],
+                          map ("-- " <>) helpTextInMigrationFile
+                        ]
+                unrenderStatements :: Text -> [Text]
+                unrenderStatements =
+                  filter (not . T.isPrefixOf "-- ")
+                    . filter (not . T.null . T.strip)
+                    . T.lines
+
+            it "Golden test for the current migrations" $ \pool ->
+              let helpText =
+                    unlines
+                      [ "\nIMPORTANT: Read this message if this test fails.",
+                        "If this test fails, make check whether the next test has failed as well.",
+                        "",
+                        "That test is called ",
+                        show migrationTestPath,
+                        "",
+                        "It passed: All is good, you can reset this golden file safely.",
+                        "It failed: The database change you introduced will require manual intervention, proceed with caution."
+                      ]
+                  gt = goldenTextFile migrationFile (runSqlPool (renderStatements <$> runMigrationQuiet currentMigration) pool)
+               in gt
+                    { goldenTestCompare = \actual expected ->
+                        let addHelpContext a = Context a helpText
+                         in addHelpContext <$> goldenTestCompare gt actual expected
+                    }
+
+            it migrationTestDescription $ do
+              contents <- liftIO $ SB.readFile migrationFile
+              case TE.decodeUtf8' contents of
+                Left err -> liftIO $ expectationFailure $ show err
+                Right textContents -> do
+                  let statements = unrenderStatements textContents
+                  -- Set up the database with the old migrations
+                  forM_ statements $ \statement ->
+                    rawExecute statement [] :: SqlPersistM ()
+                  -- Try to run the current migrations
+                  errOrStatements <-
+                    (Right <$> runMigrationQuiet currentMigration)
+                      `catch` (\e -> pure $ Left (e :: PersistException)) ::
+                      SqlPersistM (Either PersistException [Text])
+                  case errOrStatements of
+                    Right _ -> pure ()
+                    Left err -> liftIO $ case err of
+                      PersistError t -> expectationFailure $ T.unpack t
+                      _ -> expectationFailure $ ppShow err

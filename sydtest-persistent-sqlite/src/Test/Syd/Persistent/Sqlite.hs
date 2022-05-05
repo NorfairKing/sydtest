@@ -10,6 +10,7 @@ module Test.Syd.Persistent.Sqlite
     runSqlPool,
     runSqliteTest,
     migrationRunner,
+    sqliteMigrationSucceedsSpec,
   )
 where
 
@@ -65,3 +66,9 @@ connectionPoolSetupFunc migration = SetupFunc $ \takeConnectionPool ->
 -- | A flipped version of 'runSqlPool' to run your tests
 runSqliteTest :: ConnectionPool -> SqlPersistM a -> IO a
 runSqliteTest = runPersistentTest
+
+-- | Test that the given migration succeeds, when applied to the current database.
+--
+-- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
+sqliteMigrationSucceedsSpec :: FilePath -> Migration -> Spec
+sqliteMigrationSucceedsSpec = migrationsSucceedsSpecHelper connectionPoolSetupFunc

@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -32,26 +33,31 @@ fromHedgehogGroup hedgehogGroup = Syd.describe (Hedgehog.unGroupName $ Hedgehog.
 instance IsTest Hedgehog.Property where
   type Arg1 Hedgehog.Property = ()
   type Arg2 Hedgehog.Property = ()
-  runTest = runHedgehogProperty
+  runTest func = runHedgehogPropertyWithArg (\() () -> func)
 
-runHedgehogProperty ::
-  Hedgehog.Property ->
-  Syd.TestRunSettings ->
-  Syd.ProgressReporter ->
-  ((() -> () -> IO ()) -> IO ()) ->
+instance IsTest (arg -> Hedgehog.Property) where
+  type Arg1 (arg -> Hedgehog.Property) = ()
+  type Arg2 (arg -> Hedgehog.Property) = arg
+  runTest func = runHedgehogPropertyWithArg (\() a -> func a)
+
+instance IsTest (outerArgs -> innerArg -> Hedgehog.Property) where
+  type Arg1 (outerArgs -> innerArg -> Hedgehog.Property) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> Hedgehog.Property) = innerArg
+  runTest = runHedgehogPropertyWithArg
+
+runHedgehogPropertyWithArg ::
+  forall outerArgs innerArg.
+  (outerArgs -> innerArg -> Hedgehog.Property) ->
+  TestRunSettings ->
+  ProgressReporter ->
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
   IO TestRunResult
-runHedgehogProperty
+runHedgehogPropertyWithArg
   hedgehogProp
   TestRunSettings {..}
   progressReporter
   wrapper = do
     let report = reportProgress progressReporter
-    let config =
-          (Hedgehog.propertyConfig hedgehogProp)
-            { Hedgehog.propertyDiscardLimit = Hedgehog.DiscardLimit testRunSettingMaxDiscardRatio,
-              Hedgehog.propertyShrinkLimit = Hedgehog.ShrinkLimit testRunSettingMaxShrinks,
-              Hedgehog.propertyTerminationCriteria = Hedgehog.NoConfidenceTermination $ Hedgehog.TestLimit testRunSettingMaxSuccess
-            }
     let size = Hedgehog.Size testRunSettingMaxSize
     seed <- case testRunSettingSeed of
       RandomSeed -> Seed.random
@@ -65,7 +71,14 @@ runHedgehogProperty
     -- we can attach timing information.
     -- In the case of hedgehog, non-property tests should be rarer so that
     -- should matter even less.
-    errOrReport <- applyWrapper2 wrapper $ \() () ->
+    errOrReport <- applyWrapper2 wrapper $ \outer inner -> do
+      let config =
+            (Hedgehog.propertyConfig (hedgehogProp outer inner))
+              { Hedgehog.propertyDiscardLimit = Hedgehog.DiscardLimit testRunSettingMaxDiscardRatio,
+                Hedgehog.propertyShrinkLimit = Hedgehog.ShrinkLimit testRunSettingMaxShrinks,
+                Hedgehog.propertyTerminationCriteria = Hedgehog.NoConfidenceTermination $ Hedgehog.TestLimit testRunSettingMaxSuccess
+              }
+
       Hedgehog.checkReport
         config
         size
@@ -73,7 +86,7 @@ runHedgehogProperty
         ( do
             exampleNr <- liftIO $ readTVarIO exampleCounter
             liftIO $ report $ ProgressExampleStarting totalExamples exampleNr
-            timedResult <- timeItT $ Hedgehog.propertyTest hedgehogProp
+            timedResult <- timeItT $ Hedgehog.propertyTest (hedgehogProp outer inner)
             liftIO $ report $ ProgressExampleDone totalExamples exampleNr $ timedTime timedResult
             liftIO $ atomically $ modifyTVar' exampleCounter succ
             pure $ timedValue timedResult

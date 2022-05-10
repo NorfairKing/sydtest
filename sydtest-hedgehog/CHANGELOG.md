@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0.0] - 2022-05-10
+
+### Added
+
+* `IsTest` instances for properties with args
+
 ## [0.2.0.0] - 2022-04-28
 
 ### Added

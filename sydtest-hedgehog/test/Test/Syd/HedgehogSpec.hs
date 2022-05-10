@@ -16,6 +16,18 @@ spec = do
       property $ do
         xs <- forAll $ Gen.list (Range.linear 0 100) Gen.alpha
         reverse (reverse xs) === xs
+  setupAroundWith (const (pure 0)) $
+    describe "reverse with setup" $ do
+      specify "reversing twice is the same as not reversing" $ \i ->
+        property $ do
+          xs <- forAll $ Gen.list (Range.linear i 100) Gen.alpha
+          reverse (reverse xs) === xs
+  beforeAll (pure (1 :: Int)) $ do
+    describe "reverse with beforeAll" $ do
+      specifyWithBoth "reversing twice is the same as not reversing" $ \i () ->
+        property $ do
+          xs <- forAll $ Gen.list (Range.linear i 100) Gen.alpha
+          reverse (reverse xs) === xs
 
 exampleHedgehogGroup :: Hedgehog.Group
 exampleHedgehogGroup =

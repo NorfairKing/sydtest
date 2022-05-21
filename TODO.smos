@@ -10,3 +10,6 @@ value:
   - A mode for "optimising run time". I.e. profiling
   - Show more of the callstack in case people use test suite combinators
   - Timing diagram
+  - Bug with diffs when an assertion gets a context
+  - header: sydtest-autodocodec
+    contents: With golden tests for the json schema

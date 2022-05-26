@@ -1,7 +1,7 @@
-let
-  pkgs = import ./nix/pkgs.nix { };
-  pre-commit = import ./nix/pre-commit.nix;
-in
+{ sources ? import ./nix/sources.nix
+, pkgs ? import ./nix/pkgs.nix { inherit sources; }
+, pre-commit ? import ./nix/pre-commit.nix { inherit sources; }
+}:
 pkgs.haskell.lib.buildStackProject {
   name = "sydtest-shell";
   buildInputs = with pkgs; [

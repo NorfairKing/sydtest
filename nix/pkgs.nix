@@ -1,9 +1,9 @@
 { sources ? import ./sources.nix
 , pkgsf ? import sources.nixpkgs
 , system ? builtins.currentSystem
+, pkgs ? pkgsf { inherit system; }
 }:
 let
-  pkgs = pkgsf { inherit system; };
   sydtestPkgs =
     pkgsf {
       inherit system;

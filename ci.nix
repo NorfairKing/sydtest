@@ -1,6 +1,7 @@
 { pkgs ? import ./nix/pkgs.nix { } }:
 let
   sources = import ./nix/sources.nix;
+  pre-commit = import ./nix/pre-commit.nix { inherit sources; };
 
   versions = {
     "nixos-21_11" = "5a2e2471e8163da8e6f2c1dfd50ef9063199c08b";
@@ -15,9 +16,13 @@ let
       p = import ./nix/pkgs.nix { inherit pkgsf; };
     in
     p.sydtestRelease.overrideAttrs (old: { name = "sydtest-release-${version}"; });
-
 in
 {
   release = pkgs.sydtestRelease;
-  pre-commit-check = (import ./nix/pre-commit.nix).check;
+  hoogle = pkgs.sydtestHoogle;
+  shell = pkgs.symlinkJoin {
+    name = "sydtest-shell";
+    paths = (import ./shell.nix { inherit sources pkgs pre-commit; }).buildInputs;
+  };
+  pre-commit-check = pre-commit.check;
 } // builtins.mapAttrs mkReleaseForVersion versions

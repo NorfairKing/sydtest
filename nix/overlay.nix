@@ -92,12 +92,12 @@ with final.haskell.lib;
         testDepends = (old.testDepends or [ ]) ++ [ final.postgresql ];
       });
       "sydtest-mongo" = (enableMongo (sydtestPkg "sydtest-mongo")).overrideAttrs (old: {
-        passthru = {
+        passthru = old.passthru // {
           inherit enableMongo;
         };
       });
       "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
-        passthru = {
+        passthru = old.passthru // {
           inherit fontsConfig;
           inherit setupFontsConfigScript;
           inherit enableWebdriver;
@@ -107,6 +107,11 @@ with final.haskell.lib;
       "sydtest-webdriver-yesod" = enableWebdriver (sydtestPkg "sydtest-webdriver-yesod");
       "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
     };
+
+  sydtestHoogle = final.buildEnv {
+    name = "sydtest-hoogle";
+    paths = [ (final.haskellPackages.ghcWithHoogle (ps: final.lib.attrValues final.sydtestPackages)) ];
+  };
 
   sydtestRelease =
     final.symlinkJoin {

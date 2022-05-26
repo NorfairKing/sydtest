@@ -1,7 +1,7 @@
+{ sources ? import ./sources.nix
+}:
 let
-  sources = import ./sources.nix;
   nix-pre-commit-hooks = import sources.pre-commit-hooks;
-
 in
 {
   tools = with nix-pre-commit-hooks; [

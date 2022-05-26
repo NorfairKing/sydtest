@@ -11,13 +11,37 @@ jobs:
     name: Pre-commit hooks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.3.5
-    - uses: cachix/install-nix-action@v14.1
+    - uses: actions/checkout@v3.0.2
+    - uses: cachix/install-nix-action@v17
     - uses: cachix/cachix-action@v10
       with:
         name: sydtest
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: nix-build ci.nix -A pre-commit-check
+
+  shell:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3.0.2
+    - uses: cachix/install-nix-action@v17
+    - uses: cachix/cachix-action@v10
+      with:
+        name: sydtest
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+    - run: nix-build ci.nix -A shell
+
+  hoogle:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3.0.2
+    - uses: cachix/install-nix-action@v17
+    - uses: cachix/cachix-action@v10
+      with:
+        name: sydtest
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+    - run: nix-build ci.nix -A hoogle
 
   build:
     strategy:
@@ -32,8 +56,8 @@ jobs:
     name: CI Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.3.5
-    - uses: cachix/install-nix-action@v14.1
+    - uses: actions/checkout@v3.0.2
+    - uses: cachix/install-nix-action@v17
     - uses: cachix/cachix-action@v10
       with:
         name: sydtest

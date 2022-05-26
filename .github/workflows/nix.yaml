@@ -20,7 +20,7 @@ jobs:
     - run: nix-build ci.nix -A pre-commit-check
 
   shell:
-    name: Pre-commit hooks
+    name: Shell
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3.0.2
@@ -32,7 +32,7 @@ jobs:
     - run: nix-build ci.nix -A shell
 
   hoogle:
-    name: Pre-commit hooks
+    name: Hoogle
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3.0.2

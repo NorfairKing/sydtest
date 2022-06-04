@@ -92,12 +92,12 @@ with final.haskell.lib;
         testDepends = (old.testDepends or [ ]) ++ [ final.postgresql ];
       });
       "sydtest-mongo" = (enableMongo (sydtestPkg "sydtest-mongo")).overrideAttrs (old: {
-        passthru = old.passthru // {
+        passthru = (old.passthru or { }) // {
           inherit enableMongo;
         };
       });
       "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
-        passthru = old.passthru // {
+        passthru = (old.passthru or { }) // {
           inherit fontsConfig;
           inherit setupFontsConfigScript;
           inherit enableWebdriver;

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -32,15 +33,21 @@ fromHspec (Hspec.SpecM specWriter) = do
   doNotRandomiseExecutionOrder $ sequential $ mapM_ importSpecTree trees
   pure result
 
+-- Hspec.NodeWithCleanup's semantics are so weird that we can only do
+-- this translation if inner equals ().
 importSpecTree :: Hspec.SpecTree () -> Syd.Spec
 importSpecTree = go
   where
     go = \case
       Hspec.Leaf item -> importItem item
       Hspec.Node d ts -> describe d $ mapM_ go ts
-      -- Hspec.NodeWithCleanup's semantics are so weird that we can only do
-      -- this translation if inner equals ().
-      Hspec.NodeWithCleanup _ cleanup ts -> afterAll_ (cleanup ()) $ mapM_ go ts
+
+#if MIN_VERSION_hspec_core(2,8,0)
+      Hspec.NodeWithCleanup _ cleanup ts -> afterAll_ (cleanup ()) (mapM_ go ts)
+
+#else
+      Hspec.NodeWithCleanup cleanup ts ->   afterAll_ (cleanup ()) (mapM_ go ts)
+#endif
 
 importItem :: forall inner. Hspec.Item inner -> Syd.TestDefM '[] inner ()
 importItem item@Hspec.Item {..} =

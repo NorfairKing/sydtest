@@ -151,10 +151,10 @@ runSingleTestWithFlakinessMode progressReporter l td = \case
       go i
         | i <= 1 = runFunc
         | otherwise = do
-          result <- runFunc
-          case testRunResultStatus result of
-            TestPassed -> pure result
-            TestFailed -> updateRetriesResult <$> go (pred i)
+            result <- runFunc
+            case testRunResultStatus result of
+              TestPassed -> pure result
+              TestFailed -> updateRetriesResult <$> go (pred i)
         where
           updateRetriesResult :: TestRunResult -> TestRunResult
           updateRetriesResult trr =

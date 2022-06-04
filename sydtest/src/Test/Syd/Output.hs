@@ -230,22 +230,22 @@ labelsChunks totalCount (Just labels)
   | M.null labels = []
   | map fst (M.toList labels) == [[]] = []
   | otherwise =
-    [chunk "Labels"] :
-    map
-      ( pad
-          . ( \(ss, i) ->
-                [ chunk
-                    ( T.pack
-                        ( printf
-                            "%5.2f%% %s"
-                            (100 * fromIntegral i / fromIntegral totalCount :: Double)
-                            (commaList (map show ss))
-                        )
-                    )
-                ]
-            )
-      )
-      (M.toList labels)
+      [chunk "Labels"] :
+      map
+        ( pad
+            . ( \(ss, i) ->
+                  [ chunk
+                      ( T.pack
+                          ( printf
+                              "%5.2f%% %s"
+                              (100 * fromIntegral i / fromIntegral totalCount :: Double)
+                              (commaList (map show ss))
+                          )
+                      )
+                  ]
+              )
+        )
+        (M.toList labels)
   where
     pad = (chunk (T.pack (replicate paddingSize ' ')) :)
 
@@ -254,19 +254,19 @@ classesChunks Nothing = []
 classesChunks (Just classes)
   | M.null classes = []
   | otherwise =
-    [chunk "Classes"] :
-    map
-      ( pad
-          . ( \(s, i) ->
-                [ chunk
-                    ( T.pack
-                        ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s
-                        )
-                    )
-                ]
-            )
-      )
-      (M.toList classes)
+      [chunk "Classes"] :
+      map
+        ( pad
+            . ( \(s, i) ->
+                  [ chunk
+                      ( T.pack
+                          ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s
+                          )
+                      )
+                  ]
+              )
+        )
+        (M.toList classes)
   where
     pad = (chunk (T.pack (replicate paddingSize ' ')) :)
     total = sum $ map snd $ M.toList classes

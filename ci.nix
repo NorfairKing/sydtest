@@ -1,19 +1,21 @@
-{ pkgs ? import ./nix/pkgs.nix { } }:
+{ sources ? import ./nix/sources.nix
+, pkgsf ? import sources.nixpkgs
+, system ? builtins.currentSystem
+, pkgs ? import ./nix/pkgs.nix { inherit sources pkgsf system; }
+}:
 let
-  sources = import ./nix/sources.nix;
   pre-commit = import ./nix/pre-commit.nix { inherit sources; };
 
   versions = {
-    "nixos-21_11" = "5a2e2471e8163da8e6f2c1dfd50ef9063199c08b";
+    "nixos-21_11" = sources.nixpkgs-21_11;
+    "nixos-22_05" = sources.nixpkgs-22_05;
   };
 
-  mkReleaseForVersion = version: rev:
+  mkReleaseForVersion = version: nixpkgs:
     let
-      pkgsf = import (builtins.fetchGit {
-        url = "https://github.com/NixOS/nixpkgs";
-        inherit rev;
-      });
-      p = import ./nix/pkgs.nix { inherit pkgsf; };
+      p = import ./nix/pkgs.nix {
+        inherit sources; pkgsf = import nixpkgs; inherit system;
+      };
     in
     p.sydtestRelease.overrideAttrs (old: { name = "sydtest-release-${version}"; });
 in

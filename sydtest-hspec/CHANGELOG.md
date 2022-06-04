@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0.1] - 2022-06-04
+
+### Added
+
+* Compatibility with `hspec 2.7`
+
 ## [0.3.0.0] - 2022-04-28
 
 ### Added

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1.0] - 2022-06-04
+
+### Changed
+
+* Fixed a bug where multiple layers of contextual failures were not unwrapped and shown correctly.
+* Made 'Assertion' fields strict.
+
 ## [0.10.0.0] - 2022-04-28
 
 ### Added

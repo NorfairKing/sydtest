@@ -206,6 +206,7 @@ spec = do
             True `shouldBe` False
     it "shows a context when an exception is thrown as well" $
       context "context" (undefined :: IO ())
+
   modifyMaxSize (`div` 10) $
     describe "Property" $ do
       describe "0 tests run" $ modifyMaxSuccess (const 0) $ it "shows a red '0 tests' when no tests are run" $ property $ \b -> b `shouldBe` False

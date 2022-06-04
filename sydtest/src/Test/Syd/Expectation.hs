@@ -127,7 +127,9 @@ expectationFailure = throwIO . ExpectationFailed
 -- This is a completely different function from the function with the same name in hspec.
 -- In hspec, context is a synonym for describe, but in sydtest, context is used for contextual failures.
 context :: String -> IO a -> IO a
-context s action = (action >>= evaluate) `catch` (\e -> throwIO (addContextToException (e :: SomeException) s))
+context s action =
+  (action >>= evaluate)
+    `catch` (\(SomeException e) -> throwIO (addContextToException e s))
 
 -- | For easy hspec migration
 type Expectation = IO ()

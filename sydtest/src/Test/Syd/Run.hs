@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -449,27 +450,35 @@ data TestStatus = TestPassed | TestFailed
 --
 -- You will probably not want to use this directly in everyday tests, use `shouldBe` or a similar function instead.
 data Assertion
-  = NotEqualButShouldHaveBeenEqual String String
-  | EqualButShouldNotHaveBeenEqual String String
+  = NotEqualButShouldHaveBeenEqual !String !String
+  | EqualButShouldNotHaveBeenEqual !String !String
   | PredicateSucceededButShouldHaveFailed
-      String -- Value
-      (Maybe String) -- Name of the predicate
+      !String -- Value
+      !(Maybe String) -- Name of the predicate
   | PredicateFailedButShouldHaveSucceeded
-      String -- Value
-      (Maybe String) -- Name of the predicate
-  | ExpectationFailed String
-  | Context Assertion String
+      !String -- Value
+      !(Maybe String) -- Name of the predicate
+  | ExpectationFailed !String
+  | Context !Assertion !String
   deriving (Show, Eq, Typeable, Generic)
 
 instance Exception Assertion
 
-data Contextual = Contextual !SomeException !String
-  deriving (Show, Typeable, Generic)
+-- | An exception with context.
+--
+-- We wrap an existentially qualified exception here, instead of
+-- 'SomeException', so that we can unwrap it.
+-- (For some unknown reason, that doesn't work otherwise.)
+data Contextual
+  = forall e. Exception e => Contextual !e !String
+
+instance Show Contextual where
+  showsPrec d (Contextual e s) = showParen (d > 10) $ showString "Contextual " . showsPrec 11 (displayException e) . showString " " . showsPrec 11 s
 
 instance Exception Contextual
 
 addContextToException :: Exception e => e -> String -> Contextual
-addContextToException e = Contextual (SomeException e)
+addContextToException e = Contextual e
 
 data GoldenCase
   = GoldenNotFound

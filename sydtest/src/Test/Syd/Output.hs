@@ -392,12 +392,13 @@ outputFailures settings rf =
                 ]
 
 outputSomeException :: SomeException -> [[Chunk]]
-outputSomeException se =
-  case fromException se of
-    Just (Contextual se' s) -> outputSomeException se' ++ stringChunks s
-    Nothing -> case fromException se of
-      Just a -> outputAssertion a
-      Nothing -> stringChunks $ displayException se
+outputSomeException outerException =
+  case fromException outerException :: Maybe Contextual of
+    Just (Contextual innerException s) -> outputSomeException (SomeException innerException) ++ stringChunks s
+    Nothing ->
+      case fromException outerException :: Maybe Assertion of
+        Just a -> outputAssertion a
+        Nothing -> stringChunks $ displayException outerException
 
 outputAssertion :: Assertion -> [[Chunk]]
 outputAssertion = \case

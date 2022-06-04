@@ -52,6 +52,7 @@ jobs:
         lts:
           - release
           - nixos-21_11
+          - nixos-22_05
 
     name: CI Build
     runs-on: ubuntu-latest

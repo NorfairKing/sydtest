@@ -41,10 +41,10 @@
         "homepage": "",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "7a20c208aacf4964c19186dcad51f89165dc7ed0",
-        "sha256": "1lbg7sp0qsckc2wykanffy0jjzlpmiqwm38xgjpz2m139rj7ipd6",
+        "rev": "d9794b04bffb468b886c553557489977ae5f4c65",
+        "sha256": "1l41dhs1cmwx7q7s38d9dr9zyijfm6bhmv41zr7rsg94yplbr0f1",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/7a20c208aacf4964c19186dcad51f89165dc7ed0.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/d9794b04bffb468b886c553557489977ae5f4c65.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs-21_11": {
@@ -53,10 +53,10 @@
         "homepage": "",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ec6eaba9dfcfdd11547d75a193e91e26701bf7e3",
-        "sha256": "018658ypakpg9yxbyzd06vaxzs5956lr30jkfvw0fzn33pp01xdg",
+        "rev": "5986ddf62ab2f61490f6adddecd0c68e746cc93e",
+        "sha256": "037s925g0wgyzff4m266rmzpspclpsq8hp0nmn7gj9pqf8p79qm0",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/ec6eaba9dfcfdd11547d75a193e91e26701bf7e3.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/5986ddf62ab2f61490f6adddecd0c68e746cc93e.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs-22_05": {
@@ -65,10 +65,10 @@
         "homepage": "",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "7a20c208aacf4964c19186dcad51f89165dc7ed0",
-        "sha256": "1lbg7sp0qsckc2wykanffy0jjzlpmiqwm38xgjpz2m139rj7ipd6",
+        "rev": "d9794b04bffb468b886c553557489977ae5f4c65",
+        "sha256": "1l41dhs1cmwx7q7s38d9dr9zyijfm6bhmv41zr7rsg94yplbr0f1",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/7a20c208aacf4964c19186dcad51f89165dc7ed0.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/d9794b04bffb468b886c553557489977ae5f4c65.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "pre-commit-hooks": {

@@ -10,8 +10,8 @@ module Test.Syd.Runner.Synchronous where
 
 import Control.Exception
 import Control.Monad.IO.Class
-import qualified Data.ByteString.Char8 as SB8
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Test.Syd.HList
 import Test.Syd.OptParse
 import Test.Syd.Output
@@ -64,8 +64,8 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
   tc <- deriveTerminalCapababilities settings
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
-        putChunksWith tc lineChunks
-        SB8.putStrLn ""
+        putChunksLocaleWith tc lineChunks
+        TIO.putStrLn ""
       treeWidth :: Int
       treeWidth = specForestWidth testForest
   let pad :: Int -> [Chunk] -> [Chunk]

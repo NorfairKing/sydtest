@@ -15,7 +15,7 @@ where
 import Control.Concurrent (getNumCapabilities)
 import Control.Monad
 import Control.Monad.IO.Class
-import qualified Data.ByteString.Char8 as SB8
+import qualified Data.Text.IO as TIO
 import System.Environment
 import System.Mem (performGC)
 import Test.Syd.Def
@@ -50,8 +50,8 @@ sydTestOnce settings spec = do
       when (i == 1) $ do
         let outputLine :: [Chunk] -> IO ()
             outputLine lineChunks = liftIO $ do
-              putChunksWith tc lineChunks
-              SB8.putStrLn ""
+              putChunksLocaleWith tc lineChunks
+              TIO.putStrLn ""
         mapM_
           ( outputLine
               . (: [])

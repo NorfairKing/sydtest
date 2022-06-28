@@ -8,11 +8,7 @@
 module Test.Syd.Output where
 
 import Control.Exception
-import Control.Monad.Reader
 import Data.Algorithm.Diff
-import Data.ByteString.Builder (Builder)
-import qualified Data.ByteString.Builder as SBB
-import qualified Data.ByteString.Char8 as SB8
 import qualified Data.List as L
 import Data.List.Split (splitWhen)
 import Data.Map (Map)
@@ -20,6 +16,9 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as LTB
+import qualified Data.Text.Lazy.Builder as Text
+import qualified Data.Text.Lazy.IO as LTIO
 import Data.Word
 import GHC.Stack
 import Safe
@@ -34,16 +33,12 @@ import Text.Printf
 printOutputSpecForest :: Settings -> Timed ResultForest -> IO ()
 printOutputSpecForest settings results = do
   tc <- deriveTerminalCapababilities settings
+  LTIO.putStr $ LTB.toLazyText $ renderResultReport settings tc results
 
-  forM_ (outputResultReport settings results) $ \chunks -> do
-    putChunksWith tc chunks
-    SB8.putStrLn ""
-
-renderResultReport :: Settings -> TerminalCapabilities -> Timed ResultForest -> Builder
+renderResultReport :: Settings -> TerminalCapabilities -> Timed ResultForest -> Text.Builder
 renderResultReport settings tc rf =
   mconcat $
-    L.intersperse (SBB.char7 '\n') $
-      map (renderChunks tc) (outputResultReport settings rf)
+    map (\line -> renderChunksBuilder tc line <> "\n") (outputResultReport settings rf)
 
 outputResultReport :: Settings -> Timed ResultForest -> [[Chunk]]
 outputResultReport settings trf@(Timed rf _) =

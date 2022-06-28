@@ -12,12 +12,12 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad.Reader
-import qualified Data.ByteString.Char8 as SB8
 import Data.IORef
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.OptParse
@@ -116,8 +116,8 @@ printer settings failFastVar handleForest = do
 
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
-        putChunksWith tc lineChunks
-        SB8.putStrLn ""
+        putChunksLocaleWith tc lineChunks
+        TIO.putStrLn ""
 
       treeWidth :: Int
       treeWidth = specForestWidth handleForest

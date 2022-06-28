@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0.0] - 2022-06-28
+
+### Changed
+
+* `printOutputSpecForest` now uses `Data.Text.Lazy.IO` to output the report, so it will try to respect the system's locale.
+* `renderResultReport` now outputs a `Text.Builder` instead of a `ByteString.Builder` and a newline at the end.
+
 ## [0.10.1.0] - 2022-06-04
 
 ### Changed

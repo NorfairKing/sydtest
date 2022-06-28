@@ -2,8 +2,8 @@
 
 module Test.Syd.GoldenSpec (spec) where
 
-import qualified Data.ByteString.Builder as SBB
-import qualified Data.ByteString.Lazy as LB
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.Builder as LTB
 import Test.Syd
 import Test.Syd.OptParse
 import Text.Colour
@@ -12,8 +12,8 @@ spec :: Spec
 spec = do
   describe "outputResultForest" $ do
     it "outputs the same as last time" $ do
-      pureGoldenByteStringFile
+      pureGoldenTextFile
         "test_resources/output.golden"
-        (LB.toStrict $ SBB.toLazyByteString $ renderResultReport defaultSettings With24BitColours (Timed [] 0))
+        (LT.toStrict $ LTB.toLazyText $ renderResultReport defaultSettings With24BitColours (Timed [] 0))
   describe "defaultSettings" $ do
     it "is the same thing as last time" $ goldenPrettyShowInstance "test_resources/defaultSettings-show.golden" defaultSettings

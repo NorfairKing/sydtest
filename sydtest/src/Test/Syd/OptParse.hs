@@ -14,7 +14,6 @@ import Control.Monad
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import qualified Env
 import GHC.Generics (Generic)
 import Options.Applicative as OptParse

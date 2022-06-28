@@ -1,14 +1,14 @@
 {
     "autodocodec": {
-        "branch": "development",
+        "branch": "master",
         "description": null,
         "homepage": null,
         "owner": "NorfairKing",
         "repo": "autodocodec",
-        "rev": "d9a36061ac59f4491039d87c86c3d72cad44a279",
-        "sha256": "0606m43r275dfyja4mzvj8fif123pnw966bvl6zjgd8hvyqi82ir",
+        "rev": "a4832c00966f965198801ebd55bdce548de718ba",
+        "sha256": "1da7lfny2lks74z8hmyx9ridxw4r870wsf5mkk33v9fc2618q8v3",
         "type": "tarball",
-        "url": "https://github.com/NorfairKing/autodocodec/archive/d9a36061ac59f4491039d87c86c3d72cad44a279.tar.gz",
+        "url": "https://github.com/NorfairKing/autodocodec/archive/a4832c00966f965198801ebd55bdce548de718ba.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "gitignore": {

@@ -1,7 +1,7 @@
 { sources ? import ./nix/sources.nix
-, pkgsf ? import sources.nixpkgs
+, nixpkgs ? sources.nixpkgs
 , system ? builtins.currentSystem
-, pkgs ? import ./nix/pkgs.nix { inherit sources pkgsf system; }
+, pkgs ? import ./nix/pkgs.nix { inherit sources nixpkgs system; }
 }:
 let
   pre-commit = import ./nix/pre-commit.nix { inherit sources; };
@@ -14,7 +14,7 @@ let
   mkReleaseForVersion = version: nixpkgs:
     let
       p = import ./nix/pkgs.nix {
-        inherit sources; pkgsf = import nixpkgs; inherit system;
+        inherit sources nixpkgs system;
       };
     in
     p.sydtestRelease.overrideAttrs (old: { name = "sydtest-release-${version}"; });

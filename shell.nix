@@ -1,6 +1,6 @@
 { sources ? import ./nix/sources.nix
-, pkgsf ? import sources.nixpkgs
-, pkgs ? import ./nix/pkgs.nix { inherit pkgsf sources; }
+, nixpkgs ? sources.nixpkgs
+, pkgs ? import ./nix/pkgs.nix { inherit nixpkgs sources; }
 , pre-commit ? import ./nix/pre-commit.nix { inherit sources; }
 }:
 pkgs.haskell.lib.buildStackProject {

@@ -21,7 +21,10 @@ let
 in
 {
   release = pkgs.sydtestRelease;
-  hoogle = pkgs.sydtestHoogle;
+  hoogle = pkgs.buildEnv {
+    name = "sydtest-hoogle";
+    paths = [ (pkgs.haskellPackages.ghcWithHoogle (ps: pkgs.lib.attrValues pkgs.sydtestPackages)) ];
+  };
   shell = pkgs.symlinkJoin {
     name = "sydtest-shell";
     paths = (import ./shell.nix { inherit sources pkgs pre-commit; }).buildInputs;

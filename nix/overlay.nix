@@ -122,11 +122,6 @@ with final.haskell.lib;
       "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
     };
 
-  sydtestHoogle = final.buildEnv {
-    name = "sydtest-hoogle";
-    paths = [ (final.haskellPackages.ghcWithHoogle (ps: final.lib.attrValues final.sydtestPackages)) ];
-  };
-
   sydtestRelease =
     final.symlinkJoin {
       name = "sydtest-release";

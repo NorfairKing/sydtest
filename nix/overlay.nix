@@ -6,7 +6,7 @@ with final.haskell.lib;
     let
       sydtestPkg =
         name:
-        buildStrictly (
+        buildFromSdist (
           overrideCabal (final.haskellPackages.callCabal2nixWithOptions name (final.gitignoreSource (../. + "/${name}")) "--no-hpack" { })
             (old: {
               doBenchmark = true;

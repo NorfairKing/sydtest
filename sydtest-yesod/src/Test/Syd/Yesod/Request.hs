@@ -64,19 +64,20 @@ performMethod method route = request $ do
   setUrl route
   setMethod method
 
+-- | Synonym of 'statusShouldBe' for compatibility with yesod-test
+statusIs :: HasCallStack => Int -> YesodClientM site ()
+statusIs = statusShouldBe
+
 -- | Assert the status of the most recently received response.
 --
 -- > it "returns 200 on the home route" $ do
 -- >   get HomeR
--- >   statusIs 200
-statusIs :: HasCallStack => Int -> YesodClientM site ()
-statusIs i = do
-  mLast <- getLast
-  case mLast of
-    Nothing -> liftIO $ expectationFailure "statusIs: No request made yet."
-    Just (_, resp) ->
-      let c = statusCode (responseStatus resp)
-       in withLastRequestContext $ liftIO $ c `shouldBe` i
+-- >   statusShouldBe 200
+statusShouldBe :: HasCallStack => Int -> YesodClientM site ()
+statusShouldBe expected =
+  withLastRequestContext $ do
+    actual <- requireStatus
+    liftIO $ actual `shouldBe` expected
 
 -- | Assert the redirect location of the most recently received response.
 --
@@ -87,23 +88,21 @@ statusIs i = do
 locationShouldBe :: (ParseRoute site, Show (Route site)) => Route site -> YesodClientM localSite ()
 locationShouldBe expected =
   withLastRequestContext $ do
-    errOrLoc <- getLocation
-    liftIO $ case errOrLoc of
-      Left err -> expectationFailure (T.unpack err)
-      Right actual -> actual `shouldBe` expected
+    actual <- requireLocation
+    liftIO $ actual `shouldBe` expected
 
 -- | Assert the last response has the given text.
 --
 -- The check is performed using the response body in full text form without any html parsing.
 bodyContains :: HasCallStack => String -> YesodExample site ()
-bodyContains text = do
-  mResp <- getLast
-  case mResp of
-    Nothing -> liftIO $ expectationFailure "bodyContains: No request made yet."
-    Just (_, resp) ->
-      withLastRequestContext $
-        liftIO $
-          shouldSatisfyNamed (responseBody resp) (unwords ["bodyContains", show text]) (\body -> TE.encodeUtf8 (T.pack text) `SB.isInfixOf` LB.toStrict body)
+bodyContains text =
+  withLastRequestContext $ do
+    resp <- requireResponse
+    liftIO $
+      shouldSatisfyNamed
+        (responseBody resp)
+        (unwords ["bodyContains", show text])
+        (\body -> TE.encodeUtf8 (T.pack text) `SB.isInfixOf` LB.toStrict body)
 
 -- | A request builder monad that allows you to monadically build a request using `runRequestBuilder`.
 --
@@ -424,15 +423,21 @@ followRedirect ::
   -- | 'Left' with an error message if not a redirect, 'Right' with the redirected URL if it was
   YesodExample site (Either Text Text)
 followRedirect = do
-  mr <- getResponse
-  case mr of
-    Nothing -> return $ Left "followRedirect called, but there was no previous response, so no redirect to follow"
-    Just r -> do
-      if HTTP.statusCode (responseStatus r) `notElem` [301, 302, 303, 307, 308]
-        then return $ Left "followRedirect called, but previous request was not a redirect"
-        else do
-          case lookup "Location" (responseHeaders r) of
-            Nothing -> return $ Left "followRedirect called, but no location header set"
-            Just h ->
-              let url = TE.decodeUtf8 h
-               in get url >> return (Right url)
+  r <- requireResponse
+  if HTTP.statusCode (responseStatus r) `notElem` [301, 302, 303, 307, 308]
+    then return $ Left "followRedirect called, but previous request was not a redirect"
+    else do
+      case lookup "Location" (responseHeaders r) of
+        Nothing -> return $ Left "followRedirect called, but no location header set"
+        Just h ->
+          let url = TE.decodeUtf8 h
+           in get url >> return (Right url)
+
+followRedirect_ ::
+  Yesod site =>
+  YesodExample site ()
+followRedirect_ = do
+  errOrRedirect <- followRedirect
+  case errOrRedirect of
+    Left err -> liftIO $ expectationFailure (T.unpack err)
+    Right _ -> pure ()

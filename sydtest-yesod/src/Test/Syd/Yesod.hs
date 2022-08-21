@@ -45,6 +45,7 @@ module Test.Syd.Yesod
     get,
     post,
     followRedirect,
+    followRedirect_,
 
     -- ** Using the request builder
     request,
@@ -72,15 +73,22 @@ module Test.Syd.Yesod
     addTokenFromCookieNamedToHeaderNamed,
 
     -- *** Queries
+    getStatus,
+    requireStatus,
     getRequest,
+    requireRequest,
     getResponse,
+    requireResponse,
     getLocation,
+    requireLocation,
     getLast,
+    requireLast,
 
     -- * Declaring assertions
-    statusIs,
+    statusShouldBe,
     locationShouldBe,
     bodyContains,
+    statusIs,
 
     -- * Just to be sure we didn't forget any exports
     module Test.Syd.Yesod.Client,

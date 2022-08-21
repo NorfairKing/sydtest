@@ -2,8 +2,6 @@ version: 2.0.0
 value:
 - entry: Sydtest ideas
   forest:
-  - header: a test for sql migrations definitely working going forward
-    contents: take it from the salsa test suite
   - a shouldfail combinator
   - make sure that fail fast works with fail-on-flaky
   - 'docs: examples of golden tests'

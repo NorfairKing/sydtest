@@ -31,10 +31,10 @@ main :: IO ()
 main = do
   settings <- getSettings
   testForest <- execTestDefM settings spec
-  _ <- runSpecForestInterleavedWithOutputSynchronously settings testForest
-  _ <- runSpecForestInterleavedWithOutputAsynchronously settings 8 testForest
   rf1 <- timeItT $ runSpecForestSynchronously settings testForest
   printOutputSpecForest settings rf1
+  _ <- runSpecForestInterleavedWithOutputSynchronously settings testForest
+  _ <- runSpecForestInterleavedWithOutputAsynchronously settings 8 testForest
   rf2 <- timeItT $ runSpecForestAsynchronously settings 8 testForest
   printOutputSpecForest settings rf2
   pure ()

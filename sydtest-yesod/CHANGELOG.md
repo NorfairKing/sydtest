@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0.1] - 2022-08-21
+
+### Added
+
+* `followRedirect_`
+* `getStatus`
+* `requireLast`
+* `requireLocation`
+* `requireRequest`
+* `requireResponse`
+* `requireStatus`
+* `statusShouldBe`
+
 ## [0.3.0.0] - 2021-06-29
 
 ### Added

@@ -93,15 +93,41 @@ runYesodClientM cenv (YesodClientM func) = runReaderT (evalStateT func initYesod
 
 -- | Get the most recently sent request.
 getRequest :: YesodClientM site (Maybe Request)
-getRequest = State.gets (fmap fst . yesodClientStateLast)
+getRequest = fmap fst <$> getLast
+
+-- | Get the most recently sent request.
+requireRequest :: YesodClientM site Request
+requireRequest = fst <$> requireLast
 
 -- | Get the most recently received response.
 getResponse :: YesodClientM site (Maybe (Response LB.ByteString))
-getResponse = State.gets (fmap snd . yesodClientStateLast)
+getResponse = fmap snd <$> getLast
+
+-- | Get the most recently received response, and assert that it already exists.
+requireResponse :: YesodClientM site (Response LB.ByteString)
+requireResponse = snd <$> requireLast
 
 -- | Get the most recently sent request and the response to it.
 getLast :: YesodClientM site (Maybe (Request, Response LB.ByteString))
 getLast = State.gets yesodClientStateLast
+
+-- | Get the most recently sent request and the response to it, and assert that they already exist.
+requireLast :: YesodClientM site (Request, Response LB.ByteString)
+requireLast = do
+  mTup <- getLast
+  case mTup of
+    Nothing -> liftIO $ expectationFailure "Should have had a latest request/response pair by now."
+    Just tup -> pure tup
+
+-- | Get the status of the most recently received response.
+getStatus :: YesodClientM site (Maybe Int)
+getStatus = do
+  mResponse <- getResponse
+  pure $ statusCode . responseStatus <$> mResponse
+
+-- | Get the status of the most recently received response, and assert that it already exists.
+requireStatus :: YesodClientM site Int
+requireStatus = statusCode . responseStatus <$> requireResponse
 
 -- | Get the 'Location' header of most recently received response.
 getLocation :: ParseRoute site => YesodClientM localSite (Either Text (Route site))
@@ -121,6 +147,14 @@ getLocation = do
        in (ss, map unJust $ queryToQueryText q)
     unJust (a, Just b) = (a, b)
     unJust (a, Nothing) = (a, mempty)
+
+-- | Get the 'Location' header of most recently received response, and assert that it is a valid Route.
+requireLocation :: ParseRoute site => YesodClientM localSite (Route site)
+requireLocation = do
+  errOrLocation <- getLocation
+  case errOrLocation of
+    Left err -> liftIO $ expectationFailure $ T.unpack err
+    Right location -> pure location
 
 -- | Annotate the given test code with the last request and its response, if one has been made already.
 withLastRequestContext :: YesodClientM site a -> YesodClientM site a

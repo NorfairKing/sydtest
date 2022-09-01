@@ -79,6 +79,7 @@ with final.haskell.lib;
     {
       "sydtest" = sydtestPkg "sydtest";
       "sydtest-aeson" = sydtestPkg "sydtest-aeson";
+      "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
       "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";
       "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
       "sydtest-hspec" = sydtestPkg "sydtest-hspec";

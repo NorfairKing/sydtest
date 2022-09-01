@@ -1,0 +1,59 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.7.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-autodocodec
+version:        0.0.0.0
+synopsis:       An autodocodec companion library for sydtest
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+copyright:      Copyright (c) 2022 Tom Sydney Kerckhove
+license:        OtherLicense
+license-file:   LICENSE.md
+build-type:     Simple
+extra-source-files:
+    LICENSE.md
+    test_resources/example.txt
+    test_resources/int.txt
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd.Autodocodec
+  other-modules:
+      Paths_sydtest_autodocodec
+  hs-source-dirs:
+      src
+  build-depends:
+      autodocodec
+    , autodocodec-yaml
+    , base >=4.7 && <5
+    , sydtest
+    , text
+  default-language: Haskell2010
+
+test-suite sydtest-aeson-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Test.Syd.AutodocodecSpec
+      Paths_sydtest_autodocodec
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      autodocodec
+    , base >=4.7 && <5
+    , sydtest
+    , sydtest-autodocodec
+  default-language: Haskell2010

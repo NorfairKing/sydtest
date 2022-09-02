@@ -69,8 +69,8 @@ bracketSetupFunc acquire release = SetupFunc $ \func -> bracket acquire release 
 setupAround ::
   SetupFunc inner ->
   TestDefM outers inner result ->
-  TestDefM outers () result
-setupAround setupFunc = setupAroundWith $ \() -> setupFunc
+  TestDefM outers any result
+setupAround setupFunc = setupAroundWith $ \_ -> setupFunc
 
 -- | Use 'aroundWith' with a 'SetupFunc'
 setupAroundWith ::

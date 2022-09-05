@@ -127,7 +127,12 @@ makeModuleName fp =
 makeSpecModule :: Settings -> Path Rel File -> [SpecModule] -> String
 makeSpecModule Settings {..} destination sources =
   unlines
-    [ "{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-unused-imports #-}",
+    [ -- We use "-w -Wall" to first turn off all warnings and then turn on
+      -- specific ones we want.
+      -- This allows globally set warnings to fail on this module without
+      -- failing the build.
+      -- See also https://github.com/NorfairKing/sydtest/issues/54
+      "{-# OPTIONS_GHC -w -Wall -fno-warn-missing-signatures -fno-warn-unused-imports #-}",
       if settingMain then "" else moduleDeclaration (makeModuleName destination),
       "",
       "import Test.Syd",

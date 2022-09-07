@@ -83,6 +83,13 @@ shouldContain a i = shouldSatisfyNamed a ("has infix\n" <> ppShow i) (isInfixOf 
 
 infix 1 `shouldContain`
 
+-- | Assert that the given list contains all elements from the other
+-- given list and only them, perhaps in a different order.
+shouldMatchList :: (HasCallStack, Show a, Eq a) => [a] -> [a] -> Expectation
+shouldMatchList a b = shouldSatisfyNamed a ("matches list\n" <> ppShow b) (matches b)
+  where
+    matches x y = null (x \\ y) && null (y \\ x)
+
 -- | Assert that two 'String's are equal according to `==`.
 --
 -- Note that using function could mess up the colours in your terminal if the Texts contain ANSI codes.

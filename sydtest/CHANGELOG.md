@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0.2] - 2022-09-7
+
+### Changed
+
+* Added the `shouldMatchList` expectation, corresponding the one from
+  `hspec-expectations`.
+
 ## [0.11.0.1] - 2022-06-28
 
 ### Changed

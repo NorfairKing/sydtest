@@ -99,6 +99,7 @@ module Test.Syd
     shouldStartWith,
     shouldEndWith,
     shouldContain,
+    shouldMatchList,
     expectationFailure,
     context,
     Expectation,

@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields -fno-warn-missing-methods -fno-warn-partial-fields -fno-warn-incomplete-uni-patterns -fno-warn-incomplete-record-updates #-}
 
-module Main where
+module Spec where
 
 import Control.Concurrent
 import Control.Exception
@@ -14,7 +14,6 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as TLB
 import System.Exit
-import System.Random
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
@@ -26,18 +25,6 @@ class ToUnit a where
   toUnit :: a -> ()
 
 instance ToUnit Int -- No implementation on purpose
-
-main :: IO ()
-main = do
-  settings <- getSettings
-  testForest <- execTestDefM settings spec
-  rf1 <- timeItT $ runSpecForestSynchronously settings testForest
-  printOutputSpecForest settings rf1
-  _ <- runSpecForestInterleavedWithOutputSynchronously settings testForest
-  _ <- runSpecForestInterleavedWithOutputAsynchronously settings 8 testForest
-  rf2 <- timeItT $ runSpecForestAsynchronously settings 8 testForest
-  printOutputSpecForest settings rf2
-  pure ()
 
 spec :: Spec
 spec = do
@@ -149,54 +136,56 @@ spec = do
           (LT.toStrict $ TLB.toLazyText $ renderResultReport defaultSettings With24BitColours (Timed [] 0))
 
   doNotRandomiseExecutionOrder $
-    describe "Around" $
-      do
-        describe "before" $ do
-          before (() <$ throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+    describe "Around" $ do
+      describe "before" $ do
+        before (() <$ throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
-        describe "before_" $ do
-          before_ (throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+      describe "before_" $ do
+        before_ (throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
-        describe "after" $ do
-          after (\_ -> throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+      describe "after" $ do
+        after (\_ -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
-        describe "after_" $ do
-          after_ (throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+      describe "after_" $ do
+        after_ (throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
-        describe "around" $ do
-          around (\_ -> throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+      describe "around" $ do
+        around (\_ -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
-        describe "around_" $ do
-          around_ (\_ -> throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+      describe "around_" $ do
+        around_ (\_ -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
-        describe "aroundWith" $ do
-          aroundWith (\_ () -> throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+      describe "aroundWith" $ do
+        aroundWith (\_ () -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
 
-        describe "aroundWith'" $ do
-          aroundWith' (\_ () () -> throwIO (userError "test")) $
-            it "does not kill the test suite" $ \() ->
-              pure () :: IO ()
+      describe "aroundWith'" $ do
+        aroundWith' (\_ () () -> throwIO (userError "test")) $
+          it "does not kill the test suite" $ \() ->
+            pure () :: IO ()
+
   it "expectationFailure" (expectationFailure "fails" :: IO ())
+
   describe "String" $ do
     it "compares strings" $ ("foo\nbar\tquux " :: String) `shouldBe` "foq\nbaz\tqex"
     it "compares strings" $ ("foo\nbar\tquux " :: String) `stringShouldBe` "foq\nbaz\tqex"
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `shouldBe` "foq\nbaz\tqex"
     it "compares texts" $ ("foo\nbar\tquux " :: Text) `textShouldBe` "foq\nbaz\tqex"
     it "compares bytestrings" $ ("foo\nbar\tquux " :: ByteString) `shouldBe` "foq\nbaz\tqex"
+
   describe "Context" $ do
     it "shows a nice context" $ context "Context" $ True `shouldBe` False
     it "shows a nice context multiple levels deep" $
@@ -219,7 +208,7 @@ spec = do
                   property $ \m ->
                     i + j + k + l + m `shouldBe` m + l + k + j + i + (1 :: Int)
       let magnitude :: Int -> Int
-          magnitude = (ceiling :: Double -> Int) . logBase 10 . fromIntegral
+          magnitude = max 0 . (ceiling :: Double -> Int) . logBase 10 . fromIntegral
       describe "labels" $ do
         it "shows the labels in use on success" $
           property $ \xs ->
@@ -235,6 +224,7 @@ spec = do
             label ("length of input is " ++ show (length xs)) $
               label ("magnitude (digits) of sum of input is " ++ show (magnitude (sum xs))) $
                 reverse (reverse xs) `shouldBe` (0 : xs :: [Int])
+
       describe "classes" $ do
         it "shows the classes in use on success" $
           forAll (sort <$> arbitrary) $ \xs ->
@@ -252,16 +242,13 @@ spec = do
               classify (length xs == 1) "single element" $
                 classify (length xs > 1) "non-trivial" $
                   sort xs `shouldBe` (0 : xs :: [Int])
+
       describe "tables" $ do
         it "shows the tables in use on success" $
           forAll (sort <$> arbitrary) $ \xs ->
             tabulate "List elements" (map show xs) $
               sort xs `shouldBe` (xs :: [Int])
-        it "shows the tables in use on success" $
-          forAll (sort <$> arbitrary) $ \xs ->
-            tabulate "List elements" (map show xs) $
-              tabulate "List magnitudes" (map (show . magnitude) xs) $
-                sort xs `shouldBe` (xs :: [Int])
+
   modifyMaxSize (const 30) $ -- Bigger than the 20 below
     modifyMaxShrinks (const 30) $ -- Definitely not zero
       describe "Shrinking" $ do
@@ -276,15 +263,17 @@ spec = do
             forAllShrink (sized $ \n -> pure n) shrink $ \i -> do
               () <- readMVar var
               i `shouldSatisfy` (< 20)
+
   describe "Flakiness" $ do
     notFlaky $ it "does not retry if not allowed" False
     flaky 3 $ do
       it "can retry booleans" False
       notFlaky $ it "does not retry booleans that have been explicitly marked as 'notFlaky'" False
-    flakyWith 100 "We're on it!" $
-      it "can retry randomness" $ do
-        i <- randomRIO (1, 10)
-        i `shouldBe` (1 :: Int)
+    flakyWith 4 "We're on it!" $ do
+      var <- liftIO $ newMVar (0 :: Int)
+      it "can retry this intentionally flaky test" $ do
+        i <- withMVar var (pure . succ)
+        i `shouldBe` 3
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

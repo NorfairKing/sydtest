@@ -3,8 +3,6 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: 146fca0f19cd3781f36f8b0224fcd12370fa9dc1506f8adbd22c3078a82992fd
 
 name:           sydtest-aeson
 version:        0.1.0.0

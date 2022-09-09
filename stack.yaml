@@ -82,7 +82,7 @@ extra-deps:
   commit: cf9c387de7c1525ffbcd58125ccb3f798a97a2bb
 
 ghc-options:
-  "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef
+  "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages
 
 
 nix:

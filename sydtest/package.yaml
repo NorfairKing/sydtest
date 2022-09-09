@@ -74,7 +74,7 @@ tests:
     - text
 
   sydtest-output-test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: output-test
     ghc-options:
     - -threaded
@@ -83,13 +83,6 @@ tests:
     dependencies:
     - QuickCheck
     - bytestring
-    - path
-    - path-io
-    - random
     - safe-coloured-text
     - sydtest
     - text
-    when:
-      - condition: '!os(windows)'
-        dependencies:
-          - safe-coloured-text-terminfo

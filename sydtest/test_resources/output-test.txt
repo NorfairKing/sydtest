@@ -1,0 +1,659 @@
+[34mTests:[m
+
+[33mFlakiness[m
+  [31m✗ [m[31mdoes not retry booleans that have been explicitly marked as 'notFlaky'[m          [32m      0.00 ms[m
+  [31m✗ [m[31mcan retry booleans[m                                                              [32m      0.00 ms[m
+    Retries: 2 (likely not flaky)
+  [31m✗ [m[31mcan retry this intentionally flaky test[m                                         [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
+  [31m✗ [m[31mdoes not retry if not allowed[m                                                   [32m      0.00 ms[m
+[33mDiff[m
+  [31m✗ [m[31mshows nice multi-line diffs[m                                                     [32m      0.00 ms[m
+  [31m✗ [m[31mshows nice multi-line diffs[m                                                     [32m      0.00 ms[m
+[33mString[m
+  [31m✗ [m[31mcompares bytestrings[m                                                            [32m      0.00 ms[m
+  [31m✗ [m[31mcompares texts[m                                                                  [32m      0.00 ms[m
+  [31m✗ [m[31mcompares strings[m                                                                [32m      0.00 ms[m
+  [31m✗ [m[31mcompares strings[m                                                                [32m      0.00 ms[m
+  [31m✗ [m[31mcompares texts[m                                                                  [32m      0.00 ms[m
+[33mShrinking[m
+  [31m✗ [m[31mcan grab the mvar during shrinking[m                                              [32m      0.00 ms[m
+[33massertions[m
+  [31m✗ [m[31mshouldNotSatisfyNamed[m                                                           [32m      0.00 ms[m
+  [31m✗ [m[31mshouldNotBe[m                                                                     [32m      0.00 ms[m
+  [31m✗ [m[31mshouldSatisfyNamed[m                                                              [32m      0.00 ms[m
+  [31m✗ [m[31mshouldNotSatisfy[m                                                                [32m      0.00 ms[m
+  [31m✗ [m[31mshouldBe[m                                                                        [32m      0.00 ms[m
+  [31m✗ [m[31mshouldSatisfy[m                                                                   [32m      0.00 ms[m
+[33mundefined[m
+  [31m✗ [m[31mImpure undefined[m                                                                [32m      0.00 ms[m
+  [31m✗ [m[31mPure undefined[m                                                                  [32m      0.00 ms[m
+[33mLong running tests[m
+  [32m✓ [m[32mtakes a while (7)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (10)[m                                                              [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (9)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (6)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (4)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (2)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (5)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (1)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (3)[m                                                               [32m      0.00 ms[m
+  [32m✓ [m[32mtakes a while (8)[m                                                               [32m      0.00 ms[m
+[33mPrinting[m
+  [32m✓ [m[32mprint[m                                                                           [32m      0.00 ms[m
+  [32m✓ [m[32mputStrLn[m                                                                        [32m      0.00 ms[m
+[33mProperty[m
+  [33m0 tests run[m
+    [32m✓ [m[32mshows a red '0 tests' when no tests are run[m                                   [32m      0.00 ms[m
+      passed for all of [31m0[m inputs.
+  [33mgenerated values[m
+    [31m✗ [m[31mshows many generated values too[m                                               [32m      0.00 ms[m
+  [33mlabels[m
+    [32m✓ [m[32mshows the labels in use on success[m                                            [32m      0.00 ms[m
+      passed for all of [32m100[m inputs.
+      Labels
+        31.00% "length of input is 0", "magnitude (digits) of sum of input is 0"
+        13.00% "length of input is 1", "magnitude (digits) of sum of input is 0"
+         8.00% "length of input is 1", "magnitude (digits) of sum of input is 1"
+         5.00% "length of input is 2", "magnitude (digits) of sum of input is 0"
+         7.00% "length of input is 2", "magnitude (digits) of sum of input is 1"
+         1.00% "length of input is 2", "magnitude (digits) of sum of input is 2"
+         4.00% "length of input is 3", "magnitude (digits) of sum of input is 0"
+         3.00% "length of input is 3", "magnitude (digits) of sum of input is 1"
+         1.00% "length of input is 3", "magnitude (digits) of sum of input is 2"
+         5.00% "length of input is 4", "magnitude (digits) of sum of input is 0"
+         1.00% "length of input is 4", "magnitude (digits) of sum of input is 2"
+         7.00% "length of input is 5", "magnitude (digits) of sum of input is 0"
+         3.00% "length of input is 5", "magnitude (digits) of sum of input is 2"
+         5.00% "length of input is 6", "magnitude (digits) of sum of input is 0"
+         1.00% "length of input is 6", "magnitude (digits) of sum of input is 2"
+         2.00% "length of input is 7", "magnitude (digits) of sum of input is 0"
+         2.00% "length of input is 7", "magnitude (digits) of sum of input is 1"
+         1.00% "length of input is 8", "magnitude (digits) of sum of input is 0"
+    [32m✓ [m[32mshows the labels in use on success[m                                            [32m      0.00 ms[m
+      passed for all of [32m100[m inputs.
+      Labels
+        31.00% "length of input is 0"
+        21.00% "length of input is 1"
+        13.00% "length of input is 2"
+         8.00% "length of input is 3"
+         6.00% "length of input is 4"
+        10.00% "length of input is 5"
+         6.00% "length of input is 6"
+         4.00% "length of input is 7"
+         1.00% "length of input is 8"
+    [31m✗ [m[31mshows the labels in use on failure[m                                            [32m      0.00 ms[m
+      Labels
+        100.00% "length of input is 0", "magnitude (digits) of sum of input is 0"
+  [33mclasses[m
+    [32m✓ [m[32mshows the classes in use on success[m                                           [32m      0.00 ms[m
+      passed for all of [32m100[m inputs.
+      Classes
+        100.00% non-trivial
+    [31m✗ [m[31mshows the classes in use on failure[m                                           [32m      0.00 ms[m
+      Classes
+        100.00% empty
+    [32m✓ [m[32mshows the classes in use on success[m                                           [32m      0.00 ms[m
+      passed for all of [32m100[m inputs.
+      Classes
+        31.00% empty
+        48.00% non-trivial
+        21.00% single element
+  [33mtables[m
+    [32m✓ [m[32mshows the tables in use on success[m                                            [32m      0.00 ms[m
+      passed for all of [32m100[m inputs.
+       
+      List elements
+        10.14% -1
+         6.45% -2
+         7.37% -3
+         7.83% -4
+         5.07% -5
+         4.61% -6
+         5.99% -7
+         1.38% -8
+         0.46% -9
+         7.37% 0
+         6.91% 1
+         6.45% 2
+         6.45% 3
+         6.45% 4
+         4.61% 5
+         4.61% 6
+         4.61% 7
+         1.84% 8
+         1.38% 9
+[32m✓ [m[32mPasses[m                                                                            [32m      0.00 ms[m
+[31m✗ [m[31mExit code[m                                                                         [32m      0.00 ms[m
+[33mContext[m
+  [31m✗ [m[31mshows a context when an exception is thrown as well[m                             [32m      0.00 ms[m
+  [31m✗ [m[31mshows a nice context[m                                                            [32m      0.00 ms[m
+  [31m✗ [m[31mshows a nice context multiple levels deep[m                                       [32m      0.00 ms[m
+[33mProperty tests[m
+  [33mpure[m
+    [32m✓ [m[32mshould work with custom generators too[m                                        [32m      0.00 ms[m
+      passed for all of [32m10[m inputs.
+    [31m✗ [m[31mshould fail to show that sorting does nothing[m                                 [32m      0.00 ms[m
+    [32m✓ [m[32mreversing a list twice is the same as reversing it once[m                       [32m      0.00 ms[m
+      passed for all of [32m10[m inputs.
+  [33mimpure[m
+    [32m✓ [m[32mreversing a list twice is the same as reversing it once[m                       [32m      0.00 ms[m
+      passed for all of [32m10[m inputs.
+    [32m✓ [m[32mshould work with custom generators too[m                                        [32m      0.00 ms[m
+      passed for all of [32m10[m inputs.
+    [31m✗ [m[31mshould fail to show that sorting does nothing[m                                 [32m      0.00 ms[m
+[33mGolden[m
+  [31m✗ [m[31mdoes not fail the suite when an exception happens while checking for equality[m   [32m      0.00 ms[m
+  [31m✗ [m[31mdoes not fail the suite when an exception happens while writing[m                 [32m      0.00 ms[m
+  [31m✗ [m[31mdoes not fail the suite when an exception happens while reading[m                 [32m      0.00 ms[m
+  [33moutputResultForest[m
+    [32m✓ [m[32moutputs the same as last time[m                                                 [32m      0.00 ms[m
+  [31m✗ [m[31mdoes not fail the suite when an exception happens while producing[m               [32m      0.00 ms[m
+[33mexceptions[m
+  [33mPattern matching error[m
+    [31m✗ [m[31mfails in pure code[m                                                            [32m      0.00 ms[m
+    [31m✗ [m[31mfails in IO, as the result[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in IO, as the action[m                                                    [32m      0.00 ms[m
+  [31m✗ [m[31mRecord selection error[m                                                          [32m      0.00 ms[m
+  [31m✗ [m[31mNoMethodError[m                                                                   [32m      0.00 ms[m
+  [33mPattern matching error[m
+    [31m✗ [m[31mfails in IO, as the action[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in IO, as the result[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in pure code[m                                                            [32m      0.00 ms[m
+  [33mRecord construction error[m
+    [31m✗ [m[31mfails in IO, as the result[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in IO, as the action[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in pure code[m                                                            [32m      0.00 ms[m
+  [31m✗ [m[31mRecord construction error[m                                                       [32m      0.00 ms[m
+  [33mRecord update error[m
+    [31m✗ [m[31mfails in IO, as the result[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in IO, as the action[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in pure code[m                                                            [32m      0.00 ms[m
+  [31m✗ [m[31mPattern matching error[m                                                          [32m      0.00 ms[m
+  [33mPattern matching error[m
+    [31m✗ [m[31mfails in IO, as the action[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in IO, as the result[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in pure code[m                                                            [32m      0.00 ms[m
+  [33mRecord selection error[m
+    [31m✗ [m[31mfails in IO, as the action[m                                                    [32m      0.00 ms[m
+    [31m✗ [m[31mfails in pure code[m                                                            [32m      0.00 ms[m
+    [31m✗ [m[31mfails in IO, as the result[m                                                    [32m      0.00 ms[m
+  [31m✗ [m[31mArithException[m                                                                  [32m      0.00 ms[m
+  [31m✗ [m[31mRecord update error[m                                                             [32m      0.00 ms[m
+[31m✗ [m[31mexpectationFailure[m                                                                [32m      0.00 ms[m
+[35mpending test[m
+[33mAround[m
+  [33mbefore[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+  [33mbefore_[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+  [33mafter[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+  [33mafter_[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+  [33maround[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+  [33maround_[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+  [33maroundWith[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+  [33maroundWith'[m
+    [31m✗ [m[31mdoes not kill the test suite[m                                                  [32m      0.00 ms[m
+[33merror[m
+  [31m✗ [m[31mPure error[m                                                                      [32m      0.00 ms[m
+  [31m✗ [m[31mImpure error[m                                                                    [32m      0.00 ms[m
+
+
+[34mFailures:[m
+
+  [36m  output-test/Spec.hs:271[m
+  [31m✗ [m[31m1 [m[31mFlakiness.does not retry booleans that have been explicitly marked as 'notFlaky'[m
+  
+  [36m  output-test/Spec.hs:270[m
+  [31m✗ [m[31m2 [m[31mFlakiness.can retry booleans[m
+       Retries: 2 (likely not flaky)
+  
+  [36m  output-test/Spec.hs:274[m
+  [31m✗ [m[31m3 [m[31mFlakiness.can retry this intentionally flaky test[m
+       Retries: 3 (likely not flaky)
+       Expected these values to be equal:
+       [34mActual:   [m[31m1[m
+       [34mExpected: [m[32m3[m
+  
+  [36m  output-test/Spec.hs:268[m
+  [31m✗ [m[31m4 [m[31mFlakiness.does not retry if not allowed[m
+  
+  [36m  output-test/Spec.hs:85[m
+  [31m✗ [m[31m5 [m[31mDiff.shows nice multi-line diffs[m
+       Expected these values to be equal:
+       [34mActual:   [m( "foo"[31m [m, [[31m][m , "ba[31mr[m"[31m [m)
+       [34mExpected: [m
+       ( "foo[32mf[m[32mo[m[32mo[m"
+       , [ [32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m, "[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m][m
+       [32m,[m[32m [m[32m"[mba[32mz[m"
+       )
+       [34mInline diff: [m
+       ( "foo[32mf[m[32mo[m[32mo[m"[31m [m
+       , [[31m][m [32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m, "[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m,[m[32m [m[32m"[m[32mq[m[32mu[m[32mu[m[32mx[m[32m"[m[32m [m[32m][m
+       [32m,[m[32m [m[32m"[mba[31mr[m[32mz[m"[31m [m
+       )
+  
+  [36m  output-test/Spec.hs:83[m
+  [31m✗ [m[31m6 [m[31mDiff.shows nice multi-line diffs[m
+       Expected these values to be equal:
+       [34mActual:   [m
+       ( "foo"
+       , [ "quux" , "quux" , "quux" , "quux" , "quux" , "quux" [31m,[m[31m [m[31m"[m[31mq[m[31mu[m[31mu[m[31mx[m[31m"[m[31m [m]
+       , "ba[31mr[m"
+       )
+       [34mExpected: [m
+       ( "foo[32mf[m[32mo[m[32mo[m"
+       , [ "quux" , "quux" , "quux" , "quux" , "quux" , "quux" ]
+       , "ba[32mz[m"
+       )
+       [34mInline diff: [m
+       ( "foo[32mf[m[32mo[m[32mo[m"
+       , [ "quux" , "quux" , "quux" , "quux" , "quux" , "quux" [31m,[m[31m [m[31m"[m[31mq[m[31mu[m[31mu[m[31mx[m[31m"[m[31m [m]
+       , "ba[31mr[m[32mz[m"
+       )
+  
+  [36m  output-test/Spec.hs:187[m
+  [31m✗ [m[31m7 [m[31mString.compares bytestrings[m
+       Expected these values to be equal:
+       [34mActual:   [m"fo[31mo[m\nba[31mr[m\tq[31mu[m[31mu[mx[31m [m"
+       [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
+  
+  [36m  output-test/Spec.hs:185[m
+  [31m✗ [m[31m8 [m[31mString.compares texts[m
+       Expected these values to be equal:
+       [34mActual:   [m"fo[31mo[m\nba[31mr[m\tq[31mu[m[31mu[mx[31m [m"
+       [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
+  
+  [36m  output-test/Spec.hs:184[m
+  [31m✗ [m[31m9 [m[31mString.compares strings[m
+       Expected these values to be equal:
+       [34mActual:   [m
+       fo[31mo[m
+       ba[31mr[m	q[31mu[m[31mu[mx[31m [m
+       [34mExpected: [m
+       fo[32mq[m
+       ba[32mz[m	q[32me[mx
+       [34mInline diff: [m
+       fo[31mo[m[32mq[m
+       ba[31mr[m[32mz[m	q[31mu[m[31mu[m[32me[mx[31m [m
+  
+  [36m  output-test/Spec.hs:183[m
+  [31m✗ [m[31m10 [m[31mString.compares strings[m
+       Expected these values to be equal:
+       [34mActual:   [m"fo[31mo[m\nba[31mr[m\tq[31mu[m[31mu[mx[31m [m"
+       [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
+  
+  [36m  output-test/Spec.hs:186[m
+  [31m✗ [m[31m11 [m[31mString.compares texts[m
+       Expected these values to be equal:
+       [34mActual:   [m
+       fo[31mo[m
+       ba[31mr[m	q[31mu[m[31mu[mx[31m [m
+       [34mExpected: [m
+       fo[32mq[m
+       ba[32mz[m	q[32me[mx
+       [34mInline diff: [m
+       fo[31mo[m[32mq[m
+       ba[31mr[m[32mz[m	q[31mu[m[31mu[m[32me[mx[31m [m
+  
+  [36m  output-test/Spec.hs:262[m
+  [31m✗ [m[31m12 [m[31mShrinking.can grab the mvar during shrinking[m
+       Failed after 21 tests
+       Generated: [33m20[m
+       Predicate failed, but should have succeeded, on this value:
+       20
+  
+  [36m  output-test/Spec.hs:93[m
+  [31m✗ [m[31m13 [m[31massertions.shouldNotSatisfyNamed[m
+       Predicate succeeded, but should have failed, on this value:
+       3
+       Predicate: odd
+  
+  [36m  output-test/Spec.hs:89[m
+  [31m✗ [m[31m14 [m[31massertions.shouldNotBe[m
+       Did not expect equality of the values but both were:
+       3
+  
+  [36m  output-test/Spec.hs:92[m
+  [31m✗ [m[31m15 [m[31massertions.shouldSatisfyNamed[m
+       Predicate failed, but should have succeeded, on this value:
+       3
+       Predicate: even
+  
+  [36m  output-test/Spec.hs:91[m
+  [31m✗ [m[31m16 [m[31massertions.shouldNotSatisfy[m
+       Predicate succeeded, but should have failed, on this value:
+       3
+  
+  [36m  output-test/Spec.hs:88[m
+  [31m✗ [m[31m17 [m[31massertions.shouldBe[m
+       Expected these values to be equal:
+       [34mActual:   [m[31m3[m
+       [34mExpected: [m[32m4[m
+  
+  [36m  output-test/Spec.hs:90[m
+  [31m✗ [m[31m18 [m[31massertions.shouldSatisfy[m
+       Predicate failed, but should have succeeded, on this value:
+       3
+  
+  [36m  output-test/Spec.hs:37[m
+  [31m✗ [m[31m19 [m[31mundefined.Impure undefined[m
+       Prelude.undefined
+       CallStack (from HasCallStack):
+         error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
+         undefined, called at output-test/Spec.hs:37:28 in main:Spec
+  
+  [36m  output-test/Spec.hs:36[m
+  [31m✗ [m[31m20 [m[31mundefined.Pure undefined[m
+       Prelude.undefined
+       CallStack (from HasCallStack):
+         error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
+         undefined, called at output-test/Spec.hs:36:31 in main:Spec
+  
+  [36m  output-test/Spec.hs:203[m
+  [31m✗ [m[31m21 [m[31mProperty.generated values.shows many generated values too[m
+       Failed after 1 tests
+       Generated: [33m0[m
+       Generated: [33m0[m
+       Generated: [33m0[m
+       Generated: [33m0[m
+       Generated: [33m0[m
+       Expected these values to be equal:
+       [34mActual:   [m[31m0[m
+       [34mExpected: [m[32m1[m
+  
+  [36m  output-test/Spec.hs:222[m
+  [31m✗ [m[31m22 [m[31mProperty.labels.shows the labels in use on failure[m
+       Failed after 1 tests
+       Generated: [33m[][m
+       Labels: "length of input is 0", "magnitude (digits) of sum of input is 0"
+       Expected these values to be equal:
+       [34mActual:   [m[]
+       [34mExpected: [m[[32m [m[32m0[m[32m [m]
+  
+  [36m  output-test/Spec.hs:239[m
+  [31m✗ [m[31m23 [m[31mProperty.classes.shows the classes in use on failure[m
+       Failed after 1 tests
+       Generated: [33m[][m
+       Class: empty
+       Expected these values to be equal:
+       [34mActual:   [m[]
+       [34mExpected: [m[[32m [m[32m0[m[32m [m]
+  
+  [36m  output-test/Spec.hs:38[m
+  [31m✗ [m[31m24 [m[31mExit code[m
+       ExitFailure 1
+  
+  [36m  output-test/Spec.hs:196[m
+  [31m✗ [m[31m25 [m[31mContext.shows a context when an exception is thrown as well[m
+       Prelude.undefined
+       CallStack (from HasCallStack):
+         error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
+         undefined, called at output-test/Spec.hs:197:26 in main:Spec
+       context
+  
+  [36m  output-test/Spec.hs:190[m
+  [31m✗ [m[31m26 [m[31mContext.shows a nice context[m
+       Expected these values to be equal:
+       [34mActual:   [m[31mT[m[31mr[m[31mu[me
+       [34mExpected: [m[32mF[m[32ma[m[32ml[m[32ms[me
+       Context
+  
+  [36m  output-test/Spec.hs:191[m
+  [31m✗ [m[31m27 [m[31mContext.shows a nice context multiple levels deep[m
+       Expected these values to be equal:
+       [34mActual:   [m[31mT[m[31mr[m[31mu[me
+       [34mExpected: [m[32mF[m[32ma[m[32ml[m[32ms[me
+       Context3
+       Context2
+       Context1
+  
+  [36m  output-test/Spec.hs:65[m
+  [31m✗ [m[31m28 [m[31mProperty tests.pure.should fail to show that sorting does nothing[m
+       Failed after 3 tests
+       Generated: [33m[-5,3,11,-3,-13,0,19,-10,15,-13,1,-12,10,-18,-3,-2,6,-9,-6][m
+  
+  [36m  output-test/Spec.hs:73[m
+  [31m✗ [m[31m29 [m[31mProperty tests.impure.should fail to show that sorting does nothing[m
+       Failed after 3 tests
+       Generated: [33m[-5,3,11,-3,-13,0,19,-10,15,-13,1,-12,10,-18,-3,-2,6,-9,-6][m
+       Expected these values to be equal:
+       [34mActual:   [m
+       [ -[31m1[m[31m8[m
+       , [31m-[m[31m1[m3
+       , [31m-[m1[31m3[m
+       , -[31m1[m[31m2[m
+       , -10
+       , [31m-[m9
+       , -[31m6[m
+       , [31m-[m5
+       , -3
+       , [31m-[m[31m3[m
+       , -2
+       , 0
+       , 1
+       , 3
+       , [31m6[m
+       [31m,[m[31m [m[31m1[m[31m0[m
+       , [31m1[m[31m1[m
+       , [31m1[m[31m5[m
+       , [31m1[m[31m9[m
+       ]
+       [34mExpected: [m
+       [ -[32m5[m
+       , 3
+       , 1[32m1[m
+       , -[32m3[m
+       , -1[32m3[m
+       [32m,[m[32m [m0
+       , [32m1[m9
+       , -[32m1[m[32m0[m
+       , [32m1[m5
+       , -[32m1[m3
+       , [32m1[m
+       , -[32m1[m2
+       , [32m1[m0
+       , [32m-[m1[32m8[m
+       , [32m-[m3
+       , [32m-[m[32m2[m
+       , [32m6[m
+       , [32m-[m[32m9[m
+       , [32m-[m[32m6[m
+       ]
+       [34mInline diff: [m
+       [ -[31m1[m[31m8[m[32m5[m
+       , [31m-[m[31m1[m3
+       , [31m-[m1[31m3[m[32m1[m
+       , -[31m1[m[31m2[m[32m3[m
+       , -1[32m3[m
+       [32m,[m[32m [m0
+       , [31m-[m[32m1[m9
+       , -[31m6[m[32m1[m[32m0[m
+       , [31m-[m[32m1[m5
+       , -[32m1[m3
+       , [31m-[m[31m3[m[32m1[m
+       , -[32m1[m2
+       , [32m1[m0
+       , [32m-[m1[32m8[m
+       , [32m-[m3
+       , [31m6[m
+       [31m,[m[31m [m[31m1[m[31m0[m[32m-[m[32m2[m
+       , [31m1[m[31m1[m[32m6[m
+       , [31m1[m[31m5[m[32m-[m[32m9[m
+       , [31m1[m[31m9[m[32m-[m[32m6[m
+       ]
+  
+  [36m  output-test/Spec.hs:119[m
+  [31m✗ [m[31m30 [m[31mGolden.does not fail the suite when an exception happens while checking for equality[m
+       divide by zero
+  
+  [36m  output-test/Spec.hs:112[m
+  [31m✗ [m[31m31 [m[31mGolden.does not fail the suite when an exception happens while writing[m
+       ExitFailure 1
+  
+  [36m  output-test/Spec.hs:96[m
+  [31m✗ [m[31m32 [m[31mGolden.does not fail the suite when an exception happens while reading[m
+       ExitFailure 1
+  
+  [36m  output-test/Spec.hs:104[m
+  [31m✗ [m[31m33 [m[31mGolden.does not fail the suite when an exception happens while producing[m
+       ExitFailure 1
+  
+  [36m  output-test/Spec.hs:282[m
+  [31m✗ [m[31m34 [m[31mexceptions.Pattern matching error.fails in pure code[m
+       output-test/Spec.hs:27:10-19: No instance nor default method for class operation toUnit
+  
+  [36m  output-test/Spec.hs:280[m
+  [31m✗ [m[31m35 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
+       output-test/Spec.hs:27:10-19: No instance nor default method for class operation toUnit
+  
+  [36m  output-test/Spec.hs:281[m
+  [31m✗ [m[31m36 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
+       output-test/Spec.hs:27:10-19: No instance nor default method for class operation toUnit
+  
+  [36m  output-test/Spec.hs:43[m
+  [31m✗ [m[31m37 [m[31mexceptions.Record selection error[m
+       test
+  
+  [36m  output-test/Spec.hs:51[m
+  [31m✗ [m[31m38 [m[31mexceptions.NoMethodError[m
+       test
+  
+  [36m  output-test/Spec.hs:281[m
+  [31m✗ [m[31m39 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
+       divide by zero
+  
+  [36m  output-test/Spec.hs:280[m
+  [31m✗ [m[31m40 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
+       divide by zero
+  
+  [36m  output-test/Spec.hs:282[m
+  [31m✗ [m[31m41 [m[31mexceptions.Pattern matching error.fails in pure code[m
+       divide by zero
+  
+  [36m  output-test/Spec.hs:280[m
+  [31m✗ [m[31m42 [m[31mexceptions.Record construction error.fails in IO, as the result[m
+       output-test/Spec.hs:42:57-64: Missing field in record construction field
+  
+  [36m  output-test/Spec.hs:281[m
+  [31m✗ [m[31m43 [m[31mexceptions.Record construction error.fails in IO, as the action[m
+       output-test/Spec.hs:42:57-64: Missing field in record construction field
+  
+  [36m  output-test/Spec.hs:282[m
+  [31m✗ [m[31m44 [m[31mexceptions.Record construction error.fails in pure code[m
+       output-test/Spec.hs:42:57-64: Missing field in record construction field
+  
+  [36m  output-test/Spec.hs:41[m
+  [31m✗ [m[31m45 [m[31mexceptions.Record construction error[m
+       test
+  
+  [36m  output-test/Spec.hs:280[m
+  [31m✗ [m[31m46 [m[31mexceptions.Record update error.fails in IO, as the result[m
+       output-test/Spec.hs:46:60-88: Non-exhaustive patterns in record update
+  
+  [36m  output-test/Spec.hs:281[m
+  [31m✗ [m[31m47 [m[31mexceptions.Record update error.fails in IO, as the action[m
+       output-test/Spec.hs:46:60-88: Non-exhaustive patterns in record update
+  
+  [36m  output-test/Spec.hs:282[m
+  [31m✗ [m[31m48 [m[31mexceptions.Record update error.fails in pure code[m
+       output-test/Spec.hs:46:60-88: Non-exhaustive patterns in record update
+  
+  [36m  output-test/Spec.hs:47[m
+  [31m✗ [m[31m49 [m[31mexceptions.Pattern matching error[m
+       test
+  
+  [36m  output-test/Spec.hs:281[m
+  [31m✗ [m[31m50 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
+       output-test/Spec.hs:48:50-64: Non-exhaustive patterns in Cons1 s
+  
+  [36m  output-test/Spec.hs:280[m
+  [31m✗ [m[31m51 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
+       output-test/Spec.hs:48:50-64: Non-exhaustive patterns in Cons1 s
+  
+  [36m  output-test/Spec.hs:282[m
+  [31m✗ [m[31m52 [m[31mexceptions.Pattern matching error.fails in pure code[m
+       output-test/Spec.hs:48:50-64: Non-exhaustive patterns in Cons1 s
+  
+  [36m  output-test/Spec.hs:281[m
+  [31m✗ [m[31m53 [m[31mexceptions.Record selection error.fails in IO, as the action[m
+       No match in record selector field
+  
+  [36m  output-test/Spec.hs:282[m
+  [31m✗ [m[31m54 [m[31mexceptions.Record selection error.fails in pure code[m
+       No match in record selector field
+  
+  [36m  output-test/Spec.hs:280[m
+  [31m✗ [m[31m55 [m[31mexceptions.Record selection error.fails in IO, as the result[m
+       No match in record selector field
+  
+  [36m  output-test/Spec.hs:49[m
+  [31m✗ [m[31m56 [m[31mexceptions.ArithException[m
+       arithmetic underflow
+  
+  [36m  output-test/Spec.hs:45[m
+  [31m✗ [m[31m57 [m[31mexceptions.Record update error[m
+       test
+  
+  [36m  output-test/Spec.hs:180[m
+  [31m✗ [m[31m58 [m[31mexpectationFailure[m
+       fails
+  
+  [36m  output-test/Spec.hs:142[m
+  [31m✗ [m[31m59 [m[31mAround.before.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:147[m
+  [31m✗ [m[31m60 [m[31mAround.before_.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:152[m
+  [31m✗ [m[31m61 [m[31mAround.after.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:157[m
+  [31m✗ [m[31m62 [m[31mAround.after_.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:162[m
+  [31m✗ [m[31m63 [m[31mAround.around.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:167[m
+  [31m✗ [m[31m64 [m[31mAround.around_.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:172[m
+  [31m✗ [m[31m65 [m[31mAround.aroundWith.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:177[m
+  [31m✗ [m[31m66 [m[31mAround.aroundWith'.does not kill the test suite[m
+       user error (test)
+  
+  [36m  output-test/Spec.hs:33[m
+  [31m✗ [m[31m67 [m[31merror.Pure error[m
+       foobar
+       CallStack (from HasCallStack):
+         error, called at output-test/Spec.hs:33:28 in main:Spec
+  
+  [36m  output-test/Spec.hs:34[m
+  [31m✗ [m[31m68 [m[31merror.Impure error[m
+       foobar
+       CallStack (from HasCallStack):
+         error, called at output-test/Spec.hs:34:24 in main:Spec
+  
+
+  Examples:                     [32m646[m
+  Passed:                       [32m24[m
+  Failed:                       [31m68[m
+  Pending:                      [35m1[m
+  Longest test took:   [33m         0.00 seconds[m
+  Sum of test runtimes:[33m         0.00 seconds[m
+  Test suite took:     [33m         0.00 seconds[m
+

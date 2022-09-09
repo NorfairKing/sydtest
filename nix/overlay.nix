@@ -1,4 +1,5 @@
 final: previous:
+with final.lib;
 with final.haskell.lib;
 
 {
@@ -77,7 +78,11 @@ with final.haskell.lib;
       });
     in
     {
-      "sydtest" = sydtestPkg "sydtest";
+      "sydtest" = overrideCabal (sydtestPkg "sydtest") (old: {
+        # We turn off tests on older dependency versions because they generate
+        # different random data. This makes the output tests fail.
+        doCheck = versionOlder "9.0" final.ghc.version;
+      });
       "sydtest-aeson" = sydtestPkg "sydtest-aeson";
       "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
       "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";

@@ -37,6 +37,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - persistent
-    - persistent-sqlite
     - sydtest
     - sydtest-persistent-sqlite

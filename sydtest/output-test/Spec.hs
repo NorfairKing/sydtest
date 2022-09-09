@@ -6,6 +6,7 @@
 module Spec where
 
 import Control.Concurrent
+import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad
 import Data.ByteString (ByteString)
@@ -138,7 +139,7 @@ spec = do
   doNotRandomiseExecutionOrder $
     describe "Around" $ do
       describe "before" $ do
-        before (() <$ throwIO (userError "test")) $
+        before (void (throwIO (userError "test"))) $
           it "does not kill the test suite" $ \() ->
             pure () :: IO ()
 
@@ -264,16 +265,35 @@ spec = do
               () <- readMVar var
               i `shouldSatisfy` (< 20)
 
+  describe "Retries" $ do
+    withoutRetries $
+      it "does not retry if the test is configured withoutRetries" False
+    withRetries 5 $
+      it "Retries this five times" False
+
   describe "Flakiness" $ do
-    notFlaky $ it "does not retry if not allowed" False
-    flaky 3 $ do
-      it "can retry booleans" False
-      notFlaky $ it "does not retry booleans that have been explicitly marked as 'notFlaky'" False
+    potentiallyFlaky $ do
+      it "Allows flakiness on True eventhough there is none (should succeed)" True
+      it "Allows flakiness on False eventhough there is none (should fail)" False
+    potentiallyFlakyWith "We're on it!" $ do
+      var <- liftIO $ newTVarIO (0 :: Int)
+      it "allows this intentionally flaky test with the default number of retries" $ do
+        atomically $ modifyTVar' var succ
+        i <- readTVarIO var
+        i `shouldBe` 2
+    notFlaky $ do
+      var <- liftIO $ newTVarIO (0 :: Int)
+      it "Does not allow flakiness if flakiness is not allowed even if retries happen" $ do
+        atomically $ modifyTVar' var succ
+        i <- readTVarIO var
+        i `shouldBe` 2
+    flaky 5 $ it "Allows flakiness in this boolean five times (should fail with 5 retries)" False
     flakyWith 4 "We're on it!" $ do
-      var <- liftIO $ newMVar (0 :: Int)
-      it "can retry this intentionally flaky test" $ do
-        i <- withMVar var (pure . succ)
-        i `shouldBe` 3
+      var <- liftIO $ newTVarIO (0 :: Int)
+      it "allows this intentionally flaky test with up to four retries" $ do
+        atomically $ modifyTVar' var succ
+        i <- readTVarIO var
+        i `shouldBe` 2
 
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do

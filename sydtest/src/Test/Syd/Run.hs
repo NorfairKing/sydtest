@@ -73,7 +73,6 @@ runPureTestWithArg ::
 runPureTestWithArg computeBool TestRunSettings {} progressReporter wrapper = do
   let report = reportProgress progressReporter
   let testRunResultNumTests = Nothing
-  let testRunResultRetries = Nothing
   report ProgressTestStarting
   resultBool <-
     applyWrapper2 wrapper $
@@ -143,7 +142,6 @@ runIOTestWithArg func TestRunSettings {} progressReporter wrapper = do
   let report = reportProgress progressReporter
 
   let testRunResultNumTests = Nothing
-  let testRunResultRetries = Nothing
 
   report ProgressTestStarting
   result <- liftIO $
@@ -221,7 +219,6 @@ runPropertyTestWithArg p trs progressReporter wrapper = do
 
   let testRunResultGoldenCase = Nothing
   let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
-  let testRunResultRetries = Nothing
   let testRunResultFlakinessMessage = Nothing
   case qcr of
     Success {} -> do
@@ -366,7 +363,6 @@ runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
   let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
         Left e -> (TestFailed, Nothing, Just e)
         Right trip -> trip
-  let testRunResultRetries = Nothing
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing
   let testRunResultFailingInputs = []
@@ -427,7 +423,6 @@ instance HasCodec SeedSetting where
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,
-    testRunResultRetries :: !(Maybe Int),
     testRunResultException :: !(Maybe SomeException),
     testRunResultNumTests :: !(Maybe Word),
     testRunResultNumShrinks :: !(Maybe Word),

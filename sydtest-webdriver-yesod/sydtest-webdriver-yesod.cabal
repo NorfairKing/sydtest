@@ -31,8 +31,6 @@ library
     , http-types
     , mtl
     , network-uri
-    , path
-    , path-io
     , sydtest
     , sydtest-wai
     , sydtest-webdriver

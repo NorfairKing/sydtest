@@ -56,7 +56,6 @@ test-suite sydtest-persistent-sqlite-test
   build-depends:
       base >=4.7 && <5
     , persistent
-    , persistent-sqlite
     , sydtest
     , sydtest-persistent-sqlite
   default-language: Haskell2010

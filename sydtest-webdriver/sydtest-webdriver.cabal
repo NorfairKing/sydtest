@@ -28,7 +28,6 @@ library
       aeson
     , base >=4.7 && <5
     , http-client
-    , http-types
     , monad-control
     , mtl
     , network

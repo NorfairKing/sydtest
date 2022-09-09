@@ -3,11 +3,12 @@ version: 0.0.0.0
 
 dependencies:
 - base >= 4.7 && < 5
-- sydtest
-- QuickCheck
 
 library:
   source-dirs: src
+  dependencies:
+  - sydtest
+  - QuickCheck
 
 executables:
   sydtest-misbehaved-test-suite-exe:

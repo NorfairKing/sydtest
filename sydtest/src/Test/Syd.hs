@@ -210,6 +210,7 @@ module Test.Syd
 
     -- * Utilities
     ppShow,
+    pPrint,
 
     -- * Reexports
     module Test.Syd.Def,
@@ -239,7 +240,7 @@ import Test.Syd.Run
 import Test.Syd.Runner
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
-import Text.Show.Pretty (ppShow)
+import Text.Show.Pretty (pPrint, ppShow)
 
 -- | Evaluate a test suite definition and then run it.
 --

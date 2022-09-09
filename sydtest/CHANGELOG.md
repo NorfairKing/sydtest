@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.12.0.0] - Unreleased
+
+### Added
+
+* Automatic flakiness diagnostics, see the `README`
+  This adds the `potentiallyFlaky` and `potentiallyFlakyWith` functions.
+* `Test.Syd` now also exports `pPrint`.
+* The `modifyRetries`, `withoutRetries`, `withRetries` functions, to allow configuration of the number of retries independently of whether flakiness is allowed.
+* The `TestRunReport` type, so that a `ResultForest` contains information about all runs of a test instead of only the last.
+
+### Changed
+
+* Fixed: Fail-fast now works correctly together with fail-on-flaky
+* Fixed that flags with a `no-` prefix did not parse correctly and could therefore not be used.
+* The `FlakinessMode` type no longer contains a number of retries.
+  The number of retries is now configured separately.
+
+### Removed
+
 ## [0.11.0.2] - 2022-09-7
 
 ### Changed

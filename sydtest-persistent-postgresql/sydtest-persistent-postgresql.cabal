@@ -40,7 +40,6 @@ library
       base >=4.7 && <5
     , monad-logger
     , mtl
-    , persistent
     , persistent-postgresql
     , sydtest
     , sydtest-persistent
@@ -62,7 +61,6 @@ test-suite sydtest-persistent-postgresql-test
   build-depends:
       base >=4.7 && <5
     , persistent
-    , persistent-postgresql
     , sydtest
     , sydtest-persistent-postgresql
   if flag(sydtest_integration_tests)

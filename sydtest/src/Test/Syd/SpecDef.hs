@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -20,11 +21,15 @@ import Control.Monad
 import Control.Monad.Random
 import Data.DList (DList)
 import qualified Data.DList as DList
+import Data.Foldable (find)
 import Data.Kind
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
+import GHC.Generics (Generic)
 import GHC.Stack
 import System.Random.Shuffle
 import Test.QuickCheck.IO ()
@@ -112,6 +117,11 @@ data SpecDefTree (outers :: [Type]) inner extra where
     ExecutionOrderRandomisation ->
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
+  DefRetriesNode ::
+    -- | Modify the number of retries
+    (Word -> Word) ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
   DefFlakinessNode ::
     -- | How many times to retry
     FlakinessMode ->
@@ -134,6 +144,7 @@ instance Functor (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p $ goF sdf
+          DefRetriesNode p sdf -> DefRetriesNode p $ goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p $ goF sdf
 
 instance Foldable (SpecDefTree a c) where
@@ -152,6 +163,7 @@ instance Foldable (SpecDefTree a c) where
           DefAfterAllNode _ sdf -> goF sdf
           DefParallelismNode _ sdf -> goF sdf
           DefRandomisationNode _ sdf -> goF sdf
+          DefRetriesNode _ sdf -> goF sdf
           DefFlakinessNode _ sdf -> goF sdf
 
 instance Traversable (SpecDefTree a c) where
@@ -170,6 +182,7 @@ instance Traversable (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p <$> goF sdf
+          DefRetriesNode p sdf -> DefRetriesNode p <$> goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
 
 filterTestForest :: Maybe Text -> SpecDefForest outers inner result -> SpecDefForest outers inner result
@@ -204,6 +217,7 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
       DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest dl sdf
+      DefRetriesNode func sdf -> DefRetriesNode func <$> goForest dl sdf
       DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest dl sdf
 
 randomiseTestForest :: MonadRandom m => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
@@ -222,6 +236,7 @@ randomiseTestForest = goForest
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest sdf
+      DefRetriesNode i sdf -> DefRetriesNode i <$> goForest sdf
       DefFlakinessNode i sdf -> DefFlakinessNode i <$> goForest sdf
       DefRandomisationNode eor sdf ->
         DefRandomisationNode eor <$> case eor of
@@ -234,41 +249,38 @@ data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecu
 
 data FlakinessMode
   = MayNotBeFlaky
-  | MayBeFlakyUpTo
-      !Int
-      !(Maybe String) -- A message to show whenever the test is flaky.
+  | MayBeFlaky !(Maybe String) -- A message to show whenever the test is flaky.
+  deriving (Show, Eq, Generic)
 
-type ResultForest = SpecForest (TDef (Timed TestRunResult))
+type ResultForest = SpecForest (TDef (Timed TestRunReport))
 
-type ResultTree = SpecTree (TDef (Timed TestRunResult))
+type ResultTree = SpecTree (TDef (Timed TestRunReport))
 
-computeTestSuiteStats :: ResultForest -> TestSuiteStats
-computeTestSuiteStats = goF []
+computeTestSuiteStats :: Settings -> ResultForest -> TestSuiteStats
+computeTestSuiteStats settings = goF []
   where
     goF :: [Text] -> ResultForest -> TestSuiteStats
     goF ts = foldMap (goT ts)
     goT :: [Text] -> ResultTree -> TestSuiteStats
     goT ts = \case
-      SpecifyNode tn (TDef (Timed TestRunResult {..} t) _) ->
-        TestSuiteStats
-          { testSuiteStatSuccesses = case testRunResultStatus of
-              TestPassed -> 1
-              TestFailed -> 0,
-            testSuiteStatExamples = case testRunResultStatus of
-              TestPassed -> fromMaybe 1 testRunResultNumTests
-              TestFailed -> fromMaybe 1 testRunResultNumTests + fromMaybe 0 testRunResultNumShrinks,
-            testSuiteStatFailures = case testRunResultStatus of
-              TestPassed -> 0
-              TestFailed -> 1,
-            testSuiteStatFlakyTests = case testRunResultStatus of
-              TestFailed -> 0
-              TestPassed -> case testRunResultRetries of
-                Nothing -> 0
-                Just _ -> 1,
-            testSuiteStatPending = 0,
-            testSuiteStatSumTime = t,
-            testSuiteStatLongestTime = Just (T.intercalate "." (ts ++ [tn]), t)
-          }
+      SpecifyNode tn (TDef (Timed testRunReport t) _) ->
+        let status = testRunReportStatus settings testRunReport
+         in TestSuiteStats
+              { testSuiteStatSuccesses = case status of
+                  TestPassed -> 1
+                  TestFailed -> 0,
+                testSuiteStatExamples = testRunReportExamples testRunReport,
+                testSuiteStatFailures = case status of
+                  TestPassed -> 0
+                  TestFailed -> 1,
+                testSuiteStatFlakyTests =
+                  if testRunReportWasFlaky testRunReport
+                    then 1
+                    else 0,
+                testSuiteStatPending = 0,
+                testSuiteStatSumTime = t,
+                testSuiteStatLongestTime = Just (T.intercalate "." (ts ++ [tn]), t)
+              }
       PendingNode _ _ ->
         TestSuiteStats
           { testSuiteStatSuccesses = 0,
@@ -323,13 +335,62 @@ instance Monoid TestSuiteStats where
       }
 
 shouldExitFail :: Settings -> ResultForest -> Bool
-shouldExitFail settings = any (any (testFailed settings . timedValue . testDefVal))
+shouldExitFail settings = any (any (testRunReportFailed settings . timedValue . testDefVal))
 
-testFailed :: Settings -> TestRunResult -> Bool
-testFailed Settings {..} TestRunResult {..} =
-  or
-    [ -- Failed
-      testRunResultStatus == TestFailed,
-      -- Passed but flaky and flakiness isn't allowed
-      settingFailOnFlaky && testRunResultStatus == TestPassed && isJust testRunResultRetries
-    ]
+data TestRunReport = TestRunReport
+  { -- | Raw results, including retries, in order
+    testRunReportRawResults :: !(NonEmpty TestRunResult),
+    testRunReportFlakinessMode :: !FlakinessMode
+  }
+  deriving (Show, Generic)
+
+testRunReportReportedRun :: TestRunReport -> TestRunResult
+testRunReportReportedRun TestRunReport {..} =
+  -- We always want to report the last failure if there are any failures.
+  -- This is because a passed test does not give us any information, and we
+  -- only want to do that if there are no failures.
+  let reversed = NE.reverse testRunReportRawResults
+   in case find ((== TestFailed) . testRunResultStatus) testRunReportRawResults of
+        Nothing -> NE.head reversed
+        Just trr -> trr
+
+testRunReportFailed :: Settings -> TestRunReport -> Bool
+testRunReportFailed settings testRunReport =
+  testRunReportStatus settings testRunReport /= TestPassed
+
+testRunReportStatus :: Settings -> TestRunReport -> TestStatus
+testRunReportStatus Settings {..} testRunReport@TestRunReport {..} =
+  let wasFlaky = testRunReportWasFlaky testRunReport
+      lastResult = NE.last testRunReportRawResults
+   in case testRunReportFlakinessMode of
+        MayNotBeFlaky ->
+          if wasFlaky
+            then TestFailed
+            else testRunResultStatus lastResult
+        MayBeFlaky _ ->
+          if settingFailOnFlaky && wasFlaky
+            then TestFailed
+            else
+              if any ((== TestPassed) . testRunResultStatus) testRunReportRawResults
+                then TestPassed
+                else TestFailed
+
+testRunReportExamples :: TestRunReport -> Word
+testRunReportExamples = sum . NE.map testRunResultExamples . testRunReportRawResults
+
+testRunResultExamples :: TestRunResult -> Word
+testRunResultExamples TestRunResult {..} =
+  fromMaybe 1 testRunResultNumTests + fromMaybe 0 testRunResultNumShrinks
+
+testRunReportWasFlaky :: TestRunReport -> Bool
+testRunReportWasFlaky =
+  (> 1)
+    . length
+    . NE.group
+    . NE.map testRunResultStatus
+    . testRunReportRawResults
+
+testRunReportRetries :: TestRunReport -> Maybe Word
+testRunReportRetries TestRunReport {..} = case NE.length testRunReportRawResults of
+  1 -> Nothing
+  l -> Just $ fromIntegral l

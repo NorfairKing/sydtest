@@ -134,7 +134,6 @@ runHedgehogPropertyWithArg
                 exception = Just $ SomeException $ ExpectationFailed s
                 inputs = map Hedgehog.failedValue $ Hedgehog.failureAnnotations failureReport
             pure (TestFailed, exception, numTests, labels, numShrinks, inputs) -- TODO
-    let testRunResultRetries = Nothing
     let testRunResultGoldenCase = Nothing
     let testRunResultExtraInfo = Nothing
     let testRunResultClasses = Nothing

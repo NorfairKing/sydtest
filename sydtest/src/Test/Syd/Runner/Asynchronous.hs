@@ -46,9 +46,9 @@ runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest =
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
-type HandleForest a b = SpecDefForest a b (MVar (Timed TestRunResult))
+type HandleForest a b = SpecDefForest a b (MVar (Timed TestRunReport))
 
-type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunResult))
+type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunReport))
 
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
 makeHandleForest = traverse $ traverse $ \() -> newEmptyMVar
@@ -63,15 +63,15 @@ runner settings nbThreads failFastVar handleForest = do
         as <- readIORef jobs
         mapM_ wait as
         writeIORef jobs S.empty
-  let goForest :: Parallelism -> FlakinessMode -> HList a -> HandleForest a () -> IO ()
-      goForest p fm a = mapM_ (goTree p fm a)
-      goTree :: Parallelism -> FlakinessMode -> HList a -> HandleTree a () -> IO ()
-      goTree p fm a = \case
+  let goForest :: Parallelism -> Word -> FlakinessMode -> HList a -> HandleForest a () -> IO ()
+      goForest p retries fm a = mapM_ (goTree p retries fm a)
+      goTree :: Parallelism -> Word -> FlakinessMode -> HList a -> HandleTree a () -> IO ()
+      goTree p retries fm a = \case
         DefSpecifyNode _ td var -> do
           mDone <- tryReadMVar failFastVar
           case mDone of
             Nothing -> do
-              let runNow = timeItT $ runSingleTestWithFlakinessMode noProgressReporter a td fm
+              let runNow = timeItT $ runSingleTestWithFlakinessMode noProgressReporter a td retries fm
               -- Wait before spawning a thread so that we don't spawn too many threads
               let quantity = case p of
                     -- When the test wants to be executed sequentially, we take n locks because we must make sure that
@@ -84,7 +84,7 @@ runner settings nbThreads failFastVar handleForest = do
                   job = do
                     result <- runNow
                     putMVar var result
-                    when (settingFailFast settings && testRunResultStatus (timedValue result) == TestFailed) $ do
+                    when (settingFailFast settings && testRunReportFailed settings (timedValue result)) $ do
                       putMVar failFastVar ()
                       as <- readIORef jobs
                       mapM_ cancel as
@@ -94,21 +94,22 @@ runner settings nbThreads failFastVar handleForest = do
               link jobAsync
             Just () -> pure ()
         DefPendingNode _ _ -> pure ()
-        DefDescribeNode _ sdf -> goForest p fm a sdf
-        DefWrapNode func sdf -> func (goForest p fm a sdf >> waitForCurrentlyRunning)
+        DefDescribeNode _ sdf -> goForest p retries fm a sdf
+        DefWrapNode func sdf -> func (goForest p retries fm a sdf >> waitForCurrentlyRunning)
         DefBeforeAllNode func sdf -> do
           b <- func
-          goForest p fm (HCons b a) sdf
+          goForest p retries fm (HCons b a) sdf
         DefAroundAllNode func sdf ->
-          func (\b -> goForest p fm (HCons b a) sdf >> waitForCurrentlyRunning)
+          func (\b -> goForest p retries fm (HCons b a) sdf >> waitForCurrentlyRunning)
         DefAroundAllWithNode func sdf ->
           let HCons x _ = a
-           in func (\b -> goForest p fm (HCons b a) sdf >> waitForCurrentlyRunning) x
-        DefAfterAllNode func sdf -> goForest p fm a sdf `finally` (waitForCurrentlyRunning >> func a)
-        DefParallelismNode p' sdf -> goForest p' fm a sdf
-        DefRandomisationNode _ sdf -> goForest p fm a sdf
-        DefFlakinessNode fm' sdf -> goForest p fm' a sdf
-  goForest Parallel MayNotBeFlaky HNil handleForest
+           in func (\b -> goForest p retries fm (HCons b a) sdf >> waitForCurrentlyRunning) x
+        DefAfterAllNode func sdf -> goForest p retries fm a sdf `finally` (waitForCurrentlyRunning >> func a)
+        DefParallelismNode p' sdf -> goForest p' retries fm a sdf
+        DefRandomisationNode _ sdf -> goForest p retries fm a sdf
+        DefRetriesNode modRetries sdf -> goForest p (modRetries retries) fm a sdf
+        DefFlakinessNode fm' sdf -> goForest p retries fm' a sdf
+  goForest Parallel (settingRetries settings) MayNotBeFlaky HNil handleForest
 
 printer :: Settings -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
 printer settings failFastVar handleForest = do
@@ -138,7 +139,7 @@ printer settings failFastVar handleForest = do
             Left () -> pure Nothing
             Right result -> do
               let td' = td {testDefVal = result}
-              mapM_ (outputLine . pad level) $ outputSpecifyLines level treeWidth t td'
+              mapM_ (outputLine . pad level) $ outputSpecifyLines settings level treeWidth t td'
               pure $ Just $ SpecifyNode t td'
         DefPendingNode t mr -> do
           mapM_ (outputLine . pad level) $ outputPendingLines t mr
@@ -157,13 +158,14 @@ printer settings failFastVar handleForest = do
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level sdf
+        DefRetriesNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest level sdf
   mapM_ outputLine outputTestsHeader
   resultForest <- timeItT $ fromMaybe [] <$> goForest 0 handleForest
   outputLine [chunk " "]
   mapM_ outputLine $ outputFailuresWithHeading settings (timedValue resultForest)
   outputLine [chunk " "]
-  mapM_ outputLine $ outputStats (computeTestSuiteStats <$> resultForest)
+  mapM_ outputLine $ outputStats (computeTestSuiteStats settings <$> resultForest)
   outputLine [chunk " "]
   pure resultForest
 
@@ -193,5 +195,6 @@ waiter failFastVar handleForest = do
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest level sdf
+        DefRetriesNode _ sdf -> fmap SubForestNode <$> goForest level sdf
         DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest level sdf
   fromMaybe [] <$> goForest 0 handleForest

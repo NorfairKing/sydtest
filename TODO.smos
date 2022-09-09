@@ -3,7 +3,6 @@ value:
 - entry: Sydtest ideas
   forest:
   - a shouldfail combinator
-  - make sure that fail fast works with fail-on-flaky
   - 'docs: examples of golden tests'
   - A mode for "optimising run time". I.e. profiling
   - Show more of the callstack in case people use test suite combinators

@@ -65,6 +65,11 @@ This means you should be alerted of any potential issue as early as possible.
   Whenever you use a custom predicate in an assertion, you get the opportunity to annotate it with its name so that when the test fails, you see _which_ predicate failed.
   The output also mentions explicitly whether the predicate was supposed to pass or fail.
 
+* Automatic flakiness diagnostics
+
+  Sydtest will try to find out whether a test is flaky as soon as one fails.
+  The test will still be considered "failed", but you get the extra information about whether it is flaky.
+
 ### Principle: Suitable for CI
 
 * Bounded shrinking by default
@@ -156,6 +161,7 @@ This repository contains many companion libraries to write integration tests wit
 | Fully configurable via configuration file                                                 | ✔️       | ✔️                                                           | ✖️                                                                |
 | Pending tests                                                                             | ✔️       | ✔️                                                           | ✖️                                                                |
 | Iterative testing to diagnose flakiness                                                   | ✔️       | ✖️                                                           | ?                                                                |
+| Automatic flakiness diagnostics                                                           | ✔️       | ?                                                           | ?                                                                |
 | Flakiness combinators to practically deal with flakiness                                  | ✔️       | ?                                                           | ?                                                                |
 
 * ✔️: Supported 
@@ -577,6 +583,13 @@ spec = do
 To see if a test suite may be flaky, you can run it multiple times (with different, but still deterministic, randomness for each run) to diagnose the flakiness.
 You can use `--iterations 10` to run a test suite up to 10 times, or `--continuous` to run it over and over until failure.
 
+### Automatic flakiness diagnostics
+
+Whenever a test fails, Sydtest will rerun it to see if it is flaky.
+A test will be considered flaky if the test passed at least once, but will still be considered "failing".
+
+TODO example output
+
 ### Flakiness combinators to practically deal with flakiness
 
 You can declare that some tests are potentially flaky like so:
@@ -592,6 +605,7 @@ spec = do
       i `shouldBe` (1 :: Int)
 ```
 
+This will make the tests considered "passing" if they pass at least once.
 This way you can unblock your team while you go and investigate flakiness.
 You can use the `--fail-on-flaky` flag to help falsify flakiness.
 

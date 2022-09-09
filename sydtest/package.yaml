@@ -86,3 +86,4 @@ tests:
     - safe-coloured-text
     - sydtest
     - text
+    - stm

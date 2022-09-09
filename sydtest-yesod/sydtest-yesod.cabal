@@ -106,7 +106,6 @@ test-suite sydtest-yesod-test
     , conduit
     , cookie
     , http-client
-    , http-types
     , path
     , path-io
     , sydtest

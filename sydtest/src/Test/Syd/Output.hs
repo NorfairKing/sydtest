@@ -44,13 +44,13 @@ outputResultReport :: Settings -> Timed ResultForest -> [[Chunk]]
 outputResultReport settings trf@(Timed rf _) =
   concat
     [ outputTestsHeader,
-      outputSpecForest 0 (resultForestWidth rf) rf,
+      outputSpecForest settings 0 (resultForestWidth rf) rf,
       [ [chunk ""],
         [chunk ""]
       ],
       outputFailuresWithHeading settings rf,
       [[chunk ""]],
-      outputStats (computeTestSuiteStats <$> trf),
+      outputStats (computeTestSuiteStats settings <$> trf),
       [[chunk ""]]
     ]
 
@@ -144,34 +144,36 @@ outputHeader t =
     [chunk ""]
   ]
 
-outputSpecForest :: Int -> Int -> ResultForest -> [[Chunk]]
-outputSpecForest level treeWidth = concatMap (outputSpecTree level treeWidth)
+outputSpecForest :: Settings -> Int -> Int -> ResultForest -> [[Chunk]]
+outputSpecForest settings level treeWidth = concatMap (outputSpecTree settings level treeWidth)
 
-outputSpecTree :: Int -> Int -> ResultTree -> [[Chunk]]
-outputSpecTree level treeWidth = \case
-  SpecifyNode t td -> outputSpecifyLines level treeWidth t td
+outputSpecTree :: Settings -> Int -> Int -> ResultTree -> [[Chunk]]
+outputSpecTree settings level treeWidth = \case
+  SpecifyNode t td -> outputSpecifyLines settings level treeWidth t td
   PendingNode t mr -> outputPendingLines t mr
-  DescribeNode t sf -> outputDescribeLine t : map (padding :) (outputSpecForest (level + 1) treeWidth sf)
-  SubForestNode sf -> outputSpecForest level treeWidth sf
+  DescribeNode t sf -> outputDescribeLine t : map (padding :) (outputSpecForest settings (level + 1) treeWidth sf)
+  SubForestNode sf -> outputSpecForest settings level treeWidth sf
 
 outputDescribeLine :: Text -> [Chunk]
 outputDescribeLine t = [fore yellow $ chunk t]
 
-outputSpecifyLines :: Int -> Int -> Text -> TDef (Timed TestRunResult) -> [[Chunk]]
-outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} executionTime) _) =
-  let withStatusColour = fore (statusColour testRunResultStatus)
+outputSpecifyLines :: Settings -> Int -> Int -> Text -> TDef (Timed TestRunReport) -> [[Chunk]]
+outputSpecifyLines settings level treeWidth specifyText (TDef (Timed testRunReport executionTime) _) =
+  let status = testRunReportStatus settings testRunReport
+      TestRunResult {..} = testRunReportReportedRun testRunReport
+      withStatusColour = fore (statusColour status)
       pad = (chunk (T.pack (replicate paddingSize ' ')) :)
       timeChunk = timeChunkFor executionTime
    in filter
         (not . null)
         $ concat
-          [ [ [ withStatusColour $ chunk (statusCheckMark testRunResultStatus),
+          [ [ [ withStatusColour $ chunk (statusCheckMark status),
                 withStatusColour $ chunk specifyText,
                 spacingChunk level specifyText (chunkText timeChunk) treeWidth,
                 timeChunk
               ]
             ],
-            map pad $ retriesChunks testRunResultStatus testRunResultRetries testRunResultFlakinessMessage,
+            map pad $ retriesChunks testRunReport,
             [ pad
                 [ chunk "passed for all of ",
                   case w of
@@ -179,7 +181,7 @@ outputSpecifyLines level treeWidth specifyText (TDef (Timed TestRunResult {..} e
                     _ -> fore green $ chunk (T.pack (printf "%d" w)),
                   " inputs."
                 ]
-              | testRunResultStatus == TestPassed,
+              | status == TestPassed,
                 w <- maybeToList testRunResultNumTests
             ],
             map pad $ labelsChunks (fromMaybe 1 testRunResultNumTests) testRunResultLabels,
@@ -208,16 +210,22 @@ timeChunkFor executionTime =
             | otherwise -> fore darkRed
    in withTimingColour $ chunk executionTimeText
 
-retriesChunks :: TestStatus -> Maybe Int -> Maybe String -> [[Chunk]]
-retriesChunks status mRetries mMessage = case mRetries of
-  Nothing -> []
-  Just retries -> case status of
-    TestPassed ->
-      concat
-        [ [["Retries: ", chunk (T.pack (show retries)), fore red " !!! FLAKY !!!"]],
-          [[fore magenta $ chunk $ T.pack message] | message <- maybeToList mMessage]
-        ]
-    TestFailed -> [["Retries: ", chunk (T.pack (show retries)), " (likely not flaky)"]]
+retriesChunks :: TestRunReport -> [[Chunk]]
+retriesChunks testRunReport =
+  case testRunReportRetries testRunReport of
+    Nothing -> []
+    Just retries ->
+      let flaky = testRunReportWasFlaky testRunReport
+          mMessage = case testRunReportFlakinessMode testRunReport of
+            MayBeFlaky mmesg -> mmesg
+            MayNotBeFlaky -> Nothing
+       in if flaky
+            then
+              concat
+                [ [["Retries: ", chunk (T.pack (show retries)), fore red " !!! FLAKY !!!"]],
+                  [[fore magenta $ chunk $ T.pack message] | message <- maybeToList mMessage]
+                ]
+            else [["Retries: ", chunk (T.pack (show retries)), " (likely not flaky)"]]
 
 labelsChunks :: Word -> Maybe (Map [String] Int) -> [[Chunk]]
 labelsChunks _ Nothing = []
@@ -341,50 +349,52 @@ spacingChunk level descriptionText executionTimeText treeWidth = chunk $ T.pack 
 
 outputFailures :: Settings -> ResultForest -> [[Chunk]]
 outputFailures settings rf =
-  let failures = filter (testFailed settings . timedValue . testDefVal . snd) $ flattenSpecForest rf
+  let failures = filter (testRunReportFailed settings . timedValue . testDefVal . snd) $ flattenSpecForest rf
       nbDigitsInFailureCount :: Int
       nbDigitsInFailureCount = floor (logBase 10 (L.genericLength failures) :: Double)
       padFailureDetails = (chunk (T.pack (replicate (nbDigitsInFailureCount + 4) ' ')) :)
    in map (padding :) $
         filter (not . null) $
           concat $
-            indexed failures $ \w (ts, TDef (Timed TestRunResult {..} _) cs) ->
-              concat
-                [ [ [ fore cyan $
-                        chunk $
-                          T.pack $
-                            replicate 2 ' '
-                              ++ case headMay $ getCallStack cs of
-                                Nothing -> "Unknown location"
-                                Just (_, SrcLoc {..}) ->
-                                  concat
-                                    [ srcLocFile,
-                                      ":",
-                                      show srcLocStartLine
-                                    ]
-                    ],
-                    map
-                      (fore (statusColour testRunResultStatus))
-                      [ chunk $ statusCheckMark testRunResultStatus,
-                        chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
-                        chunk $ T.intercalate "." ts
-                      ]
-                  ],
-                  map padFailureDetails $ retriesChunks testRunResultStatus testRunResultRetries testRunResultFlakinessMessage,
-                  map (padFailureDetails . (: []) . chunk . T.pack) $
-                    case (testRunResultNumTests, testRunResultNumShrinks) of
-                      (Nothing, _) -> []
-                      (Just numTests, Nothing) -> [printf "Failed after %d tests" numTests]
-                      (Just numTests, Just 0) -> [printf "Failed after %d tests" numTests]
-                      (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
-                  map (padFailureDetails . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
-                  map padFailureDetails $ outputFailureLabels testRunResultLabels,
-                  map padFailureDetails $ outputFailureClasses testRunResultClasses,
-                  map padFailureDetails $ maybe [] outputSomeException testRunResultException,
-                  [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
-                  concat [map padFailureDetails $ stringChunks ei | ei <- maybeToList testRunResultExtraInfo],
-                  [[chunk ""]]
-                ]
+            indexed failures $ \w (ts, TDef (Timed testRunReport _) cs) ->
+              let status = testRunReportStatus settings testRunReport
+                  TestRunResult {..} = testRunReportReportedRun testRunReport
+               in concat
+                    [ [ [ fore cyan $
+                            chunk $
+                              T.pack $
+                                replicate 2 ' '
+                                  ++ case headMay $ getCallStack cs of
+                                    Nothing -> "Unknown location"
+                                    Just (_, SrcLoc {..}) ->
+                                      concat
+                                        [ srcLocFile,
+                                          ":",
+                                          show srcLocStartLine
+                                        ]
+                        ],
+                        map
+                          (fore (statusColour status))
+                          [ chunk $ statusCheckMark status,
+                            chunk $ T.pack (printf ("%" ++ show nbDigitsInFailureCount ++ "d ") w),
+                            chunk $ T.intercalate "." ts
+                          ]
+                      ],
+                      map padFailureDetails $ retriesChunks testRunReport,
+                      map (padFailureDetails . (: []) . chunk . T.pack) $
+                        case (testRunResultNumTests, testRunResultNumShrinks) of
+                          (Nothing, _) -> []
+                          (Just numTests, Nothing) -> [printf "Failed after %d tests" numTests]
+                          (Just numTests, Just 0) -> [printf "Failed after %d tests" numTests]
+                          (Just numTests, Just numShrinks) -> [printf "Failed after %d tests and %d shrinks" numTests numShrinks],
+                      map (padFailureDetails . (\c -> [chunk "Generated: ", c]) . fore yellow . chunk . T.pack) testRunResultFailingInputs,
+                      map padFailureDetails $ outputFailureLabels testRunResultLabels,
+                      map padFailureDetails $ outputFailureClasses testRunResultClasses,
+                      map padFailureDetails $ maybe [] outputSomeException testRunResultException,
+                      [padFailureDetails $ outputGoldenCase gc | gc <- maybeToList testRunResultGoldenCase],
+                      concat [map padFailureDetails $ stringChunks ei | ei <- maybeToList testRunResultExtraInfo],
+                      [[chunk ""]]
+                    ]
 
 outputSomeException :: SomeException -> [[Chunk]]
 outputSomeException outerException =
@@ -485,11 +495,6 @@ stringChunks s =
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls
 
-outputFailure :: TestRunResult -> Maybe [[Chunk]]
-outputFailure TestRunResult {..} = case testRunResultStatus of
-  TestPassed -> Nothing
-  TestFailed -> Just [[chunk "Failure"]]
-
 statusColour :: TestStatus -> Colour
 statusColour = \case
   TestPassed -> green
@@ -530,6 +535,7 @@ specForestWidth = goF 0
       DefAroundAllWithNode _ sdf -> goF level sdf
       DefAfterAllNode _ sdf -> goF level sdf
       DefParallelismNode _ sdf -> goF level sdf
+      DefRetriesNode _ sdf -> goF level sdf
       DefRandomisationNode _ sdf -> goF level sdf
       DefFlakinessNode _ sdf -> goF level sdf
 

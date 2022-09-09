@@ -19,7 +19,6 @@ library:
   dependencies:
   - aeson
   - http-client
-  - http-types
   - monad-control
   - mtl
   - network

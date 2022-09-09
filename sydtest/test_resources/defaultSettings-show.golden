@@ -12,6 +12,7 @@ Settings
   , settingFilter = Nothing
   , settingFailFast = False
   , settingIterations = OneIteration
+  , settingRetries = 3
   , settingFailOnFlaky = False
   , settingReportProgress = ReportNoProgress
   , settingDebug = False

@@ -8,7 +8,7 @@ let
 
   versions = {
     "nixos-21_11" = sources.nixpkgs-21_11;
-    "nixos-22_05" = sources.nixpkgs-22_05;
+    "nixos-22_05" = sources.nixpkgs;
   };
 
   mkReleaseForVersion = version: nixpkgs:
@@ -20,7 +20,6 @@ let
     p.sydtestRelease.overrideAttrs (old: { name = "sydtest-release-${version}"; });
 in
 {
-  release = pkgs.sydtestRelease;
   hoogle = pkgs.buildEnv {
     name = "sydtest-hoogle";
     paths = [ (pkgs.haskellPackages.ghcWithHoogle (ps: pkgs.lib.attrValues pkgs.sydtestPackages)) ];

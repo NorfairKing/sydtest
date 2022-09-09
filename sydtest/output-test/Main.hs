@@ -16,13 +16,22 @@ main :: IO ()
 main = do
   settings <- getSettings
   testForest <- execTestDefM settings spec
+
+  putStrLn "Synchronous, non-interleaved"
   rf1 <- timeItT $ runSpecForestSynchronously settings testForest
   printOutputSpecForest settings rf1
+
+  putStrLn "Synchronous, interleaved"
   _ <- runSpecForestInterleavedWithOutputSynchronously settings testForest
-  _ <- runSpecForestInterleavedWithOutputAsynchronously settings 8 testForest
+
+  putStrLn "Asynchronous, non-interleaved"
   rf2 <- timeItT $ runSpecForestAsynchronously settings 8 testForest
   printOutputSpecForest settings rf2
 
+  putStrLn "Asynchronous, interleaved"
+  _ <- runSpecForestInterleavedWithOutputAsynchronously settings 8 testForest
+
+  putStrLn "Golden test of output"
   sydTest $
     describe "Golden Output" $
       it "renders output in the same way as before" $

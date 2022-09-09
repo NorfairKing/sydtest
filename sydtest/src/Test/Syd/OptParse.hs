@@ -65,8 +65,10 @@ data Settings = Settings
     -- | Whether to stop upon the first test failure
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
-    settingIterations :: Iterations,
-    -- | Whether to fail when any flakiness is detected
+    settingIterations :: !Iterations,
+    -- | How many times to retry a test for flakiness diagnostics
+    settingRetries :: !Word,
+    -- | Whether to fail when any flakiness is detected in tests declared as flaky
     settingFailOnFlaky :: !Bool,
     -- | How to report progress
     settingReportProgress :: !ReportProgress,
@@ -92,10 +94,14 @@ defaultSettings =
           settingFilter = Nothing,
           settingFailFast = False,
           settingIterations = OneIteration,
+          settingRetries = defaultRetries,
           settingFailOnFlaky = False,
           settingReportProgress = ReportNoProgress,
           settingDebug = False
         }
+
+defaultRetries :: Word
+defaultRetries = 3
 
 deriveTerminalCapababilities :: Settings -> IO TerminalCapabilities
 deriveTerminalCapababilities settings = case settingColour settings of
@@ -186,6 +192,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
             (if debugMode then True else d settingFailFast)
             (flagFailFast <|> envFailFast <|> mc configFailFast),
         settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations,
+        settingRetries = fromMaybe (d settingRetries) $ flagRetries <|> envRetries <|> mc configRetries,
         settingFailOnFlaky = fromMaybe (d settingFailOnFlaky) $ flagFailOnFlaky <|> envFailOnFlaky <|> mc configFailOnFlaky,
         settingReportProgress = setReportProgress,
         settingDebug = debugMode
@@ -214,6 +221,7 @@ data Configuration = Configuration
     configFilter :: !(Maybe Text),
     configFailFast :: !(Maybe Bool),
     configIterations :: !(Maybe Iterations),
+    configRetries :: !(Maybe Word),
     configFailOnFlaky :: !(Maybe Bool),
     configReportProgress :: !(Maybe Bool),
     configDebug :: !(Maybe Bool)
@@ -244,7 +252,8 @@ instance HasCodec Configuration where
         <*> optionalField "filter" "Filter to select which parts of the test tree to run" .= configFilter
         <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure" .= configFailFast
         <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness" .= configIterations
-        <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected" .= configFailOnFlaky
+        <*> optionalField "retries" "The number of retries to use for flakiness diagnostics. 0 means 'no flakiness diagnostics'" .= configRetries
+        <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected in tests marked as potentially flaky" .= configFailOnFlaky
         <*> optionalField "progress" "How to report progres" .= configReportProgress
         <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true" .= configDebug
 
@@ -308,6 +317,7 @@ data Environment = Environment
     envFilter :: !(Maybe Text),
     envFailFast :: !(Maybe Bool),
     envIterations :: !(Maybe Iterations),
+    envRetries :: !(Maybe Word),
     envFailOnFlaky :: !(Maybe Bool),
     envReportProgress :: !(Maybe Bool),
     envDebug :: !(Maybe Bool)
@@ -331,6 +341,7 @@ defaultEnvironment =
       envFilter = Nothing,
       envFailFast = Nothing,
       envIterations = Nothing,
+      envRetries = Nothing,
       envFailOnFlaky = Nothing,
       envReportProgress = Nothing,
       envDebug = Nothing
@@ -362,7 +373,8 @@ environmentParser =
         <*> Env.var (fmap Just . Env.str) "FILTER" (Env.def Nothing <> Env.help "Filter to select which parts of the test tree to run")
         <*> Env.var (fmap Just . Env.auto) "FAIL_FAST" (Env.def Nothing <> Env.help "Whether to stop executing upon the first test failure")
         <*> Env.var (fmap Just . (Env.auto >=> parseIterations)) "ITERATIONS" (Env.def Nothing <> Env.help "How many iterations to use to look diagnose flakiness")
-        <*> Env.var (fmap Just . Env.auto) "FAIL_ON_FLAKY" (Env.def Nothing <> Env.help "Whether to fail when flakiness is detected")
+        <*> Env.var (fmap Just . Env.auto) "RETRIES" (Env.def Nothing <> Env.help "The number of retries to use for flakiness diagnostics. 0 means 'no flakiness diagnostics'")
+        <*> Env.var (fmap Just . Env.auto) "FAIL_ON_FLAKY" (Env.def Nothing <> Env.help "Whether to fail when flakiness is detected in tests marked as potentially flaky")
         <*> Env.var (fmap Just . Env.auto) "PROGRESS" (Env.def Nothing <> Env.help "Report progress as tests run")
         <*> Env.var (fmap Just . Env.auto) "DEBUG" (Env.def Nothing <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
   where
@@ -428,6 +440,7 @@ data Flags = Flags
     flagFilter :: !(Maybe Text),
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !(Maybe Iterations),
+    flagRetries :: !(Maybe Word),
     flagFailOnFlaky :: !(Maybe Bool),
     flagReportProgress :: !(Maybe Bool),
     flagDebug :: !(Maybe Bool)
@@ -451,6 +464,7 @@ defaultFlags =
       flagFilter = Nothing,
       flagFailFast = Nothing,
       flagIterations = Nothing,
+      flagRetries = Nothing,
       flagFailOnFlaky = Nothing,
       flagReportProgress = Nothing,
       flagDebug = Nothing
@@ -584,6 +598,15 @@ parseFlags =
                 ]
             )
       )
+    <*> optional
+      ( option
+          auto
+          ( mconcat
+              [ long "retries",
+                help "The number of retries to use for flakiness diagnostics. 0 means 'no flakiness diagnostics'"
+              ]
+          )
+      )
     <*> doubleSwitch ["fail-on-flaky"] (help "Fail when any flakiness is detected")
     <*> doubleSwitch ["progress"] (help "Report progress")
     <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous, --progress and --fail-fast.")
@@ -612,6 +635,6 @@ seedSettingFlags =
 doubleSwitch :: [String] -> OptParse.Mod FlagFields (Maybe Bool) -> OptParse.Parser (Maybe Bool)
 doubleSwitch suffixes mods =
   flag' (Just True) (hidden <> internal <> foldMap long suffixes <> mods)
-    <|> flag' (Just False) (hidden <> internal <> foldMap long suffixes <> mods)
+    <|> flag' (Just False) (hidden <> internal <> foldMap (long . ("no-" <>)) suffixes <> mods)
     <|> flag' Nothing (foldMap (\suffix -> long ("[no-]" <> suffix)) suffixes <> mods)
     <|> pure Nothing

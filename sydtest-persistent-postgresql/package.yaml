@@ -21,7 +21,6 @@ library:
   dependencies:
   - monad-logger
   - mtl
-  - persistent
   - persistent-postgresql
   - sydtest
   - sydtest-persistent
@@ -39,7 +38,6 @@ tests:
     - -Wall
     dependencies:
     - persistent
-    - persistent-postgresql
     - sydtest
     - sydtest-persistent-postgresql
     when:

@@ -8,6 +8,7 @@ module Test.Syd.Runner.Wrappers where
 
 import Control.Concurrent
 import Control.Monad.IO.Class
+import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecDef
 
@@ -18,9 +19,9 @@ extractNext :: Next a -> a
 extractNext (Continue a) = a
 extractNext (Stop a) = a
 
-failFastNext :: Bool -> TDef (Timed TestRunResult) -> Next (TDef (Timed TestRunResult))
-failFastNext b td@(TDef (Timed trr _) _) =
-  if b && testRunResultStatus trr == TestFailed
+failFastNext :: Settings -> TDef (Timed TestRunReport) -> Next (TDef (Timed TestRunReport))
+failFastNext settings td@(TDef (Timed trr _) _) =
+  if settingFailFast settings && testRunReportFailed settings trr
     then Stop td
     else Continue td
 

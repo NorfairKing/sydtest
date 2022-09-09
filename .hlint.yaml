@@ -11,6 +11,8 @@
 - ignore:
     name: "Use ++"
 - ignore:
+    name: "Use void"
+- ignore:
     name: "Reduce duplication"
 - ignore:
     name: "Eta reduce"
@@ -20,3 +22,5 @@
     name: "Avoid lambda using `infix`"
 - ignore:
     name: "Redundant if"
+- ignore:
+    name: "Redundant lambda"

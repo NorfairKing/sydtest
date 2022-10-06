@@ -193,6 +193,12 @@ module Test.Syd
     withFlakiness,
     FlakinessMode (..),
 
+    -- *** Declaring expectations
+    expectPassing,
+    expectFailing,
+    withExpectationMode,
+    ExpectationMode (..),
+
     -- *** Doing IO during test definition
     runIO,
 

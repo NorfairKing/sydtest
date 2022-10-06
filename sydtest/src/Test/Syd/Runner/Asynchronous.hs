@@ -92,7 +92,15 @@ runner settings nbThreads failFastVar handleForest = do
                       Parallel -> 1
                 waitQSemN sem $ fromIntegral quantity
 
-                let runNow = timeItT $ runSingleTestWithFlakinessMode noProgressReporter eExternalResources td eRetries eFlakinessMode
+                let runNow =
+                      timeItT $
+                        runSingleTestWithFlakinessMode
+                          noProgressReporter
+                          eExternalResources
+                          td
+                          eRetries
+                          eFlakinessMode
+                          eExpectationMode
                 let job :: IO ()
                     job = do
                       -- Start the test
@@ -164,9 +172,13 @@ runner settings nbThreads failFastVar handleForest = do
           withReaderT
             (\e -> e {eRetries = modRetries (eRetries e)})
             (goForest sdf)
-        DefFlakinessNode fm' sdf ->
+        DefFlakinessNode fm sdf ->
           withReaderT
-            (\e -> e {eFlakinessMode = fm'})
+            (\e -> e {eFlakinessMode = fm})
+            (goForest sdf)
+        DefExpectationNode em sdf ->
+          withReaderT
+            (\e -> e {eExpectationMode = em})
             (goForest sdf)
 
   runReaderT
@@ -175,6 +187,7 @@ runner settings nbThreads failFastVar handleForest = do
       { eParallelism = Parallel,
         eRetries = settingRetries settings,
         eFlakinessMode = MayNotBeFlaky,
+        eExpectationMode = ExpectPassing,
         eExternalResources = HNil
       }
 
@@ -185,6 +198,7 @@ data Env externalResources = Env
   { eParallelism :: !Parallelism,
     eRetries :: !Word,
     eFlakinessMode :: !FlakinessMode,
+    eExpectationMode :: !ExpectationMode,
     eExternalResources :: !(HList externalResources)
   }
 
@@ -250,6 +264,7 @@ printer settings failFastVar handleForest = do
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefRetriesNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefExpectationNode _ sdf -> fmap SubForestNode <$> goForest sdf
   mapM_ outputLine outputTestsHeader
   resultForest <- timeItT $ fromMaybe [] <$> runReaderT (goForest handleForest) 0
   outputLine [chunk " "]
@@ -295,4 +310,5 @@ waiter failFastVar handleForest = do
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefRetriesNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefExpectationNode _ sdf -> fmap SubForestNode <$> goForest sdf
   fromMaybe [] <$> goForest handleForest

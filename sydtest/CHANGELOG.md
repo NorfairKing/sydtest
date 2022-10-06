@@ -9,6 +9,8 @@
 * `Test.Syd` now also exports `pPrint`.
 * The `modifyRetries`, `withoutRetries`, `withRetries` functions, to allow configuration of the number of retries independently of whether flakiness is allowed.
 * The `TestRunReport` type, so that a `ResultForest` contains information about all runs of a test instead of only the last.
+* Expectation of failure.
+  This adds the `expectFailing`, `expectPassing`, and `withExpectationMode` functions.
 
 ### Changed
 

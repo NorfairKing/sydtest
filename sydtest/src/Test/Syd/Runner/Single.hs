@@ -28,13 +28,16 @@ runSingleTestWithFlakinessMode ::
   Word ->
   -- | Flakiness mode
   FlakinessMode ->
+  -- | Expectation mode
+  ExpectationMode ->
   -- | Test result
   IO TestRunReport
-runSingleTestWithFlakinessMode progressReporter l td maxRetries fm = do
-  results <- runSingleTestWithRetries progressReporter l td maxRetries
+runSingleTestWithFlakinessMode progressReporter l td maxRetries fm em = do
+  results <- runSingleTestWithRetries progressReporter l td maxRetries em
   pure
     TestRunReport
-      { testRunReportRawResults = results,
+      { testRunReportExpectationMode = em,
+        testRunReportRawResults = results,
         testRunReportFlakinessMode = fm
       }
 
@@ -52,18 +55,20 @@ runSingleTestWithRetries ::
     ) ->
   -- | Max retries
   Word ->
+  -- | Expectation mode
+  ExpectationMode ->
   -- If the test ever passed, and the last test result
   IO (NonEmpty TestRunResult)
-runSingleTestWithRetries progressReporter l td maxRetries = go maxRetries
+runSingleTestWithRetries progressReporter l td maxRetries em = go maxRetries
   where
     go :: Word -> IO (NonEmpty TestRunResult)
     go w
       | w <= 1 = (:| []) <$> runFunc
       | otherwise = do
         result <- runFunc
-        case testRunResultStatus result of
-          TestPassed -> pure (result :| [])
-          TestFailed -> do
+        if testStatusMatchesExpectationMode (testRunResultStatus result) em
+          then pure (result :| [])
+          else do
             rest <- go (pred w)
             pure (result NE.<| rest)
       where

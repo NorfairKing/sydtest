@@ -216,6 +216,7 @@ aroundWith' func (TestDefM rwst) =
               DefRandomisationNode f sdf -> DefRandomisationNode f $ modifyForest sdf
               DefRetriesNode f sdf -> DefRetriesNode f $ modifyForest sdf
               DefFlakinessNode f sdf -> DefFlakinessNode f $ modifyForest sdf
+              DefExpectationNode f sdf -> DefExpectationNode f $ modifyForest sdf
             modifyForest ::
               forall x extra.
               HContains x outer =>

@@ -79,7 +79,16 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
                     [ fore cyan "Test done: ",
                       fore yellow $ chunk t
                     ]
-          result <- liftIO $ timeItT $ runSingleTestWithFlakinessMode progressReporter eExternalResources td eRetries eFlakinessMode
+          result <-
+            liftIO $
+              timeItT $
+                runSingleTestWithFlakinessMode
+                  progressReporter
+                  eExternalResources
+                  td
+                  eRetries
+                  eFlakinessMode
+                  eExpectationMode
           let td' = td {testDefVal = result}
           outputLinesR $ outputSpecifyLines settings eLevel treeWidth t td'
           let r = failFastNext settings td'
@@ -136,10 +145,15 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
             <$> withReaderT
               (\e -> e {eRetries = modRetries (eRetries e)})
               (goForest sdf)
-        DefFlakinessNode fm' sdf ->
+        DefFlakinessNode fm sdf ->
           fmap SubForestNode
             <$> withReaderT
-              (\e -> e {eFlakinessMode = fm'})
+              (\e -> e {eFlakinessMode = fm})
+              (goForest sdf)
+        DefExpectationNode em sdf ->
+          fmap SubForestNode
+            <$> withReaderT
+              (\e -> e {eExpectationMode = em})
               (goForest sdf)
 
   mapM_ outputLine outputTestsHeader
@@ -152,6 +166,7 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
             { eLevel = 0,
               eRetries = settingRetries settings,
               eFlakinessMode = MayNotBeFlaky,
+              eExpectationMode = ExpectPassing,
               eExternalResources = HNil
             }
 
@@ -173,5 +188,6 @@ data Env externalResources = Env
   { eLevel :: Int,
     eRetries :: !Word,
     eFlakinessMode :: !FlakinessMode,
+    eExpectationMode :: !ExpectationMode,
     eExternalResources :: !(HList externalResources)
   }

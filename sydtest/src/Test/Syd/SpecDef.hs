@@ -123,8 +123,13 @@ data SpecDefTree (outers :: [Type]) inner extra where
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
   DefFlakinessNode ::
-    -- | How many times to retry
+    -- | Whether to allow flakiness
     FlakinessMode ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
+  DefExpectationNode ::
+    -- | Whether to expect passing or failing
+    ExpectationMode ->
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
 
@@ -146,6 +151,7 @@ instance Functor (SpecDefTree a c) where
           DefRandomisationNode p sdf -> DefRandomisationNode p $ goF sdf
           DefRetriesNode p sdf -> DefRetriesNode p $ goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p $ goF sdf
+          DefExpectationNode p sdf -> DefExpectationNode p $ goF sdf
 
 instance Foldable (SpecDefTree a c) where
   foldMap :: forall e m. Monoid m => (e -> m) -> SpecDefTree a c e -> m
@@ -165,6 +171,7 @@ instance Foldable (SpecDefTree a c) where
           DefRandomisationNode _ sdf -> goF sdf
           DefRetriesNode _ sdf -> goF sdf
           DefFlakinessNode _ sdf -> goF sdf
+          DefExpectationNode _ sdf -> goF sdf
 
 instance Traversable (SpecDefTree a c) where
   traverse :: forall u w f. Applicative f => (u -> f w) -> SpecDefTree a c u -> f (SpecDefTree a c w)
@@ -184,6 +191,7 @@ instance Traversable (SpecDefTree a c) where
           DefRandomisationNode p sdf -> DefRandomisationNode p <$> goF sdf
           DefRetriesNode p sdf -> DefRetriesNode p <$> goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
+          DefExpectationNode p sdf -> DefExpectationNode p <$> goF sdf
 
 filterTestForest :: Maybe Text -> SpecDefForest outers inner result -> SpecDefForest outers inner result
 filterTestForest mf = fromMaybe [] . goForest DList.empty
@@ -219,6 +227,7 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest dl sdf
       DefRetriesNode func sdf -> DefRetriesNode func <$> goForest dl sdf
       DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest dl sdf
+      DefExpectationNode func sdf -> DefExpectationNode func <$> goForest dl sdf
 
 randomiseTestForest :: MonadRandom m => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
 randomiseTestForest = goForest
@@ -238,6 +247,7 @@ randomiseTestForest = goForest
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest sdf
       DefRetriesNode i sdf -> DefRetriesNode i <$> goForest sdf
       DefFlakinessNode i sdf -> DefFlakinessNode i <$> goForest sdf
+      DefExpectationNode i sdf -> DefExpectationNode i <$> goForest sdf
       DefRandomisationNode eor sdf ->
         DefRandomisationNode eor <$> case eor of
           RandomiseExecutionOrder -> goForest sdf
@@ -263,14 +273,26 @@ markSpecForestAsPending mMessage = goForest
       DefRetriesNode i sdf -> DefRetriesNode i $ goForest sdf
       DefFlakinessNode i sdf -> DefFlakinessNode i $ goForest sdf
       DefRandomisationNode eor sdf -> DefRandomisationNode eor (goForest sdf)
+      DefExpectationNode i sdf -> DefExpectationNode i $ goForest sdf
 
-data Parallelism = Parallel | Sequential
+data Parallelism
+  = Parallel
+  | Sequential
+  deriving (Show, Eq, Generic)
 
-data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecutionOrder
+data ExecutionOrderRandomisation
+  = RandomiseExecutionOrder
+  | DoNotRandomiseExecutionOrder
+  deriving (Show, Eq, Generic)
 
 data FlakinessMode
   = MayNotBeFlaky
   | MayBeFlaky !(Maybe String) -- A message to show whenever the test is flaky.
+  deriving (Show, Eq, Generic)
+
+data ExpectationMode
+  = ExpectPassing
+  | ExpectFailing
   deriving (Show, Eq, Generic)
 
 type ResultForest = SpecForest (TDef (Timed TestRunReport))
@@ -359,7 +381,8 @@ shouldExitFail :: Settings -> ResultForest -> Bool
 shouldExitFail settings = any (any (testRunReportFailed settings . timedValue . testDefVal))
 
 data TestRunReport = TestRunReport
-  { -- | Raw results, including retries, in order
+  { testRunReportExpectationMode :: !ExpectationMode,
+    -- | Raw results, including retries, in order
     testRunReportRawResults :: !(NonEmpty TestRunResult),
     testRunReportFlakinessMode :: !FlakinessMode
   }
@@ -383,7 +406,7 @@ testRunReportStatus :: Settings -> TestRunReport -> TestStatus
 testRunReportStatus Settings {..} testRunReport@TestRunReport {..} =
   let wasFlaky = testRunReportWasFlaky testRunReport
       lastResult = NE.last testRunReportRawResults
-   in case testRunReportFlakinessMode of
+      actualStatus = case testRunReportFlakinessMode of
         MayNotBeFlaky ->
           if wasFlaky
             then TestFailed
@@ -395,6 +418,17 @@ testRunReportStatus Settings {..} testRunReport@TestRunReport {..} =
               if any ((== TestPassed) . testRunResultStatus) testRunReportRawResults
                 then TestPassed
                 else TestFailed
+      consideredStatus =
+        if testStatusMatchesExpectationMode actualStatus testRunReportExpectationMode
+          then TestPassed
+          else TestFailed
+   in consideredStatus
+
+testStatusMatchesExpectationMode :: TestStatus -> ExpectationMode -> Bool
+testStatusMatchesExpectationMode actualStatus expectationMode = case (actualStatus, expectationMode) of
+  (TestPassed, ExpectPassing) -> True
+  (TestFailed, ExpectFailing) -> True
+  _ -> False
 
 testRunReportExamples :: TestRunReport -> Word
 testRunReportExamples = sum . NE.map testRunResultExamples . testRunReportRawResults

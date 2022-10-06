@@ -2,11 +2,7 @@ version: 2.0.0
 value:
 - entry: Sydtest ideas
   forest:
-  - a shouldfail combinator
   - 'docs: examples of golden tests'
   - A mode for "optimising run time". I.e. profiling
-  - Show more of the callstack in case people use test suite combinators
   - Timing diagram
   - Bug with diffs when an assertion gets a context
-  - header: sydtest-autodocodec
-    contents: With golden tests for the json schema

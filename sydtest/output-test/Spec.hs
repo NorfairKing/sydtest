@@ -314,6 +314,14 @@ spec = do
       it "describe-it" False
       specify "describe-specify" False
 
+  describe "expectations" $ do
+    expectFailing $ do
+      it "considered passing" False
+      expectPassing $ it "considered passing" True
+    expectPassing $ do
+      it "considered failing" False
+      expectFailing $ it "considered failing" True
+
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do
   it "fails in IO, as the result" (pure (seq a ()) :: IO ())

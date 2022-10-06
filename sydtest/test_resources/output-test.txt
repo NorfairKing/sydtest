@@ -299,6 +299,13 @@
       Retries: 3 (likely not flaky)
     [31m✗ [m[31mdescribe-specify[m                                                              [32m      0.00 ms[m
       Retries: 3 (likely not flaky)
+[33mexpectations[m
+  [32m✓ [m[32mconsidered passing[m                                                              [32m      0.00 ms[m
+  [32m✓ [m[32mconsidered passing[m                                                              [32m      0.00 ms[m
+  [31m✗ [m[31mconsidered failing[m                                                              [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
+  [31m✗ [m[31mconsidered failing[m                                                              [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
 
 
 [34mFailures:[m
@@ -343,17 +350,17 @@
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:319[m
+  [36m  output-test/Spec.hs:327[m
   [31m✗ [m[31m7 [m[31mexceptions.Record construction error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:43:57-64: Missing field in record construction field
   
-  [36m  output-test/Spec.hs:320[m
+  [36m  output-test/Spec.hs:328[m
   [31m✗ [m[31m8 [m[31mexceptions.Record construction error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:43:57-64: Missing field in record construction field
   
-  [36m  output-test/Spec.hs:321[m
+  [36m  output-test/Spec.hs:329[m
   [31m✗ [m[31m9 [m[31mexceptions.Record construction error.fails in pure code[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:43:57-64: Missing field in record construction field
@@ -363,17 +370,17 @@
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:319[m
+  [36m  output-test/Spec.hs:327[m
   [31m✗ [m[31m11 [m[31mexceptions.Record selection error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        No match in record selector field
   
-  [36m  output-test/Spec.hs:320[m
+  [36m  output-test/Spec.hs:328[m
   [31m✗ [m[31m12 [m[31mexceptions.Record selection error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        No match in record selector field
   
-  [36m  output-test/Spec.hs:321[m
+  [36m  output-test/Spec.hs:329[m
   [31m✗ [m[31m13 [m[31mexceptions.Record selection error.fails in pure code[m
        Retries: 3 (likely not flaky)
        No match in record selector field
@@ -383,17 +390,17 @@
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:319[m
+  [36m  output-test/Spec.hs:327[m
   [31m✗ [m[31m15 [m[31mexceptions.Record update error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:47:60-88: Non-exhaustive patterns in record update
   
-  [36m  output-test/Spec.hs:320[m
+  [36m  output-test/Spec.hs:328[m
   [31m✗ [m[31m16 [m[31mexceptions.Record update error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:47:60-88: Non-exhaustive patterns in record update
   
-  [36m  output-test/Spec.hs:321[m
+  [36m  output-test/Spec.hs:329[m
   [31m✗ [m[31m17 [m[31mexceptions.Record update error.fails in pure code[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:47:60-88: Non-exhaustive patterns in record update
@@ -403,17 +410,17 @@
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:319[m
+  [36m  output-test/Spec.hs:327[m
   [31m✗ [m[31m19 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:49:50-64: Non-exhaustive patterns in Cons1 s
   
-  [36m  output-test/Spec.hs:320[m
+  [36m  output-test/Spec.hs:328[m
   [31m✗ [m[31m20 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:49:50-64: Non-exhaustive patterns in Cons1 s
   
-  [36m  output-test/Spec.hs:321[m
+  [36m  output-test/Spec.hs:329[m
   [31m✗ [m[31m21 [m[31mexceptions.Pattern matching error.fails in pure code[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:49:50-64: Non-exhaustive patterns in Cons1 s
@@ -423,17 +430,17 @@
        Retries: 3 (likely not flaky)
        arithmetic underflow
   
-  [36m  output-test/Spec.hs:319[m
+  [36m  output-test/Spec.hs:327[m
   [31m✗ [m[31m23 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        divide by zero
   
-  [36m  output-test/Spec.hs:320[m
+  [36m  output-test/Spec.hs:328[m
   [31m✗ [m[31m24 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        divide by zero
   
-  [36m  output-test/Spec.hs:321[m
+  [36m  output-test/Spec.hs:329[m
   [31m✗ [m[31m25 [m[31mexceptions.Pattern matching error.fails in pure code[m
        Retries: 3 (likely not flaky)
        divide by zero
@@ -443,17 +450,17 @@
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:319[m
+  [36m  output-test/Spec.hs:327[m
   [31m✗ [m[31m27 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:28:10-19: No instance nor default method for class operation toUnit
   
-  [36m  output-test/Spec.hs:320[m
+  [36m  output-test/Spec.hs:328[m
   [31m✗ [m[31m28 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:28:10-19: No instance nor default method for class operation toUnit
   
-  [36m  output-test/Spec.hs:321[m
+  [36m  output-test/Spec.hs:329[m
   [31m✗ [m[31m29 [m[31mexceptions.Pattern matching error.fails in pure code[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:28:10-19: No instance nor default method for class operation toUnit
@@ -835,10 +842,18 @@
   [31m✗ [m[31m74 [m[31mcallstack.describe.describe-specify[m
        Retries: 3 (likely not flaky)
   
+  [36m  output-test/Spec.hs:322[m
+  [31m✗ [m[31m75 [m[31mexpectations.considered failing[m
+       Retries: 3 (likely not flaky)
+  
+  [36m  output-test/Spec.hs:323[m
+  [31m✗ [m[31m76 [m[31mexpectations.considered failing[m
+       Retries: 3 (likely not flaky)
+  
 
-  Examples:                     [32m854[m
-  Passed:                       [32m27[m
-  Failed:                       [31m74[m
+  Examples:                     [32m862[m
+  Passed:                       [32m29[m
+  Failed:                       [31m76[m
   Flaky:                        [31m3[m
   Pending:                      [35m7[m
   Longest test took:   [33m         0.00 seconds[m

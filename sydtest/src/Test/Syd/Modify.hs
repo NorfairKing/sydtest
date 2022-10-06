@@ -36,6 +36,12 @@ module Test.Syd.Modify
     potentiallyFlakyWith,
     withFlakiness,
     FlakinessMode (..),
+
+    -- * Declaring expectations
+    expectPassing,
+    expectFailing,
+    withExpectationMode,
+    ExpectationMode (..),
   )
 where
 
@@ -134,3 +140,15 @@ potentiallyFlakyWith message = withFlakiness (MayBeFlaky (Just message))
 -- | Annotate a test group with 'FlakinessMode'.
 withFlakiness :: FlakinessMode -> TestDefM a b c -> TestDefM a b c
 withFlakiness f = censor ((: []) . DefFlakinessNode f)
+
+-- | Mark a test suite as 'should pass'
+expectPassing :: TestDefM a b c -> TestDefM a b c
+expectPassing = withExpectationMode ExpectPassing
+
+-- | Mark a test suite as 'should fail'
+expectFailing :: TestDefM a b c -> TestDefM a b c
+expectFailing = withExpectationMode ExpectFailing
+
+-- | Annotate a test suite with 'ExpectationMode'
+withExpectationMode :: ExpectationMode -> TestDefM a b c -> TestDefM a b c
+withExpectationMode em = censor ((: []) . DefExpectationNode em)

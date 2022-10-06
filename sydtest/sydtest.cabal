@@ -125,6 +125,7 @@ test-suite sydtest-test
       Test.Syd.AroundCombinationSpec
       Test.Syd.AroundSpec
       Test.Syd.DescriptionsSpec
+      Test.Syd.ExpectationSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
       Test.Syd.OptParseSpec

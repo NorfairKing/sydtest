@@ -25,6 +25,7 @@ runSpecForestSynchronously settings testForest =
       Env
         { eRetries = settingRetries settings,
           eFlakinessMode = MayNotBeFlaky,
+          eExpectationMode = ExpectPassing,
           eExternalResources = HNil
         }
   where
@@ -42,7 +43,16 @@ runSpecForestSynchronously settings testForest =
     goTree = \case
       DefSpecifyNode t td () -> do
         Env {..} <- ask
-        result <- liftIO $ timeItT $ runSingleTestWithFlakinessMode noProgressReporter eExternalResources td eRetries eFlakinessMode
+        result <-
+          liftIO $
+            timeItT $
+              runSingleTestWithFlakinessMode
+                noProgressReporter
+                eExternalResources
+                td
+                eRetries
+                eFlakinessMode
+                eExpectationMode
         let td' = td {testDefVal = result}
         let r = failFastNext settings td'
         pure $ SpecifyNode t <$> r
@@ -94,10 +104,15 @@ runSpecForestSynchronously settings testForest =
           <$> withReaderT
             (\e -> e {eRetries = modRetries (eRetries e)})
             (goForest sdf)
-      DefFlakinessNode fm' sdf ->
+      DefFlakinessNode fm sdf ->
         fmap SubForestNode
           <$> withReaderT
-            (\e -> e {eFlakinessMode = fm'})
+            (\e -> e {eFlakinessMode = fm})
+            (goForest sdf)
+      DefExpectationNode em sdf ->
+        fmap SubForestNode
+          <$> withReaderT
+            (\e -> e {eExpectationMode = em})
             (goForest sdf)
 
 type R a = ReaderT (Env a) IO
@@ -106,5 +121,6 @@ type R a = ReaderT (Env a) IO
 data Env externalResources = Env
   { eRetries :: !Word,
     eFlakinessMode :: !FlakinessMode,
+    eExpectationMode :: !ExpectationMode,
     eExternalResources :: !(HList externalResources)
   }

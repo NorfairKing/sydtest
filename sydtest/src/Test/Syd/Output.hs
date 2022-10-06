@@ -538,6 +538,7 @@ specForestWidth = goF 0
       DefRetriesNode _ sdf -> goF level sdf
       DefRandomisationNode _ sdf -> goF level sdf
       DefFlakinessNode _ sdf -> goF level sdf
+      DefExpectationNode _ sdf -> goF level sdf
 
 padding :: Chunk
 padding = chunk $ T.replicate paddingSize " "

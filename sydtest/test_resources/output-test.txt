@@ -306,6 +306,20 @@
     Retries: 3 (likely not flaky)
   [31m✗ [m[31mconsidered failing[m                                                              [32m      0.00 ms[m
     Retries: 3 (likely not flaky)
+[33mcombinators[m
+  [31m✗ [m[31mshould fail[m                                                                     [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
+  [32m✓ [m[32mshould pass[m                                                                     [32m      0.00 ms[m
+    passed for all of [32m100[m inputs.
+  [31m✗ [m[31mshould not crash (undefined value)[m                                              [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
+  [31m✗ [m[31mshould not crash (undefined generator)[m                                          [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
+  [31m✗ [m[31mshould be even[m                                                                  [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
+  [32m✓ [m[32mshould be even[m                                                                  [32m      0.00 ms[m
+  [31m✗ [m[31mshould be even[m                                                                  [32m      0.00 ms[m
+    Retries: 3 (likely not flaky)
 
 
 [34mFailures:[m
@@ -345,133 +359,133 @@
        Retries: 3 (likely not flaky)
        ExitFailure 1
   
-  [36m  output-test/Spec.hs:42[m
+  [36m  output-test/Spec.hs:47[m
   [31m✗ [m[31m6 [m[31mexceptions.Record construction error[m
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:327[m
+  [36m  output-test/Spec.hs:44[m
   [31m✗ [m[31m7 [m[31mexceptions.Record construction error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:43:57-64: Missing field in record construction field
+       output-test/Spec.hs:48:57-64: Missing field in record construction field
   
-  [36m  output-test/Spec.hs:328[m
+  [36m  output-test/Spec.hs:45[m
   [31m✗ [m[31m8 [m[31mexceptions.Record construction error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:43:57-64: Missing field in record construction field
+       output-test/Spec.hs:48:57-64: Missing field in record construction field
   
-  [36m  output-test/Spec.hs:329[m
+  [36m  output-test/Spec.hs:46[m
   [31m✗ [m[31m9 [m[31mexceptions.Record construction error.fails in pure code[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:43:57-64: Missing field in record construction field
+       output-test/Spec.hs:48:57-64: Missing field in record construction field
   
-  [36m  output-test/Spec.hs:44[m
+  [36m  output-test/Spec.hs:49[m
   [31m✗ [m[31m10 [m[31mexceptions.Record selection error[m
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:327[m
+  [36m  output-test/Spec.hs:44[m
   [31m✗ [m[31m11 [m[31mexceptions.Record selection error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        No match in record selector field
   
-  [36m  output-test/Spec.hs:328[m
+  [36m  output-test/Spec.hs:45[m
   [31m✗ [m[31m12 [m[31mexceptions.Record selection error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        No match in record selector field
   
-  [36m  output-test/Spec.hs:329[m
+  [36m  output-test/Spec.hs:46[m
   [31m✗ [m[31m13 [m[31mexceptions.Record selection error.fails in pure code[m
        Retries: 3 (likely not flaky)
        No match in record selector field
   
-  [36m  output-test/Spec.hs:46[m
+  [36m  output-test/Spec.hs:51[m
   [31m✗ [m[31m14 [m[31mexceptions.Record update error[m
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:327[m
+  [36m  output-test/Spec.hs:44[m
   [31m✗ [m[31m15 [m[31mexceptions.Record update error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:47:60-88: Non-exhaustive patterns in record update
+       output-test/Spec.hs:52:60-88: Non-exhaustive patterns in record update
   
-  [36m  output-test/Spec.hs:328[m
+  [36m  output-test/Spec.hs:45[m
   [31m✗ [m[31m16 [m[31mexceptions.Record update error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:47:60-88: Non-exhaustive patterns in record update
+       output-test/Spec.hs:52:60-88: Non-exhaustive patterns in record update
   
-  [36m  output-test/Spec.hs:329[m
+  [36m  output-test/Spec.hs:46[m
   [31m✗ [m[31m17 [m[31mexceptions.Record update error.fails in pure code[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:47:60-88: Non-exhaustive patterns in record update
+       output-test/Spec.hs:52:60-88: Non-exhaustive patterns in record update
   
-  [36m  output-test/Spec.hs:48[m
+  [36m  output-test/Spec.hs:53[m
   [31m✗ [m[31m18 [m[31mexceptions.Pattern matching error[m
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:327[m
+  [36m  output-test/Spec.hs:44[m
   [31m✗ [m[31m19 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:49:50-64: Non-exhaustive patterns in Cons1 s
+       output-test/Spec.hs:54:50-64: Non-exhaustive patterns in Cons1 s
   
-  [36m  output-test/Spec.hs:328[m
+  [36m  output-test/Spec.hs:45[m
   [31m✗ [m[31m20 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:49:50-64: Non-exhaustive patterns in Cons1 s
+       output-test/Spec.hs:54:50-64: Non-exhaustive patterns in Cons1 s
   
-  [36m  output-test/Spec.hs:329[m
+  [36m  output-test/Spec.hs:46[m
   [31m✗ [m[31m21 [m[31mexceptions.Pattern matching error.fails in pure code[m
        Retries: 3 (likely not flaky)
-       output-test/Spec.hs:49:50-64: Non-exhaustive patterns in Cons1 s
+       output-test/Spec.hs:54:50-64: Non-exhaustive patterns in Cons1 s
   
-  [36m  output-test/Spec.hs:50[m
+  [36m  output-test/Spec.hs:55[m
   [31m✗ [m[31m22 [m[31mexceptions.ArithException[m
        Retries: 3 (likely not flaky)
        arithmetic underflow
   
-  [36m  output-test/Spec.hs:327[m
+  [36m  output-test/Spec.hs:44[m
   [31m✗ [m[31m23 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        divide by zero
   
-  [36m  output-test/Spec.hs:328[m
+  [36m  output-test/Spec.hs:45[m
   [31m✗ [m[31m24 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        divide by zero
   
-  [36m  output-test/Spec.hs:329[m
+  [36m  output-test/Spec.hs:46[m
   [31m✗ [m[31m25 [m[31mexceptions.Pattern matching error.fails in pure code[m
        Retries: 3 (likely not flaky)
        divide by zero
   
-  [36m  output-test/Spec.hs:52[m
+  [36m  output-test/Spec.hs:57[m
   [31m✗ [m[31m26 [m[31mexceptions.NoMethodError[m
        Retries: 3 (likely not flaky)
        test
   
-  [36m  output-test/Spec.hs:327[m
+  [36m  output-test/Spec.hs:44[m
   [31m✗ [m[31m27 [m[31mexceptions.Pattern matching error.fails in IO, as the result[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:28:10-19: No instance nor default method for class operation toUnit
   
-  [36m  output-test/Spec.hs:328[m
+  [36m  output-test/Spec.hs:45[m
   [31m✗ [m[31m28 [m[31mexceptions.Pattern matching error.fails in IO, as the action[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:28:10-19: No instance nor default method for class operation toUnit
   
-  [36m  output-test/Spec.hs:329[m
+  [36m  output-test/Spec.hs:46[m
   [31m✗ [m[31m29 [m[31mexceptions.Pattern matching error.fails in pure code[m
        Retries: 3 (likely not flaky)
        output-test/Spec.hs:28:10-19: No instance nor default method for class operation toUnit
   
-  [36m  output-test/Spec.hs:66[m
+  [36m  output-test/Spec.hs:71[m
   [31m✗ [m[31m30 [m[31mProperty tests.pure.should fail to show that sorting does nothing[m
        Retries: 3 (likely not flaky)
        Failed after 3 tests
        Generated: [33m[-5,3,11,-3,-13,0,19,-10,15,-13,1,-12,10,-18,-3,-2,6,-9,-6][m
   
-  [36m  output-test/Spec.hs:74[m
+  [36m  output-test/Spec.hs:79[m
   [31m✗ [m[31m31 [m[31mProperty tests.impure.should fail to show that sorting does nothing[m
        Retries: 3 (likely not flaky)
        Failed after 3 tests
@@ -542,7 +556,7 @@
        , [31m1[m[31m9[m[32m-[m[32m6[m
        ]
   
-  [36m  output-test/Spec.hs:84[m
+  [36m  output-test/Spec.hs:89[m
   [31m✗ [m[31m32 [m[31mDiff.shows nice multi-line diffs[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
@@ -562,7 +576,7 @@
        , "ba[31mr[m[32mz[m"
        )
   
-  [36m  output-test/Spec.hs:86[m
+  [36m  output-test/Spec.hs:91[m
   [31m✗ [m[31m33 [m[31mDiff.shows nice multi-line diffs[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
@@ -578,118 +592,118 @@
        [32m,[m[32m [m[32m"[mba[31mr[m[32mz[m"[31m [m
        )
   
-  [36m  output-test/Spec.hs:89[m
+  [36m  output-test/Spec.hs:94[m
   [31m✗ [m[31m34 [m[31massertions.shouldBe[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
        [34mActual:   [m[31m3[m
        [34mExpected: [m[32m4[m
   
-  [36m  output-test/Spec.hs:90[m
+  [36m  output-test/Spec.hs:95[m
   [31m✗ [m[31m35 [m[31massertions.shouldNotBe[m
        Retries: 3 (likely not flaky)
        Did not expect equality of the values but both were:
        3
   
-  [36m  output-test/Spec.hs:91[m
+  [36m  output-test/Spec.hs:96[m
   [31m✗ [m[31m36 [m[31massertions.shouldSatisfy[m
        Retries: 3 (likely not flaky)
        Predicate failed, but should have succeeded, on this value:
        3
   
-  [36m  output-test/Spec.hs:92[m
+  [36m  output-test/Spec.hs:97[m
   [31m✗ [m[31m37 [m[31massertions.shouldNotSatisfy[m
        Retries: 3 (likely not flaky)
        Predicate succeeded, but should have failed, on this value:
        3
   
-  [36m  output-test/Spec.hs:93[m
+  [36m  output-test/Spec.hs:98[m
   [31m✗ [m[31m38 [m[31massertions.shouldSatisfyNamed[m
        Retries: 3 (likely not flaky)
        Predicate failed, but should have succeeded, on this value:
        3
        Predicate: even
   
-  [36m  output-test/Spec.hs:94[m
+  [36m  output-test/Spec.hs:99[m
   [31m✗ [m[31m39 [m[31massertions.shouldNotSatisfyNamed[m
        Retries: 3 (likely not flaky)
        Predicate succeeded, but should have failed, on this value:
        3
        Predicate: odd
   
-  [36m  output-test/Spec.hs:97[m
+  [36m  output-test/Spec.hs:102[m
   [31m✗ [m[31m40 [m[31mGolden.does not fail the suite when an exception happens while reading[m
        Retries: 3 (likely not flaky)
        ExitFailure 1
   
-  [36m  output-test/Spec.hs:105[m
+  [36m  output-test/Spec.hs:110[m
   [31m✗ [m[31m41 [m[31mGolden.does not fail the suite when an exception happens while producing[m
        Retries: 3 (likely not flaky)
        ExitFailure 1
   
-  [36m  output-test/Spec.hs:113[m
+  [36m  output-test/Spec.hs:118[m
   [31m✗ [m[31m42 [m[31mGolden.does not fail the suite when an exception happens while writing[m
        Retries: 3 (likely not flaky)
        ExitFailure 1
   
-  [36m  output-test/Spec.hs:120[m
+  [36m  output-test/Spec.hs:125[m
   [31m✗ [m[31m43 [m[31mGolden.does not fail the suite when an exception happens while checking for equality[m
        Retries: 3 (likely not flaky)
        divide by zero
   
-  [36m  output-test/Spec.hs:143[m
+  [36m  output-test/Spec.hs:148[m
   [31m✗ [m[31m44 [m[31mAround.before.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:148[m
+  [36m  output-test/Spec.hs:153[m
   [31m✗ [m[31m45 [m[31mAround.before_.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:153[m
+  [36m  output-test/Spec.hs:158[m
   [31m✗ [m[31m46 [m[31mAround.after.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:158[m
+  [36m  output-test/Spec.hs:163[m
   [31m✗ [m[31m47 [m[31mAround.after_.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:163[m
+  [36m  output-test/Spec.hs:168[m
   [31m✗ [m[31m48 [m[31mAround.around.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:168[m
+  [36m  output-test/Spec.hs:173[m
   [31m✗ [m[31m49 [m[31mAround.around_.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:173[m
+  [36m  output-test/Spec.hs:178[m
   [31m✗ [m[31m50 [m[31mAround.aroundWith.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:178[m
+  [36m  output-test/Spec.hs:183[m
   [31m✗ [m[31m51 [m[31mAround.aroundWith'.does not kill the test suite[m
        Retries: 3 (likely not flaky)
        user error (test)
   
-  [36m  output-test/Spec.hs:181[m
+  [36m  output-test/Spec.hs:186[m
   [31m✗ [m[31m52 [m[31mexpectationFailure[m
        Retries: 3 (likely not flaky)
        fails
   
-  [36m  output-test/Spec.hs:184[m
+  [36m  output-test/Spec.hs:189[m
   [31m✗ [m[31m53 [m[31mString.compares strings[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
        [34mActual:   [m"fo[31mo[m\nba[31mr[m\tq[31mu[m[31mu[mx[31m [m"
        [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
   
-  [36m  output-test/Spec.hs:185[m
+  [36m  output-test/Spec.hs:190[m
   [31m✗ [m[31m54 [m[31mString.compares strings[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
@@ -703,14 +717,14 @@
        fo[31mo[m[32mq[m
        ba[31mr[m[32mz[m	q[31mu[m[31mu[m[32me[mx[31m [m
   
-  [36m  output-test/Spec.hs:186[m
+  [36m  output-test/Spec.hs:191[m
   [31m✗ [m[31m55 [m[31mString.compares texts[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
        [34mActual:   [m"fo[31mo[m\nba[31mr[m\tq[31mu[m[31mu[mx[31m [m"
        [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
   
-  [36m  output-test/Spec.hs:187[m
+  [36m  output-test/Spec.hs:192[m
   [31m✗ [m[31m56 [m[31mString.compares texts[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
@@ -724,14 +738,14 @@
        fo[31mo[m[32mq[m
        ba[31mr[m[32mz[m	q[31mu[m[31mu[m[32me[mx[31m [m
   
-  [36m  output-test/Spec.hs:188[m
+  [36m  output-test/Spec.hs:193[m
   [31m✗ [m[31m57 [m[31mString.compares bytestrings[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
        [34mActual:   [m"fo[31mo[m\nba[31mr[m\tq[31mu[m[31mu[mx[31m [m"
        [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
   
-  [36m  output-test/Spec.hs:191[m
+  [36m  output-test/Spec.hs:196[m
   [31m✗ [m[31m58 [m[31mContext.shows a nice context[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
@@ -739,7 +753,7 @@
        [34mExpected: [m[32mF[m[32ma[m[32ml[m[32ms[me
        Context
   
-  [36m  output-test/Spec.hs:192[m
+  [36m  output-test/Spec.hs:197[m
   [31m✗ [m[31m59 [m[31mContext.shows a nice context multiple levels deep[m
        Retries: 3 (likely not flaky)
        Expected these values to be equal:
@@ -749,16 +763,16 @@
        Context2
        Context1
   
-  [36m  output-test/Spec.hs:197[m
+  [36m  output-test/Spec.hs:202[m
   [31m✗ [m[31m60 [m[31mContext.shows a context when an exception is thrown as well[m
        Retries: 3 (likely not flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
          error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
-         undefined, called at output-test/Spec.hs:198:26 in main:Spec
+         undefined, called at output-test/Spec.hs:203:26 in main:Spec
        context
   
-  [36m  output-test/Spec.hs:204[m
+  [36m  output-test/Spec.hs:209[m
   [31m✗ [m[31m61 [m[31mProperty.generated values.shows many generated values too[m
        Retries: 3 (likely not flaky)
        Failed after 1 tests
@@ -771,7 +785,7 @@
        [34mActual:   [m[31m0[m
        [34mExpected: [m[32m1[m
   
-  [36m  output-test/Spec.hs:223[m
+  [36m  output-test/Spec.hs:228[m
   [31m✗ [m[31m62 [m[31mProperty.labels.shows the labels in use on failure[m
        Retries: 3 (likely not flaky)
        Failed after 1 tests
@@ -781,7 +795,7 @@
        [34mActual:   [m[]
        [34mExpected: [m[[32m [m[32m0[m[32m [m]
   
-  [36m  output-test/Spec.hs:240[m
+  [36m  output-test/Spec.hs:245[m
   [31m✗ [m[31m63 [m[31mProperty.classes.shows the classes in use on failure[m
        Retries: 3 (likely not flaky)
        Failed after 1 tests
@@ -791,7 +805,7 @@
        [34mActual:   [m[]
        [34mExpected: [m[[32m [m[32m0[m[32m [m]
   
-  [36m  output-test/Spec.hs:263[m
+  [36m  output-test/Spec.hs:268[m
   [31m✗ [m[31m64 [m[31mShrinking.can grab the mvar during shrinking[m
        Retries: 3 (likely not flaky)
        Failed after 21 tests
@@ -799,33 +813,33 @@
        Predicate failed, but should have succeeded, on this value:
        20
   
-  [36m  output-test/Spec.hs:270[m
+  [36m  output-test/Spec.hs:275[m
   [31m✗ [m[31m65 [m[31mRetries.does not retry if the test is configured withoutRetries[m
   
-  [36m  output-test/Spec.hs:272[m
+  [36m  output-test/Spec.hs:277[m
   [31m✗ [m[31m66 [m[31mRetries.Retries this five times[m
        Retries: 5 (likely not flaky)
   
-  [36m  output-test/Spec.hs:277[m
+  [36m  output-test/Spec.hs:282[m
   [31m✗ [m[31m67 [m[31mFlakiness.Allows flakiness on False eventhough there is none (should fail)[m
        Retries: 3 (likely not flaky)
   
-  [36m  output-test/Spec.hs:286[m
+  [36m  output-test/Spec.hs:291[m
   [31m✗ [m[31m68 [m[31mFlakiness.Does not allow flakiness if flakiness is not allowed even if retries happen[m
        Retries: 2[31m !!! FLAKY !!![m
        Expected these values to be equal:
        [34mActual:   [m[31m1[m
        [34mExpected: [m[32m2[m
   
-  [36m  output-test/Spec.hs:290[m
+  [36m  output-test/Spec.hs:295[m
   [31m✗ [m[31m69 [m[31mFlakiness.Allows flakiness in this boolean five times (should fail with 5 retries)[m
        Retries: 5 (likely not flaky)
   
-  [36m  output-test/Spec.hs:310[m
+  [36m  output-test/Spec.hs:315[m
   [31m✗ [m[31m70 [m[31mcallstack.it[m
        Retries: 3 (likely not flaky)
   
-  [36m  output-test/Spec.hs:311[m
+  [36m  output-test/Spec.hs:316[m
   [31m✗ [m[31m71 [m[31mcallstack.specify[m
        Retries: 3 (likely not flaky)
   
@@ -834,26 +848,69 @@
        Retries: 3 (likely not flaky)
        Failed after 1 tests
   
-  [36m  output-test/Spec.hs:314[m
+  [36m  output-test/Spec.hs:319[m
   [31m✗ [m[31m73 [m[31mcallstack.describe.describe-it[m
        Retries: 3 (likely not flaky)
   
-  [36m  output-test/Spec.hs:315[m
+  [36m  output-test/Spec.hs:320[m
   [31m✗ [m[31m74 [m[31mcallstack.describe.describe-specify[m
        Retries: 3 (likely not flaky)
   
-  [36m  output-test/Spec.hs:322[m
+  [36m  output-test/Spec.hs:327[m
   [31m✗ [m[31m75 [m[31mexpectations.considered failing[m
        Retries: 3 (likely not flaky)
   
-  [36m  output-test/Spec.hs:323[m
+  [36m  output-test/Spec.hs:328[m
   [31m✗ [m[31m76 [m[31mexpectations.considered failing[m
        Retries: 3 (likely not flaky)
   
+  [36m  output-test/Spec.hs:335[m
+  [31m✗ [m[31m77 [m[31mcombinators.should fail[m
+       Retries: 3 (likely not flaky)
+       Failed after 2 tests
+       Generated: [33m-1[m
+  
+  [36m  output-test/Spec.hs:337[m
+  [31m✗ [m[31m78 [m[31mcombinators.should not crash (undefined value)[m
+       Retries: 3 (likely not flaky)
+       Failed after 1 tests
+       Generated: [33m0[m
+       Prelude.undefined
+       CallStack (from HasCallStack):
+         error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
+         undefined, called at output-test/Spec.hs:337:80 in main:Spec
+  
+  [36m  output-test/Spec.hs:338[m
+  [31m✗ [m[31m79 [m[31mcombinators.should not crash (undefined generator)[m
+       Retries: 3 (likely not flaky)
+       Failed after 1 tests
+       Generated: [33mException thrown while showing test case:
+  Prelude.undefined
+  CallStack (from HasCallStack):
+    error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
+    undefined, called at output-test/Spec.hs:338:74 in main:Spec
+[m
+       Prelude.undefined
+       CallStack (from HasCallStack):
+         error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
+         undefined, called at output-test/Spec.hs:338:74 in main:Spec
+  
+  [36m  output-test/Spec.hs:341[m
+  [31m✗ [m[31m80 [m[31mcombinators.should be even[m
+       Retries: 3 (likely not flaky)
+  
+  [36m  output-test/Spec.hs:341[m
+  [31m✗ [m[31m81 [m[31mcombinators.should be even[m
+       Retries: 3 (likely not flaky)
+       Prelude.undefined
+       CallStack (from HasCallStack):
+         error, called at libraries/base/GHC/Err.hs:75:14 in base:GHC.Err
+         undefined, called at output-test/Spec.hs:344:29 in main:Spec
+  
 
-  Examples:                     [32m862[m
-  Passed:                       [32m29[m
-  Failed:                       [31m76[m
+  Examples:                     [32m981[m
+  Passed:                       [32m31[m
+  Failed:                       [31m81[m
   Flaky:                        [31m3[m
   Pending:                      [35m7[m
   Longest test took:   [33m         0.00 seconds[m

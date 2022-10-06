@@ -39,6 +39,11 @@ spec = do
   it "Exit code" $ do
     exitWith $ ExitFailure 1 :: IO ()
   describe "exceptions" $ do
+    let exceptionTest :: String -> a -> Spec
+        exceptionTest s a = describe s $ do
+          it "fails in IO, as the result" (pure (seq a ()) :: IO ())
+          it "fails in IO, as the action" (seq a (pure ()) :: IO ())
+          it "fails in pure code" $ seq a True
     it "Record construction error" (throw $ RecConError "test" :: IO ())
     exceptionTest "Record construction error" $ let c = Cons1 {} in field c
     it "Record selection error" (throw $ RecSelError "test" :: IO ())
@@ -322,8 +327,18 @@ spec = do
       it "considered failing" False
       expectFailing $ it "considered failing" True
 
-exceptionTest :: String -> a -> Spec
-exceptionTest s a = describe s $ do
-  it "fails in IO, as the result" (pure (seq a ()) :: IO ())
-  it "fails in IO, as the action" (seq a (pure ()) :: IO ())
-  it "fails in pure code" $ seq a True
+  describe "combinators" $ do
+    let somePropertyCombinator :: Gen Int -> (Int -> Int) -> Property
+        somePropertyCombinator gen func =
+          forAll gen $ \i ->
+            even (func i)
+    it "should fail" $ somePropertyCombinator arbitrary (* 3)
+    it "should pass" $ somePropertyCombinator arbitrary (* 4)
+    it "should not crash (undefined value)" $ somePropertyCombinator arbitrary undefined
+    it "should not crash (undefined generator)" $ somePropertyCombinator undefined (* 2)
+
+    let someTestSuiteCombinator i =
+          it "should be even" $ even (i :: Int)
+    someTestSuiteCombinator 1
+    someTestSuiteCombinator 2
+    someTestSuiteCombinator undefined

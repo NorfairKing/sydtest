@@ -50,7 +50,6 @@ jobs:
         os:
           - ubuntu-latest
         lts:
-          - release
           - nixos-21_11
           - nixos-22_05
 

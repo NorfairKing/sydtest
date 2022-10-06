@@ -37,7 +37,12 @@ This means you should be alerted of any potential issue as early as possible.
 
 * Deterministic randomness by default
 
-  Both the test suite execution order shuffling and the property testing randomness uses a fixed seed by default.
+  Pseudo-randomness uses a fixed seed by default, which makes all of these deterministic:
+
+  * Property testing generation
+  * Test suite execution order shuffling
+  * Any use of the global pseudo-randomness seed in the `random` library
+
   This helps to prevent flakiness and makes it easy to reproduce a failing test.
 
 * Flakiness diagnosis

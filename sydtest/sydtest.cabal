@@ -84,6 +84,7 @@ library
     , path-io
     , pretty-show
     , quickcheck-io
+    , random
     , random-shuffle
     , safe
     , safe-coloured-text
@@ -111,6 +112,7 @@ test-suite sydtest-output-test
       QuickCheck
     , base >=4.7 && <5
     , bytestring
+    , random
     , safe-coloured-text
     , stm
     , sydtest

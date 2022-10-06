@@ -39,6 +39,7 @@ library:
     - path-io
     - pretty-show
     - quickcheck-io
+    - random
     - random-shuffle
     - safe
     - safe-coloured-text
@@ -83,7 +84,9 @@ tests:
     dependencies:
     - QuickCheck
     - bytestring
+    - random
+    - random
     - safe-coloured-text
+    - stm
     - sydtest
     - text
-    - stm

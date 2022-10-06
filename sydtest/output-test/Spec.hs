@@ -15,6 +15,7 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as TLB
 import System.Exit
+import System.Random (randomRIO)
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
@@ -342,3 +343,8 @@ spec = do
     someTestSuiteCombinator 1
     someTestSuiteCombinator 2
     someTestSuiteCombinator undefined
+
+  describe "randomness" $
+    it "always outputs the same pseudorandomness" $ do
+      i <- randomRIO (1, 100)
+      i `shouldBe` (2 :: Int)

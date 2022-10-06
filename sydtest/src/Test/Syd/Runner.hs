@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -18,6 +19,7 @@ import Control.Monad.IO.Class
 import qualified Data.Text.IO as TIO
 import System.Environment
 import System.Mem (performGC)
+import System.Random (mkStdGen, setStdGen)
 import Test.Syd.Def
 import Test.Syd.OptParse
 import Test.Syd.Output
@@ -42,28 +44,30 @@ sydTestOnce :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestOnce settings spec = do
   specForest <- execTestDefM settings spec
   tc <- deriveTerminalCapababilities settings
-  withArgs [] $ case settingThreads settings of
-    Synchronous -> runSpecForestInterleavedWithOutputSynchronously settings specForest
-    ByCapabilities -> do
-      i <- fromIntegral <$> getNumCapabilities
+  withArgs [] $ do
+    setPseudorandomness (settingSeed settings)
+    case settingThreads settings of
+      Synchronous -> runSpecForestInterleavedWithOutputSynchronously settings specForest
+      ByCapabilities -> do
+        i <- fromIntegral <$> getNumCapabilities
 
-      when (i == 1) $ do
-        let outputLine :: [Chunk] -> IO ()
-            outputLine lineChunks = liftIO $ do
-              putChunksLocaleWith tc lineChunks
-              TIO.putStrLn ""
-        mapM_
-          ( outputLine
-              . (: [])
-              . fore red
-          )
-          [ chunk "WARNING: Only one CPU core detected, make sure to compile your test suite with these ghc options:",
-            chunk "         -threaded -rtsopts -with-rtsopts=-N",
-            chunk "         (This is important for correctness as well as speed, as a parallell test suite can find thread safety problems.)"
-          ]
-      runSpecForestInterleavedWithOutputAsynchronously settings i specForest
-    Asynchronous i ->
-      runSpecForestInterleavedWithOutputAsynchronously settings i specForest
+        when (i == 1) $ do
+          let outputLine :: [Chunk] -> IO ()
+              outputLine lineChunks = liftIO $ do
+                putChunksLocaleWith tc lineChunks
+                TIO.putStrLn ""
+          mapM_
+            ( outputLine
+                . (: [])
+                . fore red
+            )
+            [ chunk "WARNING: Only one CPU core detected, make sure to compile your test suite with these ghc options:",
+              chunk "         -threaded -rtsopts -with-rtsopts=-N",
+              chunk "         (This is important for correctness as well as speed, as a parallell test suite can find thread safety problems.)"
+            ]
+        runSpecForestInterleavedWithOutputAsynchronously settings i specForest
+      Asynchronous i ->
+        runSpecForestInterleavedWithOutputAsynchronously settings i specForest
 
 sydTestIterations :: Maybe Word -> Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestIterations totalIterations settings spec =
@@ -71,6 +75,7 @@ sydTestIterations totalIterations settings spec =
     nbCapabilities <- fromIntegral <$> getNumCapabilities
 
     let runOnce settings_ = do
+          setPseudorandomness (settingSeed settings_)
           specForest <- execTestDefM settings_ spec
           r <- timeItT $ case settingThreads settings_ of
             Synchronous -> runSpecForestSynchronously settings_ specForest
@@ -100,3 +105,8 @@ sydTestIterations totalIterations settings spec =
     rf <- go 0
     printOutputSpecForest settings rf
     pure rf
+
+setPseudorandomness :: SeedSetting -> IO ()
+setPseudorandomness = \case
+  RandomSeed -> pure ()
+  FixedSeed seed -> setStdGen (mkStdGen seed)

@@ -20,6 +20,7 @@
   The number of retries is now configured separately.
 * Fixed that `xdescribe` would only result in one pending test instead of the same number of tests as are marked as pending.
 * Fixed that `specify` and `prop` would show a callstack from inside `sydtest` instead of from where you used them.
+* Sydtest now sets the global pseudorandomness seed in the random library to the given seed using `setStdGen` for extra reproducability.
 
 ### Removed
 

@@ -96,7 +96,7 @@ withoutRetries = modifyRetries (const 0)
 withRetries :: Word -> TestDefM a b c -> TestDefM a b c
 withRetries w = modifyRetries (const w)
 
--- | Mark a test suite as "potentially flaky".
+-- | Mark a test suite as "potentially flaky" with a given number of retries.
 --
 -- This will retry any test in the given test group up to the given number of tries, and pass a test if it passes once.
 -- The test output will show which tests were flaky.
@@ -106,7 +106,7 @@ withRetries w = modifyRetries (const w)
 -- an error is introduced in the code, it should only be added to deal with
 -- accidental failures, never accidental passes.
 flaky :: Word -> TestDefM a b c -> TestDefM a b c
-flaky i = modifyRetries (const i) . withFlakiness (MayBeFlaky Nothing)
+flaky i = withRetries i . withFlakiness (MayBeFlaky Nothing)
 
 -- | Like 'flaky', but also shows the given message to the user whenever the test is flaky.
 --

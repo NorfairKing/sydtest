@@ -179,6 +179,20 @@ module Test.Syd
     withExecutionOrderRandomisation,
     ExecutionOrderRandomisation (..),
 
+    -- *** Modifying the number of retries
+    modifyRetries,
+    withoutRetries,
+    withRetries,
+
+    -- *** Declaring flakiness
+    flaky,
+    flakyWith,
+    notFlaky,
+    potentiallyFlaky,
+    potentiallyFlakyWith,
+    withFlakiness,
+    FlakinessMode (..),
+
     -- *** Doing IO during test definition
     runIO,
 

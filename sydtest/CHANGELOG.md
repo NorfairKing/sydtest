@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.12.0.0] - Unreleased
+## [0.12.0.1] - 2022-10-06
+
+* Released the changelog with a date.
+
+## [0.12.0.0] - 2022-10-06
 
 ### Added
 

@@ -243,6 +243,27 @@ randomiseTestForest = goForest
           RandomiseExecutionOrder -> goForest sdf
           DoNotRandomiseExecutionOrder -> pure sdf
 
+markSpecForestAsPending :: Maybe Text -> SpecDefForest outers inner result -> SpecDefForest outers inner result
+markSpecForestAsPending mMessage = goForest
+  where
+    goForest :: SpecDefForest a b c -> SpecDefForest a b c
+    goForest = map goTree
+
+    goTree :: SpecDefTree a b c -> SpecDefTree a b c
+    goTree = \case
+      DefSpecifyNode t _ _ -> DefPendingNode t mMessage
+      DefPendingNode t mr -> DefPendingNode t mr
+      DefDescribeNode t sdf -> DefDescribeNode t $ goForest sdf
+      DefWrapNode func sdf -> DefWrapNode func $ goForest sdf
+      DefBeforeAllNode func sdf -> DefBeforeAllNode func $ goForest sdf
+      DefAroundAllNode func sdf -> DefAroundAllNode func $ goForest sdf
+      DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goForest sdf
+      DefAfterAllNode func sdf -> DefAfterAllNode func $ goForest sdf
+      DefParallelismNode func sdf -> DefParallelismNode func $ goForest sdf
+      DefRetriesNode i sdf -> DefRetriesNode i $ goForest sdf
+      DefFlakinessNode i sdf -> DefFlakinessNode i $ goForest sdf
+      DefRandomisationNode eor sdf -> DefRandomisationNode eor (goForest sdf)
+
 data Parallelism = Parallel | Sequential
 
 data ExecutionOrderRandomisation = RandomiseExecutionOrder | DoNotRandomiseExecutionOrder

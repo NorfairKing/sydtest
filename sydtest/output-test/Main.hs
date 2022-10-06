@@ -36,7 +36,8 @@ main = do
     describe "Golden Output" $
       it "renders output in the same way as before" $
         goldenByteStringFile "test_resources/output-test.txt" $ do
-          rf <- timeItT $ runSpecForestSynchronously settings testForest
+          testForestInOrder <- execTestDefM settings $ doNotRandomiseExecutionOrder spec
+          rf <- timeItT $ runSpecForestSynchronously settings testForestInOrder
           let eraseTimed :: Timed a -> Timed a
               eraseTimed t =
                 t

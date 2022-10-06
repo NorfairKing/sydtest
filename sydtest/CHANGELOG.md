@@ -16,6 +16,8 @@
 * Fixed that flags with a `no-` prefix did not parse correctly and could therefore not be used.
 * The `FlakinessMode` type no longer contains a number of retries.
   The number of retries is now configured separately.
+* Fixed that `xdescribe` would only result in one pending test instead of the same number of tests as are marked as pending.
+* Fixed that `specify` and `prop` would show a callstack from inside `sydtest` instead of from where you used them.
 
 ### Removed
 

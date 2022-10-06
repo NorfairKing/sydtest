@@ -295,6 +295,25 @@ spec = do
         i <- readTVarIO var
         i `shouldBe` 2
 
+  describe "xdescribe" $ do
+    xdescribe "two pending tests below here" $ do
+      it "one" False
+      it "two" True
+    xdescribe "four pending tests below here" $ do
+      it "one" False
+      it "two" True
+      describe "wat" $ do
+        it "three" False
+        it "four" True
+
+  describe "callstack" $ do
+    it "it" False
+    specify "specify" False
+    prop "prop" False
+    describe "describe" $ do
+      it "describe-it" False
+      specify "describe-specify" False
+
 exceptionTest :: String -> a -> Spec
 exceptionTest s a = describe s $ do
   it "fails in IO, as the result" (pure (seq a ()) :: IO ())

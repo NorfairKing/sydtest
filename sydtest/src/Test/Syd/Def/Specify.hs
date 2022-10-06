@@ -70,9 +70,8 @@ describe s =
    in local (\tde -> tde {testDefEnvDescriptionPath = t : testDefEnvDescriptionPath tde})
         . censor ((: []) . DefDescribeNode t)
 
--- TODO maybe we want to keep all tests below but replace them with a "Pending" instead.
 xdescribe :: String -> TestDefM outers inner () -> TestDefM outers inner ()
-xdescribe s _ = pending s
+xdescribe s = describe s . censor (markSpecForestAsPending Nothing)
 
 -- | Declare a test
 --
@@ -171,7 +170,7 @@ it ::
   -- | The test itself
   test ->
   TestDefM outers inner ()
-it s t = do
+it s t = withFrozenCallStack $ do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
@@ -205,7 +204,7 @@ specify ::
   -- | The test itself
   test ->
   TestDefM outers inner ()
-specify = it
+specify s t = withFrozenCallStack $ it s t
 
 -- | A synonym for 'xit'
 xspecify ::
@@ -273,7 +272,7 @@ itWithOuter ::
   -- The test itself
   test ->
   TestDefM (outer ': otherOuters) inner ()
-itWithOuter s t = do
+itWithOuter s t = withFrozenCallStack $ do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
@@ -304,7 +303,7 @@ specifyWithOuter ::
   -- The test itself
   test ->
   TestDefM (outer ': otherOuters) inner ()
-specifyWithOuter = itWithOuter
+specifyWithOuter s t = withFrozenCallStack $ itWithOuter s t
 
 -- | A synonym for 'xitWithOuter'
 xspecifyWithOuter ::
@@ -372,7 +371,7 @@ itWithBoth ::
   String ->
   test ->
   TestDefM (outer ': otherOuters) inner ()
-itWithBoth s t = do
+itWithBoth s t = withFrozenCallStack $ do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
@@ -407,7 +406,7 @@ specifyWithBoth ::
   String ->
   test ->
   TestDefM (outer ': otherOuters) inner ()
-specifyWithBoth = itWithBoth
+specifyWithBoth s t = withFrozenCallStack $ itWithBoth s t
 
 -- | A synonym for 'xitWithBoth'
 xspecifyWithBoth ::
@@ -441,7 +440,7 @@ itWithAll ::
   String ->
   test ->
   TestDefM outers inner ()
-itWithAll s t = do
+itWithAll s t = withFrozenCallStack $ do
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
@@ -476,7 +475,7 @@ specifyWithAll ::
   String ->
   test ->
   TestDefM outers inner ()
-specifyWithAll = itWithAll
+specifyWithAll s t = withFrozenCallStack $ itWithAll s t
 
 -- | A synonym for 'xitWithAll'
 xspecifyWithAll ::
@@ -494,7 +493,7 @@ xspecifyWithAll = xitWithAll
 --
 -- > prop s p = it s $ property p
 prop :: Testable prop => String -> prop -> Spec
-prop s p = it s $ property p
+prop s p = withFrozenCallStack $ it s $ property p
 
 -- | Declare a test that has not been written yet.
 pending :: String -> TestDefM outers inner ()

@@ -1,5 +1,5 @@
 name: sydtest-hedgehog
-version: 0.3.0.0
+version: 0.3.0.1
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -22,7 +22,7 @@ library:
     - containers
     - hedgehog
     - stm
-    - sydtest >= 0.9.0.0
+    - sydtest >= 0.12.0.0
 
 tests:
   sydtest-hedgehog-test:

@@ -138,6 +138,5 @@ runHedgehogPropertyWithArg
     let testRunResultExtraInfo = Nothing
     let testRunResultClasses = Nothing
     let testRunResultTables = Nothing
-    let testRunResultFlakinessMessage = Nothing
 
     pure TestRunResult {..}

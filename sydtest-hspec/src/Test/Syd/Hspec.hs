@@ -148,6 +148,5 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
   let testRunResultLabels = Nothing
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
-  let testRunResultFlakinessMessage = Nothing
 
   pure TestRunResult {..}

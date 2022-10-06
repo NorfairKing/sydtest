@@ -6,3 +6,6 @@ value:
   - A mode for "optimising run time". I.e. profiling
   - Timing diagram
   - Bug with diffs when an assertion gets a context
+  - header: Rerun for flakiness battle-testing even if a test has succeeded
+    contents: Off by default, on by default when --continuous or --iterations are
+      on.

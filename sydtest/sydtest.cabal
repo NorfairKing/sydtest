@@ -54,7 +54,10 @@ library
       Test.Syd.Run
       Test.Syd.Runner
       Test.Syd.Runner.Asynchronous
+      Test.Syd.Runner.Single
       Test.Syd.Runner.Synchronous
+      Test.Syd.Runner.Synchronous.Interleaved
+      Test.Syd.Runner.Synchronous.Separate
       Test.Syd.Runner.Wrappers
       Test.Syd.SpecDef
       Test.Syd.SpecForest

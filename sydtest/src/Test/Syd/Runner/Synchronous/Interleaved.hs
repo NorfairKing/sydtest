@@ -1,0 +1,177 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+
+module Test.Syd.Runner.Synchronous.Interleaved (runSpecForestInterleavedWithOutputSynchronously) where
+
+import Control.Exception
+import Control.Monad.IO.Class
+import Control.Monad.Reader
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import Test.Syd.HList
+import Test.Syd.OptParse
+import Test.Syd.Output
+import Test.Syd.Run
+import Test.Syd.Runner.Single
+import Test.Syd.Runner.Wrappers
+import Test.Syd.SpecDef
+import Test.Syd.SpecForest
+import Text.Colour
+
+runSpecForestInterleavedWithOutputSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
+runSpecForestInterleavedWithOutputSynchronously settings testForest = do
+  tc <- deriveTerminalCapababilities settings
+  let outputLine :: [Chunk] -> IO ()
+      outputLine lineChunks = liftIO $ do
+        putChunksLocaleWith tc lineChunks
+        TIO.putStrLn ""
+
+      treeWidth :: Int
+      treeWidth = specForestWidth testForest
+
+  let pad :: Int -> [Chunk] -> [Chunk]
+      pad level = (chunk (T.pack (replicate (paddingSize * level) ' ')) :)
+
+  let outputLineR :: [Chunk] -> R a ()
+      outputLineR line = do
+        level <- asks eLevel
+        liftIO $ outputLine $ pad level line
+
+      outputLinesR :: [[Chunk]] -> R a ()
+      outputLinesR = mapM_ outputLineR
+
+  let goForest :: TestForest a () -> R a (Next ResultForest)
+      goForest [] = pure (Continue [])
+      goForest (tt : rest) = do
+        nrt <- goTree tt
+        case nrt of
+          Continue rt -> do
+            nf <- goForest rest
+            pure $ (rt :) <$> nf
+          Stop rt -> pure $ Stop [rt]
+
+      goTree :: TestTree a () -> R a (Next ResultTree)
+      goTree = \case
+        DefSpecifyNode t td () -> do
+          Env {..} <- ask
+          let progressReporter :: Progress -> IO ()
+              progressReporter =
+                outputLine . pad (succ (succ eLevel)) . \case
+                  ProgressTestStarting ->
+                    [ fore cyan "Test starting: ",
+                      fore yellow $ chunk t
+                    ]
+                  ProgressExampleStarting totalExamples exampleNr ->
+                    [ fore cyan "Example starting:  ",
+                      fore yellow $ exampleNrChunk totalExamples exampleNr
+                    ]
+                  ProgressExampleDone totalExamples exampleNr executionTime ->
+                    [ fore cyan "Example done:      ",
+                      fore yellow $ exampleNrChunk totalExamples exampleNr,
+                      timeChunkFor executionTime
+                    ]
+                  ProgressTestDone ->
+                    [ fore cyan "Test done: ",
+                      fore yellow $ chunk t
+                    ]
+          result <- liftIO $ timeItT $ runSingleTestWithFlakinessMode progressReporter eExternalResources td eRetries eFlakinessMode
+          let td' = td {testDefVal = result}
+          outputLinesR $ outputSpecifyLines settings eLevel treeWidth t td'
+          let r = failFastNext settings td'
+          pure $ SpecifyNode t <$> r
+        DefPendingNode t mr -> do
+          outputLinesR $ outputPendingLines t mr
+          pure $ Continue $ PendingNode t mr
+        DefDescribeNode t sdf -> do
+          outputLineR $ outputDescribeLine t
+          fmap (DescribeNode t) <$> addLevel (goForest sdf)
+        DefWrapNode func sdf -> do
+          e <- ask
+          liftIO $ fmap SubForestNode <$> applySimpleWrapper'' func (runReaderT (goForest sdf) e)
+        DefBeforeAllNode func sdf ->
+          fmap SubForestNode
+            <$> ( do
+                    b <- liftIO func
+                    withReaderT
+                      (\e -> e {eExternalResources = HCons b (eExternalResources e)})
+                      (goForest sdf)
+                )
+        DefAroundAllNode func sdf -> do
+          e <- ask
+          liftIO $
+            fmap SubForestNode
+              <$> applySimpleWrapper'
+                func
+                ( \b ->
+                    runReaderT
+                      (goForest sdf)
+                      (e {eExternalResources = HCons b (eExternalResources e)})
+                )
+        DefAroundAllWithNode func sdf -> do
+          e <- ask
+          let HCons x _ = eExternalResources e
+          liftIO $
+            fmap SubForestNode
+              <$> applySimpleWrapper
+                func
+                ( \b ->
+                    runReaderT
+                      (goForest sdf)
+                      (e {eExternalResources = HCons b (eExternalResources e)})
+                )
+                x
+        DefAfterAllNode func sdf -> do
+          e <- ask
+          let externalResources = eExternalResources e
+          liftIO $ fmap SubForestNode <$> (runReaderT (goForest sdf) e `finally` func externalResources)
+        DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest sdf -- Ignore, it's synchronous anyway
+        DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest sdf -- Ignore, randomisation has already happened.
+        DefRetriesNode modRetries sdf ->
+          fmap SubForestNode
+            <$> withReaderT
+              (\e -> e {eRetries = modRetries (eRetries e)})
+              (goForest sdf)
+        DefFlakinessNode fm' sdf ->
+          fmap SubForestNode
+            <$> withReaderT
+              (\e -> e {eFlakinessMode = fm'})
+              (goForest sdf)
+
+  mapM_ outputLine outputTestsHeader
+  resultForest <-
+    timeItT $
+      extractNext
+        <$> runReaderT
+          (goForest testForest)
+          Env
+            { eLevel = 0,
+              eRetries = settingRetries settings,
+              eFlakinessMode = MayNotBeFlaky,
+              eExternalResources = HNil
+            }
+
+  outputLine [chunk " "]
+  mapM_ outputLine $ outputFailuresWithHeading settings (timedValue resultForest)
+  outputLine [chunk " "]
+  mapM_ outputLine $ outputStats (computeTestSuiteStats settings <$> resultForest)
+  outputLine [chunk " "]
+
+  pure resultForest
+
+addLevel :: R a b -> R a b
+addLevel = withReaderT (\e -> e {eLevel = succ (eLevel e)})
+
+type R a = ReaderT (Env a) IO
+
+-- Not exported, on purpose.
+data Env externalResources = Env
+  { eLevel :: Int,
+    eRetries :: !Word,
+    eFlakinessMode :: !FlakinessMode,
+    eExternalResources :: !(HList externalResources)
+  }

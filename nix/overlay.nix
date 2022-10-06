@@ -22,6 +22,7 @@ with final.haskell.lib;
                 "--ghc-options=-Widentities"
                 "--ghc-options=-Wredundant-constraints"
                 "--ghc-options=-Wcpp-undef"
+                "--ghc-options=-Wunused-packages"
                 "--ghc-options=-Werror"
                 "--ghc-options=-Wno-deprecations"
               ];

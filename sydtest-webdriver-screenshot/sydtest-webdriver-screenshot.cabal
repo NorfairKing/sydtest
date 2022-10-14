@@ -16,6 +16,7 @@ license-file:   LICENSE.md
 build-type:     Simple
 extra-source-files:
     LICENSE.md
+    test_resources/home.png
 
 library
   exposed-modules:

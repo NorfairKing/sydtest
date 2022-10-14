@@ -12,6 +12,7 @@ synopsis: A persistent-sqlite companion library for sydtest
 extra-source-files:
 - LICENSE.md
 - CHANGELOG.md
+- test_resources/**/*
 
 dependencies:
 - base >= 4.7 && < 5

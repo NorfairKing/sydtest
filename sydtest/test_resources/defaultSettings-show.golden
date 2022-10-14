@@ -6,7 +6,7 @@ Settings
   , settingMaxSize = 100
   , settingMaxDiscard = 10
   , settingMaxShrinks = 100
-  , settingGoldenStart = True
+  , settingGoldenStart = False
   , settingGoldenReset = False
   , settingColour = Nothing
   , settingFilter = Nothing

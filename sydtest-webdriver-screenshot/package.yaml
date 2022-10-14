@@ -10,6 +10,7 @@ synopsis: A webdriver screenshot companion library for sydtest
                      
 extra-source-files:  
 - LICENSE.md         
+- test_resources/**/*
                      
 dependencies:
 - base >= 4.7 && < 5

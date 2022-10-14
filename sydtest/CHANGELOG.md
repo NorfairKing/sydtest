@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.0.0] - 2022-10-14
+
+### Changed
+
+* Changed the default of --golden-start to false.
+  If this causes any of your tests to fail, that means that you are not
+  correctly shipping the golden results along with your test suite.
+* Fixed a typo in the parallelisation warning that you see when you run sydtest in parallel with only one core..
+
 ## [0.12.0.1] - 2022-10-06
 
 * Released the changelog with a date.

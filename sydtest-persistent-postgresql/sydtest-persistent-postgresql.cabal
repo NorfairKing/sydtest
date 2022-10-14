@@ -19,6 +19,7 @@ build-type:     Simple
 extra-source-files:
     LICENSE.md
     CHANGELOG.md
+    test_resources/migration.sql
 
 source-repository head
   type: git

@@ -12,6 +12,7 @@ synopsis: An persistent-postgresql companion library for sydtest
 extra-source-files:
 - LICENSE.md
 - CHANGELOG.md
+- test_resources/**/*
 
 dependencies:
 - base >= 4.7 && < 5

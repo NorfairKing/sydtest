@@ -397,8 +397,15 @@ defaultTestRunSettings =
       testRunSettingMaxSuccess = maxSuccess stdArgs,
       testRunSettingMaxSize = maxSize stdArgs,
       testRunSettingMaxDiscardRatio = maxDiscardRatio stdArgs,
-      testRunSettingMaxShrinks = 100, -- This is different from what quickcheck does so that test suites are more likely to finish
-      testRunSettingGoldenStart = True,
+      testRunSettingMaxShrinks =
+        -- This is different from what quickcheck does so that test suites are more likely to finish
+        100,
+      testRunSettingGoldenStart =
+        -- It's important that this is False
+        -- If it's true by default, then we wouldn't notice it when golden
+        -- results are ccidentally not shipped along with the test suite.
+        -- In such a case, golden tests could never fail.
+        False,
       testRunSettingGoldenReset = False
     }
 

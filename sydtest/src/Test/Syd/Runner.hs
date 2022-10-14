@@ -63,7 +63,7 @@ sydTestOnce settings spec = do
             )
             [ chunk "WARNING: Only one CPU core detected, make sure to compile your test suite with these ghc options:",
               chunk "         -threaded -rtsopts -with-rtsopts=-N",
-              chunk "         (This is important for correctness as well as speed, as a parallell test suite can find thread safety problems.)"
+              chunk "         (This is important for correctness as well as speed, as a parallel test suite can find thread safety problems.)"
             ]
         runSpecForestInterleavedWithOutputAsynchronously settings i specForest
       Asynchronous i ->

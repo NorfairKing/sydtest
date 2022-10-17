@@ -34,14 +34,14 @@ extra-deps:
     - safe-coloured-text-terminfo
 
 - github: NorfairKing/autodocodec
-  commit: e337d681109cac273f5b9ea2b54b174bce79d312
+  commit: c8c6965d97a04fb483c03c0a8479533f252a34d7
   subdirs:
     - autodocodec
     - autodocodec-schema
     - autodocodec-yaml
 
 - github: NorfairKing/validity
-  commit: 6204f186d95e6d1935fc633f7aebdcbcbe87911c
+  commit: 657cf4bdc2731387abea6e707b88d381d5218616
   subdirs:
   - validity
   - validity-aeson

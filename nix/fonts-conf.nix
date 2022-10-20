@@ -26,10 +26,11 @@ stdenv.mkDerivation {
   buildInputs = [ fontconfig ];
   inherit fontNames;
   installPhase =
-    let singleDir = name: fontPkg: ''
-      echo ${fontPkg}
-      ln -s ${fontPkg} $out/etc/fonts/${name}
-    '';
+    let
+      singleDir = name: fontPkg: ''
+        echo ${fontPkg}
+        ln -s ${fontPkg} $out/etc/fonts/${name}
+      '';
     in
     ''
       mkdir -p $out/etc/fonts

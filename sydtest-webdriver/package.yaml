@@ -1,5 +1,5 @@
 name: sydtest-webdriver
-version: 0.0.0.0
+version: 0.0.0.1
 license: OtherLicense
 license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
@@ -10,6 +10,7 @@ synopsis: A webdriver companion library for sydtest
 
 extra-source-files:
 - LICENSE.md
+- CHANGELOG.md
 
 dependencies:
 - base >= 4.7 && < 5

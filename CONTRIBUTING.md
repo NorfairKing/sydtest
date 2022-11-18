@@ -9,7 +9,9 @@
 ```
 stack clean
 stack test --pedantic
-nix-build ci.nix
+nix flake check
 ```
 
 4. Make a PR to `development`.
+5. Make sure CI passes
+6. Ask for review

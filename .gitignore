@@ -4,3 +4,4 @@ stack.yaml.lock
 result*
 *.dump
 *.tix
+dist-newstyle

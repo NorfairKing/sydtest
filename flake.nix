@@ -1,5 +1,9 @@
 {
   description = "sydtest";
+  nixConfig = {
+    extra-substituters = "https://sydtest.cachix.org";
+    extra-trusted-public-keys = "sydtest.cachix.org-1:fyby3c42t+0iTABcLd/R3POxzJhCQ/9gYM7Sh879+9w=";
+  };
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-22.05";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";

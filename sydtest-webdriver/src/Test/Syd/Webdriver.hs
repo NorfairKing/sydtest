@@ -181,12 +181,16 @@ webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager uri app = do
           { chromeOptions =
               [ "--user-data-dir=" <> fromAbsDir userDataDir,
                 "--headless",
-                "--no-sandbox", -- Bypass OS security model to run on nix as well
-                "--disable-dev-shm-usage", -- Overcome limited resource problem
+                -- Bypass OS security model to run on nix as well
+                "--no-sandbox",
+                -- Overcome limited resource problem
+                "--disable-dev-shm-usage",
                 "--disable-gpu",
                 "--use-gl=angle",
                 "--use-angle=swiftshader",
-                "--window-size=1920,1080"
+                "--window-size=1920,1080",
+                -- So that screenshots tests don't start failing when something new is added at the bottom of the page that isn't even on the screen
+                "--hide-scrollbars"
               ],
             chromeBinary = Just $ fromAbsFile chromeExecutable
           }

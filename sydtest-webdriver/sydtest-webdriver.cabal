@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-webdriver
-version:        0.0.0.0
+version:        0.0.0.1
 synopsis:       A webdriver companion library for sydtest
 category:       Testing
 author:         Tom Sydney Kerckhove
@@ -16,6 +16,7 @@ license-file:   LICENSE.md
 build-type:     Simple
 extra-source-files:
     LICENSE.md
+    CHANGELOG.md
 
 library
   exposed-modules:

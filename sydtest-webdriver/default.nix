@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "sydtest-webdriver";
-  version = "0.0.0.0";
+  version = "0.0.0.1";
   src = ./.;
   libraryHaskellDepends = [
     aeson base http-client monad-control mtl network network-uri path

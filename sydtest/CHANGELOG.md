@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0.0] - 2023-01-13
+
+### Changed
+
+* Replaced the diffing algorithm by a custom one.
+  This has sped up diffing at least 100x and let us get rid of the `Diff` and `split` dependencies.
+
 ## [0.13.0.0] - 2022-10-14
 
 ### Changed

@@ -45,6 +45,7 @@ library
       Test.Syd.Def.SetupFunc
       Test.Syd.Def.Specify
       Test.Syd.Def.TestDefM
+      Test.Syd.Diff
       Test.Syd.Expectation
       Test.Syd.HList
       Test.Syd.Modify
@@ -66,8 +67,7 @@ library
   hs-source-dirs:
       src
   build-depends:
-      Diff
-    , MonadRandom
+      MonadRandom
     , QuickCheck
     , async
     , autodocodec
@@ -88,9 +88,9 @@ library
     , random-shuffle
     , safe
     , safe-coloured-text
-    , split
     , stm
     , text
+    , vector
   if os(windows)
     build-depends:
         ansi-terminal
@@ -127,6 +127,7 @@ test-suite sydtest-test
       Test.Syd.AroundCombinationSpec
       Test.Syd.AroundSpec
       Test.Syd.DescriptionsSpec
+      Test.Syd.DiffSpec
       Test.Syd.ExpectationSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
@@ -152,4 +153,5 @@ test-suite sydtest-test
     , stm
     , sydtest
     , text
+    , vector
   default-language: Haskell2010

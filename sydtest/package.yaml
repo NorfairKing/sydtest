@@ -22,7 +22,6 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-    - Diff
     - MonadRandom
     - QuickCheck
     - async
@@ -43,9 +42,9 @@ library:
     - random-shuffle
     - safe
     - safe-coloured-text
-    - split
     - stm
     - text
+    - vector
   when:
     - condition: 'os(windows)'
       then:
@@ -73,6 +72,7 @@ tests:
     - stm
     - sydtest
     - text
+    - vector
 
   sydtest-output-test:
     main: Main.hs

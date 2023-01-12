@@ -1,23 +1,23 @@
 { mkDerivation, async, autodocodec, autodocodec-yaml, base
-, bytestring, containers, Diff, dlist, envparse, filepath, lib
+, bytestring, containers, dlist, envparse, filepath, lib
 , MonadRandom, mtl, optparse-applicative, path, path-io
 , pretty-show, QuickCheck, quickcheck-io, random, random-shuffle
-, safe, safe-coloured-text, safe-coloured-text-terminfo, split, stm
-, sydtest-discover, text
+, safe, safe-coloured-text, safe-coloured-text-terminfo, stm
+, sydtest-discover, text, vector
 }:
 mkDerivation {
   pname = "sydtest";
   version = "0.13.0.0";
   src = ./.;
   libraryHaskellDepends = [
-    async autodocodec autodocodec-yaml base bytestring containers Diff
-    dlist envparse filepath MonadRandom mtl optparse-applicative path
-    path-io pretty-show QuickCheck quickcheck-io random random-shuffle
-    safe safe-coloured-text safe-coloured-text-terminfo split stm text
+    async autodocodec autodocodec-yaml base bytestring containers dlist
+    envparse filepath MonadRandom mtl optparse-applicative path path-io
+    pretty-show QuickCheck quickcheck-io random random-shuffle safe
+    safe-coloured-text safe-coloured-text-terminfo stm text vector
   ];
   testHaskellDepends = [
     base bytestring path path-io QuickCheck random safe-coloured-text
-    stm text
+    stm text vector
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

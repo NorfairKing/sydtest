@@ -24,3 +24,7 @@
     name: "Redundant if"
 - ignore:
     name: "Redundant lambda"
+- ignore:
+    name: "Redundant pure"
+- ignore:
+    name: "Use when"

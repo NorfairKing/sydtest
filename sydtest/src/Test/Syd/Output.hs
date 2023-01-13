@@ -227,7 +227,7 @@ retriesChunks testRunReport =
                 [ [["Retries: ", chunk (T.pack (show retries)), fore red " !!! FLAKY !!!"]],
                   [[fore magenta $ chunk $ T.pack message] | message <- maybeToList mMessage]
                 ]
-            else [["Retries: ", chunk (T.pack (show retries)), " (likely not flaky)"]]
+            else [["Retries: ", chunk (T.pack (show retries)), " (does not look flaky)"]]
 
 labelsChunks :: Word -> Maybe (Map [String] Int) -> [[Chunk]]
 labelsChunks _ Nothing = []

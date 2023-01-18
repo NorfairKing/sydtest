@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.0.3] - 2023-03-27
+
+### Added
+
+* Compatibility with `mtl-2.3`
+
 ## [0.13.0.2] - 2023-03-24
 
 ### Changed

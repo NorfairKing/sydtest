@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
@@ -16,6 +17,9 @@ where
 import Control.Concurrent
 import Control.Concurrent.Async as Async
 import Control.Exception
+#if MIN_VERSION_mtl(2,3,0)
+import Control.Monad (when)
+#endif
 import Control.Monad.Reader
 import Data.Maybe
 import Data.Set (Set)

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
@@ -6,6 +7,9 @@
 module Test.Syd.Expectation where
 
 import Control.Exception
+#if MIN_VERSION_mtl(2,3,0)
+import Control.Monad (unless, when)
+#endif
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
 import Data.List

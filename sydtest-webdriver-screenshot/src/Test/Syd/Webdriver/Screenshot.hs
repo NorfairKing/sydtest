@@ -54,22 +54,18 @@ pureGoldenScreenshot fp contents =
                     screenshotImage = convertRGB8 dynamicImage
                   },
       goldenTestProduce = do
-        let sb = LB.toStrict contents
-        case decodePng sb of
-          Left err -> expectationFailure $ "Could not parse screenshot as png: " <> err
-          Right dynamicImage -> do
-            let image = convertRGB8 dynamicImage
-            relFile <- parseRelFile fp
-            tempDir <- resolveDir' "screenshot-comparison"
-            let tempFile = tempDir </> relFile
-            ensureDir $ parent tempFile
-            -- Write it to a file so we can compare it if it differs.
-            writePng (fromAbsFile tempFile) image
-            pure $
-              Screenshot
-                { screenshotFile = tempFile,
-                  screenshotImage = image
-                },
+        image <- normaliseImage contents
+        relFile <- parseRelFile fp
+        tempDir <- resolveDir' "screenshot-comparison"
+        let tempFile = tempDir </> relFile
+        ensureDir $ parent tempFile
+        -- Write it to a file so we can compare it if it differs.
+        writePng (fromAbsFile tempFile) image
+        pure $
+          Screenshot
+            { screenshotFile = tempFile,
+              screenshotImage = image
+            },
       goldenTestWrite = \(Screenshot _ actual) -> do
         relFile <- parseRelFile fp
         currentDir <- getCurrentDir
@@ -88,3 +84,19 @@ pureGoldenScreenshot fp contents =
                     "actual: " <> fromAbsFile actualPath
                   ]
     }
+
+debugScreenshot :: FilePath -> WebdriverTestM app ()
+debugScreenshot fp = do
+  contents <- screenshot
+  liftIO $ do
+    image <- normaliseImage contents
+    writePng fp image
+
+normaliseImage :: LB.ByteString -> IO (Image PixelRGB8)
+normaliseImage contents = do
+  let sb = LB.toStrict contents
+  case decodePng sb of
+    Left err -> expectationFailure $ "Could not parse screenshot as png: " <> err
+    Right dynamicImage -> do
+      let image = convertRGB8 dynamicImage
+      pure image

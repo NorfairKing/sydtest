@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-webdriver-yesod
-version:        0.0.0.0
+version:        0.0.0.1
 synopsis:       A webdriver+yesod companion library for sydtest
 category:       Testing
 author:         Tom Sydney Kerckhove

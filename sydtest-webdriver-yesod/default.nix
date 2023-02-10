@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "sydtest-webdriver-yesod";
-  version = "0.0.0.0";
+  version = "0.0.0.1";
   src = ./.;
   libraryHaskellDepends = [
     base bytestring http-client http-types mtl network-uri sydtest

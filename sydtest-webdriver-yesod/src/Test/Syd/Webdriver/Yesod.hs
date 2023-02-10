@@ -21,6 +21,13 @@ module Test.Syd.Webdriver.Yesod
     openRoute,
     openRouteWithParams,
     getCurrentRoute,
+    currentRouteShouldBe,
+
+    -- ** Finding elements by I18N Messages
+    getLinkTextI,
+    findElemByLinkTextI,
+    findElemByPartialLinkTextI,
+    findElemByButtonTextI,
   )
 where
 
@@ -106,3 +113,34 @@ getCurrentRoute = do
   where
     unJust (a, Just b) = (a, b)
     unJust (a, Nothing) = (a, "")
+
+-- | Get the current 'Route' and check that it equals the given route
+currentRouteShouldBe ::
+  (Show (Route app), Yesod.ParseRoute app) =>
+  Route app ->
+  WebdriverTestM app ()
+currentRouteShouldBe expected = do
+  actual <- getCurrentRoute
+  liftIO $ actual `shouldBe` expected
+
+-- | Get the link text for a given I18N message.
+--
+-- This will only work if the language hasn't been set.
+getLinkTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Text
+getLinkTextI message = do
+  y <- asks webdriverTestEnvApp
+  pure $ Yesod.renderMessage y [] message
+
+-- | Find an 'Element', 'ByLinkText' the text obtained by 'getLinkTextI'
+findElemByLinkTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Element
+findElemByLinkTextI message = getLinkTextI message >>= findElem . ByLinkText
+
+-- | Find an 'Element', 'ByPartialLinkText' the text obtained by 'getLinkTextI'
+findElemByPartialLinkTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Element
+findElemByPartialLinkTextI message = getLinkTextI message >>= findElem . ByPartialLinkText
+
+-- | Find an 'Element', 'ByLinkText' the text obtained by 'getLinkTextI'
+findElemByButtonTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Element
+findElemByButtonTextI message = do
+  t <- getLinkTextI message
+  findElem $ ByXPath $ mconcat ["//button[normalize-space()=\"", t, "\"]"]

@@ -155,7 +155,7 @@ with final.haskell.lib;
                 (final.haskellPackages.callCabal2nix "webdriver"
                   (builtins.fetchGit
                     {
-                      url = "git@github.com:codedownio/hs-webdriver.git";
+                      url = "https://github.com/codedownio/hs-webdriver";
                       rev = "e63f96fc9ebc82b70a7ea9bf3ba0c1dea5c80048";
                     })
                   { })

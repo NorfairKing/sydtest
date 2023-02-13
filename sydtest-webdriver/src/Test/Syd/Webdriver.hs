@@ -174,18 +174,20 @@ webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager uri app = do
       Nothing -> die "No chromium found on PATH."
       Just executable -> pure executable
 
-  userDataDir <- tempDirSetupFunc "chromium-user-data"
-
   let browser =
         chrome
           { chromeOptions =
-              [ "--user-data-dir=" <> fromAbsDir userDataDir,
+              [ -- We don't set the --user-data-dir because it makes the
+                -- chromedriver timeout for unknown reasons.
+                -- "--user-data-dir="
                 "--headless",
                 -- Bypass OS security model to run on nix as well
                 "--no-sandbox",
+                -- No need for a GPU in headless mode?
+                "--disable-gpu",
                 -- Overcome limited resource problem
                 "--disable-dev-shm-usage",
-                "--disable-gpu",
+                -- Normalise setup for screenshots
                 "--use-gl=angle",
                 "--use-angle=swiftshader",
                 "--window-size=1920,1080",

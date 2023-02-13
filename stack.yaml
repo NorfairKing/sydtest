@@ -28,20 +28,20 @@ extra-deps:
 - envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842
 
 - github: NorfairKing/safe-coloured-text
-  commit: 675cb01fce5f46718416d7746de5b856ed90a63f
+  commit: f173907488eb51407a59c22cf36f422d872378e5
   subdirs:
     - safe-coloured-text
     - safe-coloured-text-terminfo
 
 - github: NorfairKing/autodocodec
-  commit: c8c6965d97a04fb483c03c0a8479533f252a34d7
+  commit: dde958c53fffe86f0c43dc1c530df3cf73361d6a
   subdirs:
     - autodocodec
     - autodocodec-schema
     - autodocodec-yaml
 
 - github: NorfairKing/validity
-  commit: 657cf4bdc2731387abea6e707b88d381d5218616
+  commit: 68c0e18aa350b1382e01e0d98c986b314b0340ce
   subdirs:
   - validity
   - validity-aeson

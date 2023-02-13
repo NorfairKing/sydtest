@@ -75,16 +75,13 @@
         packages = p: builtins.attrValues p.sydtestPackages;
         withHoogle = true;
         doBenchmark = true;
-        buildInputs = (with pkgs; [
+        buildInputs = (with pkgs; pkgs.haskellPackages.sydtest-webdriver.webdriverDeps ++ [
           cabal-install
-          chromedriver
-          chromium
           mongodb
           niv
           postgresql
           rabbitmq-server
           redis
-          selenium-server-standalone
           zlib
         ]) ++ (with pre-commit-hooks.packages.${system};
           [

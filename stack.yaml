@@ -78,8 +78,8 @@ extra-deps:
   - genvalidity-uuid
   - genvalidity-vector
 
-- github: georgefst/hs-webdriver
-  commit: cf9c387de7c1525ffbcd58125ccb3f798a97a2bb
+- github: codedownio/hs-webdriver
+  commit: e63f96fc9ebc82b70a7ea9bf3ba0c1dea5c80048
 
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages -O0

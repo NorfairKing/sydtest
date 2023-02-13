@@ -74,15 +74,19 @@ with final.haskell.lib;
             setupFontsConfigScript = ''
               export FONTCONFIG_SYSROOT=${fontsConfig}
             '';
-            enableWebdriver = haskellPkg: overrideCabal haskellPkg (old: {
-              testDepends = (old.testDepends or [ ]) ++ (with final; [
-                chromedriver
-                chromium
-                selenium-server-standalone
-              ]);
-              preConfigure = (old.preConfigure or "") + setupFontsConfigScript;
-            });
-
+            enableWebdriver = haskellPkg: overrideCabal haskellPkg (old:
+              let
+                webdriverDeps = with final; [
+                  chromedriver
+                  chromium
+                  selenium-server-standalone
+                ];
+              in
+              {
+                testDepends = (old.testDepends or [ ]) ++ webdriverDeps;
+                preConfigure = (old.preConfigure or "") + setupFontsConfigScript;
+                passthru = (old.passthru or { }) // { inherit webdriverDeps; };
+              });
 
             sydtestPackages =
               {
@@ -151,9 +155,8 @@ with final.haskell.lib;
                 (final.haskellPackages.callCabal2nix "webdriver"
                   (builtins.fetchGit
                     {
-                      url = "https://github.com/georgefst/hs-webdriver";
-                      ref = "all-patches-gt";
-                      rev = "cf9c387de7c1525ffbcd58125ccb3f798a97a2bb";
+                      url = "git@github.com:codedownio/hs-webdriver.git";
+                      rev = "e63f96fc9ebc82b70a7ea9bf3ba0c1dea5c80048";
                     })
                   { })
               else super.webdriver;

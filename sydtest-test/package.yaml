@@ -33,7 +33,7 @@ tests:
     - path-io
     - safe-coloured-text
     - stm
-    - sydtest
+    - sydtest >=0.17
     - text
     - vector
 

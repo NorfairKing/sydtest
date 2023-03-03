@@ -1,5 +1,5 @@
 name: sydtest-webdriver-screenshot
-version: 0.0.0.2
+version: 0.1.0.0
 license: OtherLicense
 license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
@@ -25,6 +25,7 @@ library:
   - path-io
   - sydtest
   - sydtest-webdriver
+  - vector
   - webdriver
 
 tests:

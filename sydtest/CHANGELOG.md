@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.17.0.0] - 2024-08-04
+
+### Changed
+
+* Allow golden tests to perform IO during comparisons
+
 ## [0.16.0.0] - 2024-08-03
 
 ### Changed

@@ -106,7 +106,7 @@ spec = do
           goldenTestProduce = pure (),
           goldenTestWrite = \() -> do
             pure (),
-          goldenTestCompare = \() () -> Nothing
+          goldenTestCompare = \() () -> pure Nothing
         }
     it "does not fail the suite when an exception happens while producing" $
       GoldenTest
@@ -114,21 +114,21 @@ spec = do
           goldenTestProduce = die "test",
           goldenTestWrite = \() -> do
             pure (),
-          goldenTestCompare = \() () -> Nothing
+          goldenTestCompare = \() () -> pure Nothing
         }
     it "does not fail the suite when an exception happens while writing" $
       GoldenTest
         { goldenTestRead = pure Nothing,
           goldenTestProduce = pure (),
           goldenTestWrite = \() -> die "test",
-          goldenTestCompare = \() () -> Nothing
+          goldenTestCompare = \() () -> pure Nothing
         }
     it "does not fail the suite when an exception happens while checking for equality" $
       GoldenTest
         { goldenTestRead = pure (Just ()),
           goldenTestProduce = pure (),
           goldenTestWrite = \() -> pure (),
-          goldenTestCompare = \actual expected -> case 1 `div` (0 :: Int) of
+          goldenTestCompare = \actual expected -> pure $ case 1 `div` (0 :: Int) of
             1 -> Nothing
             _ ->
               if actual == expected

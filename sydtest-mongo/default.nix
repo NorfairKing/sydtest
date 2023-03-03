@@ -4,7 +4,7 @@
 }:
 mkDerivation {
   pname = "sydtest-mongo";
-  version = "0.0.0.0";
+  version = "0.1.0.0";
   src = ./.;
   libraryHaskellDepends = [
     base binary bson bytestring mongoDB network path path-io port-utils

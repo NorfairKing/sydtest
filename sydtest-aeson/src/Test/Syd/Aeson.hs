@@ -41,17 +41,18 @@ goldenJSONFile fp produceActualValue =
         ensureDir (parent p)
         SB.writeFile (fromAbsFile p) $ LB.toStrict $ JSON.encodePretty value,
       goldenTestCompare = \actual expected ->
-        if actual == expected
-          then Nothing
-          else
-            Just
-              ( Context
-                  ( textsNotEqualButShouldHaveBeenEqual
-                      (TE.decodeUtf8 (LB.toStrict (JSON.encodePretty actual)))
-                      (TE.decodeUtf8 (LB.toStrict (JSON.encodePretty expected)))
-                  )
-                  (goldenContext fp)
-              )
+        pure $
+          if actual == expected
+            then Nothing
+            else
+              Just
+                ( Context
+                    ( textsNotEqualButShouldHaveBeenEqual
+                        (TE.decodeUtf8 (LB.toStrict (JSON.encodePretty actual)))
+                        (TE.decodeUtf8 (LB.toStrict (JSON.encodePretty expected)))
+                    )
+                    (goldenContext fp)
+                )
     }
 
 -- | Test that the given 'JSON.Value' is the same as what we find in the given golden file.
@@ -82,9 +83,10 @@ goldenJSONValueFile fp produceActualValue =
         ensureDir (parent p)
         SB.writeFile (fromAbsFile p) $ LB.toStrict $ JSON.encodePretty value,
       goldenTestCompare = \actual expected ->
-        if actual == expected
-          then Nothing
-          else Just (Context (stringsNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)) (goldenContext fp))
+        pure $
+          if actual == expected
+            then Nothing
+            else Just (Context (stringsNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)) (goldenContext fp))
     }
 
 -- | Test that the given 'JSON.Value' is the same as what we find in the given golden file.

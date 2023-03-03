@@ -110,7 +110,7 @@ migrationsSucceedsSpecHelper connectionPoolSetupFunc migrationFile currentMigrat
                in gt
                     { goldenTestCompare = \actual expected ->
                         let addHelpContext a = Context a helpText
-                         in addHelpContext <$> goldenTestCompare gt actual expected
+                         in fmap addHelpContext <$> goldenTestCompare gt actual expected
                     }
 
             it migrationTestDescription $ do

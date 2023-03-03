@@ -3,7 +3,7 @@
 }:
 mkDerivation {
   pname = "sydtest-persistent";
-  version = "0.0.0.2";
+  version = "0.1.0.0";
   src = ./.;
   libraryHaskellDepends = [
     base bytestring mtl persistent sydtest text unliftio

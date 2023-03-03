@@ -34,6 +34,7 @@ library
     , path-io
     , sydtest
     , sydtest-webdriver
+    , vector
     , webdriver
   default-language: Haskell2010
 

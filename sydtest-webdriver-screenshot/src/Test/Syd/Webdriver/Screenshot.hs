@@ -14,9 +14,11 @@ module Test.Syd.Webdriver.Screenshot where
 
 import Codec.Picture as Picture
 import Control.Monad
+import Codec.Picture.Types (createMutableImage, mutableImageData)
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
+import qualified Data.Vector.Storable as Vector
 import Path
 import Path.IO
 import System.Exit
@@ -57,11 +59,13 @@ pureGoldenScreenshot fp contents =
       goldenTestProduce = do
         image <- normaliseImage contents
         relFile <- parseRelFile fp
+
         tempDir <- resolveDir' "screenshot-comparison"
         let tempFile = tempDir </> relFile
         ensureDir $ parent tempFile
         -- Write it to a file so we can compare it if it differs.
         writePng (fromAbsFile tempFile) image
+
         pure $
           Screenshot
             { screenshotFile = tempFile,
@@ -75,16 +79,47 @@ pureGoldenScreenshot fp contents =
         writePng (fromAbsFile resolvedFile) actual,
       goldenTestCompare = \(Screenshot actualPath actual) (Screenshot expectedPath expected) ->
         if actual == expected
-          then Nothing
-          else
-            Just $
-              ExpectationFailed $
-                unlines
-                  [ "Screenshots differ.",
-                    "expected: " <> fromAbsFile expectedPath,
-                    "actual: " <> fromAbsFile actualPath
-                  ]
+          then pure Nothing
+          else do
+            tempDir <- resolveDir' "screenshot-comparison"
+            relFile <- parseRelFile fp
+            diffRelFile <- replaceExtension ".diff" relFile >>= addExtension ".png"
+            let diffFile = tempDir </> diffRelFile
+            ensureDir $ parent diffFile
+            writePng (fromAbsFile diffFile) (computeImageDiff actual expected)
+
+            pure $
+              Just $
+                ExpectationFailed $
+                  unlines
+                    [ "Screenshots differ.",
+                      "expected: " <> fromAbsFile expectedPath,
+                      "actual: " <> fromAbsFile actualPath
+                    ]
     }
+
+computeImageDiff :: Image PixelRGB8 -> Image PixelRGB8 -> Image PixelRGB8
+computeImageDiff actual expected =
+  let width = max (imageWidth actual) (imageWidth expected)
+      height = max (imageHeight actual) (imageHeight expected)
+   in Image
+        { imageWidth = width,
+          imageHeight = height,
+          imageData = Vector.create $ do
+            mutableImage <- createMutableImage width height (PixelRGB8 0 0 0)
+            forM_ [0 .. width - 1] $ \w ->
+              forM_ [0 .. height - 1] $ \h -> do
+                let actualPixel = pixelAt actual w h
+                    expectedPixel = pixelAt expected w h
+                writePixel mutableImage w h (computePixelDiff actualPixel expectedPixel)
+            pure $ mutableImageData mutableImage
+        }
+
+computePixelDiff :: PixelRGB8 -> PixelRGB8 -> PixelRGB8
+computePixelDiff (PixelRGB8 r1 g1 b1) (PixelRGB8 r2 g2 b2) =
+  if or [r1 /= r2, g1 /= g2, b1 /= b2]
+    then PixelRGB8 255 0 0
+    else PixelRGB8 0 0 0
 
 debugScreenshot :: FilePath -> WebdriverTestM app ()
 debugScreenshot fp = do

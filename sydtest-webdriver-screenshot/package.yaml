@@ -25,6 +25,7 @@ library:
   - path-io
   - sydtest
   - sydtest-webdriver
+  - vector
   - webdriver
 
 tests:

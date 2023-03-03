@@ -296,7 +296,7 @@ data GoldenTest a = GoldenTest
     -- | Compare golden output with current output
     --
     -- The first argument is the current output, the second is the golden output
-    goldenTestCompare :: a -> a -> Maybe Assertion
+    goldenTestCompare :: a -> a -> IO (Maybe Assertion)
   }
 
 instance IsTest (GoldenTest a) where
@@ -349,7 +349,8 @@ runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
           else pure (TestFailed, Just GoldenNotFound, Nothing)
       Just golden -> do
         actual <- goldenTestProduce >>= evaluate
-        case goldenTestCompare actual golden of
+        mAssertion <- goldenTestCompare actual golden
+        case mAssertion of
           Nothing -> pure (TestPassed, Nothing, Nothing)
           Just assertion ->
             if testRunSettingGoldenReset

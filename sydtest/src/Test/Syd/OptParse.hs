@@ -603,7 +603,8 @@ parseFlags =
           auto
           ( mconcat
               [ long "retries",
-                help "The number of retries to use for flakiness diagnostics. 0 means 'no flakiness diagnostics'"
+                help "The number of retries to use for flakiness diagnostics. 0 means 'no flakiness diagnostics'",
+                metavar "INTEGER"
               ]
           )
       )

@@ -7,7 +7,7 @@
 }:
 mkDerivation {
   pname = "sydtest";
-  version = "0.13.0.1";
+  version = "0.13.0.2";
   src = ./.;
   libraryHaskellDepends = [
     async autodocodec autodocodec-yaml base bytestring containers dlist

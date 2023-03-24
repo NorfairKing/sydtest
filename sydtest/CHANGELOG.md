@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.0.2] - 2023-03-24
+
+### Changed
+
+* Improved white space diffing
+
 ## [0.13.0.1] - 2023-01-13
 
 ### Changed

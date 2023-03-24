@@ -467,11 +467,17 @@ outputEqualityAssertionFailed actual expected =
         [cs] -> [header : cs]
         -- If there is more than one line, put the header on a separate line before
         cs -> [header] : cs
+
+      -- If it's only whitespace, change the background, otherwise change the foreground
+      foreOrBack :: Colour -> Text -> Chunk
+      foreOrBack c t =
+        (if T.null (T.strip t) then back c else fore c)
+          (chunk t)
       actualChunks :: [[Chunk]]
       actualChunks = chunksLinesWithHeader (fore blue "Actual:   ") $
         splitChunksIntoLines $
           flip mapMaybe diff $ \case
-            First t -> Just $ fore red $ chunk t
+            First t -> Just $ foreOrBack red t
             Second _ -> Nothing
             Both t _ -> Just $ chunk t
       expectedChunks :: [[Chunk]]
@@ -479,7 +485,7 @@ outputEqualityAssertionFailed actual expected =
         splitChunksIntoLines $
           flip mapMaybe diff $ \case
             First _ -> Nothing
-            Second t -> Just $ fore green $ chunk t
+            Second t -> Just $ foreOrBack green t
             Both t _ -> Just $ chunk t
       inlineDiffChunks :: [[Chunk]]
       inlineDiffChunks =
@@ -488,8 +494,8 @@ outputEqualityAssertionFailed actual expected =
           else chunksLinesWithHeader (fore blue "Inline diff: ") $
             splitChunksIntoLines $
               flip map diff $ \case
-                First t -> fore red $ chunk t
-                Second t -> fore green $ chunk t
+                First t -> foreOrBack red t
+                Second t -> foreOrBack green t
                 Both t _ -> chunk t
    in concat
         [ [[chunk "Expected these values to be equal:"]],

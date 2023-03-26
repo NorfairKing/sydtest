@@ -35,4 +35,4 @@ jobs:
         name: sydtest
         extraPullNames: validity,autodocodec,safe-coloured-text
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-    - run: nix build "${{matrix.attribute}}"
+    - run: nix build -L "${{matrix.attribute}}"

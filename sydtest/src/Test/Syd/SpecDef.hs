@@ -193,8 +193,8 @@ instance Traversable (SpecDefTree a c) where
           DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
           DefExpectationNode p sdf -> DefExpectationNode p <$> goF sdf
 
-filterTestForest :: Maybe Text -> SpecDefForest outers inner result -> SpecDefForest outers inner result
-filterTestForest mf = fromMaybe [] . goForest DList.empty
+filterTestForest :: [Text] -> SpecDefForest outers inner result -> SpecDefForest outers inner result
+filterTestForest fs = fromMaybe [] . goForest DList.empty
   where
     goForest :: DList Text -> SpecDefForest a b c -> Maybe (SpecDefForest a b c)
     goForest ts sdf = do
@@ -203,9 +203,9 @@ filterTestForest mf = fromMaybe [] . goForest DList.empty
       pure sdf'
 
     filterGuard :: DList Text -> Bool
-    filterGuard dl = case mf of
-      Just f -> f `T.isInfixOf` T.intercalate "." (DList.toList dl)
-      Nothing -> True
+    filterGuard dl =
+      null fs
+        || any (\f -> f `T.isInfixOf` T.intercalate "." (DList.toList dl)) fs
 
     goTree :: DList Text -> SpecDefTree a b c -> Maybe (SpecDefTree a b c)
     goTree dl = \case

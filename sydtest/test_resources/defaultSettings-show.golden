@@ -9,7 +9,7 @@ Settings
   , settingGoldenStart = False
   , settingGoldenReset = False
   , settingColour = Nothing
-  , settingFilter = Nothing
+  , settingFilters = []
   , settingFailFast = False
   , settingIterations = OneIteration
   , settingRetries = 3

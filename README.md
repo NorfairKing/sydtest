@@ -391,13 +391,22 @@ Every test failure is annotated with a source location of the test code that pro
 
 ### Test Suite Filtering
 
-Test suites can be filtered using the `--match` or `--filter` flags.
+Test suites can be filtered using the `--match` (`-m`) or `--filter` (`-f`) flags.
 Empty groups are removed so that their resources are not even set up when there are no tests that need them.
 
 Examples:
-```
+```console
 stack test --test-arguments="--match MyTest"
 cabal test --test-option="--match MyTest"
+```
+
+Filter paths are separated with a `.`, for example: `--match MyTestGroup.MyTest`.
+
+It is also possible to pass in multiple filters.
+The following example will match `MyTest1` or `MyTest2`:
+
+```console
+cabal test --test-option="-m MyTest1" --test-option="-m MyTest2"
 ```
 
 ### Individual test execution timing and helpful output to find slow tests

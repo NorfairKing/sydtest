@@ -11,6 +11,7 @@ import Autodocodec
 import Autodocodec.Yaml
 import Control.Applicative
 import Control.Monad
+import Data.Functor ((<&>))
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -60,8 +61,8 @@ data Settings = Settings
     settingGoldenReset :: !Bool,
     -- | Whether to use colour in the output
     settingColour :: !(Maybe Bool),
-    -- | The filter to use to select which tests to run
-    settingFilter :: !(Maybe Text),
+    -- | The filters to use to select which tests to run
+    settingFilters :: ![Text],
     -- | Whether to stop upon the first test failure
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
@@ -91,7 +92,7 @@ defaultSettings =
           settingGoldenStart = d testRunSettingGoldenStart,
           settingGoldenReset = d testRunSettingGoldenReset,
           settingColour = Nothing,
-          settingFilter = Nothing,
+          settingFilters = mempty,
           settingFailFast = False,
           settingIterations = OneIteration,
           settingRetries = defaultRetries,
@@ -186,7 +187,7 @@ combineToSettings Flags {..} Environment {..} mConf = do
         settingGoldenStart = fromMaybe (d settingGoldenStart) $ flagGoldenStart <|> envGoldenStart <|> mc configGoldenStart,
         settingGoldenReset = fromMaybe (d settingGoldenReset) $ flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
         settingColour = flagColour <|> envColour <|> mc configColour,
-        settingFilter = flagFilter <|> envFilter <|> mc configFilter,
+        settingFilters = flagFilters <|> maybeToList envFilter <|> maybeToList (mc configFilter),
         settingFailFast =
           fromMaybe
             (if debugMode then True else d settingFailFast)
@@ -437,7 +438,7 @@ data Flags = Flags
     flagGoldenStart :: !(Maybe Bool),
     flagGoldenReset :: !(Maybe Bool),
     flagColour :: !(Maybe Bool),
-    flagFilter :: !(Maybe Text),
+    flagFilters :: ![Text],
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !(Maybe Iterations),
     flagRetries :: !(Maybe Word),
@@ -461,7 +462,7 @@ defaultFlags =
       flagGoldenStart = Nothing,
       flagGoldenReset = Nothing,
       flagColour = Nothing,
-      flagFilter = Nothing,
+      flagFilters = mempty,
       flagFailFast = Nothing,
       flagIterations = Nothing,
       flagRetries = Nothing,
@@ -555,23 +556,24 @@ parseFlags =
     <*> doubleSwitch ["golden-start"] (help "Whether to write golden tests if they do not exist yet")
     <*> doubleSwitch ["golden-reset"] (help "Whether to overwrite golden tests instead of having them fail")
     <*> doubleSwitch ["colour", "color"] (help "Use colour in output")
-    <*> ( optional
-            ( strArgument
-                ( mconcat
-                    [ help "Filter to select which parts of the test tree to run",
-                      metavar "FILTER"
-                    ]
-                )
-            )
-            <|> optional
-              ( strOption
+    <*> ( maybeToList
+            <$> optional
+              ( strArgument
                   ( mconcat
-                      [ long "filter",
-                        long "match",
-                        help "Filter to select which parts of the test tree to run",
+                      [ help "Filter to select which parts of the test tree to run",
                         metavar "FILTER"
                       ]
                   )
+              )
+            <|> manyOptional
+              ( mconcat
+                  [ short 'f',
+                    long "filter",
+                    short 'm',
+                    long "match",
+                    help "Filter to select which parts of the test tree to run",
+                    metavar "FILTER"
+                  ]
               )
         )
     <*> doubleSwitch ["fail-fast"] (help "Stop upon the first test failure")
@@ -611,6 +613,9 @@ parseFlags =
     <*> doubleSwitch ["fail-on-flaky"] (help "Fail when any flakiness is detected")
     <*> doubleSwitch ["progress"] (help "Report progress")
     <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous, --progress and --fail-fast.")
+
+manyOptional :: OptParse.Mod OptionFields [Text] -> OptParse.Parser [Text]
+manyOptional modifier = mconcat <$> many (option (str <&> T.words) modifier)
 
 seedSettingFlags :: OptParse.Parser (Maybe SeedSetting)
 seedSettingFlags =

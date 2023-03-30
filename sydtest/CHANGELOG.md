@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0.4] - 2023-03-31
+
+### Added
+
+* Allow supplying multiple `--filter`/`--match` flags.
+* Add short names `-m` and `-f` for the filter flag options.
+
 ## [0.13.0.3] - 2023-03-27
 
 ### Added

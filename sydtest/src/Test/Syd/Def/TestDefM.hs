@@ -74,7 +74,7 @@ runTestDefM sets defFunc = do
             testDefEnvTestRunSettings = toTestRunSettings sets
           }
   (a, testForest) <- runReaderT (runWriterT func) testDefEnv
-  let testForest' = filterTestForest (settingFilter sets) testForest
+  let testForest' = filterTestForest (settingFilters sets) testForest
   stdgen <- case settingSeed sets of
     FixedSeed seed -> pure $ mkStdGen seed
     RandomSeed -> newStdGen

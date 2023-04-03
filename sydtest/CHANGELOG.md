@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Profiling mode, for figuring out why your test suite is slow.
+  Use `--profile` to turn it on.
 * Made `--debug` imply `--retries 0`
 
 ## [0.13.0.4] - 2023-03-31

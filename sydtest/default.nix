@@ -3,7 +3,7 @@
 , MonadRandom, mtl, optparse-applicative, path, path-io
 , pretty-show, QuickCheck, quickcheck-io, random, random-shuffle
 , safe, safe-coloured-text, safe-coloured-text-terminfo, stm
-, sydtest-discover, text, vector
+, svg-builder, sydtest-discover, text, vector
 }:
 mkDerivation {
   pname = "sydtest";
@@ -13,7 +13,8 @@ mkDerivation {
     async autodocodec autodocodec-yaml base bytestring containers dlist
     envparse filepath MonadRandom mtl optparse-applicative path path-io
     pretty-show QuickCheck quickcheck-io random random-shuffle safe
-    safe-coloured-text safe-coloured-text-terminfo stm text vector
+    safe-coloured-text safe-coloured-text-terminfo stm svg-builder text
+    vector
   ];
   testHaskellDepends = [
     base bytestring path path-io QuickCheck random safe-coloured-text

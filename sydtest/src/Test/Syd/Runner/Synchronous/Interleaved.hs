@@ -176,6 +176,10 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
   mapM_ outputLine $ outputStats (computeTestSuiteStats settings <$> resultForest)
   outputLine [chunk " "]
 
+  when (settingProfile settings) $ do
+    mapM_ outputLine (outputProfilingInfo resultForest)
+    outputLine [chunk " "]
+
   pure resultForest
 
 addLevel :: R a b -> R a b

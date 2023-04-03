@@ -43,6 +43,7 @@ library:
     - safe
     - safe-coloured-text
     - stm
+    - svg-builder
     - text
     - vector
   when:

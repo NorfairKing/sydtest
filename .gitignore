@@ -5,3 +5,4 @@ result*
 *.dump
 *.tix
 dist-newstyle
+*.html

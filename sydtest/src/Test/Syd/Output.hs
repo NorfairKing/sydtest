@@ -7,7 +7,9 @@
 
 module Test.Syd.Output where
 
+import Control.Arrow (second)
 import Control.Exception
+import Data.List (sortOn)
 import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
@@ -40,21 +42,27 @@ printOutputSpecForest settings results = do
 renderResultReport :: Settings -> TerminalCapabilities -> Timed ResultForest -> Text.Builder
 renderResultReport settings tc rf =
   mconcat $
-    map (\line -> renderChunksBuilder tc line <> "\n") (outputResultReport settings rf)
+    map
+      (\line -> renderChunksBuilder tc line <> "\n")
+      (outputResultReport settings rf)
 
 outputResultReport :: Settings -> Timed ResultForest -> [[Chunk]]
-outputResultReport settings trf@(Timed rf _) =
-  concat
-    [ outputTestsHeader,
-      outputSpecForest settings 0 (resultForestWidth rf) rf,
-      [ [chunk ""],
-        [chunk ""]
-      ],
-      outputFailuresWithHeading settings rf,
-      [[chunk ""]],
-      outputStats (computeTestSuiteStats settings <$> trf),
-      [[chunk ""]]
-    ]
+outputResultReport settings trf =
+  let rf = timedValue trf
+   in concat
+        [ outputTestsHeader,
+          outputSpecForest settings 0 (resultForestWidth rf) rf,
+          [ [chunk ""],
+            [chunk ""]
+          ],
+          outputFailuresWithHeading settings rf,
+          [[chunk ""]],
+          outputStats (computeTestSuiteStats settings <$> trf),
+          [[chunk ""]],
+          if settingProfile settings
+            then outputProfilingInfo trf
+            else []
+        ]
 
 outputFailuresHeader :: [[Chunk]]
 outputFailuresHeader = outputHeader "Failures:"
@@ -70,11 +78,12 @@ outputFailuresWithHeading settings rf =
     else []
 
 outputStats :: Timed TestSuiteStats -> [[Chunk]]
-outputStats (Timed TestSuiteStats {..} timing) =
-  let sumTimeSeconds :: Double
+outputStats timed =
+  let TestSuiteStats {..} = timedValue timed
+      sumTimeSeconds :: Double
       sumTimeSeconds = fromIntegral testSuiteStatSumTime / 1_000_000_000
       totalTimeSeconds :: Double
-      totalTimeSeconds = fromIntegral timing / 1_000_000_000
+      totalTimeSeconds = fromIntegral (timedTime timed) / 1_000_000_000
    in map (padding :) $
         concat
           [ [ [ chunk "Examples:                     ",
@@ -103,31 +112,6 @@ outputStats (Timed TestSuiteStats {..} timing) =
               ]
               | testSuiteStatPending > 0
             ],
-            concat
-              [ let longestTimeSeconds :: Double
-                    longestTimeSeconds = fromIntegral longestTestTime / 1_000_000_000
-                    longestTimePercentage :: Double
-                    longestTimePercentage = 100 * longestTimeSeconds / sumTimeSeconds
-                    showLongestTestDetails = longestTimePercentage > 50
-                 in filter
-                      (not . null)
-                      [ concat
-                          [ [ "Longest test:                 ",
-                              fore green $ chunk longestTestName
-                            ]
-                            | showLongestTestDetails
-                          ],
-                        concat
-                          [ [ chunk "Longest test took:   ",
-                              fore yellow $ chunk $ T.pack (printf "%13.2f seconds" longestTimeSeconds)
-                            ],
-                            [ chunk $ T.pack (printf ", which is %.0f%% of total runtime" longestTimePercentage)
-                              | showLongestTestDetails
-                            ]
-                          ]
-                      ]
-                | (longestTestName, longestTestTime) <- maybeToList testSuiteStatLongestTime
-              ],
             [ [ chunk "Sum of test runtimes:",
                 fore yellow $ chunk $ T.pack (printf "%13.2f seconds" sumTimeSeconds)
               ],
@@ -136,6 +120,23 @@ outputStats (Timed TestSuiteStats {..} timing) =
               ]
             ]
           ]
+
+outputProfilingInfo :: Timed ResultForest -> [[Chunk]]
+outputProfilingInfo Timed {..} =
+  map
+    ( \(path, nanos) ->
+        [ timeChunkFor nanos,
+          " ",
+          chunk $ T.intercalate "." path
+        ]
+    )
+    ( sortOn
+        snd
+        ( map
+            (second (timedTime . testDefVal))
+            (flattenSpecForest timedValue)
+        )
+    )
 
 outputTestsHeader :: [[Chunk]]
 outputTestsHeader = outputHeader "Tests:"
@@ -160,8 +161,10 @@ outputDescribeLine :: Text -> [Chunk]
 outputDescribeLine t = [fore yellow $ chunk t]
 
 outputSpecifyLines :: Settings -> Int -> Int -> Text -> TDef (Timed TestRunReport) -> [[Chunk]]
-outputSpecifyLines settings level treeWidth specifyText (TDef (Timed testRunReport executionTime) _) =
-  let status = testRunReportStatus settings testRunReport
+outputSpecifyLines settings level treeWidth specifyText (TDef timed _) =
+  let testRunReport = timedValue timed
+      executionTime = timedTime timed
+      status = testRunReportStatus settings testRunReport
       TestRunResult {..} = testRunReportReportedRun testRunReport
       withStatusColour = fore (statusColour status)
       pad = (chunk (T.pack (replicate paddingSize ' ')) :)
@@ -358,8 +361,9 @@ outputFailures settings rf =
    in map (padding :) $
         filter (not . null) $
           concat $
-            indexed failures $ \w (ts, TDef (Timed testRunReport _) cs) ->
-              let status = testRunReportStatus settings testRunReport
+            indexed failures $ \w (ts, TDef timed cs) ->
+              let testRunReport = timedValue timed
+                  status = testRunReportStatus settings testRunReport
                   TestRunResult {..} = testRunReportReportedRun testRunReport
                in concat
                     [ [ [ fore cyan $

@@ -925,7 +925,6 @@
   Failed:                       [31m82[m
   Flaky:                        [31m3[m
   Pending:                      [35m7[m
-  Longest test took:   [33m         0.00 seconds[m
   Sum of test runtimes:[33m         0.00 seconds[m
   Test suite took:     [33m         0.00 seconds[m
 

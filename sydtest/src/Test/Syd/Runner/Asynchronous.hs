@@ -26,6 +26,8 @@ import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import Data.Word
+import GHC.Clock (getMonotonicTimeNSec)
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.OptParse
@@ -49,8 +51,9 @@ runSpecForestInterleavedWithOutputAsynchronously :: Settings -> Word -> TestFore
 runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
+  suiteBegin <- getMonotonicTimeNSec
   let runRunner = runner settings nbThreads failFastVar handleForest
-      runPrinter = liftIO $ printer settings failFastVar handleForest
+      runPrinter = liftIO $ printer settings failFastVar suiteBegin handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
@@ -206,8 +209,8 @@ data Env externalResources = Env
     eExternalResources :: !(HList externalResources)
   }
 
-printer :: Settings -> MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
-printer settings failFastVar handleForest = do
+printer :: Settings -> MVar () -> Word64 -> HandleForest '[] () -> IO (Timed ResultForest)
+printer settings failFastVar suiteBegin handleForest = do
   tc <- deriveTerminalCapababilities settings
 
   let outputLine :: [Chunk] -> IO ()
@@ -270,13 +273,26 @@ printer settings failFastVar handleForest = do
         DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefExpectationNode _ sdf -> fmap SubForestNode <$> goForest sdf
   mapM_ outputLine outputTestsHeader
-  resultForest <- timeItT $ fromMaybe [] <$> runReaderT (goForest handleForest) 0
+  resultForest <- fromMaybe [] <$> runReaderT (goForest handleForest) 0
   outputLine [chunk " "]
-  mapM_ outputLine $ outputFailuresWithHeading settings (timedValue resultForest)
+  mapM_ outputLine $ outputFailuresWithHeading settings resultForest
   outputLine [chunk " "]
-  mapM_ outputLine $ outputStats (computeTestSuiteStats settings <$> resultForest)
+  suiteEnd <- getMonotonicTimeNSec
+  let timedResult =
+        Timed
+          { timedValue = resultForest,
+            timedWorker = 0,
+            timedBegin = suiteBegin,
+            timedEnd = suiteEnd
+          }
+  mapM_ outputLine $ outputStats (computeTestSuiteStats settings <$> timedResult)
   outputLine [chunk " "]
-  pure resultForest
+
+  when (settingProfile settings) $ do
+    mapM_ outputLine (outputProfilingInfo timedResult)
+    outputLine [chunk " "]
+
+  pure timedResult
 
 addLevel :: P a -> P a
 addLevel = withReaderT succ

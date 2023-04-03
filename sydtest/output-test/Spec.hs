@@ -140,7 +140,7 @@ spec = do
       it "outputs the same as last time" $ do
         pureGoldenTextFile
           "test_resources/output.golden"
-          (LT.toStrict $ TLB.toLazyText $ renderResultReport defaultSettings With24BitColours (Timed [] 0))
+          (LT.toStrict $ TLB.toLazyText $ renderResultReport defaultSettings With24BitColours (Timed {timedValue = [], timedBegin = 0, timedEnd = 0, timedWorker = 0}))
 
   doNotRandomiseExecutionOrder $
     describe "Around" $ do

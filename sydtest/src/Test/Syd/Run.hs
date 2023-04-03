@@ -515,9 +515,8 @@ data Progress
 -- That means that any waiting, like with 'threadDelay' would not be counted.
 --
 -- Note that this does not evaluate the result, on purpose.
-timeItT :: MonadIO m => m a -> m (Timed a)
-timeItT func = do
-  worker <- liftIO myCapability
+timeItT :: MonadIO m => Int -> m a -> m (Timed a)
+timeItT worker func = do
   (r, (begin, end)) <- timeItBeginEnd func
   pure
     Timed
@@ -526,9 +525,6 @@ timeItT func = do
         timedBegin = begin,
         timedEnd = end
       }
-
-myCapability :: IO Int
-myCapability = myThreadId >>= (fmap fst . threadCapability)
 
 timeItDuration :: MonadIO m => m a -> m (a, Word64)
 timeItDuration func = do

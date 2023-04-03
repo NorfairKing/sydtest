@@ -45,7 +45,7 @@ runSpecForestSynchronously settings testForest =
         Env {..} <- ask
         result <-
           liftIO $
-            timeItT $
+            timeItT 0 $
               runSingleTestWithFlakinessMode
                 noProgressReporter
                 eExternalResources

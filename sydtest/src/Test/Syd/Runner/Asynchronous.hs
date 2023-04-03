@@ -14,18 +14,20 @@ module Test.Syd.Runner.Asynchronous
   )
 where
 
-import Control.Concurrent
 import Control.Concurrent.Async as Async
+import Control.Concurrent.MVar
+import Control.Concurrent.QSem
+import Control.Concurrent.STM as STM
 import Control.Exception
 #if MIN_VERSION_mtl(2,3,0)
 import Control.Monad (when)
 #endif
 import Control.Monad.Reader
 import Data.Maybe
-import Data.Set (Set)
-import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import Data.Vector (Vector)
+import qualified Data.Vector as V
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
 import Test.QuickCheck.IO ()
@@ -64,139 +66,242 @@ type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunReport))
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
 makeHandleForest = traverse $ traverse $ \() -> newEmptyMVar
 
+type Job = Int -> IO ()
+
+-- | Job queue for workers that can synchronise
+data JobQueue = JobQueue
+  { -- | Bounded channel for the jobs.
+    -- We use a TBQueue because it's bounded and we can check if it's empty.
+    jobQueueTBQueue :: !(TBQueue Job),
+    -- | One semaphore per worker, which needs to be awaited before the worker
+    -- can start doing a job.
+    jobQueueWorking :: !(Vector QSem)
+  }
+
+-- | Make a new job queue with a given number of workers and capacity
+newJobQueue :: Word -> Word -> IO JobQueue
+newJobQueue nbWorkers spots = do
+  jobQueueTBQueue <- newTBQueueIO (fromIntegral spots)
+  jobQueueWorking <- V.replicateM (fromIntegral nbWorkers) (newQSem 1)
+  pure JobQueue {..}
+
+-- | Enqueue a job, block until that's possible.
+enqueueJob :: JobQueue -> Job -> IO ()
+enqueueJob JobQueue {..} job =
+  atomically $ writeTBQueue jobQueueTBQueue job
+
+-- | Dequeue a job.
+dequeueJob :: JobQueue -> IO Job
+dequeueJob JobQueue {..} =
+  atomically $ readTBQueue jobQueueTBQueue
+
+-- | Block until all workers are done (waiting to dequeue a job).
+blockUntilDone :: JobQueue -> IO ()
+blockUntilDone JobQueue {..} = do
+  -- Wait until the queue is empty.
+  atomically $ isEmptyTBQueue jobQueueTBQueue >>= STM.check
+  -- No new work can be started now, because the queue is empty.
+  -- That means that all workers are either waiting for another job or still
+  -- doing a job.
+
+  -- Wait for all workers to stop working.
+  -- That means that they're all just done working now or waiting for another job.
+  -- Both are fine.
+  V.forM_ jobQueueWorking waitQSem
+  -- The workers are now all done and the queue is empty, and this is the only
+  -- thread enqueueing jobs, so no work is happening.
+  -- Release all the workers so they can work again after this function.
+  V.forM_ jobQueueWorking signalQSem
+
+withJobQueueWorkers :: Word -> JobQueue -> IO a -> IO a
+withJobQueueWorkers nbWorkers jobQueue func =
+  withAsync
+    ( mapConcurrently
+        (jobQueueWorker jobQueue)
+        [0 .. fromIntegral nbWorkers - 1]
+    )
+    (\_ -> func)
+
+jobQueueWorker :: JobQueue -> Int -> IO ()
+jobQueueWorker jobQueue workerIx = do
+  let workingSem = jobQueueWorking jobQueue V.! workerIx
+  forever $ do
+    job <- dequeueJob jobQueue
+    bracket_
+      (waitQSem workingSem)
+      (signalQSem workingSem)
+      (job workerIx)
+
+-- The plan is as follows:
+--
+-- We have:
+--
+-- 1 runner thread that schedules jobs
+-- 1 waiter/printer thread that waits for the jobs to be done and puts them in
+--   the result forest.
+-- n worker threads that run the jobs.
+--
+-- Any outer resource might need cleanup, so whenever the scheduler thread
+-- finishes an outer-resource subtree, it must wait for all tasks until then to
+-- be completed before running the cleanup action.
+--
+-- There might be an ungodly number of tests so, to keep memory usage
+-- contained, we want to limit the number of jobs that the scheduler can put on
+-- the queue.
+--
+-- Tests may be marked as sequential, in which case only one test may be
+-- executing at a time.
+--
+--
+-- 1. We use a job queue semaphore that holds the number of empty
+--    spots left on the queue.
+--    The scheduler must wait for one unit of the semaphore before
+--    enqueuing a job.
+--    Any dequeuing must signal this semaphore
+--
+-- 2. We use a global lock for any job marked as "sequential".
+--
+--
+-- The runner goes through the test 'HandleForest' one by one, and:
+--
+-- 1. Tries to enqueue as many jobs as possible.
+--    It's only allowed to enqueue a jobs if there is space left on
+--    the queue as indicated by the job semaphore.
+--
+-- 2. Asks workers to wait after finishing what they were doing at the end of
+--     an outer resource block.
 runner :: Settings -> Word -> MVar () -> HandleForest '[] () -> IO ()
 runner settings nbThreads failFastVar handleForest = do
-  sem <- liftIO $ newQSemN $ fromIntegral nbThreads
-  jobsVar <- newMVar (S.empty :: Set (Async ()))
-  -- This is used to make sure that the 'after' part of the resources actually happens after the tests are done, not just when they are started.
-  let waitForCurrentlyRunning :: IO ()
-      waitForCurrentlyRunning = do
-        modifyMVar_ jobsVar $ \jobThreads -> do
-          mapM_ Async.wait jobThreads
-          pure S.empty
+  let nbWorkers = nbThreads
+  let nbSpacesOnTheJobQueue = nbWorkers * 2
+  jobQueue <- newJobQueue nbWorkers nbSpacesOnTheJobQueue
 
-  let goForest :: forall a. HandleForest a () -> R a ()
-      goForest = mapM_ goTree
+  withJobQueueWorkers nbWorkers jobQueue $ do
+    let waitForWorkersDone :: IO ()
+        waitForWorkersDone = blockUntilDone jobQueue
 
-      goTree :: forall a. HandleTree a () -> R a ()
-      goTree = \case
-        DefSpecifyNode _ td var -> do
-          -- If the fail-fast var has been put, This will return 'Just ()', in
-          -- which case we must stop.
-          mDoneEarly <- liftIO $ tryReadMVar failFastVar
-          case mDoneEarly of
-            Just () -> pure ()
-            Nothing -> do
-              Env {..} <- ask
+    let goForest :: forall a. HandleForest a () -> R a ()
+        goForest = mapM_ goTree
 
-              liftIO $ do
-                -- Wait before spawning a thread so that we don't spawn too many threads
-                let quantity = case eParallelism of
-                      -- When the test wants to be executed sequentially, we take n locks because we must make sure that
-                      -- 1. no more other tests are still running.
-                      -- 2. no other tests are started during execution.
-                      Sequential -> nbThreads
-                      Parallel -> 1
-                waitQSemN sem $ fromIntegral quantity
+        goTree :: forall a. HandleTree a () -> R a ()
+        goTree = \case
+          DefSpecifyNode _ td var -> do
+            -- If the fail-fast var has been put, we stop enqueuing jobs.
+            mDoneEarly <- liftIO $ tryReadMVar failFastVar
+            case mDoneEarly of
+              Just () -> pure ()
+              Nothing -> do
+                Env {..} <- ask
 
-                let runNow =
-                      timeItT $
-                        runSingleTestWithFlakinessMode
-                          noProgressReporter
-                          eExternalResources
-                          td
-                          eRetries
-                          eFlakinessMode
-                          eExpectationMode
-                let job :: IO ()
-                    job = do
-                      -- Start the test
-                      result <- runNow
+                liftIO $ do
+                  let runNow workerNr =
+                        timeItT workerNr $
+                          runSingleTestWithFlakinessMode
+                            noProgressReporter
+                            eExternalResources
+                            td
+                            eRetries
+                            eFlakinessMode
+                            eExpectationMode
 
-                      -- Put the result in the mvar
-                      putMVar var result
+                  let job :: Int -> IO ()
+                      job workerNr = do
+                        -- Start the test
+                        result <- runNow workerNr
 
-                      -- If we should fail fast, put the fail-fast var and cancel all other jobs.
-                      when (settingFailFast settings && testRunReportFailed settings (timedValue result)) $ do
-                        putMVar failFastVar ()
-                        withMVar jobsVar $ \jobThreads ->
-                          mapM_ cancel jobThreads
-                      liftIO $ signalQSemN sem $ fromIntegral quantity
+                        -- Put the result in the mvar
+                        putMVar var result
 
-                modifyMVar_ jobsVar $ \jobThreads -> do
-                  jobThread <- async job
-                  link jobThread
-                  pure (S.insert jobThread jobThreads)
-        DefPendingNode _ _ -> pure ()
-        DefDescribeNode _ sdf -> goForest sdf
-        DefWrapNode func sdf -> do
-          e <- ask
-          liftIO $
-            func $ do
+                        -- If we should fail fast, put the
+                        -- fail-fast var so that no new
+                        -- jobs are started by the
+                        -- scheduler.
+                        when
+                          ( settingFailFast settings
+                              && testRunReportFailed settings (timedValue result)
+                          )
+                          $ do
+                            putMVar failFastVar ()
+
+                  -- When enqueuing a sequential job, make sure all workers are
+                  -- done before and after.
+                  -- It's not enough to just not have two tests running at the
+                  -- same time, because they also need to be executed in order.
+                  when (eParallelism == Sequential) waitForWorkersDone
+                  enqueueJob jobQueue job
+                  when (eParallelism == Sequential) waitForWorkersDone
+          DefPendingNode _ _ -> pure ()
+          DefDescribeNode _ sdf -> goForest sdf
+          DefWrapNode func sdf -> do
+            e <- ask
+            liftIO $
+              func $ do
+                runReaderT (goForest sdf) e
+                waitForWorkersDone
+          DefBeforeAllNode func sdf -> do
+            b <- liftIO func
+            withReaderT
+              (\e -> e {eExternalResources = HCons b (eExternalResources e)})
+              (goForest sdf)
+          DefAroundAllNode func sdf -> do
+            e <- ask
+            liftIO $
+              func
+                ( \b -> do
+                    runReaderT
+                      (goForest sdf)
+                      (e {eExternalResources = HCons b (eExternalResources e)})
+                    waitForWorkersDone
+                )
+          DefAroundAllWithNode func sdf -> do
+            e <- ask
+            let HCons x _ = eExternalResources e
+            liftIO $
+              func
+                ( \b -> do
+                    runReaderT
+                      (goForest sdf)
+                      (e {eExternalResources = HCons b (eExternalResources e)})
+                    waitForWorkersDone
+                )
+                x
+          DefAfterAllNode func sdf -> do
+            e <- ask
+            liftIO $
               runReaderT (goForest sdf) e
-              waitForCurrentlyRunning
-        DefBeforeAllNode func sdf -> do
-          b <- liftIO func
-          withReaderT
-            (\e -> e {eExternalResources = HCons b (eExternalResources e)})
-            (goForest sdf)
-        DefAroundAllNode func sdf -> do
-          e <- ask
-          liftIO $
-            func
-              ( \b -> do
-                  runReaderT
-                    (goForest sdf)
-                    (e {eExternalResources = HCons b (eExternalResources e)})
-                  waitForCurrentlyRunning
-              )
-        DefAroundAllWithNode func sdf -> do
-          e <- ask
-          let HCons x _ = eExternalResources e
-          liftIO $
-            func
-              ( \b -> do
-                  runReaderT
-                    (goForest sdf)
-                    (e {eExternalResources = HCons b (eExternalResources e)})
-                  waitForCurrentlyRunning
-              )
-              x
-        DefAfterAllNode func sdf -> do
-          e <- ask
-          liftIO $
-            runReaderT (goForest sdf) e
-              `finally` ( do
-                            waitForCurrentlyRunning
-                            func (eExternalResources e)
-                        )
-        DefParallelismNode p' sdf ->
-          withReaderT
-            (\e -> e {eParallelism = p'})
-            (goForest sdf)
-        DefRandomisationNode _ sdf -> goForest sdf -- Ignore, randomisation has already happened.
-        DefRetriesNode modRetries sdf ->
-          withReaderT
-            (\e -> e {eRetries = modRetries (eRetries e)})
-            (goForest sdf)
-        DefFlakinessNode fm sdf ->
-          withReaderT
-            (\e -> e {eFlakinessMode = fm})
-            (goForest sdf)
-        DefExpectationNode em sdf ->
-          withReaderT
-            (\e -> e {eExpectationMode = em})
-            (goForest sdf)
+                `finally` ( do
+                              waitForWorkersDone
+                              func (eExternalResources e)
+                          )
+          DefParallelismNode p' sdf ->
+            withReaderT
+              (\e -> e {eParallelism = p'})
+              (goForest sdf)
+          DefRandomisationNode _ sdf ->
+            goForest sdf -- Ignore, randomisation has already happened.
+          DefRetriesNode modRetries sdf ->
+            withReaderT
+              (\e -> e {eRetries = modRetries (eRetries e)})
+              (goForest sdf)
+          DefFlakinessNode fm sdf ->
+            withReaderT
+              (\e -> e {eFlakinessMode = fm})
+              (goForest sdf)
+          DefExpectationNode em sdf ->
+            withReaderT
+              (\e -> e {eExpectationMode = em})
+              (goForest sdf)
 
-  runReaderT
-    (goForest handleForest)
-    Env
-      { eParallelism = Parallel,
-        eRetries = settingRetries settings,
-        eFlakinessMode = MayNotBeFlaky,
-        eExpectationMode = ExpectPassing,
-        eExternalResources = HNil
-      }
+    runReaderT
+      (goForest handleForest)
+      Env
+        { eParallelism = Parallel,
+          eRetries = settingRetries settings,
+          eFlakinessMode = MayNotBeFlaky,
+          eExpectationMode = ExpectPassing,
+          eExternalResources = HNil
+        }
+    waitForWorkersDone -- Make sure all jobs are done before cancelling the runners.
 
 type R a = ReaderT (Env a) IO
 

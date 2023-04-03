@@ -86,10 +86,10 @@ runHedgehogPropertyWithArg
         ( do
             exampleNr <- liftIO $ readTVarIO exampleCounter
             liftIO $ report $ ProgressExampleStarting totalExamples exampleNr
-            timedResult <- timeItT $ Hedgehog.propertyTest (hedgehogProp outer inner)
-            liftIO $ report $ ProgressExampleDone totalExamples exampleNr $ timedTime timedResult
+            (result, duration) <- timeItDuration $ Hedgehog.propertyTest (hedgehogProp outer inner)
+            liftIO $ report $ ProgressExampleDone totalExamples exampleNr duration
             liftIO $ atomically $ modifyTVar' exampleCounter succ
-            pure $ timedValue timedResult
+            pure result
         )
         (\_ -> pure ()) -- Don't report progress
     report ProgressTestDone

@@ -18,14 +18,14 @@ main = do
   testForest <- execTestDefM settings spec
 
   putStrLn "Synchronous, non-interleaved"
-  rf1 <- timeItT $ runSpecForestSynchronously settings testForest
+  rf1 <- timeItT 0 $ runSpecForestSynchronously settings testForest
   printOutputSpecForest settings rf1
 
   putStrLn "Synchronous, interleaved"
   _ <- runSpecForestInterleavedWithOutputSynchronously settings testForest
 
   putStrLn "Asynchronous, non-interleaved"
-  rf2 <- timeItT $ runSpecForestAsynchronously settings 8 testForest
+  rf2 <- timeItT 0 $ runSpecForestAsynchronously settings 8 testForest
   printOutputSpecForest settings rf2
 
   putStrLn "Asynchronous, interleaved"
@@ -37,7 +37,7 @@ main = do
       it "renders output in the same way as before" $
         goldenByteStringFile "test_resources/output-test.txt" $ do
           testForestInOrder <- execTestDefM settings $ doNotRandomiseExecutionOrder spec
-          rf <- timeItT $ runSpecForestSynchronously settings testForestInOrder
+          rf <- timeItT 0 $ runSpecForestSynchronously settings testForestInOrder
           let eraseTimed :: Timed a -> Timed a
               eraseTimed t =
                 t

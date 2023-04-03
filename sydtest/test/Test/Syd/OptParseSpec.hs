@@ -26,6 +26,7 @@ spec = do
                 settingRandomiseExecutionOrder = False,
                 settingFailFast = True,
                 settingReportProgress = ReportProgress,
+                settingRetries = 0,
                 settingDebug = True
               }
       combineToSettings flags environment mConf `shouldReturn` settings

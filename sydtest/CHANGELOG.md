@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+* Made `--debug` imply `--retries 0`
+
 ## [0.13.0.4] - 2023-03-31
 
 ### Added

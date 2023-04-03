@@ -151,7 +151,9 @@ data ReportProgress
 combineToSettings :: Flags -> Environment -> Maybe Configuration -> IO Settings
 combineToSettings Flags {..} Environment {..} mConf = do
   let d func = func defaultSettings
-  let debugMode = fromMaybe (d settingDebug) $ flagDebug <|> envDebug <|> mc configDebug
+  let debugMode =
+        fromMaybe (d settingDebug) $
+          flagDebug <|> envDebug <|> mc configDebug
   let threads =
         fromMaybe (if debugMode then Synchronous else d settingThreads) $
           flagThreads <|> envThreads <|> mc configThreads
@@ -175,26 +177,46 @@ combineToSettings Flags {..} Environment {..} mConf = do
 
   pure
     Settings
-      { settingSeed = fromMaybe (d settingSeed) $ flagSeed <|> envSeed <|> mc configSeed,
+      { settingSeed =
+          fromMaybe (d settingSeed) $
+            flagSeed <|> envSeed <|> mc configSeed,
         settingRandomiseExecutionOrder =
           fromMaybe (if debugMode then False else d settingRandomiseExecutionOrder) $
             flagRandomiseExecutionOrder <|> envRandomiseExecutionOrder <|> mc configRandomiseExecutionOrder,
         settingThreads = threads,
-        settingMaxSuccess = fromMaybe (d settingMaxSuccess) $ flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess,
-        settingMaxSize = fromMaybe (d settingMaxSize) $ flagMaxSize <|> envMaxSize <|> mc configMaxSize,
-        settingMaxDiscard = fromMaybe (d settingMaxDiscard) $ flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
-        settingMaxShrinks = fromMaybe (d settingMaxShrinks) $ flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks,
-        settingGoldenStart = fromMaybe (d settingGoldenStart) $ flagGoldenStart <|> envGoldenStart <|> mc configGoldenStart,
-        settingGoldenReset = fromMaybe (d settingGoldenReset) $ flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
+        settingMaxSuccess =
+          fromMaybe (d settingMaxSuccess) $
+            flagMaxSuccess <|> envMaxSuccess <|> mc configMaxSuccess,
+        settingMaxSize =
+          fromMaybe (d settingMaxSize) $
+            flagMaxSize <|> envMaxSize <|> mc configMaxSize,
+        settingMaxDiscard =
+          fromMaybe (d settingMaxDiscard) $
+            flagMaxDiscard <|> envMaxDiscard <|> mc configMaxDiscard,
+        settingMaxShrinks =
+          fromMaybe (d settingMaxShrinks) $
+            flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks,
+        settingGoldenStart =
+          fromMaybe (d settingGoldenStart) $
+            flagGoldenStart <|> envGoldenStart <|> mc configGoldenStart,
+        settingGoldenReset =
+          fromMaybe (d settingGoldenReset) $
+            flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
         settingColour = flagColour <|> envColour <|> mc configColour,
         settingFilters = flagFilters <|> maybeToList envFilter <|> maybeToList (mc configFilter),
         settingFailFast =
           fromMaybe
             (if debugMode then True else d settingFailFast)
             (flagFailFast <|> envFailFast <|> mc configFailFast),
-        settingIterations = fromMaybe (d settingIterations) $ flagIterations <|> envIterations <|> mc configIterations,
-        settingRetries = fromMaybe (d settingRetries) $ flagRetries <|> envRetries <|> mc configRetries,
-        settingFailOnFlaky = fromMaybe (d settingFailOnFlaky) $ flagFailOnFlaky <|> envFailOnFlaky <|> mc configFailOnFlaky,
+        settingIterations =
+          fromMaybe (d settingIterations) $
+            flagIterations <|> envIterations <|> mc configIterations,
+        settingRetries =
+          fromMaybe (if debugMode then 0 else d settingRetries) $
+            flagRetries <|> envRetries <|> mc configRetries,
+        settingFailOnFlaky =
+          fromMaybe (d settingFailOnFlaky) $
+            flagFailOnFlaky <|> envFailOnFlaky <|> mc configFailOnFlaky,
         settingReportProgress = setReportProgress,
         settingDebug = debugMode
       }

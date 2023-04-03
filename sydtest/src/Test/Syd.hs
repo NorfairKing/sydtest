@@ -248,6 +248,8 @@ where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Path
+import Path.IO
 import System.Exit
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
@@ -258,6 +260,7 @@ import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner
+import Test.Syd.SVG
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Show.Pretty (pPrint, ppShow)
@@ -276,6 +279,12 @@ sydTest spec = do
 sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
   resultForest <- sydTestResult sets spec
+
+  when (settingProfile sets) $ do
+    p <- resolveFile' "sydtest-profile.html"
+    writeSvgReport (fromAbsFile p) resultForest
+    putStrLn $ "Wrote profile graph to " <> fromAbsFile p
+
   when (shouldExitFail sets (timedValue resultForest)) (exitWith (ExitFailure 1))
 
 -- | Run a test suite during test suite definition.

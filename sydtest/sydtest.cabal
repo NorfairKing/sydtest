@@ -62,6 +62,7 @@ library
       Test.Syd.Runner.Wrappers
       Test.Syd.SpecDef
       Test.Syd.SpecForest
+      Test.Syd.SVG
   other-modules:
       Paths_sydtest
   hs-source-dirs:
@@ -89,6 +90,7 @@ library
     , safe
     , safe-coloured-text
     , stm
+    , svg-builder
     , text
     , vector
   if os(windows)

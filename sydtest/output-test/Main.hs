@@ -41,10 +41,9 @@ main = do
           let eraseTimed :: Timed a -> Timed a
               eraseTimed t =
                 t
-                  { timedTime =
-                      -- We have to choose zero because it's the identity for addition,
-                      -- which is the operation that's used on these times.
-                      0
+                  { timedBegin = 0,
+                    timedEnd = 0,
+                    timedWorker = 0
                   }
 
               erasedTimedInResultForest :: ResultForest -> ResultForest

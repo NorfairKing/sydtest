@@ -37,5 +37,7 @@ flattenSpecTree :: SpecTree a -> [([Text], a)]
 flattenSpecTree = \case
   SpecifyNode t a -> [([t], a)]
   PendingNode _ _ -> []
-  DescribeNode t sf -> map (\(ts, a) -> (t : ts, a)) $ flattenSpecForest sf
+  DescribeNode t sf ->
+    map (\(ts, a) -> (t : ts, a)) $
+      flattenSpecForest sf
   SubForestNode sf -> flattenSpecForest sf

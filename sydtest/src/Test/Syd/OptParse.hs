@@ -74,7 +74,9 @@ data Settings = Settings
     -- | How to report progress
     settingReportProgress :: !ReportProgress,
     -- | Debug mode
-    settingDebug :: !Bool
+    settingDebug :: !Bool,
+    -- | Profiling mode
+    settingProfile :: !Bool
   }
   deriving (Show, Eq, Generic)
 
@@ -98,7 +100,8 @@ defaultSettings =
           settingRetries = defaultRetries,
           settingFailOnFlaky = False,
           settingReportProgress = ReportNoProgress,
-          settingDebug = False
+          settingDebug = False,
+          settingProfile = False
         }
 
 defaultRetries :: Word
@@ -218,7 +221,10 @@ combineToSettings Flags {..} Environment {..} mConf = do
           fromMaybe (d settingFailOnFlaky) $
             flagFailOnFlaky <|> envFailOnFlaky <|> mc configFailOnFlaky,
         settingReportProgress = setReportProgress,
-        settingDebug = debugMode
+        settingDebug = debugMode,
+        settingProfile =
+          fromMaybe False $
+            flagProfile <|> envProfile <|> mc configProfile
       }
   where
     mc :: (Configuration -> Maybe a) -> Maybe a
@@ -247,7 +253,8 @@ data Configuration = Configuration
     configRetries :: !(Maybe Word),
     configFailOnFlaky :: !(Maybe Bool),
     configReportProgress :: !(Maybe Bool),
-    configDebug :: !(Maybe Bool)
+    configDebug :: !(Maybe Bool),
+    configProfile :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -279,6 +286,7 @@ instance HasCodec Configuration where
         <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected in tests marked as potentially flaky" .= configFailOnFlaky
         <*> optionalField "progress" "How to report progres" .= configReportProgress
         <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true" .= configDebug
+        <*> optionalField "profile" "Turn on profiling mode" .= configProfile
 
 instance HasCodec Threads where
   codec = dimapCodec f g codec
@@ -343,7 +351,8 @@ data Environment = Environment
     envRetries :: !(Maybe Word),
     envFailOnFlaky :: !(Maybe Bool),
     envReportProgress :: !(Maybe Bool),
-    envDebug :: !(Maybe Bool)
+    envDebug :: !(Maybe Bool),
+    envProfile :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -367,7 +376,8 @@ defaultEnvironment =
       envRetries = Nothing,
       envFailOnFlaky = Nothing,
       envReportProgress = Nothing,
-      envDebug = Nothing
+      envDebug = Nothing,
+      envProfile = Nothing
     }
 
 getEnvironment :: IO Environment
@@ -400,6 +410,7 @@ environmentParser =
         <*> Env.var (fmap Just . Env.auto) "FAIL_ON_FLAKY" (Env.def Nothing <> Env.help "Whether to fail when flakiness is detected in tests marked as potentially flaky")
         <*> Env.var (fmap Just . Env.auto) "PROGRESS" (Env.def Nothing <> Env.help "Report progress as tests run")
         <*> Env.var (fmap Just . Env.auto) "DEBUG" (Env.def Nothing <> Env.help "Turn on debug mode. This implies RANDOMISE_EXECUTION_ORDER=False, PARALLELISM=1 and FAIL_FAST=True.")
+        <*> Env.var (fmap Just . Env.auto) "PROFILE" (Env.def Nothing <> Env.help "Turn on profiling mode.")
   where
     parseThreads :: Word -> Either e Threads
     parseThreads 1 = Right Synchronous
@@ -466,7 +477,8 @@ data Flags = Flags
     flagRetries :: !(Maybe Word),
     flagFailOnFlaky :: !(Maybe Bool),
     flagReportProgress :: !(Maybe Bool),
-    flagDebug :: !(Maybe Bool)
+    flagDebug :: !(Maybe Bool),
+    flagProfile :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -490,7 +502,8 @@ defaultFlags =
       flagRetries = Nothing,
       flagFailOnFlaky = Nothing,
       flagReportProgress = Nothing,
-      flagDebug = Nothing
+      flagDebug = Nothing,
+      flagProfile = Nothing
     }
 
 -- | The 'optparse-applicative' parser for the 'Flags'.
@@ -635,6 +648,7 @@ parseFlags =
     <*> doubleSwitch ["fail-on-flaky"] (help "Fail when any flakiness is detected")
     <*> doubleSwitch ["progress"] (help "Report progress")
     <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous, --progress and --fail-fast.")
+    <*> doubleSwitch ["profile"] (help "Turn on profiling mode.")
 
 manyOptional :: OptParse.Mod OptionFields [Text] -> OptParse.Parser [Text]
 manyOptional modifier = mconcat <$> many (option (str <&> T.words) modifier)

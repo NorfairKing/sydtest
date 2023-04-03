@@ -306,23 +306,23 @@ computeTestSuiteStats settings = goF []
     goF ts = foldMap (goT ts)
     goT :: [Text] -> ResultTree -> TestSuiteStats
     goT ts = \case
-      SpecifyNode tn (TDef (Timed testRunReport t) _) ->
-        let status = testRunReportStatus settings testRunReport
+      SpecifyNode _ (TDef timed@Timed {..} _) ->
+        let status = testRunReportStatus settings timedValue
          in TestSuiteStats
               { testSuiteStatSuccesses = case status of
                   TestPassed -> 1
                   TestFailed -> 0,
-                testSuiteStatExamples = testRunReportExamples testRunReport,
+                testSuiteStatExamples =
+                  testRunReportExamples timedValue,
                 testSuiteStatFailures = case status of
                   TestPassed -> 0
                   TestFailed -> 1,
                 testSuiteStatFlakyTests =
-                  if testRunReportWasFlaky testRunReport
+                  if testRunReportWasFlaky timedValue
                     then 1
                     else 0,
                 testSuiteStatPending = 0,
-                testSuiteStatSumTime = t,
-                testSuiteStatLongestTime = Just (T.intercalate "." (ts ++ [tn]), t)
+                testSuiteStatSumTime = timedTime timed
               }
       PendingNode _ _ ->
         TestSuiteStats
@@ -331,8 +331,7 @@ computeTestSuiteStats settings = goF []
             testSuiteStatFailures = 0,
             testSuiteStatFlakyTests = 0,
             testSuiteStatPending = 1,
-            testSuiteStatSumTime = 0,
-            testSuiteStatLongestTime = Nothing
+            testSuiteStatSumTime = 0
           }
       DescribeNode t sf -> goF (t : ts) sf
       SubForestNode sf -> goF ts sf
@@ -343,8 +342,7 @@ data TestSuiteStats = TestSuiteStats
     testSuiteStatFailures :: !Word,
     testSuiteStatFlakyTests :: !Word,
     testSuiteStatPending :: !Word,
-    testSuiteStatSumTime :: !Word64,
-    testSuiteStatLongestTime :: !(Maybe (Text, Word64))
+    testSuiteStatSumTime :: !Word64
   }
   deriving (Show, Eq)
 
@@ -356,12 +354,7 @@ instance Semigroup TestSuiteStats where
         testSuiteStatFailures = testSuiteStatFailures tss1 + testSuiteStatFailures tss2,
         testSuiteStatFlakyTests = testSuiteStatFlakyTests tss1 + testSuiteStatFlakyTests tss2,
         testSuiteStatPending = testSuiteStatPending tss1 + testSuiteStatPending tss2,
-        testSuiteStatSumTime = testSuiteStatSumTime tss1 + testSuiteStatSumTime tss2,
-        testSuiteStatLongestTime = case (testSuiteStatLongestTime tss1, testSuiteStatLongestTime tss2) of
-          (Nothing, Nothing) -> Nothing
-          (Just t1, Nothing) -> Just t1
-          (Nothing, Just t2) -> Just t2
-          (Just (tn1, t1), Just (tn2, t2)) -> Just $ if t1 >= t2 then (tn1, t1) else (tn2, t2)
+        testSuiteStatSumTime = testSuiteStatSumTime tss1 + testSuiteStatSumTime tss2
       }
 
 instance Monoid TestSuiteStats where
@@ -373,8 +366,7 @@ instance Monoid TestSuiteStats where
         testSuiteStatFailures = 0,
         testSuiteStatFlakyTests = 0,
         testSuiteStatPending = 0,
-        testSuiteStatSumTime = 0,
-        testSuiteStatLongestTime = Nothing
+        testSuiteStatSumTime = 0
       }
 
 shouldExitFail :: Settings -> ResultForest -> Bool

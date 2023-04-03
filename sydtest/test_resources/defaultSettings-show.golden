@@ -16,4 +16,5 @@ Settings
   , settingFailOnFlaky = False
   , settingReportProgress = ReportNoProgress
   , settingDebug = False
+  , settingProfile = False
   }

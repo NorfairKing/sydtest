@@ -20,8 +20,8 @@ extractNext (Continue a) = a
 extractNext (Stop a) = a
 
 failFastNext :: Settings -> TDef (Timed TestRunReport) -> Next (TDef (Timed TestRunReport))
-failFastNext settings td@(TDef (Timed trr _) _) =
-  if settingFailFast settings && testRunReportFailed settings trr
+failFastNext settings td@(TDef timed _) =
+  if settingFailFast settings && testRunReportFailed settings (timedValue timed)
     then Stop td
     else Continue td
 

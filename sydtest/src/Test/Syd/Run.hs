@@ -206,10 +206,11 @@ runPropertyTestWithArg p trs progressReporter wrapper = do
       wrapperWithProgress func = wrapper $ \outers inner -> do
         exampleNr <- readTVarIO exampleCounter
         report $ ProgressExampleStarting totalExamples exampleNr
-        timedResult <- timeItT $ func outers inner
-        report $ ProgressExampleDone totalExamples exampleNr $ timedTime timedResult
+        (result, duration) <- timeItDuration $ func outers inner
+        report $
+          ProgressExampleDone totalExamples exampleNr duration
         atomically $ modifyTVar' exampleCounter succ
-        pure $ timedValue timedResult
+        pure result
 
   report ProgressTestStarting
   qcr <- quickCheckWithResult qcargs (aroundProperty wrapperWithProgress p)
@@ -516,14 +517,40 @@ data Progress
 -- Note that this does not evaluate the result, on purpose.
 timeItT :: MonadIO m => m a -> m (Timed a)
 timeItT func = do
+  worker <- liftIO myCapability
+  (r, (begin, end)) <- timeItBeginEnd func
+  pure
+    Timed
+      { timedValue = r,
+        timedWorker = worker,
+        timedBegin = begin,
+        timedEnd = end
+      }
+
+myCapability :: IO Int
+myCapability = myThreadId >>= (fmap fst . threadCapability)
+
+timeItDuration :: MonadIO m => m a -> m (a, Word64)
+timeItDuration func = do
+  (r, (begin, end)) <- timeItBeginEnd func
+  pure (r, end - begin)
+
+timeItBeginEnd :: MonadIO m => m a -> m (a, (Word64, Word64))
+timeItBeginEnd func = do
   begin <- liftIO getMonotonicTimeNSec
   r <- func
   end <- liftIO getMonotonicTimeNSec
-  pure $ Timed r (end - begin)
+  pure (r, (begin, end))
 
 data Timed a = Timed
   { timedValue :: !a,
+    timedWorker :: !Int,
     -- | In nanoseconds
-    timedTime :: !Word64
+    timedBegin :: !Word64,
+    -- | In nanoseconds
+    timedEnd :: !Word64
   }
   deriving (Show, Eq, Generic, Functor)
+
+timedTime :: Timed a -> Word64
+timedTime Timed {..} = timedEnd - timedBegin

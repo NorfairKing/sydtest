@@ -59,7 +59,7 @@ timedResultForestElement trf =
                   map
                   [ 0,
                     1_000_000_000 -- In steps of 1 second
-                    .. (runEnd - runBegin)
+                    .. max 1_000_000_000 (runEnd - runBegin)
                   ]
                   $ \t ->
                     mconcat
@@ -128,7 +128,7 @@ barSpacing = 5
 nanosToX :: Word64 -> Int
 nanosToX n =
   fromIntegral $
-    n `div` 10_000_000 -- 1 svg unit = 10 microsecond
+    n `div` 1_000_000 -- 1 svg unit = 10 microsecond
 
 style :: LB.ByteString
 style =

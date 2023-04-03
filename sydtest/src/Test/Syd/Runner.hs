@@ -77,7 +77,7 @@ sydTestIterations totalIterations settings spec =
     let runOnce settings_ = do
           setPseudorandomness (settingSeed settings_)
           specForest <- execTestDefM settings_ spec
-          r <- timeItT $ case settingThreads settings_ of
+          r <- timeItT 0 $ case settingThreads settings_ of
             Synchronous -> runSpecForestSynchronously settings_ specForest
             ByCapabilities -> runSpecForestAsynchronously settings_ nbCapabilities specForest
             Asynchronous i -> runSpecForestAsynchronously settings_ i specForest

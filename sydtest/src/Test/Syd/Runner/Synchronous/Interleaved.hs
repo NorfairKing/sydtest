@@ -81,7 +81,7 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
                     ]
           result <-
             liftIO $
-              timeItT $
+              timeItT 0 $
                 runSingleTestWithFlakinessMode
                   progressReporter
                   eExternalResources
@@ -158,7 +158,7 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
 
   mapM_ outputLine outputTestsHeader
   resultForest <-
-    timeItT $
+    timeItT 0 $
       extractNext
         <$> runReaderT
           (goForest testForest)

@@ -111,10 +111,10 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
       ( \takeInner -> applyWrapper2' wrapper $ \() inner -> do
           exampleNr <- readTVarIO exampleCounter
           report $ ProgressExampleStarting totalExamples exampleNr
-          timedResult <- timeItT $ takeInner inner
-          report $ ProgressExampleDone totalExamples exampleNr $ timedTime timedResult
+          (result, duration) <- timeItDuration $ takeInner inner
+          report $ ProgressExampleDone totalExamples exampleNr duration
           atomically $ modifyTVar' exampleCounter succ
-          pure $ timedValue timedResult
+          pure result
       )
       callback
   report ProgressTestDone

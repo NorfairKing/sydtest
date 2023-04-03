@@ -136,6 +136,7 @@ test-suite sydtest-test
       Test.Syd.OptParseSpec
       Test.Syd.PathSpec
       Test.Syd.ScenarioSpec
+      Test.Syd.SequentialSpec
       Test.Syd.Specify.AllOuterSpec
       Test.Syd.SpecifySpec
       Test.Syd.TimingSpec

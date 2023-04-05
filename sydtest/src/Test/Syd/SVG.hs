@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -6,6 +7,7 @@ module Test.Syd.SVG (writeSvgReport) where
 import qualified Data.ByteString.Lazy as LB
 import Data.Maybe
 import Data.String
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
 import Graphics.Svg as Svg
@@ -84,15 +86,16 @@ timedResultForestElement trf =
                 flip map tests $ \(path, TDef timed _) ->
                   let begin = timedBegin timed - runBegin
                       end = timedEnd timed - runBegin
+                      duration = end - begin
                       workerIx = timedWorker timed
                    in mconcat
                         [ rect_
                             [ X_ <<- fromString (show (timeX begin)),
                               Y_ <<- fromString (show (workerY workerIx - barHeight `div` 2)),
                               Font_size_ <<- fromString (show fontSize),
-                              Width_ <<- fromString (show (nanosToX (end - begin))),
+                              Width_ <<- fromString (show (nanosToX duration)),
                               Height_ <<- fromString (show barHeight),
-                              Class_ <<- "test"
+                              Class_ <<- ("test " <> categoriseTest duration)
                             ]
                             ( title_
                                 []
@@ -128,7 +131,17 @@ barSpacing = 5
 nanosToX :: Word64 -> Int
 nanosToX n =
   fromIntegral $
-    n `div` 10_000_000 -- 1 svg unit = 10 microsecond
+    n `div` 1_000_000 -- 1 svg unit = 10 microsecond
+
+categoriseTest :: Word64 -> Text
+categoriseTest duration =
+  let t = fromIntegral duration / 1_000_000 :: Double -- milliseconds
+   in if
+          | t < 10 -> "very-fast"
+          | t < 100 -> "fast"
+          | t < 1_000 -> "medium"
+          | t < 10_000 -> "slow"
+          | otherwise -> "very-slow"
 
 style :: LB.ByteString
 style =
@@ -143,15 +156,30 @@ style =
       "  border: 1px dotted grey;",
       "}",
       ".test { pointer-events: all; }",
+      ".very-fast {",
+      "  stroke: #23ac05;",
+      "  fill: #2acf06;",
+      "}",
+      ".fast {",
+      "  stroke: #67bf16;",
+      "  fill: #78df1a;",
+      "}",
+      ".medium {",
+      "  stroke: #c4d600;",
+      "  fill: #e5f900;",
+      "}",
+      ".slow {",
+      "  stroke: #b19601;",
+      "  fill: #d4b401;",
+      "}",
+      ".very-slow {",
+      "  fill: #d60000;",
+      "  stroke: #b20000;",
+      "}",
       ".test {",
-      "  fill: forestgreen;",
-      "  stroke: green;",
-      "  stroke-width: 2;",
-      "  opacity: 0.5",
       "}",
       ".test:hover {",
-      "  fill: green !important;",
-      "  stroke: red !important;",
+      "  stroke: cyan !important;",
       "}",
       ".time {",
       "  stroke: black;",

@@ -1,9 +1,10 @@
 # Changelog
 
-## [Unreleased]
+## [0.14.0.0] - 2023-04-05
 
 * Profiling mode, for figuring out why your test suite is slow.
   Use `--profile` to turn it on.
+* An improved asynchronous test runner.
 * Made `--debug` imply `--retries 0`
 
 ## [0.13.0.4] - 2023-03-31

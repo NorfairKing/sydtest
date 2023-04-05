@@ -3,7 +3,7 @@
 }:
 mkDerivation {
   pname = "sydtest-hedgehog";
-  version = "0.3.0.1";
+  version = "0.4.0.0";
   src = ./.;
   libraryHaskellDepends = [ base containers hedgehog stm sydtest ];
   testHaskellDepends = [ base hedgehog sydtest ];

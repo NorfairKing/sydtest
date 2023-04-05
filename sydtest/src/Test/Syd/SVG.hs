@@ -88,6 +88,12 @@ timedResultForestElement trf =
                       end = timedEnd timed - runBegin
                       duration = end - begin
                       workerIx = timedWorker timed
+                      title =
+                        T.pack $
+                          unlines
+                            [ show $ T.intercalate "." path,
+                              show (duration `div` 1_000_000) <> "ms"
+                            ]
                    in mconcat
                         [ rect_
                             [ X_ <<- fromString (show (timeX begin)),
@@ -101,7 +107,7 @@ timedResultForestElement trf =
                                 []
                                 ( text_
                                     []
-                                    (toElement (T.intercalate "." path))
+                                    (toElement title)
                                 )
                             )
                         ]

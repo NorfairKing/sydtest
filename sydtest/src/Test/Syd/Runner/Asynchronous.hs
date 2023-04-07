@@ -232,12 +232,9 @@ runner settings nbThreads failFastVar handleForest = do
                   when (eParallelism == Sequential) waitForWorkersDone
           DefPendingNode _ _ -> pure ()
           DefDescribeNode _ sdf -> goForest sdf
-          DefWrapNode func sdf -> do
-            e <- ask
-            liftIO $
-              func $ do
-                runReaderT (goForest sdf) e
-                waitForWorkersDone
+          DefSetupNode func sdf -> do
+            liftIO func
+            goForest sdf
           DefBeforeAllNode func sdf -> do
             b <- liftIO func
             withReaderT
@@ -251,6 +248,12 @@ runner settings nbThreads failFastVar handleForest = do
               runReaderT
                 (goForest sdf)
                 (e {eExternalResources = HCons b (eExternalResources e)})
+          DefWrapNode func sdf -> do
+            e <- ask
+            liftIO $
+              func $ do
+                runReaderT (goForest sdf) e
+                waitForWorkersDone
           DefAroundAllNode func sdf -> do
             e <- ask
             liftIO $
@@ -375,9 +378,10 @@ printer settings failFastVar suiteBegin handleForest = do
             Nothing -> do
               outputLineP $ outputDescribeLine t
               fmap (DescribeNode t) <$> addLevel (goForest sf)
-        DefWrapNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefSetupNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefBeforeAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefBeforeAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefWrapNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
@@ -435,9 +439,10 @@ waiter failFastVar handleForest = do
         DefPendingNode t mr -> pure $ Just $ PendingNode t mr
         DefDescribeNode t sf -> do
           fmap (DescribeNode t) <$> goForest sf
-        DefWrapNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefSetupNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefBeforeAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefBeforeAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefWrapNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest sdf

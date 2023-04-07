@@ -16,6 +16,14 @@ import Test.Syd.Def.TestDefM
 import Test.Syd.HList
 import Test.Syd.SpecDef
 
+-- | Run a custom action before all spec items in a group without setting up any outer resources.
+beforeAll_ ::
+  -- | The function to run (once), beforehand.
+  IO () ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
+beforeAll_ action = wrapForest $ \forest -> DefSetupNode action forest
+
 -- | Run a custom action before all spec items in a group, to set up an outer resource 'a'.
 beforeAll ::
   -- | The function to run (once), beforehand, to produce the outer resource.
@@ -24,14 +32,6 @@ beforeAll ::
   TestDefM otherOuters inner result
 beforeAll action = wrapForest $ \forest -> DefBeforeAllNode action forest
 
--- | Run a custom action before all spec items in a group without setting up any outer resources.
-beforeAll_ ::
-  -- | The function to run (once), beforehand.
-  IO () ->
-  TestDefM outers inner result ->
-  TestDefM outers inner result
-beforeAll_ action = aroundAll_ (action >>)
-
 -- | Run a custom action before all spec items in a group, to set up an outer resource 'b' by using the outer resource 'a'.
 beforeAllWith ::
   -- | The function to run (once), beforehand, to produce a new outer resource while using a previous outer resource
@@ -39,6 +39,14 @@ beforeAllWith ::
   TestDefM (newOuter ': previousOuter ': otherOuters) inner result ->
   TestDefM (previousOuter ': otherOuters) inner result
 beforeAllWith action = wrapForest $ \forest -> DefBeforeAllWithNode action forest
+
+-- | Run a custom action after all spec items without using any outer resources.
+afterAll_ ::
+  -- | The function to run (once), afterwards.
+  IO () ->
+  TestDefM outers inner result ->
+  TestDefM outers inner result
+afterAll_ action = afterAll' $ \_ -> action
 
 -- | Run a custom action after all spec items, using the outer resource 'a'.
 afterAll ::
@@ -55,24 +63,6 @@ afterAll' ::
   TestDefM outers inner result ->
   TestDefM outers inner result
 afterAll' func = wrapForest $ \forest -> DefAfterAllNode func forest
-
--- | Run a custom action after all spec items without using any outer resources.
-afterAll_ ::
-  -- | The function to run (once), afterwards.
-  IO () ->
-  TestDefM outers inner result ->
-  TestDefM outers inner result
-afterAll_ action = afterAll' $ \_ -> action
-
--- | Run a custom action before and/or after all spec items in group, to provide access to a resource 'a'.
---
--- See the @FOOTGUN@ note in the docs for 'around_'.
-aroundAll ::
-  -- | The function that provides the outer resource (once), around the tests.
-  ((outer -> IO ()) -> IO ()) ->
-  TestDefM (outer ': otherOuters) inner result ->
-  TestDefM otherOuters inner result
-aroundAll func = wrapForest $ \forest -> DefAroundAllNode func forest
 
 -- | Run a custom action before and/or after all spec items in a group without accessing any resources.
 --
@@ -113,6 +103,16 @@ aroundAll_ ::
   TestDefM outers inner result ->
   TestDefM outers inner result
 aroundAll_ func = wrapForest $ \forest -> DefWrapNode func forest
+
+-- | Run a custom action before and/or after all spec items in group, to provide access to a resource 'a'.
+--
+-- See the @FOOTGUN@ note in the docs for 'around_'.
+aroundAll ::
+  -- | The function that provides the outer resource (once), around the tests.
+  ((outer -> IO ()) -> IO ()) ->
+  TestDefM (outer ': otherOuters) inner result ->
+  TestDefM otherOuters inner result
+aroundAll func = wrapForest $ \forest -> DefAroundAllNode func forest
 
 -- | Run a custom action before and/or after all spec items in a group to provide access to a resource 'a' while using a resource 'b'
 --

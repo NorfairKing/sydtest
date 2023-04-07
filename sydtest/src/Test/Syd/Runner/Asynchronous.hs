@@ -227,9 +227,12 @@ runner settings nbThreads failFastVar handleForest = do
                   -- done before and after.
                   -- It's not enough to just not have two tests running at the
                   -- same time, because they also need to be executed in order.
-                  when (eParallelism == Sequential) waitForWorkersDone
-                  enqueueJob jobQueue job
-                  when (eParallelism == Sequential) waitForWorkersDone
+                  case eParallelism of
+                    Sequential -> do
+                      waitForWorkersDone
+                      job 0
+                    Parallel -> do
+                      enqueueJob jobQueue job
           DefPendingNode _ _ -> pure ()
           DefDescribeNode _ sdf -> goForest sdf
           DefSetupNode func sdf -> do

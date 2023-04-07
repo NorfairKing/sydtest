@@ -58,9 +58,9 @@ runSpecForestSynchronously settings testForest =
         pure $ SpecifyNode t <$> r
       DefPendingNode t mr -> pure $ Continue $ PendingNode t mr
       DefDescribeNode t sdf -> fmap (DescribeNode t) <$> goForest sdf
-      DefWrapNode func sdf -> do
-        e <- ask
-        liftIO $ fmap SubForestNode <$> applySimpleWrapper'' func (runReaderT (goForest sdf) e)
+      DefSetupNode func sdf -> do
+        liftIO func
+        fmap SubForestNode <$> goForest sdf
       DefBeforeAllNode func sdf -> do
         fmap SubForestNode
           <$> ( do
@@ -80,6 +80,9 @@ runSpecForestSynchronously settings testForest =
                       (goForest sdf)
                       (e {eExternalResources = HCons b (eExternalResources e)})
                 )
+      DefWrapNode func sdf -> do
+        e <- ask
+        liftIO $ fmap SubForestNode <$> applySimpleWrapper'' func (runReaderT (goForest sdf) e)
       DefAroundAllNode func sdf -> do
         e <- ask
         liftIO $

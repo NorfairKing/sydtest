@@ -99,6 +99,9 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
         DefDescribeNode t sdf -> do
           outputLineR $ outputDescribeLine t
           fmap (DescribeNode t) <$> addLevel (goForest sdf)
+        DefSetupNode func sdf -> do
+          liftIO func
+          fmap SubForestNode <$> goForest sdf
         DefBeforeAllNode func sdf ->
           fmap SubForestNode
             <$> ( do

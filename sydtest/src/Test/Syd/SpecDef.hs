@@ -80,9 +80,9 @@ data SpecDefTree (outers :: [Type]) inner extra where
     Text ->
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
-  DefWrapNode ::
-    -- | The function that wraps running the tests.
-    (IO () -> IO ()) ->
+  DefSetupNode ::
+    -- | The function that runs before the test
+    IO () ->
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
   DefBeforeAllNode ::
@@ -95,6 +95,11 @@ data SpecDefTree (outers :: [Type]) inner extra where
     (oldOuter -> IO newOuter) ->
     SpecDefForest (newOuter ': oldOuter ': otherOuters) inner extra ->
     SpecDefTree (oldOuter ': otherOuters) inner extra
+  DefWrapNode ::
+    -- | The function that wraps running the tests.
+    (IO () -> IO ()) ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
   DefAroundAllNode ::
     -- | The function that provides the outer resource (once), around the tests.
     ((outer -> IO ()) -> IO ()) ->
@@ -147,9 +152,10 @@ instance Functor (SpecDefTree a c) where
           DefDescribeNode t sdf -> DefDescribeNode t $ goF sdf
           DefPendingNode t mr -> DefPendingNode t mr
           DefSpecifyNode t td e -> DefSpecifyNode t td (f e)
-          DefWrapNode func sdf -> DefWrapNode func $ goF sdf
+          DefSetupNode func sdf -> DefSetupNode func $ goF sdf
           DefBeforeAllNode func sdf -> DefBeforeAllNode func $ goF sdf
           DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func $ goF sdf
+          DefWrapNode func sdf -> DefWrapNode func $ goF sdf
           DefAroundAllNode func sdf -> DefAroundAllNode func $ goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
@@ -168,9 +174,10 @@ instance Foldable (SpecDefTree a c) where
           DefDescribeNode _ sdf -> goF sdf
           DefPendingNode _ _ -> mempty
           DefSpecifyNode _ _ e -> f e
-          DefWrapNode _ sdf -> goF sdf
+          DefSetupNode _ sdf -> goF sdf
           DefBeforeAllNode _ sdf -> goF sdf
           DefBeforeAllWithNode _ sdf -> goF sdf
+          DefWrapNode _ sdf -> goF sdf
           DefAroundAllNode _ sdf -> goF sdf
           DefAroundAllWithNode _ sdf -> goF sdf
           DefAfterAllNode _ sdf -> goF sdf
@@ -189,9 +196,10 @@ instance Traversable (SpecDefTree a c) where
           DefDescribeNode t sdf -> DefDescribeNode t <$> goF sdf
           DefPendingNode t mr -> pure $ DefPendingNode t mr
           DefSpecifyNode t td e -> DefSpecifyNode t td <$> f e
-          DefWrapNode func sdf -> DefWrapNode func <$> goF sdf
+          DefSetupNode func sdf -> DefSetupNode func <$> goF sdf
           DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goF sdf
           DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func <$> goF sdf
+          DefWrapNode func sdf -> DefWrapNode func <$> goF sdf
           DefAroundAllNode func sdf -> DefAroundAllNode func <$> goF sdf
           DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goF sdf
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
@@ -226,9 +234,10 @@ filterTestForest fs = fromMaybe [] . goForest DList.empty
         guard $ filterGuard tl
         pure $ DefPendingNode t mr
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest (DList.snoc dl t) sdf
-      DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
+      DefSetupNode func sdf -> DefSetupNode func <$> goForest dl sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest dl sdf
       DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func <$> goForest dl sdf
+      DefWrapNode func sdf -> DefWrapNode func <$> goForest dl sdf
       DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest dl sdf
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest dl sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
@@ -248,9 +257,10 @@ randomiseTestForest = goForest
       DefSpecifyNode t td e -> pure $ DefSpecifyNode t td e
       DefPendingNode t mr -> pure $ DefPendingNode t mr
       DefDescribeNode t sdf -> DefDescribeNode t <$> goForest sdf
-      DefWrapNode func sdf -> DefWrapNode func <$> goForest sdf
+      DefSetupNode func sdf -> DefSetupNode func <$> goForest sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest sdf
       DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func <$> goForest sdf
+      DefWrapNode func sdf -> DefWrapNode func <$> goForest sdf
       DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest sdf
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest sdf
@@ -274,9 +284,10 @@ markSpecForestAsPending mMessage = goForest
       DefSpecifyNode t _ _ -> DefPendingNode t mMessage
       DefPendingNode t mr -> DefPendingNode t mr
       DefDescribeNode t sdf -> DefDescribeNode t $ goForest sdf
-      DefWrapNode func sdf -> DefWrapNode func $ goForest sdf
+      DefSetupNode func sdf -> DefSetupNode func $ goForest sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func $ goForest sdf
       DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func $ goForest sdf
+      DefWrapNode func sdf -> DefWrapNode func $ goForest sdf
       DefAroundAllNode func sdf -> DefAroundAllNode func $ goForest sdf
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goForest sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func $ goForest sdf

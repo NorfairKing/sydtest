@@ -99,9 +99,6 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
         DefDescribeNode t sdf -> do
           outputLineR $ outputDescribeLine t
           fmap (DescribeNode t) <$> addLevel (goForest sdf)
-        DefWrapNode func sdf -> do
-          e <- ask
-          liftIO $ fmap SubForestNode <$> applySimpleWrapper'' func (runReaderT (goForest sdf) e)
         DefBeforeAllNode func sdf ->
           fmap SubForestNode
             <$> ( do
@@ -121,6 +118,9 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
                         (goForest sdf)
                         (e {eExternalResources = HCons b (eExternalResources e)})
                   )
+        DefWrapNode func sdf -> do
+          e <- ask
+          liftIO $ fmap SubForestNode <$> applySimpleWrapper'' func (runReaderT (goForest sdf) e)
         DefAroundAllNode func sdf -> do
           e <- ask
           liftIO $

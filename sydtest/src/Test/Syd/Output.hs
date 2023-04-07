@@ -584,9 +584,10 @@ specForestWidth = goF 0
       DefSpecifyNode t _ _ -> T.length t + level * paddingSize
       DefPendingNode t _ -> T.length t + level * paddingSize
       DefDescribeNode _ sdf -> goF (succ level) sdf
-      DefWrapNode _ sdf -> goF level sdf
+      DefSetupNode _ sdf -> goF level sdf
       DefBeforeAllNode _ sdf -> goF level sdf
       DefBeforeAllWithNode _ sdf -> goF level sdf
+      DefWrapNode _ sdf -> goF level sdf
       DefAroundAllNode _ sdf -> goF level sdf
       DefAroundAllWithNode _ sdf -> goF level sdf
       DefAfterAllNode _ sdf -> goF level sdf

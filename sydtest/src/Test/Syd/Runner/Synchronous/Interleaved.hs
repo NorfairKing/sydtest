@@ -110,6 +110,17 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
                       (\e -> e {eExternalResources = HCons b (eExternalResources e)})
                       (goForest sdf)
                 )
+        DefBeforeAllWithNode func sdf -> do
+          e <- ask
+          let HCons x _ = eExternalResources e
+          liftIO $
+            fmap SubForestNode
+              <$> ( do
+                      b <- liftIO $ func x
+                      runReaderT
+                        (goForest sdf)
+                        (e {eExternalResources = HCons b (eExternalResources e)})
+                  )
         DefAroundAllNode func sdf -> do
           e <- ask
           liftIO $

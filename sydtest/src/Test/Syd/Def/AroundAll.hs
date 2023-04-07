@@ -38,9 +38,7 @@ beforeAllWith ::
   (previousOuter -> IO newOuter) ->
   TestDefM (newOuter ': previousOuter ': otherOuters) inner result ->
   TestDefM (previousOuter ': otherOuters) inner result
-beforeAllWith action = aroundAllWith $ \func b -> do
-  a <- action b
-  func a
+beforeAllWith action = wrapForest $ \forest -> DefBeforeAllWithNode action forest
 
 -- | Run a custom action after all spec items, using the outer resource 'a'.
 afterAll ::

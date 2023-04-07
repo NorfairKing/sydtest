@@ -209,6 +209,7 @@ aroundWith' func (TestDefM rwst) =
               DefSpecifyNode t td e -> DefSpecifyNode t (modifyVal <$> td) e
               DefWrapNode f sdf -> DefWrapNode f $ modifyForest sdf
               DefBeforeAllNode f sdf -> DefBeforeAllNode f $ modifyForest sdf
+              DefBeforeAllWithNode f sdf -> DefBeforeAllWithNode f $ modifyForest sdf
               DefAroundAllNode f sdf -> DefAroundAllNode f $ modifyForest sdf
               DefAroundAllWithNode f sdf -> DefAroundAllWithNode f $ modifyForest sdf
               DefAfterAllNode f sdf -> DefAfterAllNode f $ modifyForest sdf

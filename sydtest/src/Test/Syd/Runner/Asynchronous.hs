@@ -243,6 +243,14 @@ runner settings nbThreads failFastVar handleForest = do
             withReaderT
               (\e -> e {eExternalResources = HCons b (eExternalResources e)})
               (goForest sdf)
+          DefBeforeAllWithNode func sdf -> do
+            e <- ask
+            let HCons x _ = eExternalResources e
+            b <- liftIO $ func x
+            liftIO $
+              runReaderT
+                (goForest sdf)
+                (e {eExternalResources = HCons b (eExternalResources e)})
           DefAroundAllNode func sdf -> do
             e <- ask
             liftIO $
@@ -369,6 +377,7 @@ printer settings failFastVar suiteBegin handleForest = do
               fmap (DescribeNode t) <$> addLevel (goForest sf)
         DefWrapNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefBeforeAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefBeforeAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
@@ -428,6 +437,7 @@ waiter failFastVar handleForest = do
           fmap (DescribeNode t) <$> goForest sf
         DefWrapNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefBeforeAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefBeforeAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAroundAllWithNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest sdf

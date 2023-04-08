@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.15.0.0] - 2023-04-08
+
+* `DefBeforeAllWithNode`: so that `beforeAllWith` can be defined in terms of it and have better parallelism properties.
+* `DefSetupNode`: so that `beforeAll_` can be defined in terms of it and have better parallelism properties.
+
 ## [0.14.0.0] - 2023-04-05
 
 * Profiling mode, for figuring out why your test suite is slow.

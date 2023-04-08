@@ -5,6 +5,7 @@
 module Test.Syd.Discover where
 
 import Control.Monad.IO.Class
+import Data.Char
 import Data.List
 import Data.Maybe
 import Options.Applicative
@@ -16,12 +17,19 @@ sydTestDiscover :: IO ()
 sydTestDiscover = do
   Arguments {..} <- getArguments
   specSourceFile <- resolveFile' argSource
-  -- We asume that the spec source is a top-level module.
-  let testDir = parent specSourceFile
-  specSourceFileRel <- stripProperPrefix testDir specSourceFile
-  otherSpecFiles <- mapMaybe parseSpecModule . sort . filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) <$> sourceFilesInNonHiddenDirsRecursively testDir
-  let output = makeSpecModule argSettings specSourceFileRel otherSpecFiles
+  let testBaseDir = findTestBaseDir specSourceFile
+      testDir = parent specSourceFile
+  specSourceFileRel <- stripProperPrefix testBaseDir specSourceFile
+  otherSpecFilesRelativeToBaseDir <- mapMaybe (stripProperPrefix testBaseDir) <$> sourceFilesInNonHiddenDirsRecursively testDir
+  let otherSpecFiles = mapMaybe parseSpecModule $ sort $ filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) otherSpecFilesRelativeToBaseDir
+      output = makeSpecModule argSettings specSourceFileRel otherSpecFiles
   writeFile argDestination output
+
+-- we're traversing up the file tree until we find a directory that doesn't start with an uppercase letter
+findTestBaseDir :: Path Abs a -> Path Abs Dir
+findTestBaseDir specSourceFile = if isUpper (head (toFilePath $ dirname directParent)) then findTestBaseDir directParent else directParent
+  where
+    directParent = parent specSourceFile
 
 data Arguments = Arguments
   { argSource :: FilePath,
@@ -56,25 +64,25 @@ sourceFilesInNonHiddenDirsRecursively ::
   forall m.
   MonadIO m =>
   Path Abs Dir ->
-  m [Path Rel File]
+  m [Path Abs File]
 sourceFilesInNonHiddenDirsRecursively =
-  walkDirAccumRel (Just goWalk) goOutput
+  walkDirAccum (Just goWalk) goOutput
   where
     goWalk ::
-      Path Rel Dir -> [Path Rel Dir] -> [Path Rel File] -> m (WalkAction Rel)
+      Path Abs Dir -> [Path Abs Dir] -> [Path Abs File] -> m (WalkAction Abs)
     goWalk curdir subdirs _ = do
       pure $ WalkExclude $ filter (isHiddenIn curdir) subdirs
     goOutput ::
-      Path Rel Dir -> [Path Rel Dir] -> [Path Rel File] -> m [Path Rel File]
-    goOutput curdir _ files =
-      pure $ map (curdir </>) $ filter (not . hiddenFile) files
+      Path Abs Dir -> [Path Abs Dir] -> [Path Abs File] -> m [Path Abs File]
+    goOutput _ _ files =
+      pure $ filter (not . hiddenFile) files
 
-hiddenFile :: Path Rel File -> Bool
+hiddenFile :: Path Abs File -> Bool
 hiddenFile = goFile
   where
-    goFile :: Path Rel File -> Bool
+    goFile :: Path Abs File -> Bool
     goFile f = isHiddenIn (parent f) f || goDir (parent f)
-    goDir :: Path Rel Dir -> Bool
+    goDir :: Path Abs Dir -> Bool
     goDir f
       | parent f == f = False
       | otherwise = isHiddenIn (parent f) f || goDir (parent f)

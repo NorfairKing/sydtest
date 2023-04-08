@@ -1,10 +1,12 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.Discover where
 
 import Control.Monad.IO.Class
+import Data.Char
 import Data.List
 import Data.Maybe
 import Options.Applicative
@@ -16,12 +18,22 @@ sydTestDiscover :: IO ()
 sydTestDiscover = do
   Arguments {..} <- getArguments
   specSourceFile <- resolveFile' argSource
-  -- We asume that the spec source is a top-level module.
-  let testDir = parent specSourceFile
-  specSourceFileRel <- stripProperPrefix testDir specSourceFile
-  otherSpecFiles <- mapMaybe parseSpecModule . sort . filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) <$> sourceFilesInNonHiddenDirsRecursively testDir
-  let output = makeSpecModule argSettings specSourceFileRel otherSpecFiles
+  let testBaseDir = findTestBaseDir specSourceFile
+      testDir = parent specSourceFile
+  testDirRelToBaseDirParent <- stripProperPrefix (parent testBaseDir) testDir
+  testDirRelToBaseDir <- if testBaseDir == testDir then pure [reldir|.|] else stripProperPrefix testBaseDir testDir
+  specSourceFileRel <- stripProperPrefix testBaseDir specSourceFile
+  -- traversing the files in the directory below the Spec file, appending the prefix from the test root to the Spec's location
+  otherSpecFilesRelativeToBaseDir <- fmap (\f -> testDirRelToBaseDir </> f) <$> sourceFilesInNonHiddenDirsRecursively testDirRelToBaseDirParent
+  let otherSpecFiles = mapMaybe parseSpecModule $ sort $ filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) otherSpecFilesRelativeToBaseDir
+      output = makeSpecModule argSettings specSourceFileRel otherSpecFiles
   writeFile argDestination output
+
+-- we're traversing up the file tree until we find a directory that doesn't start with an uppercase letter
+findTestBaseDir :: Path Abs a -> Path Abs Dir
+findTestBaseDir specSourceFile = if isUpper (head (toFilePath $ dirname directParent)) then findTestBaseDir directParent else directParent
+  where
+    directParent = parent specSourceFile
 
 data Arguments = Arguments
   { argSource :: FilePath,
@@ -55,7 +67,7 @@ argumentsParser =
 sourceFilesInNonHiddenDirsRecursively ::
   forall m.
   MonadIO m =>
-  Path Abs Dir ->
+  Path Rel Dir ->
   m [Path Rel File]
 sourceFilesInNonHiddenDirsRecursively =
   walkDirAccumRel (Just goWalk) goOutput

@@ -19,8 +19,12 @@ sydTestDiscover = do
   specSourceFile <- resolveFile' argSource
   let testBaseDir = findTestBaseDir specSourceFile
       testDir = parent specSourceFile
+  testBaseDirRel <- stripProperPrefix (parent testBaseDir) testBaseDir
+  testDirRelToBaseDirParent <- stripProperPrefix (parent testBaseDir) testDir
+  testDirRelToBaseDir <- stripProperPrefix testBaseDir testDir
   specSourceFileRel <- stripProperPrefix testBaseDir specSourceFile
-  otherSpecFilesRelativeToBaseDir <- mapMaybe (stripProperPrefix testBaseDir) <$> sourceFilesInNonHiddenDirsRecursively testDir
+  -- traversing the files in the directory below the Spec file, appending the prefix from the test root to the Spec's location
+  otherSpecFilesRelativeToBaseDir <- fmap (\f -> testDirRelToBaseDir </> f) <$> sourceFilesInNonHiddenDirsRecursively testDirRelToBaseDirParent
   let otherSpecFiles = mapMaybe parseSpecModule $ sort $ filter (\fp -> fp /= specSourceFileRel && isHaskellFile fp) otherSpecFilesRelativeToBaseDir
       output = makeSpecModule argSettings specSourceFileRel otherSpecFiles
   writeFile argDestination output
@@ -63,26 +67,26 @@ argumentsParser =
 sourceFilesInNonHiddenDirsRecursively ::
   forall m.
   MonadIO m =>
-  Path Abs Dir ->
-  m [Path Abs File]
+  Path Rel Dir ->
+  m [Path Rel File]
 sourceFilesInNonHiddenDirsRecursively =
-  walkDirAccum (Just goWalk) goOutput
+  walkDirAccumRel (Just goWalk) goOutput
   where
     goWalk ::
-      Path Abs Dir -> [Path Abs Dir] -> [Path Abs File] -> m (WalkAction Abs)
+      Path Rel Dir -> [Path Rel Dir] -> [Path Rel File] -> m (WalkAction Rel)
     goWalk curdir subdirs _ = do
       pure $ WalkExclude $ filter (isHiddenIn curdir) subdirs
     goOutput ::
-      Path Abs Dir -> [Path Abs Dir] -> [Path Abs File] -> m [Path Abs File]
-    goOutput _ _ files =
-      pure $ filter (not . hiddenFile) files
+      Path Rel Dir -> [Path Rel Dir] -> [Path Rel File] -> m [Path Rel File]
+    goOutput curdir _ files =
+      pure $ map (curdir </>) $ filter (not . hiddenFile) files
 
-hiddenFile :: Path Abs File -> Bool
+hiddenFile :: Path Rel File -> Bool
 hiddenFile = goFile
   where
-    goFile :: Path Abs File -> Bool
+    goFile :: Path Rel File -> Bool
     goFile f = isHiddenIn (parent f) f || goDir (parent f)
-    goDir :: Path Abs Dir -> Bool
+    goDir :: Path Rel Dir -> Bool
     goDir f
       | parent f == f = False
       | otherwise = isHiddenIn (parent f) f || goDir (parent f)

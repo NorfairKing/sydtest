@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
@@ -9,6 +10,9 @@
 module Test.Syd.Runner.Synchronous.Interleaved (runSpecForestInterleavedWithOutputSynchronously) where
 
 import Control.Exception
+#if MIN_VERSION_mtl(2,3,0)
+import Control.Monad (when)
+#endif
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import qualified Data.Text as T

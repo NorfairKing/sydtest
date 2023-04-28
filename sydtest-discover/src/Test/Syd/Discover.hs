@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -19,9 +20,8 @@ sydTestDiscover = do
   specSourceFile <- resolveFile' argSource
   let testBaseDir = findTestBaseDir specSourceFile
       testDir = parent specSourceFile
-  testBaseDirRel <- stripProperPrefix (parent testBaseDir) testBaseDir
   testDirRelToBaseDirParent <- stripProperPrefix (parent testBaseDir) testDir
-  testDirRelToBaseDir <- stripProperPrefix testBaseDir testDir
+  testDirRelToBaseDir <- if testBaseDir == testDir then pure [reldir|.|] else stripProperPrefix testBaseDir testDir
   specSourceFileRel <- stripProperPrefix testBaseDir specSourceFile
   -- traversing the files in the directory below the Spec file, appending the prefix from the test root to the Spec's location
   otherSpecFilesRelativeToBaseDir <- fmap (\f -> testDirRelToBaseDir </> f) <$> sourceFilesInNonHiddenDirsRecursively testDirRelToBaseDirParent

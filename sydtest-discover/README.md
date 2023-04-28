@@ -77,3 +77,45 @@ main = sydTest spec
 
 Note that `sydtest-discover` does not require that your top-level `spec` is of type `Spec`.
 That means that you could define a single outer resource for your entire test suite, and only construct it at the very top level in `Main.hs`.
+
+## Combining several usages of sydtest-discover
+
+There might be cases where you have a test suite where one part of the tests has different requirements than the rest, e.g. outer resources.
+To make that work, you can call `sydtest-discover` in multiple places and then combine the discovered test suites in a custom main function.
+Your test suite could be structured like this
+
+``` text
+test
+├── Bar
+│   ├── BarSpec.hs
+│   └── Spec.hs
+├── Foo
+│   ├── FooSpec.hs
+│   └── Spec.hs
+└── Main.hs
+```
+
+where the content of `Spec.hs` in `Foo` and `Bar` looks like that:
+
+``` haskell
+{-# OPTIONS_GHC -F -pgmF sydtest-discover -optF --no-main #-}
+```
+
+In `Main.hs` you then call both discovered test suites:
+
+``` haskell
+module Main where
+
+import qualified Bar.Spec as Bar
+import qualified Foo.Spec as Foo
+import Test.Syd
+
+main :: IO ()
+main = sydTest $ do
+  Foo.spec
+  Bar.spec
+```
+
+For the test suites that need a special setup, you can add it here using `beforeAll` and friends.
+
+The `multi-discover-test` test suite in the `sydtest` module demonstrates this use case.

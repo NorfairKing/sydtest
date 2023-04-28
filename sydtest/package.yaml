@@ -91,3 +91,13 @@ tests:
     - stm
     - sydtest
     - text
+
+  sydtest-multi-discover-test:
+    main: Main.hs
+    source-dirs: multi-discover-test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest

@@ -19,8 +19,8 @@ jobs:
           - .#checks.x86_64-linux.nixpkgs-21_11
           - .#checks.x86_64-linux.nixpkgs-22_05
     steps:
-    - uses: actions/checkout@v2.5.0
-    - uses: cachix/install-nix-action@v18
+    - uses: actions/checkout@v3.5.2
+    - uses: cachix/install-nix-action@v20
       with:
         extra_nix_config: |
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
@@ -30,7 +30,7 @@ jobs:
         then
           sudo rm -rf /opt
         fi
-    - uses: cachix/cachix-action@v11
+    - uses: cachix/cachix-action@v12
       with:
         name: sydtest
         extraPullNames: validity,autodocodec,safe-coloured-text

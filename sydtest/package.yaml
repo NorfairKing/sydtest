@@ -95,6 +95,7 @@ tests:
   sydtest-multi-discover-test:
     main: Main.hs
     source-dirs: multi-discover-test
+    build-tools: sydtest-discover
     ghc-options:
     - -threaded
     - -rtsopts

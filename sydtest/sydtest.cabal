@@ -116,6 +116,8 @@ test-suite sydtest-multi-discover-test
   hs-source-dirs:
       multi-discover-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
     , sydtest

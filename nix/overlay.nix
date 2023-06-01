@@ -36,10 +36,6 @@ with final.haskell.lib;
                     testTarget = (old.testTarget or "") + " --show-details=direct";
                   })
               );
-            sydtestPkgWithComp =
-              exeName: name:
-              generateOptparseApplicativeCompletion exeName (sydtestPkg name);
-            sydtestPkgWithOwnComp = name: sydtestPkgWithComp name name;
 
             enableMongo = haskellPkg: overrideCabal haskellPkg (old: {
               buildDepends = (old.buildDepends or [ ]) ++ [ final.mongodb ];
@@ -93,11 +89,11 @@ with final.haskell.lib;
                 "sydtest" = overrideCabal (sydtestPkg "sydtest") (old: {
                   # We turn off tests on older dependency versions because they generate
                   # different random data. This makes the output tests fail.
-                  doCheck = versionOlder "9.0" final.ghc.version;
+                  doCheck = final.lib.versionAtLeast self.ghc.version "9.2.7";
                 });
                 "sydtest-aeson" = sydtestPkg "sydtest-aeson";
                 "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
-                "sydtest-discover" = sydtestPkgWithOwnComp "sydtest-discover";
+                "sydtest-discover" = sydtestPkg "sydtest-discover";
                 "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
                 "sydtest-hspec" = sydtestPkg "sydtest-hspec";
                 "sydtest-persistent" = sydtestPkg "sydtest-persistent";
@@ -123,11 +119,6 @@ with final.haskell.lib;
                 "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
                   testDepends = (old.testDepends or [ ]) ++ [ final.postgresql ];
                 });
-                "sydtest-mongo" = (enableMongo (sydtestPkg "sydtest-mongo")).overrideAttrs (old: {
-                  passthru = (old.passthru or { }) // {
-                    inherit enableMongo;
-                  };
-                });
                 "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
                   passthru = (old.passthru or { }) // {
                     inherit fontsConfig;
@@ -138,6 +129,14 @@ with final.haskell.lib;
                 "sydtest-webdriver-screenshot" = enableWebdriver (sydtestPkg "sydtest-webdriver-screenshot");
                 "sydtest-webdriver-yesod" = enableWebdriver (sydtestPkg "sydtest-webdriver-yesod");
                 "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
+              } //
+              # https://github.com/mongodb-haskell/mongodb/issues/143
+              optionalAttrs (final.lib.versionOlder final.mongodb.version "6.0") {
+                "sydtest-mongo" = (enableMongo (sydtestPkg "sydtest-mongo")).overrideAttrs (old: {
+                  passthru = (old.passthru or { }) // {
+                    inherit enableMongo;
+                  };
+                });
               };
 
           in
@@ -160,7 +159,6 @@ with final.haskell.lib;
                     })
                   { })
               else super.webdriver;
-
           } // sydtestPackages
       );
   });

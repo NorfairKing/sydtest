@@ -6,6 +6,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+-- Because we don't need Eq (Route site) in newer versions of Yesod.
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
 module Test.Syd.Yesod.E2E where
 

@@ -5,7 +5,7 @@
     extra-trusted-public-keys = "sydtest.cachix.org-1:fyby3c42t+0iTABcLd/R3POxzJhCQ/9gYM7Sh879+9w=";
   };
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-22.11";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-23.05";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     autodocodec.url = "github:NorfairKing/autodocodec";
     autodocodec.flake = false;
@@ -13,6 +13,7 @@
     validity.flake = false;
     safe-coloured-text.url = "github:NorfairKing/safe-coloured-text";
     safe-coloured-text.flake = false;
+    nixpkgs-22_11.url = "github:NixOS/nixpkgs?ref=nixos-22.11";
     nixpkgs-22_05.url = "github:NixOS/nixpkgs?ref=nixos-22.05";
     nixpkgs-21_11.url = "github:NixOS/nixpkgs?ref=nixos-21.11";
   };
@@ -20,6 +21,7 @@
   outputs =
     { self
     , nixpkgs
+    , nixpkgs-22_11
     , nixpkgs-22_05
     , nixpkgs-21_11
     , pre-commit-hooks
@@ -31,6 +33,7 @@
       system = "x86_64-linux";
       pkgsFor = nixpkgs: import nixpkgs {
         inherit system;
+        config.allowUnfree = true;
         overlays = [
           self.overlays.${system}
           (import (validity + "/nix/overlay.nix"))
@@ -50,6 +53,7 @@
             in pkgs'.haskellPackages.sydtestRelease;
           allNixpkgs = {
             inherit
+              nixpkgs-22_11
               nixpkgs-22_05
               nixpkgs-21_11;
           };

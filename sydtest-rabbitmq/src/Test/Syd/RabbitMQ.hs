@@ -100,7 +100,8 @@ rabbitMQServerSetupFunc' td = do
         setWorkingDir (fromAbsDir td) $
           setStdout createPipe $
             setStderr createPipe $
-              setEnv e $ proc "rabbitmq-server" []
+              setEnv e $
+                proc "rabbitmq-server" []
   ph <- typedProcessSetupFunc pc
   liftIO $ Socket.wait "127.0.0.1" portInt
   let pn = fromIntegral portInt -- (hopefully) safe because it came from 'getFreePort'.
@@ -121,8 +122,8 @@ cleanRabbitMQState :: RabbitMQHandle -> IO ()
 cleanRabbitMQState RabbitMQHandle {..} = do
   oldEnv <- liftIO getEnvironment -- We may not want to leak all of this in?
   let e =
-        ("RABBITMQ_NODE_PORT", show (fromIntegral rabbitMQHandlePort :: Int)) :
-        oldEnv
+        ("RABBITMQ_NODE_PORT", show (fromIntegral rabbitMQHandlePort :: Int))
+          : oldEnv
 
   (_ec, _output) <- readProcessInterleaved $ setEnv e $ shell "rabbitmqctl close_all_connections cleanup"
   case _ec of

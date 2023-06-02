@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.7.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -93,13 +93,13 @@ library
     , svg-builder
     , text
     , vector
+  default-language: Haskell2010
   if os(windows)
     build-depends:
         ansi-terminal
   else
     build-depends:
         safe-coloured-text-terminfo
-  default-language: Haskell2010
 
 test-suite sydtest-multi-discover-test
   type: exitcode-stdio-1.0

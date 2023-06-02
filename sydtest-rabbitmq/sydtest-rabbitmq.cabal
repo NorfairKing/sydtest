@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.7.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -63,8 +63,8 @@ test-suite sydtest-rabbitmq-test
       base >=4.7 && <5
     , sydtest
     , sydtest-rabbitmq
+  default-language: Haskell2010
   if flag(sydtest_integration_tests)
     buildable: True
   else
     buildable: False
-  default-language: Haskell2010

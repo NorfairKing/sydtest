@@ -174,8 +174,8 @@ specDeclaration fs =
     if null fs
       then ["spec = Prelude.pure ()"]
       else
-        "spec = do" :
-        map moduleSpecLine fs
+        "spec = do"
+          : map moduleSpecLine fs
 
 moduleSpecLine :: SpecModule -> String
 moduleSpecLine rf = unwords [" ", "describe", "\"" <> specModuleModuleName rf <> "\"", specFunctionName rf]

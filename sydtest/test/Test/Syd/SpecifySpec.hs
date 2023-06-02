@@ -8,7 +8,8 @@ spec = sequential $ do
   describe "boolean" $ do
     it "boolean" True
     before (pure (2 :: Int)) $
-      it "boolean function (inner)" $ \i -> even i
+      it "boolean function (inner)" $
+        \i -> even i
     beforeAll (pure (2 :: Int)) $ do
       itWithOuter "boolean function (one outer)" $ \i -> even i
       itWithBoth "boolean function (both inner and outer)" $ \i () -> even i
@@ -16,7 +17,8 @@ spec = sequential $ do
   describe "IO action" $ do
     it "IO action" True
     before (pure (2 :: Int)) $
-      it "IO action function (inner)" $ \i -> i `shouldBe` 2
+      it "IO action function (inner)" $
+        \i -> i `shouldBe` 2
     beforeAll (pure (1 :: Int)) $ do
       itWithOuter "IO action function (one outer)" $ \i -> i `shouldBe` 1
       itWithBoth "IO action function (both inner and outer)" $ \i () -> i `shouldBe` 1

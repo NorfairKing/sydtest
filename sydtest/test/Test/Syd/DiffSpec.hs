@@ -192,7 +192,8 @@ spec = do
 
     let rebuildFirst :: Vector (PolyDiff (Vector a) (Vector b)) -> Vector a
         rebuildFirst =
-          V.concat . V.toList
+          V.concat
+            . V.toList
             . V.mapMaybe
               ( \case
                   First a -> Just a
@@ -206,7 +207,8 @@ spec = do
 
     let rebuildSecond :: Vector (PolyDiff (Vector a) (Vector b)) -> Vector b
         rebuildSecond =
-          V.concat . V.toList
+          V.concat
+            . V.toList
             . V.mapMaybe
               ( \case
                   First _ -> Nothing

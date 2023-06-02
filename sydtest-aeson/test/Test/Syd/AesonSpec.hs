@@ -15,10 +15,8 @@ spec :: Spec
 spec = do
   describe "pureGoldenJSONFile" $ do
     it "outputs this example the same as before" $
-      pureGoldenJSONFile
-        "test_resources/pure-example.json"
-        $ JSON.object
-          ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
+      pureGoldenJSONFile "test_resources/pure-example.json" $
+        JSON.object ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
 
     it "does not write an empty file if encoding fails" $ do
       let path = "test_resources/pure-example-exception.json"
@@ -37,16 +35,16 @@ spec = do
 
   describe "goldenJSONFile" $
     it "outputs this example the same as before" $
-      goldenJSONFile
-        "test_resources/example.json"
-        $ pure $ JSON.object ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
+      goldenJSONFile "test_resources/example.json" $
+        pure $
+          JSON.object ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
 
   describe "pureGoldenJSONValueFile" $ do
-    it "outputs this example the same as before" $
-      pureGoldenJSONValueFile
+    it "outputs this example the same as before"
+      $ pureGoldenJSONValueFile
         "test_resources/pure-example-value.json"
-        $ JSON.object
-          ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
+      $ JSON.object
+        ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
 
     it "does not write an empty file if encoding fails" $ do
       let path = "test_resources/pure-example-value-exception.json"
@@ -65,6 +63,6 @@ spec = do
 
   describe "goldenJSONValueFile" $
     it "outputs this example the same as before" $
-      goldenJSONValueFile
-        "test_resources/example-value.json"
-        $ pure $ JSON.object ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]
+      goldenJSONValueFile "test_resources/example-value.json" $
+        pure $
+          JSON.object ["hello" .= ("world" :: Text), "a" .= (1 :: Int), "b" .= True]

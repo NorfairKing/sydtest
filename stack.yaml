@@ -34,7 +34,7 @@ extra-deps:
     - safe-coloured-text-terminfo
 
 - github: NorfairKing/autodocodec
-  commit: dde958c53fffe86f0c43dc1c530df3cf73361d6a
+  commit: 5f23727689555789389ae4fbf41f674d43325814
   subdirs:
     - autodocodec
     - autodocodec-schema

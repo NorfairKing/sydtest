@@ -50,9 +50,9 @@ main = do
               erasedTimedInResultForest = fmap (fmap (fmap eraseTimed))
               eraseTiming :: Timed ResultForest -> Timed ResultForest
               eraseTiming = fmap erasedTimedInResultForest . eraseTimed
-          pure $
-            TE.encodeUtf8
+          pure
+            $ TE.encodeUtf8
               . LT.toStrict
               . TLB.toLazyText
               . renderResultReport defaultSettings With24BitColours
-              $ eraseTiming rf
+            $ eraseTiming rf

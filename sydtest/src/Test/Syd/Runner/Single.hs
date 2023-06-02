@@ -65,12 +65,12 @@ runSingleTestWithRetries progressReporter l td maxRetries em = go maxRetries
     go w
       | w <= 1 = (:| []) <$> runFunc
       | otherwise = do
-        result <- runFunc
-        if testStatusMatchesExpectationMode (testRunResultStatus result) em
-          then pure (result :| [])
-          else do
-            rest <- go (pred w)
-            pure (result NE.<| rest)
+          result <- runFunc
+          if testStatusMatchesExpectationMode (testRunResultStatus result) em
+            then pure (result :| [])
+            else do
+              rest <- go (pred w)
+              pure (result NE.<| rest)
       where
         runFunc :: IO TestRunResult
         runFunc = testDefVal td progressReporter (\f -> f l ())

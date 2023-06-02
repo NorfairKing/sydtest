@@ -48,9 +48,8 @@ spec = do
         ]
   describe "goldenBSONDocumentFile" $
     it "outputs this example the same as before" $
-      goldenBSONDocumentFile
-        "test_resources/example.bson"
-        $ pure
+      goldenBSONDocumentFile "test_resources/example.bson" $
+        pure
           [ "hello" =: ("world" :: Text),
             "baz" =: 'a',
             "quux" =: (0.0 :: Double)

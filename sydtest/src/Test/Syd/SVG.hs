@@ -57,32 +57,32 @@ timedResultForestElement trf =
                     ]
                     (toElement (show workerIx)),
             -- Timing labels
-            g_ [] $
-              mconcat $
-                flip
-                  map
-                  [ 0,
-                    nanosPerSecond -- In steps of 1 second
-                    .. totalDuration
-                  ]
-                  $ \t ->
-                    mconcat
-                      [ -- Label
-                        text_
-                          [ X_ <<- fromString (show (timeX maximumTime t)),
-                            Y_ <<- fromString (show (topBarHeight - fontSize))
-                          ]
-                          (toElement (show (t `div` 1_000_000_000) <> " s")),
-                        -- Line
-                        line_
-                          [ X1_ <<- fromString (show (timeX maximumTime t)),
-                            Y1_ <<- fromString (show topBarHeight),
-                            X2_ <<- fromString (show (timeX maximumTime t)),
-                            Y2_ <<- fromString (show (workerY (maxWorker + 1))),
-                            Class_ <<- "time"
-                          ]
-                          ""
-                      ],
+            g_ []
+              $ mconcat
+              $ flip
+                map
+                [ 0,
+                  nanosPerSecond -- In steps of 1 second
+                  .. totalDuration
+                ]
+              $ \t ->
+                mconcat
+                  [ -- Label
+                    text_
+                      [ X_ <<- fromString (show (timeX maximumTime t)),
+                        Y_ <<- fromString (show (topBarHeight - fontSize))
+                      ]
+                      (toElement (show (t `div` 1_000_000_000) <> " s")),
+                    -- Line
+                    line_
+                      [ X1_ <<- fromString (show (timeX maximumTime t)),
+                        Y1_ <<- fromString (show topBarHeight),
+                        X2_ <<- fromString (show (timeX maximumTime t)),
+                        Y2_ <<- fromString (show (workerY (maxWorker + 1))),
+                        Class_ <<- "time"
+                      ]
+                      ""
+                  ],
             g_ [] $
               mconcat $
                 flip map tests $ \(path, TDef timed _) ->

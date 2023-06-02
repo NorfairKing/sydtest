@@ -13,14 +13,16 @@ import Test.Syd
 spec :: Spec
 spec = doNotRandomiseExecutionOrder $ do
   it "takes at least 10 milliseconds (pure)" $
-    unsafePerformIO take10ms `seq` True
+    unsafePerformIO take10ms `seq`
+      True
   it "takes at least 10 milliseconds (IO)" $ do
     threadDelay 10_000
   it "takes at least 10 milliseconds (property) " $
     property $ \() -> do
       threadDelay 100
   it "takes at least 100 milliseconds (pure)" $
-    unsafePerformIO take100ms `seq` True
+    unsafePerformIO take100ms `seq`
+      True
   it "takes at least 100 milliseconds (IO)" $ do
     threadDelay 100_000
   it "takes at least 100 milliseconds (property) " $

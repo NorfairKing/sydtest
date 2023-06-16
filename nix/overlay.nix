@@ -149,7 +149,7 @@ with final.haskell.lib;
                 paths = final.lib.attrValues self.sydtestPackages;
               };
             webdriver =
-              if final.lib.versionAtLeast self.aeson.version "2"
+              if final.lib.versionAtLeast self.aeson.version "2" && final.lib.versionOlder super.webdriver.version "0.10"
               then
                 (final.haskellPackages.callCabal2nix "webdriver"
                   (builtins.fetchGit

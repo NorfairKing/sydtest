@@ -1,4 +1,4 @@
-resolver: lts-20.23
+resolver: lts-20.25
 packages:
 - sydtest
 - sydtest-aeson
@@ -24,66 +24,8 @@ packages:
 
 - sydtest-misbehaved-test-suite
 
-extra-deps:
-- envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842
-
-- github: NorfairKing/safe-coloured-text
-  commit: f173907488eb51407a59c22cf36f422d872378e5
-  subdirs:
-    - safe-coloured-text
-    - safe-coloured-text-terminfo
-
-- github: NorfairKing/autodocodec
-  commit: 5f23727689555789389ae4fbf41f674d43325814
-  subdirs:
-    - autodocodec
-    - autodocodec-schema
-    - autodocodec-yaml
-
-- github: NorfairKing/validity
-  commit: 68c0e18aa350b1382e01e0d98c986b314b0340ce
-  subdirs:
-  - validity
-  - validity-aeson
-  - validity-bytestring
-  - validity-case-insensitive
-  - validity-containers
-  - validity-path
-  - validity-persistent
-  - validity-primitive
-  - validity-scientific
-  - validity-text
-  - validity-time
-  - validity-unordered-containers
-  - validity-uuid
-  - validity-vector
-  - genvalidity
-  - genvalidity-aeson
-  - genvalidity-bytestring
-  - genvalidity-case-insensitive
-  - genvalidity-containers
-  - genvalidity-criterion
-  - genvalidity-path
-  - genvalidity-persistent
-  - genvalidity-property
-  - genvalidity-scientific
-  - genvalidity-sydtest
-  - genvalidity-sydtest-aeson
-  - genvalidity-sydtest-hashable
-  - genvalidity-sydtest-lens
-  - genvalidity-sydtest-persistent
-  - genvalidity-text
-  - genvalidity-time
-  - genvalidity-unordered-containers
-  - genvalidity-uuid
-  - genvalidity-vector
-
-- github: codedownio/hs-webdriver
-  commit: e63f96fc9ebc82b70a7ea9bf3ba0c1dea5c80048
-
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages -O0
-
 
 system-ghc: true
 nix:

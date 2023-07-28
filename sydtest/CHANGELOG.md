@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.15.1.0] - 2023-07-28
+
+* `setupAroundWithAll`: so it's easier to use multiple outer resources to provide an inner resource, without the need of extra type annotation.
+
 ## [0.15.0.0] - 2023-04-08
 
 * `DefBeforeAllWithNode`: so that `beforeAllWith` can be defined in terms of it and have better parallelism properties.

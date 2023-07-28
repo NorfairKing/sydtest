@@ -91,9 +91,8 @@ setupAroundWith' f = aroundWith' $ \takeBoth outer oldInner ->
   let SetupFunc provideNewInner = f outer oldInner
    in provideNewInner $ \newInner -> takeBoth outer newInner
 
--- | Use all outers and inner to provide a new inner
--- This is a more constrained version of 'setupAroundWith'' to more easily allow providing an inner based on multiple outers
--- To get a specific outer you can use 'getElem'
+-- | Use all outer resources and the inner resource to provide a new inner resource
+-- This is a more constrained version of 'setupAroundWith'' to more easily allow providing an inner resource based on multiple outer resources
 setupAroundWithAll :: (HList outers -> oldInner -> SetupFunc newInner) -> TestDefM outers newInner result -> TestDefM outers oldInner result
 setupAroundWithAll = setupAroundWith'
 

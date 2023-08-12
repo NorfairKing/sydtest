@@ -27,6 +27,9 @@ packages:
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages -O0
 
+extra-deps:
+- fast-myers-diff-0.0.0
+
 system-ghc: true
 nix:
   enable: false

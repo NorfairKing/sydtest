@@ -24,9 +24,9 @@ import qualified Data.Text.Lazy.IO as LTIO
 import qualified Data.Vector as V
 import Data.Word
 import GHC.Stack
+import Myers.Diff
 import Safe
 import Test.QuickCheck.IO ()
-import Test.Syd.Diff
 import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecDef

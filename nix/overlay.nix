@@ -148,6 +148,15 @@ with final.haskell.lib;
                 name = "sydtest-release";
                 paths = final.lib.attrValues self.sydtestPackages;
               };
+            # I put this here so that we don't have to have another flake input.
+            # If it turns out that a lot of maintenance happens on
+            # fast-myers-diff, we may need to do that afteral.
+            fast-myers-diff = self.callPackage
+              ((builtins.fetchGit {
+                url = "https://github.com/NorfairKing/fast-myers-diff";
+                rev = "55a17813dc52842c17d1c035b934c8b0ddcb5824";
+              }) + "/fast-myers-diff")
+              { };
             webdriver =
               if final.lib.versionAtLeast self.aeson.version "2" && final.lib.versionOlder super.webdriver.version "0.10"
               then

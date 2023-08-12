@@ -45,7 +45,6 @@ library
       Test.Syd.Def.SetupFunc
       Test.Syd.Def.Specify
       Test.Syd.Def.TestDefM
-      Test.Syd.Diff
       Test.Syd.Expectation
       Test.Syd.HList
       Test.Syd.Modify
@@ -78,6 +77,7 @@ library
     , containers
     , dlist
     , envparse
+    , fast-myers-diff
     , filepath
     , mtl
     , optparse-applicative
@@ -172,6 +172,7 @@ test-suite sydtest-test
       QuickCheck
     , base >=4.7 && <5
     , bytestring
+    , fast-myers-diff
     , path
     , path-io
     , safe-coloured-text

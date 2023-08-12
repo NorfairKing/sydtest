@@ -1,9 +1,10 @@
 { mkDerivation, async, autodocodec, autodocodec-yaml, base
-, bytestring, containers, dlist, envparse, filepath, lib
-, MonadRandom, mtl, optparse-applicative, path, path-io
-, pretty-show, QuickCheck, quickcheck-io, random, random-shuffle
-, safe, safe-coloured-text, safe-coloured-text-terminfo, stm
-, svg-builder, sydtest-discover, text, vector
+, bytestring, containers, dlist, envparse, fast-myers-diff
+, filepath, lib, MonadRandom, mtl, optparse-applicative, path
+, path-io, pretty-show, QuickCheck, quickcheck-io, random
+, random-shuffle, safe, safe-coloured-text
+, safe-coloured-text-terminfo, stm, svg-builder, sydtest-discover
+, text, vector
 }:
 mkDerivation {
   pname = "sydtest";
@@ -11,14 +12,14 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [
     async autodocodec autodocodec-yaml base bytestring containers dlist
-    envparse filepath MonadRandom mtl optparse-applicative path path-io
-    pretty-show QuickCheck quickcheck-io random random-shuffle safe
-    safe-coloured-text safe-coloured-text-terminfo stm svg-builder text
-    vector
+    envparse fast-myers-diff filepath MonadRandom mtl
+    optparse-applicative path path-io pretty-show QuickCheck
+    quickcheck-io random random-shuffle safe safe-coloured-text
+    safe-coloured-text-terminfo stm svg-builder text vector
   ];
   testHaskellDepends = [
-    base bytestring path path-io QuickCheck random safe-coloured-text
-    stm text vector
+    base bytestring fast-myers-diff path path-io QuickCheck random
+    safe-coloured-text stm text vector
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

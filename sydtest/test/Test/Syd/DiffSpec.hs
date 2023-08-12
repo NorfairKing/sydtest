@@ -11,8 +11,8 @@ import Data.String
 import qualified Data.Text as T
 import Data.Vector (Vector)
 import qualified Data.Vector as V
+import Myers.Diff
 import Test.Syd
-import Test.Syd.Diff
 
 -- Just for this test
 instance IsString (Vector Char) where

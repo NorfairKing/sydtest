@@ -164,6 +164,7 @@ This repository contains many companion libraries to write integration tests wit
 | Iterative testing to diagnose flakiness                                                   | ✔️       | ✖️                                                           | ?                                                                |
 | Automatic flakiness diagnostics                                                           | ✔️       | ?                                                           | ?                                                                |
 | Flakiness combinators to practically deal with flakiness                                  | ✔️       | ?                                                           | ?                                                                |
+| Test suite profiling with nice graphs                                                     | ✔️       | ✖️                                                      | ✖️                                                                |
 
 * ✔️: Supported 
 * Lib: Possible with an extra library
@@ -619,6 +620,12 @@ This will make the tests considered "passing" if they pass at least once.
 This way you can unblock your team while you go and investigate flakiness.
 You can use the `--fail-on-flaky` flag to help falsify flakiness.
 
+### Test suite profiling with nice graphs
+
+When run with `--profile`, `sydtest` will output a graph that shows the timing of the tests that were run:
+
+![Test Suite Profiling](assets/profile.png)
+
 ## Acknowledgements
 
 The sydtest and sydtest-yesod APIs are backward compatible with the `hspec` and `yesod-test` APIs respectively.
@@ -626,4 +633,5 @@ This is in accordance with their licenses, which you can find here:
 
 - [`hspec`](https://hackage.haskell.org/package/hspec/src/LICENSE)
 - [`yesod-test`](https://hackage.haskell.org/package/yesod-test/src/LICENSE)
+
 

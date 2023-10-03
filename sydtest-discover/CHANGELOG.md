@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.0.4] - 2023-10-04
+
+### Changelog
+
+* Removed use of partial function `head`.
+
 ## [0.0.0.3] - 2023-04-29
 
 ### Changed

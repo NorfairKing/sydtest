@@ -19,9 +19,7 @@ import Control.Concurrent.MVar
 import Control.Concurrent.QSem
 import Control.Concurrent.STM as STM
 import Control.Exception
-#if MIN_VERSION_mtl(2,3,0)
-import Control.Monad (when)
-#endif
+import Control.Monad
 import Control.Monad.Reader
 import Data.Maybe
 import qualified Data.Text as T

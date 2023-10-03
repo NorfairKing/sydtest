@@ -9,6 +9,7 @@
 module Test.Syd.Runner.Synchronous.Interleaved (runSpecForestInterleavedWithOutputSynchronously) where
 
 import Control.Exception
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import qualified Data.Text as T

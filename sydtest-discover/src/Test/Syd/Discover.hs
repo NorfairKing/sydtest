@@ -31,7 +31,13 @@ sydTestDiscover = do
 
 -- we're traversing up the file tree until we find a directory that doesn't start with an uppercase letter
 findTestBaseDir :: Path Abs a -> Path Abs Dir
-findTestBaseDir specSourceFile = if isUpper (head (toFilePath $ dirname directParent)) then findTestBaseDir directParent else directParent
+findTestBaseDir specSourceFile =
+  case listToMaybe (toFilePath $ dirname directParent) of
+    Nothing -> directParent
+    Just c ->
+      if isUpper c
+        then findTestBaseDir directParent
+        else directParent
   where
     directParent = parent specSourceFile
 

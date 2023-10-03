@@ -13,12 +13,12 @@ import Control.Applicative
 import Control.Monad
 import Data.Functor ((<&>))
 import Data.Maybe
+import Data.String
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Env
 import GHC.Generics (Generic)
 import Options.Applicative as OptParse
-import qualified Options.Applicative.Help as OptParse (string)
 import Path
 import Path.IO
 import System.Exit
@@ -263,30 +263,46 @@ instance HasCodec Configuration where
   codec =
     object "Configuration" $
       Configuration
-        <$> optionalField "seed" "Seed for random generation of test cases" .= configSeed
+        <$> optionalField "seed" "Seed for random generation of test cases"
+          .= configSeed
         <*> parseAlternative
           (optionalField "randomise-execution-order" "Randomise the execution order of the tests in the test suite")
           (optionalField "randomize-execution-order" "American spelling")
           .= configRandomiseExecutionOrder
-        <*> optionalField "parallelism" "How parallel to execute the tests" .= configThreads
-        <*> optionalField "max-size" "Maximum size parameter to pass to generators" .= configMaxSize
-        <*> optionalField "max-success" "Number of quickcheck examples to run" .= configMaxSuccess
-        <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up" .= configMaxDiscard
-        <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input" .= configMaxShrinks
-        <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet" .= configGoldenStart
-        <*> optionalField "golden-reset" "Whether to overwrite golden tests instead of having them fail" .= configGoldenReset
+        <*> optionalField "parallelism" "How parallel to execute the tests"
+          .= configThreads
+        <*> optionalField "max-size" "Maximum size parameter to pass to generators"
+          .= configMaxSize
+        <*> optionalField "max-success" "Number of quickcheck examples to run"
+          .= configMaxSuccess
+        <*> optionalField "max-discard" "Maximum number of discarded tests per successful test before giving up"
+          .= configMaxDiscard
+        <*> optionalField "max-shrinks" "Maximum number of shrinks of a failing test input"
+          .= configMaxShrinks
+        <*> optionalField "golden-start" "Whether to write golden tests if they do not exist yet"
+          .= configGoldenStart
+        <*> optionalField "golden-reset" "Whether to overwrite golden tests instead of having them fail"
+          .= configGoldenReset
         <*> parseAlternative
           (optionalField "colour" "Whether to use coloured output")
           (optionalField "color" "American spelling")
           .= configColour
-        <*> optionalField "filter" "Filter to select which parts of the test tree to run" .= configFilter
-        <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure" .= configFailFast
-        <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness" .= configIterations
-        <*> optionalField "retries" "The number of retries to use for flakiness diagnostics. 0 means 'no flakiness diagnostics'" .= configRetries
-        <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected in tests marked as potentially flaky" .= configFailOnFlaky
-        <*> optionalField "progress" "How to report progres" .= configReportProgress
-        <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true" .= configDebug
-        <*> optionalField "profile" "Turn on profiling mode" .= configProfile
+        <*> optionalField "filter" "Filter to select which parts of the test tree to run"
+          .= configFilter
+        <*> optionalField "fail-fast" "Whether to stop executing upon the first test failure"
+          .= configFailFast
+        <*> optionalField "iterations" "How many iterations to use to look diagnose flakiness"
+          .= configIterations
+        <*> optionalField "retries" "The number of retries to use for flakiness diagnostics. 0 means 'no flakiness diagnostics'"
+          .= configRetries
+        <*> optionalField "fail-on-flaky" "Whether to fail when any flakiness is detected in tests marked as potentially flaky"
+          .= configFailOnFlaky
+        <*> optionalField "progress" "How to report progres"
+          .= configReportProgress
+        <*> optionalField "debug" "Turn on debug-mode. This implies randomise-execution-order: false, parallelism: 1 and fail-fast: true"
+          .= configDebug
+        <*> optionalField "profile" "Turn on profiling mode"
+          .= configProfile
 
 instance HasCodec Threads where
   codec = dimapCodec f g codec
@@ -447,7 +463,7 @@ flagsParser :: OptParse.ParserInfo Flags
 flagsParser =
   OptParse.info
     (OptParse.helper <*> parseFlags)
-    (OptParse.fullDesc <> OptParse.footerDoc (Just $ OptParse.string footerStr))
+    (OptParse.fullDesc <> OptParse.footerDoc (Just $ fromString footerStr))
   where
     -- Show the variables from the environment that we parse and the config file format
     footerStr =

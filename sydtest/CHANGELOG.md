@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.15.1.1] - 2023-10-04
+
+* Compatibility with `optparse-applicative > 0.18`.
+* Compatibility with `GHC >= 9.7`.
+* Refactored out `fast-myers-diff` into its own package.
+
 ## [0.15.1.0] - 2023-07-28
 
 * `setupAroundWithAll`: so it's easier to use multiple outer resources to provide an inner resource, without the need of extra type annotation.

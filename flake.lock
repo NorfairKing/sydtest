@@ -425,16 +425,15 @@
     "validity": {
       "flake": false,
       "locked": {
-        "lastModified": 1696419768,
-        "narHash": "sha256-JZXiw6no6X2fLPG26bvTVDjVuGadB229KVhx/VVit9c=",
+        "lastModified": 1696422000,
+        "narHash": "sha256-v5MqXH1oV+ENlTfLvFqRv2pPpNHnylRdXccB+6WznJI=",
         "owner": "NorfairKing",
         "repo": "validity",
-        "rev": "a14ddd936c3fc6ab0a4bda3da8abf2fa94b9c11d",
+        "rev": "06a7b0d2c4a9e30842656da02a880d3cfe4a1cf6",
         "type": "github"
       },
       "original": {
         "owner": "NorfairKing",
-        "ref": "forward-compatibility",
         "repo": "validity",
         "type": "github"
       }

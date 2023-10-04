@@ -10,7 +10,7 @@
     horizon-core.url = "git+https://gitlab.horizon-haskell.net/package-sets/horizon-core";
     autodocodec.url = "github:NorfairKing/autodocodec";
     autodocodec.flake = false;
-    validity.url = "github:NorfairKing/validity?ref=forward-compatibility";
+    validity.url = "github:NorfairKing/validity";
     validity.flake = false;
     safe-coloured-text.url = "github:NorfairKing/safe-coloured-text";
     safe-coloured-text.flake = false;

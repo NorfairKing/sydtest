@@ -48,7 +48,6 @@
         config.allowUnfree = true;
         inherit overlays;
       };
-
       horizonPkgs = import nixpkgs {
         inherit system;
         overlays = [

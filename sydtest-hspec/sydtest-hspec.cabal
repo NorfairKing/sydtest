@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-hspec
-version:        0.4.0.0
+version:        0.4.0.1
 synopsis:       An Hspec companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme

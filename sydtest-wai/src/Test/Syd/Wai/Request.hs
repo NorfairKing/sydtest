@@ -3,6 +3,7 @@
 
 module Test.Syd.Wai.Request where
 
+import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.State as State
 import Data.ByteString (ByteString)

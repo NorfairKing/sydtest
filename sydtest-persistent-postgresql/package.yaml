@@ -1,5 +1,5 @@
 name: sydtest-persistent-postgresql
-version: 0.2.0.2
+version: 0.2.0.3
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md

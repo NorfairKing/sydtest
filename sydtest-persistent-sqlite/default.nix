@@ -3,7 +3,7 @@
 }:
 mkDerivation {
   pname = "sydtest-persistent-sqlite";
-  version = "0.2.0.2";
+  version = "0.2.0.3";
   src = ./.;
   libraryHaskellDepends = [
     base monad-logger mtl persistent persistent-sqlite sydtest

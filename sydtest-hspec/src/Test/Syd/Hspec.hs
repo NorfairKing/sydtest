@@ -26,27 +26,36 @@ import Test.Syd as Syd
 -- For this reason, and because hspec doesn't tell you wether a test is pending
 -- until after you run it, pending tests are imported as passing tests.
 fromHspec :: Hspec.Spec -> Syd.Spec
-fromHspec (Hspec.SpecM specWriter) = do
-  (result, trees) <- liftIO $ runWriterT specWriter
+fromHspec spec = do
+  trees <- liftIO $ runSpecM_ spec
   -- We have to use 'doNotRandomiseExecutionOrder' and 'sequential' because otherwise
   -- passing hspec tests would stop working when imported into sydtest
   doNotRandomiseExecutionOrder $ sequential $ mapM_ importSpecTree trees
-  pure result
+
+runSpecM_ :: Hspec.SpecWith () -> IO [Hspec.SpecTree ()]
+#if MIN_VERSION_hspec_core(2,11,0)
+runSpecM_ = fmap snd . Hspec.runSpecM
+#else
+runSpecM_ = Hspec.runSpecM
+#endif
 
 -- Hspec.NodeWithCleanup's semantics are so weird that we can only do
 -- this translation if inner equals ().
 importSpecTree :: Hspec.SpecTree () -> Syd.Spec
 importSpecTree = go
   where
+    go :: Hspec.SpecTree () -> Syd.Spec
     go = \case
       Hspec.Leaf item -> importItem item
       Hspec.Node d ts -> describe d $ mapM_ go ts
-
+#if MIN_VERSION_hspec_core(2,11,0)
+      Hspec.NodeWithCleanup _ cleanup ts -> afterAll_ cleanup (mapM_ go ts)
+#else
 #if MIN_VERSION_hspec_core(2,8,0)
       Hspec.NodeWithCleanup _ cleanup ts -> afterAll_ (cleanup ()) (mapM_ go ts)
-
 #else
       Hspec.NodeWithCleanup cleanup ts ->   afterAll_ (cleanup ()) (mapM_ go ts)
+#endif
 #endif
 
 importItem :: forall inner. Hspec.Item inner -> Syd.TestDefM '[] inner ()
@@ -131,12 +140,7 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
               niceLocation Hspec.Location {..} = intercalate ":" [locationFile, show locationLine, show locationColumn]
               withLocationContext :: SomeException -> SomeException
               withLocationContext = withExtraContext $ niceLocation <$> mloc
-              exception :: SomeException
-              exception = case fr of
-                Hspec.NoReason -> SomeException $ ExpectationFailed "Hspec had no more information about this failure."
-                Hspec.Reason s -> SomeException $ ExpectationFailed s
-                Hspec.ExpectedButGot mExtraContext expected actual -> withExtraContext mExtraContext $ SomeException $ NotEqualButShouldHaveBeenEqual actual expected
-                Hspec.Error mExtraContext e -> withExtraContext mExtraContext e
+              exception = failureReasonToException withExtraContext fr
            in ( TestFailed,
                 Just $ SomeException $ addContextToException (withLocationContext exception) (Hspec.resultInfo result)
               )
@@ -150,3 +154,13 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
   let testRunResultTables = Nothing
 
   pure TestRunResult {..}
+
+failureReasonToException :: (Maybe String -> SomeException -> SomeException) -> Hspec.FailureReason -> SomeException
+failureReasonToException withExtraContext = \case
+  Hspec.NoReason -> SomeException $ ExpectationFailed "Hspec had no more information about this failure."
+  Hspec.Reason s -> SomeException $ ExpectationFailed s
+  Hspec.ExpectedButGot mExtraContext expected actual -> withExtraContext mExtraContext $ SomeException $ NotEqualButShouldHaveBeenEqual actual expected
+  Hspec.Error mExtraContext e -> withExtraContext mExtraContext e
+#if MIN_VERSION_hspec_core(2,11,0)
+  Hspec.ColorizedReason s -> SomeException $ ExpectationFailed s
+#endif

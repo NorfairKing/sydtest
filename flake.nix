@@ -6,8 +6,11 @@
   };
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-23.05";
+    nixpkgs-22_11.url = "github:NixOS/nixpkgs?ref=nixos-22.11";
+    nixpkgs-22_05.url = "github:NixOS/nixpkgs?ref=nixos-22.05";
+    nixpkgs-21_11.url = "github:NixOS/nixpkgs?ref=nixos-21.11";
+    horizon-advance.url = "git+https://gitlab.horizon-haskell.net/package-sets/horizon-advance";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
-    horizon-core.url = "git+https://gitlab.horizon-haskell.net/package-sets/horizon-core";
     autodocodec.url = "github:NorfairKing/autodocodec";
     autodocodec.flake = false;
     validity.url = "github:NorfairKing/validity";
@@ -16,9 +19,6 @@
     safe-coloured-text.flake = false;
     fast-myers-diff.url = "github:NorfairKing/fast-myers-diff";
     fast-myers-diff.flake = false;
-    nixpkgs-22_11.url = "github:NixOS/nixpkgs?ref=nixos-22.11";
-    nixpkgs-22_05.url = "github:NixOS/nixpkgs?ref=nixos-22.05";
-    nixpkgs-21_11.url = "github:NixOS/nixpkgs?ref=nixos-21.11";
   };
 
   outputs =
@@ -27,8 +27,8 @@
     , nixpkgs-22_11
     , nixpkgs-22_05
     , nixpkgs-21_11
+    , horizon-advance
     , pre-commit-hooks
-    , horizon-core
     , autodocodec
     , validity
     , safe-coloured-text
@@ -36,40 +36,26 @@
     }:
     let
       system = "x86_64-linux";
-      overlays = [
-        self.overlays.${system}
-        (import (validity + "/nix/overlay.nix"))
-        (import (autodocodec + "/nix/overlay.nix"))
-        (import (safe-coloured-text + "/nix/overlay.nix"))
-        (import (fast-myers-diff + "/nix/overlay.nix"))
+      nixpkgsFor = nixpkgs: import nixpkgs { inherit system; config.allowUnfree = true; };
+      pkgs = nixpkgsFor nixpkgs;
+      allOverrides = pkgs.lib.composeManyExtensions [
+        (pkgs.callPackage (fast-myers-diff + "/nix/overrides.nix") { })
+        (pkgs.callPackage (autodocodec + "/nix/overrides.nix") { })
+        (pkgs.callPackage (safe-coloured-text + "/nix/overrides.nix") { })
+        (pkgs.callPackage (validity + "/nix/overrides.nix") { })
+        self.overrides.${system}
       ];
-      pkgsFor = nixpkgs: import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        inherit overlays;
-      };
-      horizonPkgs = import nixpkgs {
-        inherit system;
-        overlays = [
-          (final: prev: {
-            haskellPackages = prev.haskellPackages.override (old: {
-              overrides = final.lib.composeExtensions (old.overrides or (_: _: { })) (self: super:
-                horizon-core.legacyPackages.${system} // super
-              );
-            });
-          })
-        ] ++ overlays;
-      };
-      pkgs = pkgsFor nixpkgs;
+      horizonPkgs = horizon-advance.legacyPackages.${system}.extend allOverrides;
+      haskellPackagesFor = nixpkgs: (nixpkgsFor nixpkgs).haskellPackages.extend allOverrides;
+      haskellPackages = haskellPackagesFor nixpkgs;
     in
     {
+      overrides.${system} = pkgs.callPackage ./nix/overrides.nix { };
       overlays.${system} = import ./nix/overlay.nix;
-      packages.${system} = pkgs.haskellPackages.sydtestPackages;
+      packages.${system} = haskellPackages.sydtestPackages;
       checks.${system} =
         let
-          backwardCompatibilityCheckFor = nixpkgs:
-            let pkgs' = pkgsFor nixpkgs;
-            in pkgs'.haskellPackages.sydtestRelease;
+          backwardCompatibilityCheckFor = nixpkgs: (haskellPackagesFor nixpkgs).sydtestRelease;
           allNixpkgs = {
             inherit
               nixpkgs-22_11
@@ -79,8 +65,8 @@
           backwardCompatibilityChecks = pkgs.lib.mapAttrs (_: nixpkgs: backwardCompatibilityCheckFor nixpkgs) allNixpkgs;
         in
         backwardCompatibilityChecks // {
-          forwardCompatibility = horizonPkgs.haskellPackages.sydtestRelease;
-          release = pkgs.haskellPackages.sydtestRelease;
+          forwardCompatibility = horizonPkgs.sydtestRelease;
+          release = haskellPackages.sydtestRelease;
           shell = self.devShells.${system}.default;
           pre-commit = pre-commit-hooks.lib.${system}.run {
             src = ./.;
@@ -94,12 +80,12 @@
             };
           };
         };
-      devShells.${system}.default = pkgs.haskellPackages.shellFor {
+      devShells.${system}.default = haskellPackages.shellFor {
         name = "sydtest-shell";
         packages = p: builtins.attrValues p.sydtestPackages;
         withHoogle = true;
         doBenchmark = true;
-        buildInputs = (with pkgs; pkgs.haskellPackages.sydtest-webdriver.webdriverDeps ++ [
+        buildInputs = (with pkgs; haskellPackages.sydtest-webdriver.webdriverDeps ++ [
           cabal-install
           mongodb
           niv
@@ -117,7 +103,7 @@
           ]);
         shellHook = ''
           ${self.checks.${system}.pre-commit.shellHook}
-          ${pkgs.haskellPackages.sydtest-webdriver.setupFontsConfigScript}
+          ${haskellPackages.sydtest-webdriver.setupFontsConfigScript}
         '';
       };
     };

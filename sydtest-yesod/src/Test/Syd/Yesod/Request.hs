@@ -323,7 +323,11 @@ addToken_ scope = do
   matches <- liftClient $ htmlQuery $ scope <> " input[name=_token][type=hidden][value]"
   case matches of
     [] -> liftIO $ expectationFailure "No CSRF token found in the current page"
-    [element] -> addPostParam "_token" $ head $ C.attribute "value" $ YesodTest.parseHTML element
+    [element] -> do
+      t <- case listToMaybe $ C.attribute "value" $ YesodTest.parseHTML element of
+        Nothing -> liftIO $ expectationFailure "Expected a value attribute"
+        Just t -> pure t
+      addPostParam "_token" t
     _ -> liftIO $ expectationFailure "More than one CSRF token found in the page"
 
 -- | Look up the CSRF token from the only form data and add it to the request header

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0.1] - 2023-10-09
+
+### Added
+
+* Compatibility with `hspec-core >= 2.11`
+
 ## [0.4.0.0] - 2022-06-05
 
 ### Added

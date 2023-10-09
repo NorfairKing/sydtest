@@ -13,6 +13,7 @@ module Test.Syd.Persistent
   )
 where
 
+import Control.Monad
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import Data.List

@@ -13,6 +13,7 @@
 module Test.Syd.Webdriver.Screenshot where
 
 import Codec.Picture as Picture
+import Control.Monad
 import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB

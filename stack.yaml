@@ -1,4 +1,4 @@
-resolver: lts-20.25
+resolver: lts-21.22
 packages:
 - sydtest
 - sydtest-aeson
@@ -29,6 +29,34 @@ ghc-options:
 
 extra-deps:
 - fast-myers-diff-0.0.0
+
+- github: NorfairKing/validity
+  commit: 57c4897ccfeb3de60489e0328113798f059ef140
+  subdirs:
+    - validity
+    - validity-aeson
+    - validity-containers
+    - validity-text
+    - genvalidity
+    - genvalidity-aeson
+    - genvalidity-containers
+    - genvalidity-scientific
+    - genvalidity-sydtest
+    - genvalidity-sydtest-aeson
+    - genvalidity-text
+
+- github: NorfairKing/autodocodec
+  commit: 958a1c51fbf2f166974a60e2d0a5d266483baff5
+  subdirs:
+    - autodocodec
+    - autodocodec-schema
+    - autodocodec-yaml
+
+- github: NorfairKing/safe-coloured-text
+  commit: 5efd54e49de780700cd8af2039dff1579c75483c
+  subdirs:
+    - safe-coloured-text
+    - safe-coloured-text-terminfo
 
 system-ghc: true
 nix:

@@ -33,7 +33,7 @@ fromHspec spec = do
   doNotRandomiseExecutionOrder $ sequential $ mapM_ importSpecTree trees
 
 runSpecM_ :: Hspec.SpecWith () -> IO [Hspec.SpecTree ()]
-#if MIN_VERSION_hspec_core(2,11,0)
+#if MIN_VERSION_hspec_core(2,10,1)
 runSpecM_ = fmap snd . Hspec.runSpecM
 #else
 runSpecM_ = Hspec.runSpecM
@@ -48,7 +48,7 @@ importSpecTree = go
     go = \case
       Hspec.Leaf item -> importItem item
       Hspec.Node d ts -> describe d $ mapM_ go ts
-#if MIN_VERSION_hspec_core(2,11,0)
+#if MIN_VERSION_hspec_core(2,10,1)
       Hspec.NodeWithCleanup _ cleanup ts -> afterAll_ cleanup (mapM_ go ts)
 #else
 #if MIN_VERSION_hspec_core(2,8,0)

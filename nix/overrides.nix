@@ -98,7 +98,7 @@ let
         # We turn off tests on other versions because they generate different
         # random data and/or add different data to the callstack.
         # This makes the output tests fail.
-        doCheck = self.ghc.version == "9.2.8";
+        doCheck = self.ghc.version == "9.4.8";
       });
       "sydtest-aeson" = sydtestPkg "sydtest-aeson";
       "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";

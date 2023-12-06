@@ -109,5 +109,9 @@
           ${haskellPackages.sydtest-webdriver.setupFontsConfigScript}
         '';
       };
+      nix-ci.cachix = {
+        name = "sydtest";
+        public-key = "sydtest.cachix.org-1:fyby3c42t+0iTABcLd/R3POxzJhCQ/9gYM7Sh879+9w=";
+      };
     };
 }

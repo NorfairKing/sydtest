@@ -348,7 +348,6 @@
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         error, called at libraries/base/GHC/Err.hs:74:14 in base:GHC.Err
          undefined, called at output-test/Spec.hs:38:31 in main:Spec
   
   [36m  output-test/Spec.hs:39[m
@@ -356,7 +355,6 @@
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         error, called at libraries/base/GHC/Err.hs:74:14 in base:GHC.Err
          undefined, called at output-test/Spec.hs:39:28 in main:Spec
   
   [36m  output-test/Spec.hs:40[m
@@ -773,7 +771,6 @@
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         error, called at libraries/base/GHC/Err.hs:74:14 in base:GHC.Err
          undefined, called at output-test/Spec.hs:204:26 in main:Spec
        context
   
@@ -882,7 +879,6 @@
        Generated: [33m0[m
        Prelude.undefined
        CallStack (from HasCallStack):
-         error, called at libraries/base/GHC/Err.hs:74:14 in base:GHC.Err
          undefined, called at output-test/Spec.hs:338:80 in main:Spec
   
   [36m  output-test/Spec.hs:339[m
@@ -892,12 +888,10 @@
        Generated: [33mException thrown while showing test case:
   Prelude.undefined
   CallStack (from HasCallStack):
-    error, called at libraries/base/GHC/Err.hs:74:14 in base:GHC.Err
     undefined, called at output-test/Spec.hs:339:74 in main:Spec
 [m
        Prelude.undefined
        CallStack (from HasCallStack):
-         error, called at libraries/base/GHC/Err.hs:74:14 in base:GHC.Err
          undefined, called at output-test/Spec.hs:339:74 in main:Spec
   
   [36m  output-test/Spec.hs:342[m
@@ -909,7 +903,6 @@
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         error, called at libraries/base/GHC/Err.hs:74:14 in base:GHC.Err
          undefined, called at output-test/Spec.hs:345:29 in main:Spec
   
   [36m  output-test/Spec.hs:348[m

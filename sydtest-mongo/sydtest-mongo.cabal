@@ -71,6 +71,7 @@ test-suite sydtest-mongo-test
     , sydtest
     , sydtest-mongo
     , text
+  buildable: False
   default-language: Haskell2010
   if flag(sydtest_integration_tests)
     buildable: True

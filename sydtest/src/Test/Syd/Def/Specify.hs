@@ -134,7 +134,7 @@ xdescribe s = describe s . censor (markSpecForestAsPending Nothing)
 -- This test sets up a temporary directory as an inner resource, and makes it available to each test in the group below.
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
--- > in around setUpTempDir describe "readFile and writeFile" $
+-- > in around setUpTempDir $ describe "readFile and writeFile" $
 -- >     it "reads back what it wrote for this example" $ \tempDir -> do
 -- >         let cts = "hello world"
 -- >         let fp = tempDir </> "test.txt"
@@ -155,7 +155,7 @@ xdescribe s = describe s . censor (markSpecForestAsPending Nothing)
 -- ===== IO property test
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
--- > in around setUpTempDir describe "readFile and writeFile" $
+-- > in around setUpTempDir $ describe "readFile and writeFile" $
 -- >     it "reads back what it wrote for this example" $ \tempDir ->
 -- >         property $ \cts -> do
 -- >             let fp = tempDir </> "test.txt"

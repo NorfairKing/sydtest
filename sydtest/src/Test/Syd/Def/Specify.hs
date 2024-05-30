@@ -492,7 +492,7 @@ xspecifyWithAll = xitWithAll
 -- | Convenience function for backwards compatibility with @hspec@
 --
 -- > prop s p = it s $ property p
-prop :: Testable prop => String -> prop -> Spec
+prop :: (Testable prop) => String -> prop -> Spec
 prop s p = withFrozenCallStack $ it s $ property p
 
 -- | Declare a test that has not been written yet.

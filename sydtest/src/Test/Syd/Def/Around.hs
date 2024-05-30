@@ -4,7 +4,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE IncoherentInstances #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -60,7 +59,7 @@ beforeWith action = beforeWith' (\(_ :: HList outers) -> action)
 -- Note that this function turns off shrinking.
 -- See https://github.com/nick8325/quickcheck/issues/331
 beforeWith' ::
-  HContains outers outer =>
+  (HContains outers outer) =>
   (outer -> oldInner -> IO newInner) ->
   TestDefM outers newInner result ->
   TestDefM outers oldInner result
@@ -169,7 +168,7 @@ aroundWith func =
 -- See https://github.com/nick8325/quickcheck/issues/331
 aroundWith' ::
   forall newInner oldInner outer result (outers :: [Type]).
-  HContains outers outer =>
+  (HContains outers outer) =>
   -- | The function that provides the new inner resource using the old resource.
   -- It can also use and modify the outer resource
   ((outer -> newInner -> IO ()) -> (outer -> oldInner -> IO ())) ->
@@ -185,7 +184,7 @@ aroundWith' func (TestDefM rwst) =
         -- d: oldInner
         let modifyVal ::
               forall x.
-              HContains x outer =>
+              (HContains x outer) =>
               (ProgressReporter -> ((HList x -> newInner -> IO ()) -> IO ()) -> IO TestRunResult) ->
               ProgressReporter ->
               ((HList x -> oldInner -> IO ()) -> IO ()) ->
@@ -202,7 +201,7 @@ aroundWith' func (TestDefM rwst) =
 
             -- For this function to work recursively, the first parameter of the input and the output types must be the same
             modifyTree ::
-              forall x extra. HContains x outer => SpecDefTree x newInner extra -> SpecDefTree x oldInner extra
+              forall x extra. (HContains x outer) => SpecDefTree x newInner extra -> SpecDefTree x oldInner extra
             modifyTree = \case
               DefDescribeNode t sdf -> DefDescribeNode t $ modifyForest sdf
               DefPendingNode t mr -> DefPendingNode t mr
@@ -221,7 +220,7 @@ aroundWith' func (TestDefM rwst) =
               DefExpectationNode f sdf -> DefExpectationNode f $ modifyForest sdf
             modifyForest ::
               forall x extra.
-              HContains x outer =>
+              (HContains x outer) =>
               SpecDefForest x newInner extra ->
               SpecDefForest x oldInner extra
             modifyForest = map modifyTree

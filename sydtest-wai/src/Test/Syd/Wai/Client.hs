@@ -104,7 +104,7 @@ withLastRequestContext wfunc@(WaiClientM func) = do
         pure r
 
 -- | An assertion context, for 'Context', that shows the last request and response
-lastRequestResponseContext :: Show respBody => HTTP.Request -> HTTP.Response respBody -> String
+lastRequestResponseContext :: (Show respBody) => HTTP.Request -> HTTP.Response respBody -> String
 lastRequestResponseContext req resp =
   unlines
     [ "last request:",

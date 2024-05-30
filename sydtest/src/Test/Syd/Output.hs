@@ -208,11 +208,11 @@ timeChunkFor executionTime =
       executionTimeText = T.pack (printf "%10.2f ms" t)
       withTimingColour =
         if
-            | t < 10 -> fore green
-            | t < 100 -> fore yellow
-            | t < 1_000 -> fore orange
-            | t < 10_000 -> fore red
-            | otherwise -> fore darkRed
+          | t < 10 -> fore green
+          | t < 100 -> fore yellow
+          | t < 1_000 -> fore orange
+          | t < 10_000 -> fore red
+          | otherwise -> fore darkRed
    in withTimingColour $ chunk executionTimeText
 
 retriesChunks :: TestRunReport -> [[Chunk]]

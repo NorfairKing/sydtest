@@ -1,7 +1,6 @@
 { lib
 , haskell
 , libredirect
-, rabbitmq-server
 , redis
 , postgresql
 , mongodb
@@ -112,16 +111,6 @@ let
       "sydtest-typed-process" = sydtestPkg "sydtest-typed-process";
       "sydtest-wai" = sydtestPkg "sydtest-wai";
       "sydtest-yesod" = sydtestPkg "sydtest-yesod";
-      "sydtest-amqp" = overrideCabal (sydtestPkg "sydtest-amqp") (old: {
-        testDepends = (old.testDepends or [ ]) ++ [ rabbitmq-server ];
-        # Turn off testing because it hangs for unknown reasons?
-        doCheck = false;
-      });
-      "sydtest-rabbitmq" = overrideCabal (sydtestPkg "sydtest-rabbitmq") (old: {
-        testDepends = (old.testDepends or [ ]) ++ [ rabbitmq-server ];
-        # Turn off testing because it hangs for unknown reasons?
-        doCheck = false;
-      });
       "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ redis ];
       });

@@ -24,5 +24,5 @@ pureGoldenYamlSchemaFileVia :: FilePath -> ValueCodec input output -> GoldenTest
 pureGoldenYamlSchemaFileVia fp c = goldenYamlSchemaFileVia fp $ pure c
 
 -- | Test that the Yaml schema of the 'Codec' of the given type is the same as what we find in the given golden file.
-pureGoldenYamlSchemaFileViaCodec :: forall a. HasCodec a => FilePath -> GoldenTest Text
+pureGoldenYamlSchemaFileViaCodec :: forall a. (HasCodec a) => FilePath -> GoldenTest Text
 pureGoldenYamlSchemaFileViaCodec fp = pureGoldenYamlSchemaFileVia fp (codec @a)

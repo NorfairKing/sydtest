@@ -50,7 +50,7 @@ import qualified Yesod
 
 -- | Run webdriver tests given a 'SetupFunc' for your app.
 webdriverYesodSpec ::
-  Yesod.YesodDispatch app =>
+  (Yesod.YesodDispatch app) =>
   (HTTP.Manager -> SetupFunc app) ->
   WebdriverSpec app ->
   Spec
@@ -61,14 +61,14 @@ webdriverYesodSpec appSetupFunc = webdriverSpec $ \man -> do
 
 -- | Open a given yesod 'Route'
 openRoute ::
-  Yesod.RenderRoute app =>
+  (Yesod.RenderRoute app) =>
   Route app ->
   WebdriverTestM app ()
 openRoute route = openRouteWithParams route []
 
 -- | Open a given yesod 'Route' with parameters
 openRouteWithParams ::
-  Yesod.RenderRoute app =>
+  (Yesod.RenderRoute app) =>
   Route app ->
   [(Text, Text)] ->
   WebdriverTestM app ()
@@ -92,7 +92,7 @@ openRouteWithParams route extraParams = do
 
 -- | Get the current 'Route'
 getCurrentRoute ::
-  Yesod.ParseRoute app =>
+  (Yesod.ParseRoute app) =>
   WebdriverTestM app (Route app)
 getCurrentRoute = do
   currentUrl <- getCurrentURL
@@ -126,21 +126,21 @@ currentRouteShouldBe expected = do
 -- | Get the link text for a given I18N message.
 --
 -- This will only work if the language hasn't been set.
-getLinkTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Text
+getLinkTextI :: (Yesod.RenderMessage app message) => message -> WebdriverTestM app Text
 getLinkTextI message = do
   y <- asks webdriverTestEnvApp
   pure $ Yesod.renderMessage y [] message
 
 -- | Find an 'Element', 'ByLinkText' the text obtained by 'getLinkTextI'
-findElemByLinkTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Element
+findElemByLinkTextI :: (Yesod.RenderMessage app message) => message -> WebdriverTestM app Element
 findElemByLinkTextI message = getLinkTextI message >>= findElem . ByLinkText
 
 -- | Find an 'Element', 'ByPartialLinkText' the text obtained by 'getLinkTextI'
-findElemByPartialLinkTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Element
+findElemByPartialLinkTextI :: (Yesod.RenderMessage app message) => message -> WebdriverTestM app Element
 findElemByPartialLinkTextI message = getLinkTextI message >>= findElem . ByPartialLinkText
 
 -- | Find an 'Element', 'ByLinkText' the text obtained by 'getLinkTextI'
-findElemByButtonTextI :: Yesod.RenderMessage app message => message -> WebdriverTestM app Element
+findElemByButtonTextI :: (Yesod.RenderMessage app message) => message -> WebdriverTestM app Element
 findElemByButtonTextI message = do
   t <- getLinkTextI message
   findElem $ ByXPath $ mconcat ["//button[normalize-space()=\"", t, "\"]"]

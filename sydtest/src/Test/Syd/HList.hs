@@ -29,5 +29,5 @@ instance HContains '[a] a where
 instance HContains (a ': l) a where
   getElem (HCons a _) = a
 
-instance HContains l a => HContains (b ': l) a where
+instance (HContains l a) => HContains (b ': l) a where
   getElem (HCons _ hl) = getElem hl

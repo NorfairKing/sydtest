@@ -99,14 +99,14 @@ shouldMatchList a b = shouldSatisfyNamed a ("matches list\n" <> ppShow b) (match
 --
 -- Note that using function could mess up the colours in your terminal if the Texts contain ANSI codes.
 -- In that case you may want to `show` your values first or use `shouldBe` instead.
-stringShouldBe :: HasCallStack => String -> String -> IO ()
+stringShouldBe :: (HasCallStack) => String -> String -> IO ()
 stringShouldBe actual expected = unless (actual == expected) $ throwIO $ stringsNotEqualButShouldHaveBeenEqual actual expected
 
 -- | Assert that two 'Text's are equal according to `==`.
 --
 -- Note that using function could mess up the colours in your terminal if the Texts contain ANSI codes.
 -- In that case you may want to `show` your values first or use `shouldBe` instead.
-textShouldBe :: HasCallStack => Text -> Text -> IO ()
+textShouldBe :: (HasCallStack) => Text -> Text -> IO ()
 textShouldBe actual expected = unless (actual == expected) $ throwIO $ textsNotEqualButShouldHaveBeenEqual actual expected
 
 -- | An assertion that says two 'String's should have been equal according to `==`.
@@ -131,7 +131,7 @@ bytestringsNotEqualButShouldHaveBeenEqual actual expected = NotEqualButShouldHav
 --
 -- Note that this is mostly backward compatible, but it has return type 'a' instead of '()' because execution will not continue beyond this function.
 -- In this way it is not entirely backward compatible with hspec because now there could be an ambiguous type error.
-expectationFailure :: HasCallStack => String -> IO a
+expectationFailure :: (HasCallStack) => String -> IO a
 expectationFailure = throwIO . ExpectationFailed
 
 -- | Annotate a given action with a context, for contextual assertions

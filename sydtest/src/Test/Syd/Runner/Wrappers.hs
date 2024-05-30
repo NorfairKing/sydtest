@@ -26,7 +26,7 @@ failFastNext settings td@(TDef timed _) =
     else Continue td
 
 applySimpleWrapper ::
-  MonadIO m =>
+  (MonadIO m) =>
   ((a -> m ()) -> (b -> m ())) ->
   (a -> m r) ->
   (b -> m r)
@@ -41,7 +41,7 @@ applySimpleWrapper takeTakeA takeA b = do
   liftIO $ readMVar var
 
 applySimpleWrapper' ::
-  MonadIO m =>
+  (MonadIO m) =>
   ((a -> m ()) -> m ()) ->
   (a -> m r) ->
   m r
@@ -56,7 +56,7 @@ applySimpleWrapper' takeTakeA takeA = do
   liftIO $ readMVar var
 
 applySimpleWrapper'' ::
-  MonadIO m =>
+  (MonadIO m) =>
   (m () -> m ()) ->
   m r ->
   m r
@@ -69,7 +69,7 @@ applySimpleWrapper'' wrapper produceResult = do
   liftIO $ readMVar var
 
 applySimpleWrapper2 ::
-  MonadIO m =>
+  (MonadIO m) =>
   ((a -> b -> m ()) -> (c -> d -> m ())) ->
   (a -> b -> m r) ->
   (c -> d -> m r)

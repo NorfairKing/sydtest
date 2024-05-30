@@ -65,7 +65,7 @@ performMethod method route = request $ do
   setMethod method
 
 -- | Synonym of 'statusShouldBe' for compatibility with yesod-test
-statusIs :: HasCallStack => Int -> YesodClientM site ()
+statusIs :: (HasCallStack) => Int -> YesodClientM site ()
 statusIs = statusShouldBe
 
 -- | Assert the status of the most recently received response.
@@ -73,7 +73,7 @@ statusIs = statusShouldBe
 -- > it "returns 200 on the home route" $ do
 -- >   get HomeR
 -- >   statusShouldBe 200
-statusShouldBe :: HasCallStack => Int -> YesodClientM site ()
+statusShouldBe :: (HasCallStack) => Int -> YesodClientM site ()
 statusShouldBe expected =
   withLastRequestContext $ do
     actual <- requireStatus
@@ -94,7 +94,7 @@ locationShouldBe expected =
 -- | Assert the last response has the given text.
 --
 -- The check is performed using the response body in full text form without any html parsing.
-bodyContains :: HasCallStack => String -> YesodExample site ()
+bodyContains :: (HasCallStack) => String -> YesodExample site ()
 bodyContains text =
   withLastRequestContext $ do
     resp <- requireResponse
@@ -318,7 +318,7 @@ setRequestBody :: ByteString -> RequestBuilder site ()
 setRequestBody body = State.modify' $ \r -> r {requestBuilderDataPostData = BinaryPostData body}
 
 -- | Look up the CSRF token from the given form data and add it to the request header
-addToken_ :: HasCallStack => Text -> RequestBuilder site ()
+addToken_ :: (HasCallStack) => Text -> RequestBuilder site ()
 addToken_ scope = do
   matches <- liftClient $ htmlQuery $ scope <> " input[name=_token][type=hidden][value]"
   case matches of
@@ -331,16 +331,16 @@ addToken_ scope = do
     _ -> liftIO $ expectationFailure "More than one CSRF token found in the page"
 
 -- | Look up the CSRF token from the only form data and add it to the request header
-addToken :: HasCallStack => RequestBuilder site ()
+addToken :: (HasCallStack) => RequestBuilder site ()
 addToken = addToken_ ""
 
 -- | Look up the CSRF token from the cookie with name 'defaultCsrfCookieName' and add it to the request header with name 'defaultCsrfHeaderName'.
-addTokenFromCookie :: HasCallStack => RequestBuilder site ()
+addTokenFromCookie :: (HasCallStack) => RequestBuilder site ()
 addTokenFromCookie = addTokenFromCookieNamedToHeaderNamed defaultCsrfCookieName defaultCsrfHeaderName
 
 -- | Looks up the CSRF token stored in the cookie with the given name and adds it to the given request header.
 addTokenFromCookieNamedToHeaderNamed ::
-  HasCallStack =>
+  (HasCallStack) =>
   -- | The name of the cookie
   ByteString ->
   -- | The name of the header
@@ -402,7 +402,7 @@ getRequestCookies = do
         )
 
 -- | Query the last response using CSS selectors, returns a list of matched fragments
-htmlQuery :: HasCallStack => CSS.Query -> YesodExample site [CSS.HtmlLBS]
+htmlQuery :: (HasCallStack) => CSS.Query -> YesodExample site [CSS.HtmlLBS]
 htmlQuery query = do
   mResp <- getResponse
   case mResp of
@@ -423,7 +423,7 @@ htmlQuery query = do
 -- >    _ <- followRedirect
 -- >    statusIs 200
 followRedirect ::
-  Yesod site =>
+  (Yesod site) =>
   -- | 'Left' with an error message if not a redirect, 'Right' with the redirected URL if it was
   YesodExample site (Either Text Text)
 followRedirect = do
@@ -438,7 +438,7 @@ followRedirect = do
            in get url >> return (Right url)
 
 followRedirect_ ::
-  Yesod site =>
+  (Yesod site) =>
   YesodExample site ()
 followRedirect_ = do
   errOrRedirect <- followRedirect

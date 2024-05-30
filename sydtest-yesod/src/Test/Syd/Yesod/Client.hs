@@ -130,7 +130,7 @@ requireStatus :: YesodClientM site Int
 requireStatus = statusCode . responseStatus <$> requireResponse
 
 -- | Get the 'Location' header of most recently received response.
-getLocation :: ParseRoute site => YesodClientM localSite (Either Text (Route site))
+getLocation :: (ParseRoute site) => YesodClientM localSite (Either Text (Route site))
 getLocation = do
   mr <- getResponse
   case mr of
@@ -149,7 +149,7 @@ getLocation = do
     unJust (a, Nothing) = (a, mempty)
 
 -- | Get the 'Location' header of most recently received response, and assert that it is a valid Route.
-requireLocation :: ParseRoute site => YesodClientM localSite (Route site)
+requireLocation :: (ParseRoute site) => YesodClientM localSite (Route site)
 requireLocation = do
   errOrLocation <- getLocation
   case errOrLocation of

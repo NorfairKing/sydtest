@@ -72,7 +72,7 @@ argumentsParser =
 
 sourceFilesInNonHiddenDirsRecursively ::
   forall m.
-  MonadIO m =>
+  (MonadIO m) =>
   Path Rel Dir ->
   m [Path Rel File]
 sourceFilesInNonHiddenDirsRecursively =
@@ -135,7 +135,7 @@ parseSpecModule rf = do
   let specModuleDescription = makeModuleName withoutSpecSuffixPath
   pure SpecModule {..}
   where
-    stripSuffix :: Eq a => [a] -> [a] -> Maybe [a]
+    stripSuffix :: (Eq a) => [a] -> [a] -> Maybe [a]
     stripSuffix suffix s = reverse <$> stripPrefix (reverse suffix) (reverse s)
 
 makeModuleName :: Path Rel File -> String

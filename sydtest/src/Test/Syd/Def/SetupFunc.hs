@@ -83,7 +83,7 @@ setupAroundWith takeOldInner = aroundWith $ \takeNewInner oldInner ->
 
 -- | Use 'aroundWith'' with a 'SetupFunc'
 setupAroundWith' ::
-  HContains outers outer =>
+  (HContains outers outer) =>
   (outer -> oldInner -> SetupFunc newInner) ->
   TestDefM outers newInner result ->
   TestDefM outers oldInner result

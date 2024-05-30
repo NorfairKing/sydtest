@@ -75,25 +75,25 @@ localToE2ESpec = beforeWith (\yc -> pure $ localToE2EClient yc)
 data E2E site = E2E
   deriving (Show, Eq, Generic)
 
-instance Yesod site => Yesod (E2E site)
+instance (Yesod site) => Yesod (E2E site)
 
 instance (Eq (Route site), RenderRoute site) => RenderRoute (E2E site) where
   data Route (E2E site) = E2ERoute {unE2ERoute :: Route site}
     deriving (Generic)
   renderRoute (E2ERoute route) = renderRoute route
 
-instance Show (Route site) => Show (Route (E2E site)) where
+instance (Show (Route site)) => Show (Route (E2E site)) where
   show = show . unE2ERoute
 
-instance Eq (Route site) => Eq (Route (E2E site)) where
+instance (Eq (Route site)) => Eq (Route (E2E site)) where
   (==) = (==) `on` unE2ERoute
 
-instance RenderRoute site => RedirectUrl (E2E site) (Route site) where
+instance (RenderRoute site) => RedirectUrl (E2E site) (Route site) where
   toTextUrl route = do
     let (urlPieces, queryParams) = renderRoute (E2ERoute route)
         q = queryTextToQuery $ map (second Just) queryParams
         pathBS = encodePath urlPieces q
     pure $ TE.decodeUtf8 (LB.toStrict (BB.toLazyByteString pathBS)) -- Not safe, but it will fail during testing (if at all) so should be ok.
 
-instance ParseRoute site => ParseRoute (E2E site) where
+instance (ParseRoute site) => ParseRoute (E2E site) where
   parseRoute = fmap E2ERoute . parseRoute

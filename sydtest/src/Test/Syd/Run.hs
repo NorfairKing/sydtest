@@ -468,14 +468,14 @@ instance Exception Assertion
 -- 'SomeException', so that we can unwrap it.
 -- (For some unknown reason, that doesn't work otherwise.)
 data Contextual
-  = forall e. Exception e => Contextual !e !String
+  = forall e. (Exception e) => Contextual !e !String
 
 instance Show Contextual where
   showsPrec d (Contextual e s) = showParen (d > 10) $ showString "Contextual " . showsPrec 11 (displayException e) . showString " " . showsPrec 11 s
 
 instance Exception Contextual
 
-addContextToException :: Exception e => e -> String -> Contextual
+addContextToException :: (Exception e) => e -> String -> Contextual
 addContextToException e = Contextual e
 
 data GoldenCase
@@ -495,17 +495,17 @@ reportProgress = id
 data Progress
   = ProgressTestStarting
   | ProgressExampleStarting
+      -- Total examples
       !Word
-      -- ^ Total examples
+      -- Example number
       !Word
-      -- ^ Example number
   | ProgressExampleDone
+      -- Total examples
       !Word
-      -- ^ Total examples
+      -- Example number
       !Word
-      -- ^ Example number
+      -- Time it took
       !Word64
-      -- ^ Time it took
   | ProgressTestDone
   deriving (Show, Eq, Generic)
 
@@ -515,7 +515,7 @@ data Progress
 -- That means that any waiting, like with 'threadDelay' would not be counted.
 --
 -- Note that this does not evaluate the result, on purpose.
-timeItT :: MonadIO m => Int -> m a -> m (Timed a)
+timeItT :: (MonadIO m) => Int -> m a -> m (Timed a)
 timeItT worker func = do
   (r, (begin, end)) <- timeItBeginEnd func
   pure
@@ -526,12 +526,12 @@ timeItT worker func = do
         timedEnd = end
       }
 
-timeItDuration :: MonadIO m => m a -> m (a, Word64)
+timeItDuration :: (MonadIO m) => m a -> m (a, Word64)
 timeItDuration func = do
   (r, (begin, end)) <- timeItBeginEnd func
   pure (r, end - begin)
 
-timeItBeginEnd :: MonadIO m => m a -> m (a, (Word64, Word64))
+timeItBeginEnd :: (MonadIO m) => m a -> m (a, (Word64, Word64))
 timeItBeginEnd func = do
   begin <- liftIO getMonotonicTimeNSec
   r <- func

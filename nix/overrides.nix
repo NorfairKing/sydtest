@@ -1,7 +1,6 @@
 { lib
 , haskell
 , libredirect
-, rabbitmq-server
 , redis
 , postgresql
 , mongodb
@@ -112,16 +111,6 @@ let
       "sydtest-typed-process" = sydtestPkg "sydtest-typed-process";
       "sydtest-wai" = sydtestPkg "sydtest-wai";
       "sydtest-yesod" = sydtestPkg "sydtest-yesod";
-      "sydtest-amqp" = overrideCabal (sydtestPkg "sydtest-amqp") (old: {
-        testDepends = (old.testDepends or [ ]) ++ [ rabbitmq-server ];
-        # Turn off testing because it hangs for unknown reasons?
-        doCheck = false;
-      });
-      "sydtest-rabbitmq" = overrideCabal (sydtestPkg "sydtest-rabbitmq") (old: {
-        testDepends = (old.testDepends or [ ]) ++ [ rabbitmq-server ];
-        # Turn off testing because it hangs for unknown reasons?
-        doCheck = false;
-      });
       "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
         testDepends = (old.testDepends or [ ]) ++ [ redis ];
       });
@@ -159,6 +148,15 @@ in
     name = "sydtest-release";
     paths = attrValues self.sydtestPackages;
   };
+  # Until https://github.com/jfischoff/tmp-postgres/issues/281
+  tmp-postgres =
+    dontCheck (self.callCabal2nix "tmp-postgres"
+      (builtins.fetchGit
+        {
+          url = "https://github.com/jfischoff/tmp-postgres";
+          rev = "7f2467a6d6d5f6db7eed59919a6773fe006cf22b";
+        })
+      { });
   webdriver =
     if versionAtLeast self.aeson.version "2" && versionOlder super.webdriver.version "0.10"
     then

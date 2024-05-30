@@ -86,7 +86,7 @@ performRequest req = do
 --
 -- This function is provided for backward compatibility with wai-test but this approach has been made obsolete by the way sydtest does things.
 -- You should use 'shouldBe' based on the responses that you get from functions like 'get' and 'post' instead.
-shouldRespondWith :: HasCallStack => WaiSession st (HTTP.Response LB.ByteString) -> ResponseMatcher -> WaiExpectation st
+shouldRespondWith :: (HasCallStack) => WaiSession st (HTTP.Response LB.ByteString) -> ResponseMatcher -> WaiExpectation st
 shouldRespondWith action ResponseMatcher {..} = do
   response <- action
   liftIO $

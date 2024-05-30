@@ -1,8 +1,7 @@
-resolver: lts-21.22
+resolver: lts-22.22
 packages:
 - sydtest
 - sydtest-aeson
-- sydtest-amqp
 - sydtest-autodocodec
 - sydtest-discover
 - sydtest-hedgehog
@@ -13,7 +12,6 @@ packages:
 - sydtest-persistent-postgresql
 - sydtest-persistent-sqlite
 - sydtest-process
-- sydtest-rabbitmq
 - sydtest-servant
 - sydtest-typed-process
 - sydtest-wai

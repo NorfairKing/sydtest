@@ -140,11 +140,11 @@ goldenStringFile fp produceBS =
     }
 
 -- | Test that the show instance has not changed for the given value.
-goldenShowInstance :: Show a => FilePath -> a -> GoldenTest String
+goldenShowInstance :: (Show a) => FilePath -> a -> GoldenTest String
 goldenShowInstance fp a = pureGoldenStringFile fp (show a)
 
 -- | Test that the show instance has not changed for the given value, via `ppShow`.
-goldenPrettyShowInstance :: Show a => FilePath -> a -> GoldenTest String
+goldenPrettyShowInstance :: (Show a) => FilePath -> a -> GoldenTest String
 goldenPrettyShowInstance fp a = pureGoldenStringFile fp (ppShow a)
 
 -- | The golden test context for adding context to a golden test assertion:

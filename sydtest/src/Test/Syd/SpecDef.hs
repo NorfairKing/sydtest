@@ -166,7 +166,7 @@ instance Functor (SpecDefTree a c) where
           DefExpectationNode p sdf -> DefExpectationNode p $ goF sdf
 
 instance Foldable (SpecDefTree a c) where
-  foldMap :: forall e m. Monoid m => (e -> m) -> SpecDefTree a c e -> m
+  foldMap :: forall e m. (Monoid m) => (e -> m) -> SpecDefTree a c e -> m
   foldMap f =
     let goF :: forall x y. SpecDefForest x y e -> m
         goF = foldMap (foldMap f)
@@ -188,7 +188,7 @@ instance Foldable (SpecDefTree a c) where
           DefExpectationNode _ sdf -> goF sdf
 
 instance Traversable (SpecDefTree a c) where
-  traverse :: forall u w f. Applicative f => (u -> f w) -> SpecDefTree a c u -> f (SpecDefTree a c w)
+  traverse :: forall u w f. (Applicative f) => (u -> f w) -> SpecDefTree a c u -> f (SpecDefTree a c w)
   traverse f =
     let goF :: forall x y. SpecDefForest x y u -> f (SpecDefForest x y w)
         goF = traverse (traverse f)
@@ -247,12 +247,12 @@ filterTestForest fs = fromMaybe [] . goForest DList.empty
       DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest dl sdf
       DefExpectationNode func sdf -> DefExpectationNode func <$> goForest dl sdf
 
-randomiseTestForest :: MonadRandom m => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
+randomiseTestForest :: (MonadRandom m) => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
 randomiseTestForest = goForest
   where
-    goForest :: MonadRandom m => SpecDefForest a b c -> m (SpecDefForest a b c)
+    goForest :: (MonadRandom m) => SpecDefForest a b c -> m (SpecDefForest a b c)
     goForest = traverse goTree >=> shuffleM
-    goTree :: MonadRandom m => SpecDefTree a b c -> m (SpecDefTree a b c)
+    goTree :: (MonadRandom m) => SpecDefTree a b c -> m (SpecDefTree a b c)
     goTree = \case
       DefSpecifyNode t td e -> pure $ DefSpecifyNode t td e
       DefPendingNode t mr -> pure $ DefPendingNode t mr

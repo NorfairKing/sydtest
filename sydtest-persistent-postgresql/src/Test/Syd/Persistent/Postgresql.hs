@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | Testing with a temporary postgresql database using persistent-postgresql
 module Test.Syd.Persistent.Postgresql

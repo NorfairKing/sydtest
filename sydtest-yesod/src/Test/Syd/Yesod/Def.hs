@@ -70,7 +70,7 @@ import Yesod.Core as Yesod
 -- >     statusIs 200
 --
 -- This function exists for backward compatibility with yesod-test.
-yesodSpec :: YesodDispatch site => site -> YesodSpec site -> Spec
+yesodSpec :: (YesodDispatch site) => site -> YesodSpec site -> Spec
 yesodSpec site = yesodSpecWithSiteGenerator $ pure site
 
 -- | Run a test suite using the given 'site' generator.
@@ -99,7 +99,7 @@ yesodSpec site = yesodSpecWithSiteGenerator $ pure site
 -- >     statusIs 200
 --
 -- This function exists for backward compatibility with yesod-test.
-yesodSpecWithSiteGenerator :: YesodDispatch site => IO site -> YesodSpec site -> Spec
+yesodSpecWithSiteGenerator :: (YesodDispatch site) => IO site -> YesodSpec site -> Spec
 yesodSpecWithSiteGenerator siteGen = yesodSpecWithSiteGeneratorAndArgument $ \() -> siteGen
 
 -- | Run a test suite using the given 'site' generator which uses an inner resource.
@@ -107,7 +107,7 @@ yesodSpecWithSiteGenerator siteGen = yesodSpecWithSiteGeneratorAndArgument $ \()
 -- If your 'site' contains any resources that you need to set up using a 'withX' function, you will want to use `yesodSpecWithSiteSupplier` instead.
 --
 -- This function exists for backward compatibility with yesod-test.
-yesodSpecWithSiteGeneratorAndArgument :: YesodDispatch site => (a -> IO site) -> YesodSpec site -> SpecWith a
+yesodSpecWithSiteGeneratorAndArgument :: (YesodDispatch site) => (a -> IO site) -> YesodSpec site -> SpecWith a
 yesodSpecWithSiteGeneratorAndArgument func = yesodSpecWithSiteSupplierWith $ \f a -> func a >>= f
 
 -- | Using a function that supplies a 'site', run a test suite.
@@ -131,18 +131,18 @@ yesodSpecWithSiteGeneratorAndArgument func = yesodSpecWithSiteSupplierWith $ \f 
 -- >   it "returns 200 on the homepage" $ do
 -- >     get HomeR
 -- >     statusIs 200
-yesodSpecWithSiteSupplier :: YesodDispatch site => (forall r. (site -> IO r) -> IO r) -> YesodSpec site -> Spec
+yesodSpecWithSiteSupplier :: (YesodDispatch site) => (forall r. (site -> IO r) -> IO r) -> YesodSpec site -> Spec
 yesodSpecWithSiteSupplier func = yesodSpecWithSiteSupplierWith (\f () -> func f)
 
 -- | Using a function that supplies a 'site', based on an inner resource, run a test suite.
-yesodSpecWithSiteSupplierWith :: YesodDispatch site => (forall r. (site -> IO r) -> (inner -> IO r)) -> YesodSpec site -> SpecWith inner
+yesodSpecWithSiteSupplierWith :: (YesodDispatch site) => (forall r. (site -> IO r) -> (inner -> IO r)) -> YesodSpec site -> SpecWith inner
 yesodSpecWithSiteSupplierWith func = managerSpec . yesodSpecWithSiteSetupFunc' (\_ inner -> SetupFunc $ \takeSite -> func takeSite inner)
 
 -- | Using a function that supplies a 'site', using a 'SetupFunc'
 --
 -- This function assumed that you've already set up the 'HTTP.Manager' beforehand using something like 'managerSpec'.
 yesodSpecWithSiteSetupFunc ::
-  YesodDispatch site =>
+  (YesodDispatch site) =>
   (HTTP.Manager -> SetupFunc site) ->
   TestDef (HTTP.Manager ': outers) (YesodClient site) ->
   TestDef (HTTP.Manager ': outers) ()
@@ -152,7 +152,7 @@ yesodSpecWithSiteSetupFunc setupFunc = yesodSpecWithSiteSetupFunc' $ \man () -> 
 --
 -- This function assumed that you've already set up the 'HTTP.Manager' beforehand using something like 'managerSpec'.
 yesodSpecWithSiteSetupFunc' ::
-  YesodDispatch site =>
+  (YesodDispatch site) =>
   (HTTP.Manager -> inner -> SetupFunc site) ->
   TestDef (HTTP.Manager ': outers) (YesodClient site) ->
   TestDef (HTTP.Manager ': outers) inner
@@ -160,7 +160,7 @@ yesodSpecWithSiteSetupFunc' setupFunc = setupAroundWith' $ \man inner -> do
   site <- setupFunc man inner
   yesodClientSetupFunc man site
 
-yesodClientSetupFunc :: YesodDispatch site => HTTP.Manager -> site -> SetupFunc (YesodClient site)
+yesodClientSetupFunc :: (YesodDispatch site) => HTTP.Manager -> site -> SetupFunc (YesodClient site)
 yesodClientSetupFunc man site = do
   application <- liftIO $ Yesod.toWaiAppPlain site
   p <- applicationSetupFunc application
@@ -193,7 +193,7 @@ type YesodSpec site = TestDef '[HTTP.Manager] (YesodClient site)
 -- > yit = it
 yit ::
   forall site.
-  HasCallStack =>
+  (HasCallStack) =>
   String ->
   YesodClientM site () ->
   YesodSpec site

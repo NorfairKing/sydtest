@@ -21,7 +21,7 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - autodocodec-yaml
+  - autodocodec-yaml >=0.3.0.0
   - text
 
 tests:

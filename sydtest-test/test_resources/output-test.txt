@@ -410,17 +410,17 @@
   [36m  output-test/Spec.hs:45[m
   [31m✗ [m[31m15 [m[31mexceptions.Record update error.fails in IO, as the result[m
        Retries: 3 (does not look flaky)
-       output-test/Spec.hs:53:60-88: Non-exhaustive patterns in record update
+       output-test/Spec.hs:53:60-88: Non-exhaustive patterns in case
   
   [36m  output-test/Spec.hs:46[m
   [31m✗ [m[31m16 [m[31mexceptions.Record update error.fails in IO, as the action[m
        Retries: 3 (does not look flaky)
-       output-test/Spec.hs:53:60-88: Non-exhaustive patterns in record update
+       output-test/Spec.hs:53:60-88: Non-exhaustive patterns in case
   
   [36m  output-test/Spec.hs:47[m
   [31m✗ [m[31m17 [m[31mexceptions.Record update error.fails in pure code[m
        Retries: 3 (does not look flaky)
-       output-test/Spec.hs:53:60-88: Non-exhaustive patterns in record update
+       output-test/Spec.hs:53:60-88: Non-exhaustive patterns in case
   
   [36m  output-test/Spec.hs:54[m
   [31m✗ [m[31m18 [m[31mexceptions.Pattern matching error[m

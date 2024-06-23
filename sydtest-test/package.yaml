@@ -1,0 +1,65 @@
+name: sydtest-test
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: AllRightsReserved
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+
+extra-source-files:
+- test_resources/**/*
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+
+tests:
+  sydtest-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - QuickCheck
+    - bytestring
+    - fast-myers-diff
+    - path
+    - path-io
+    - safe-coloured-text
+    - stm
+    - sydtest
+    - text
+    - vector
+
+  sydtest-output-test:
+    main: Main.hs
+    source-dirs: output-test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - QuickCheck
+    - bytestring
+    - random
+    - random
+    - safe-coloured-text
+    - stm
+    - sydtest
+    - text
+
+  sydtest-multi-discover-test:
+    main: Main.hs
+    source-dirs: multi-discover-test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest

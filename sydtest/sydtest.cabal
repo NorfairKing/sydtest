@@ -21,14 +21,6 @@ extra-source-files:
     LICENSE.md
     CHANGELOG.md
     CONTRIBUTORS
-    test_resources/defaultSettings-show.golden
-    test_resources/even/2
-    test_resources/even/4
-    test_resources/even/odd/3
-    test_resources/odd/3
-    test_resources/odd/deep/5
-    test_resources/output-test.txt
-    test_resources/output.golden
 
 source-repository head
   type: git
@@ -100,84 +92,3 @@ library
   else
     build-depends:
         safe-coloured-text-terminfo
-
-test-suite sydtest-multi-discover-test
-  type: exitcode-stdio-1.0
-  main-is: Main.hs
-  other-modules:
-      Bar.BarSpec
-      Bar.Spec
-      Baz.Qux.QuxSpec
-      Baz.Qux.Spec
-      DoNotDiscover.FooSpec
-      Foo.FooSpec
-      Foo.Spec
-      Paths_sydtest
-  hs-source-dirs:
-      multi-discover-test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-tool-depends:
-      sydtest-discover:sydtest-discover
-  build-depends:
-      base >=4.7 && <5
-    , sydtest
-  default-language: Haskell2010
-
-test-suite sydtest-output-test
-  type: exitcode-stdio-1.0
-  main-is: Main.hs
-  other-modules:
-      Spec
-      Paths_sydtest
-  hs-source-dirs:
-      output-test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      QuickCheck
-    , base >=4.7 && <5
-    , bytestring
-    , random
-    , safe-coloured-text
-    , stm
-    , sydtest
-    , text
-  default-language: Haskell2010
-
-test-suite sydtest-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Test.Syd.AroundAllSpec
-      Test.Syd.AroundCombinationSpec
-      Test.Syd.AroundSpec
-      Test.Syd.DescriptionsSpec
-      Test.Syd.DiffSpec
-      Test.Syd.ExpectationSpec
-      Test.Syd.FootgunSpec
-      Test.Syd.GoldenSpec
-      Test.Syd.OptParseSpec
-      Test.Syd.PathSpec
-      Test.Syd.ScenarioSpec
-      Test.Syd.SequentialSpec
-      Test.Syd.Specify.AllOuterSpec
-      Test.Syd.SpecifySpec
-      Test.Syd.TimingSpec
-      Paths_sydtest
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-tool-depends:
-      sydtest-discover:sydtest-discover
-  build-depends:
-      QuickCheck
-    , base >=4.7 && <5
-    , bytestring
-    , fast-myers-diff
-    , path
-    , path-io
-    , safe-coloured-text
-    , stm
-    , sydtest
-    , text
-    , vector
-  default-language: Haskell2010

@@ -1,7 +1,7 @@
 # Example
 [37mint[m: # [31mrequired[m
   # example int
-  [33m<number>[m # between [32m-9223372036854775808[m and [32m9223372036854775807[m
+  [33m<number>[m # [32m64 bit signed integer[m
 [37mbool[m: # [31mrequired[m
   # example bool
   [33m<boolean>[m

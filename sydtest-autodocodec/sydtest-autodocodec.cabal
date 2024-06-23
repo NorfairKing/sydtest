@@ -34,7 +34,7 @@ library
       src
   build-depends:
       autodocodec
-    , autodocodec-yaml
+    , autodocodec-yaml >=0.3.0.0
     , base >=4.7 && <5
     , sydtest
     , text

@@ -21,6 +21,8 @@
     safe-coloured-text.flake = false;
     fast-myers-diff.url = "github:NorfairKing/fast-myers-diff";
     fast-myers-diff.flake = false;
+    opt-env-conf.url = "github:NorfairKing/opt-env-conf";
+    opt-env-conf.flake = false;
   };
 
   outputs =
@@ -37,6 +39,7 @@
     , validity
     , safe-coloured-text
     , fast-myers-diff
+    , opt-env-conf
     }:
     let
       system = "x86_64-linux";
@@ -47,6 +50,7 @@
         (pkgs.callPackage (autodocodec + "/nix/overrides.nix") { })
         (pkgs.callPackage (safe-coloured-text + "/nix/overrides.nix") { })
         (pkgs.callPackage (validity + "/nix/overrides.nix") { })
+        (pkgs.callPackage (opt-env-conf + "/nix/overrides.nix") { })
         self.overrides.${system}
       ];
       horizonPkgs = horizon-advance.legacyPackages.${system}.extend allOverrides;
@@ -93,11 +97,11 @@
         doBenchmark = true;
         buildInputs = (with pkgs; haskellPackages.sydtest-webdriver.webdriverDeps ++ [
           cabal-install
-          mongodb
           niv
           postgresql
           rabbitmq-server
           redis
+          mongodb
           zlib
         ]) ++ self.checks.${system}.pre-commit.enabledPackages;
         shellHook = ''

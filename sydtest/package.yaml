@@ -34,7 +34,7 @@ library:
     - fast-myers-diff
     - filepath
     - mtl
-    - optparse-applicative
+    - opt-env-conf
     - path
     - path-io
     - pretty-show
@@ -69,6 +69,7 @@ tests:
     - QuickCheck
     - bytestring
     - fast-myers-diff
+    - opt-env-conf-test
     - path
     - path-io
     - safe-coloured-text

@@ -43,18 +43,23 @@ extra-deps:
     - genvalidity-sydtest-aeson
     - genvalidity-text
 
+- github: NorfairKing/safe-coloured-text
+  commit: 61f14d21b7399fe97da24e484c2f9fedaf532bb8
+  subdirs:
+  - safe-coloured-text
+  - safe-coloured-text-layout
+  - safe-coloured-text-gen
 - github: NorfairKing/autodocodec
-  commit: 958a1c51fbf2f166974a60e2d0a5d266483baff5
+  commit: a818df53b0f65caf3615d5cb9d4734288ff1ca39
   subdirs:
     - autodocodec
-    - autodocodec-schema
     - autodocodec-yaml
-
-- github: NorfairKing/safe-coloured-text
-  commit: 5efd54e49de780700cd8af2039dff1579c75483c
+    - autodocodec-schema
+- github: NorfairKing/opt-env-conf
+  commit: 0f3d914b16551e88c1cc60060121c3da747c0a38
   subdirs:
-    - safe-coloured-text
-    - safe-coloured-text-terminfo
+    - opt-env-conf
+    - opt-env-conf-test
 
 system-ghc: true
 nix:

@@ -82,75 +82,98 @@ instance HasParser Settings where
   settingsParser = do
     settingSeed <-
       setting
-        [ help ""
+        [ help "The seed to use for deterministic randomness",
+          name "seed"
         ]
     settingRandomiseExecutionOrder <-
       setting
-        [ help ""
+        [ help "Randomise the execution order of the tests in the test suite",
+          name "randomise-execution-order",
+          name "randomize-execution-order"
         ]
     settingThreads <-
       setting
-        [ help ""
+        [ help "How parallel to run the test suite",
+          name "parallel"
         ]
     settingMaxSuccess <-
       setting
-        [ help ""
+        [ help "How many examples to run a property test with",
+          name "max-success"
         ]
     settingMaxSize <-
       setting
-        [ help ""
+        [ help "The maximum size parameter to supply to generators",
+          name "max-size"
         ]
     settingMaxDiscard <-
       setting
-        [ help ""
+        [ help "The maximum number of discarded examples per tested example",
+          name "max-discard"
         ]
     settingMaxShrinks <-
       setting
-        [ help ""
+        [ help "The maximum number of tries to use while shrinking a counterexample.",
+          name "max-shrinks"
         ]
     settingGoldenStart <-
       setting
-        [ help ""
+        [ help "Whether to write golden tests if they do not exist yet",
+          name "golden-start"
         ]
     settingGoldenReset <-
       setting
-        [ help ""
+        [ help "Whether to overwrite golden tests instead of having them fail",
+          name "golden-reset"
         ]
     settingColour <-
       setting
-        [ help ""
+        [ help "Whether to use colour in the output",
+          name "colour",
+          name "color"
         ]
     settingFilters <-
-      setting
-        [ help ""
-        ]
+      many $
+        setting
+          [ help "The filters to use to select which tests to run",
+            reader str,
+            argument
+          ]
     settingFailFast <-
       setting
-        [ help ""
+        [ help "Whether to stop upon the first test failure",
+          name "fail-fast"
         ]
     settingIterations <-
       setting
-        [ help ""
+        [ help "How many iterations to use to look diagnose flakiness",
+          name "iterations"
         ]
     settingRetries <-
       setting
-        [ help ""
+        [ help "How many times to retry a test for flakiness diagnostics",
+          name "retries"
         ]
     settingFailOnFlaky <-
       setting
-        [ help ""
+        [ help "Whether to fail when any flakiness is detected in tests declared as flaky",
+          name "fail-on-flaky"
         ]
     settingReportProgress <-
       setting
-        [ help ""
+        [ help "How to report progress",
+          reader auto,
+          name "progress"
         ]
     settingDebug <-
       setting
-        [ help ""
+        [ help "Debug mode",
+          name "debug"
         ]
     settingProfile <-
       setting
-        [ help ""
+        [ help "Profiling mode",
+          name "profiling"
         ]
 
     pure Settings {..}

@@ -1,8 +1,7 @@
 name: sydtest-test
 version: 0.0.0.0
 github: "NorfairKing/sydtest"
-license: OtherLicense
-license-file: LICENSE.md
+license: AllRightsReserved
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 category: Testing

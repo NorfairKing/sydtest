@@ -11,8 +11,7 @@ homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
 author:         Tom Sydney Kerckhove
 maintainer:     syd@cs-syd.eu
-license:        OtherLicense
-license-file:   LICENSE.md
+license:        AllRightsReserved
 build-type:     Simple
 extra-source-files:
     test_resources/defaultSettings-show.golden

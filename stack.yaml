@@ -20,6 +20,7 @@ packages:
 - sydtest-webdriver-yesod
 - sydtest-yesod
 
+- sydtest-test
 - sydtest-misbehaved-test-suite
 
 ghc-options:

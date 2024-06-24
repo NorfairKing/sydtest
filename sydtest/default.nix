@@ -1,10 +1,9 @@
 { mkDerivation, async, autodocodec, autodocodec-yaml, base
 , bytestring, containers, dlist, envparse, fast-myers-diff
-, filepath, lib, MonadRandom, mtl, opt-env-conf, opt-env-conf-test
-, path, path-io, pretty-show, QuickCheck, quickcheck-io, random
-, random-shuffle, safe, safe-coloured-text
-, safe-coloured-text-terminfo, stm, svg-builder, sydtest-discover
-, text, vector
+, filepath, lib, MonadRandom, mtl, opt-env-conf, path, path-io
+, pretty-show, QuickCheck, quickcheck-io, random, random-shuffle
+, safe, safe-coloured-text, safe-coloured-text-terminfo, stm
+, svg-builder, text, vector
 }:
 mkDerivation {
   pname = "sydtest";
@@ -17,11 +16,6 @@ mkDerivation {
     safe safe-coloured-text safe-coloured-text-terminfo stm svg-builder
     text vector
   ];
-  testHaskellDepends = [
-    base bytestring fast-myers-diff opt-env-conf-test path path-io
-    QuickCheck random safe-coloured-text stm text vector
-  ];
-  testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   description = "A modern testing framework for Haskell with good defaults and advanced testing features";
   license = "unknown";

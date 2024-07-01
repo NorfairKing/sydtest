@@ -45,12 +45,11 @@ delete path = request methodDelete path [] ""
 -- method, request path, headers and body.
 request :: Method -> ByteString -> [Header] -> LB.ByteString -> WaiSession st (HTTP.Response LB.ByteString)
 request method path headers body = do
-  port <- asks waiClientPort
+  uri <- asks waiClientURI
+  requestPrototype <- liftIO $ requestFromURI uri
   let req =
-        defaultRequest
-          { host = "localhost",
-            port = fromIntegral port, -- Safe because it is PortNumber -> INt
-            method = method,
+        requestPrototype
+          { method = method,
             path = path,
             requestHeaders = headers,
             requestBody = RequestBodyLBS body

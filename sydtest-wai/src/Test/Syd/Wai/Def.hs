@@ -9,6 +9,7 @@ module Test.Syd.Wai.Def where
 
 import Network.HTTP.Client as HTTP
 import Network.Socket (PortNumber)
+import Network.URI
 import Network.Wai as Wai
 import Network.Wai.Handler.Warp as Warp
 import Test.Syd
@@ -46,11 +47,25 @@ waiClientSpecWithSetupFunc' setupFunc = setupAroundWith' $ \man oldInner -> do
 waiClientSetupFunc :: HTTP.Manager -> Application -> env -> SetupFunc (WaiClient env)
 waiClientSetupFunc man application env = do
   p <- applicationSetupFunc application
+  let uri =
+        URI
+          { uriScheme = "http:",
+            uriAuthority =
+              Just
+                URIAuth
+                  { uriUserInfo = "",
+                    uriRegName = "localhost",
+                    uriPort = ":" <> show p
+                  },
+            uriPath = "",
+            uriQuery = "",
+            uriFragment = ""
+          }
   let client =
         WaiClient
           { waiClientManager = man,
             waiClientEnv = env,
-            waiClientPort = p
+            waiClientURI = uri
           }
   pure client
 

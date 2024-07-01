@@ -13,6 +13,7 @@ import qualified Data.ByteString.Lazy as LB
 import GHC.Generics (Generic)
 import Network.HTTP.Client as HTTP
 import Network.Socket (PortNumber)
+import Network.URI
 import Test.Syd
 
 -- | A client environment for a 'Wai.Application' with a user-defined environment as well
@@ -21,8 +22,8 @@ data WaiClient env = WaiClient
     waiClientManager :: !HTTP.Manager,
     -- | The user-defined environment
     waiClientEnv :: !env,
-    -- The port that the application is running on, using @warp@
-    waiClientPort :: !PortNumber
+    -- The URI of the server under test
+    waiClientURI :: !URI
   }
   deriving (Generic)
 

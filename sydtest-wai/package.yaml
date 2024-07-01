@@ -25,6 +25,7 @@ library:
   - http-types
   - mtl
   - network
+  - network-uri
   - sydtest >= 0.3.0.0
   - text
   - time

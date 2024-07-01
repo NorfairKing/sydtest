@@ -1,6 +1,6 @@
 { mkDerivation, base, bytestring, case-insensitive, http-client
-, http-types, lib, mtl, network, sydtest, sydtest-discover, text
-, time, wai, warp
+, http-types, lib, mtl, network, network-uri, sydtest
+, sydtest-discover, text, time, wai, warp
 }:
 mkDerivation {
   pname = "sydtest-wai";
@@ -8,7 +8,7 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [
     base bytestring case-insensitive http-client http-types mtl network
-    sydtest text time wai warp
+    network-uri sydtest text time wai warp
   ];
   testHaskellDepends = [ base http-client http-types sydtest wai ];
   testToolDepends = [ sydtest-discover ];

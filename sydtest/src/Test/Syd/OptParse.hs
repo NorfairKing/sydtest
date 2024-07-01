@@ -79,17 +79,18 @@ data Settings = Settings
   deriving (Show, Eq, Generic)
 
 instance HasParser Settings where
-  settingsParser = do
+  settingsParser = withYamlConfig (pure (Just ".sydtest.yaml")) $ do
     settingSeed <-
       setting
         [ help "The seed to use for deterministic randomness",
-          name "seed"
+          name "seed", metavar "SEED",
         ]
     settingRandomiseExecutionOrder <-
-      setting
+      yesNoSwitch
+        True
         [ help "Randomise the execution order of the tests in the test suite",
           name "randomise-execution-order",
-          name "randomize-execution-order"
+          name "randomize-execution-order", metavar "BOOL"
         ]
     settingThreads <-
       setting
@@ -99,39 +100,47 @@ instance HasParser Settings where
     settingMaxSuccess <-
       setting
         [ help "How many examples to run a property test with",
-          name "max-success"
+          reader auto,
+          name "max-success", metavar "INT",
         ]
     settingMaxSize <-
       setting
         [ help "The maximum size parameter to supply to generators",
+          reader auto,
           name "max-size"
         ]
     settingMaxDiscard <-
       setting
         [ help "The maximum number of discarded examples per tested example",
+          reader auto,
           name "max-discard"
         ]
     settingMaxShrinks <-
       setting
         [ help "The maximum number of tries to use while shrinking a counterexample.",
+          reader auto,
           name "max-shrinks"
         ]
     settingGoldenStart <-
-      setting
+      yesNoSwitch
+        False
         [ help "Whether to write golden tests if they do not exist yet",
           name "golden-start"
         ]
     settingGoldenReset <-
-      setting
+      yesNoSwitch
+        False
         [ help "Whether to overwrite golden tests instead of having them fail",
           name "golden-reset"
         ]
     settingColour <-
-      setting
-        [ help "Whether to use colour in the output",
-          name "colour",
-          name "color"
-        ]
+      optional $
+        choice
+          [ setting [switch True, long "colour", long "color"],
+            setting [switch False, long "no-colour", long "no-color"],
+            setting [reader auto, env "colour", env "color"],
+            setting [reader auto, conf "colour", conf "color"]
+          ]
     settingFilters <-
       many $
         setting
@@ -140,7 +149,8 @@ instance HasParser Settings where
             argument
           ]
     settingFailFast <-
-      setting
+      yesNoSwitch
+        False
         [ help "Whether to stop upon the first test failure",
           name "fail-fast"
         ]
@@ -152,28 +162,34 @@ instance HasParser Settings where
     settingRetries <-
       setting
         [ help "How many times to retry a test for flakiness diagnostics",
+          reader auto,
           name "retries"
         ]
     settingFailOnFlaky <-
-      setting
+      yesNoSwitch
+        False
         [ help "Whether to fail when any flakiness is detected in tests declared as flaky",
           name "fail-on-flaky"
         ]
     settingReportProgress <-
-      setting
-        [ help "How to report progress",
-          reader auto,
-          name "progress"
-        ]
+      reportProgressFromBool
+        <$> yesNoSwitch
+          False
+          [ help "How to report progress",
+            reader auto,
+            name "progress"
+          ]
     settingDebug <-
-      setting
+      yesNoSwitch
+        False
         [ help "Debug mode",
           name "debug"
         ]
     settingProfile <-
-      setting
+      yesNoSwitch
+        False
         [ help "Profiling mode",
-          name "profiling"
+          name "profile"
         ]
 
     pure Settings {..}
@@ -232,22 +248,6 @@ data Threads
     Asynchronous !Word
   deriving (Show, Read, Eq, Generic)
 
-data Iterations
-  = -- | Run the test suite once, the default
-    OneIteration
-  | -- | Run the test suite for the given number of iterations, or until we can find flakiness
-    Iterations !Word
-  | -- | Run the test suite over and over, until we can find some flakiness
-    Continuous
-  deriving (Show, Read, Eq, Generic)
-
-data ReportProgress
-  = -- | Don't report any progress, the default
-    ReportNoProgress
-  | -- | Report progress
-    ReportProgress
-  deriving (Show, Read, Eq, Generic)
-
 instance HasCodec Threads where
   codec = dimapCodec f g codec
     where
@@ -259,6 +259,15 @@ instance HasCodec Threads where
         ByCapabilities -> Nothing
         Synchronous -> Just 1
         Asynchronous n -> Just n
+
+data Iterations
+  = -- | Run the test suite once, the default
+    OneIteration
+  | -- | Run the test suite for the given number of iterations, or until we can find flakiness
+    Iterations !Word
+  | -- | Run the test suite over and over, until we can find some flakiness
+    Continuous
+  deriving (Show, Read, Eq, Generic)
 
 instance HasCodec Iterations where
   codec = dimapCodec f g codec
@@ -272,3 +281,22 @@ instance HasCodec Iterations where
         OneIteration -> Nothing
         Continuous -> Just 0
         Iterations n -> Just n
+
+data ReportProgress
+  = -- | Don't report any progress, the default
+    ReportNoProgress
+  | -- | Report progress
+    ReportProgress
+  deriving (Show, Read, Eq, Generic)
+
+instance HasCodec ReportProgress where
+  codec = dimapCodec reportProgressFromBool g codec
+    where
+      g = \case
+        ReportProgress -> True
+        ReportNoProgress -> False
+
+reportProgressFromBool :: Bool -> ReportProgress
+reportProgressFromBool = \case
+  True -> ReportProgress
+  False -> ReportNoProgress

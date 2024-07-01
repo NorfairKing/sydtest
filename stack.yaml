@@ -23,6 +23,11 @@ packages:
 - sydtest-test
 - sydtest-misbehaved-test-suite
 
+- /home/syd/src/autodocodec/autodocodec
+- /home/syd/src/autodocodec/autodocodec-yaml
+- /home/syd/src/autodocodec/autodocodec-schema
+- /home/syd/src/opt-env-conf/opt-env-conf
+- /home/syd/src/opt-env-conf/opt-env-conf-test
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages -O0
 
@@ -50,17 +55,17 @@ extra-deps:
   - safe-coloured-text
   - safe-coloured-text-layout
   - safe-coloured-text-gen
-- github: NorfairKing/autodocodec
-  commit: a818df53b0f65caf3615d5cb9d4734288ff1ca39
-  subdirs:
-    - autodocodec
-    - autodocodec-yaml
-    - autodocodec-schema
-- github: NorfairKing/opt-env-conf
-  commit: 0f3d914b16551e88c1cc60060121c3da747c0a38
-  subdirs:
-    - opt-env-conf
-    - opt-env-conf-test
+    # - github: NorfairKing/autodocodec
+    #   commit: a818df53b0f65caf3615d5cb9d4734288ff1ca39
+    #   subdirs:
+    #     - autodocodec
+    #     - autodocodec-yaml
+    #     - autodocodec-schema
+      # - github: NorfairKing/opt-env-conf
+      #   commit: 0f3d914b16551e88c1cc60060121c3da747c0a38
+      #   subdirs:
+      #     - opt-env-conf
+      #     - opt-env-conf-test
 
 system-ghc: true
 nix:

@@ -71,16 +71,15 @@ data JobQueue = JobQueue
   { -- | Bounded channel for the jobs.
     -- We use a TBQueue because it's bounded and we can check if it's empty.
     jobQueueTBQueue :: !(TBQueue Job),
-    -- | One semaphore per worker, which needs to be awaited before the worker
-    -- can start doing a job.
-    jobQueueWorking :: !(Vector QSem)
+    -- | Count of the number of job currently executed by workers.
+    jobQueueWorkingCount :: !(TVar Int)
   }
 
 -- | Make a new job queue with a given number of workers and capacity
 newJobQueue :: Word -> Word -> IO JobQueue
 newJobQueue nbWorkers spots = do
   jobQueueTBQueue <- newTBQueueIO (fromIntegral spots)
-  jobQueueWorking <- V.replicateM (fromIntegral nbWorkers) (newQSem 1)
+  jobQueueWorkingCount <- newTVarIO (fromIntegral 0)
   pure JobQueue {..}
 
 -- | Enqueue a job, block until that's possible.
@@ -96,20 +95,14 @@ dequeueJob JobQueue {..} =
 -- | Block until all workers are done (waiting to dequeue a job).
 blockUntilDone :: JobQueue -> IO ()
 blockUntilDone JobQueue {..} = do
-  -- Wait until the queue is empty.
-  atomically $ isEmptyTBQueue jobQueueTBQueue >>= STM.check
-  -- No new work can be started now, because the queue is empty.
-  -- That means that all workers are either waiting for another job or still
-  -- doing a job.
-
-  -- Wait for all workers to stop working.
-  -- That means that they're all just done working now or waiting for another job.
-  -- Both are fine.
-  V.forM_ jobQueueWorking waitQSem
-  -- The workers are now all done and the queue is empty, and this is the only
-  -- thread enqueueing jobs, so no work is happening.
-  -- Release all the workers so they can work again after this function.
-  V.forM_ jobQueueWorking signalQSem
+  atomically $ do
+    -- Wait until the queue is empty.
+    isEmptyTBQueue jobQueueTBQueue >>= STM.check
+    -- Wait for all workers to stop working.
+    currentlyRunning <- readTVar jobQueueWorkingCount
+    when (currentlyRunning > 0) retry
+  -- No new work can be started now, because the queue is empty and no worker
+  -- are running.
 
 withJobQueueWorkers :: Word -> JobQueue -> IO a -> IO a
 withJobQueueWorkers nbWorkers jobQueue func =
@@ -121,14 +114,17 @@ withJobQueueWorkers nbWorkers jobQueue func =
     (\_ -> func)
 
 jobQueueWorker :: JobQueue -> Int -> IO ()
-jobQueueWorker jobQueue workerIx = do
-  let workingSem = jobQueueWorking jobQueue V.! workerIx
+jobQueueWorker JobQueue{..} workerIx = do
   forever $ do
-    job <- dequeueJob jobQueue
-    bracket_
-      (waitQSem workingSem)
-      (signalQSem workingSem)
-      (job workerIx)
+    bracket
+      (atomically $ do
+         -- Pick a job in queue and increase the count
+         job <- readTBQueue jobQueueTBQueue
+         modifyTVar' jobQueueWorkingCount (+1)
+         pure job
+      )
+      (\_ -> atomically $ modifyTVar' jobQueueWorkingCount (subtract 1))
+      (\job -> job workerIx)
 
 -- The plan is as follows:
 --

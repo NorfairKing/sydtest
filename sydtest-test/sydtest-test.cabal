@@ -91,6 +91,7 @@ test-suite sydtest-test
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
       Test.Syd.PathSpec
+      Test.Syd.RunnerSpec
       Test.Syd.ScenarioSpec
       Test.Syd.SequentialSpec
       Test.Syd.Specify.AllOuterSpec

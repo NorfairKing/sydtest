@@ -92,6 +92,7 @@ test-suite sydtest-test
       Test.Syd.GoldenSpec
       Test.Syd.OptParseSpec
       Test.Syd.PathSpec
+      Test.Syd.RunnerSpec
       Test.Syd.ScenarioSpec
       Test.Syd.SequentialSpec
       Test.Syd.Specify.AllOuterSpec

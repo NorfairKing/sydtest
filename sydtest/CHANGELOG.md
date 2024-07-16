@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.15.1.3] - 2024-07-20
+
+* Fix race condition in the asynchronous runner
+
 ## [0.15.1.2] - 2024-07-18
 
 * Fix parsing filter flags so it becomes easy to select tests with spaces in their description

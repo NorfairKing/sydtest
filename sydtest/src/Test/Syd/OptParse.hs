@@ -667,7 +667,7 @@ parseFlags =
     <*> doubleSwitch ["profile"] (help "Turn on profiling mode.")
 
 manyOptional :: OptParse.Mod OptionFields [Text] -> OptParse.Parser [Text]
-manyOptional modifier = mconcat <$> many (option (str <&> T.words) modifier)
+manyOptional modifier = mconcat <$> many (option (str <&> (: [])) modifier)
 
 seedSettingFlags :: OptParse.Parser (Maybe SeedSetting)
 seedSettingFlags =

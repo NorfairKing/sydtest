@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.15.1.2] - 2024-07-18
+
+* Fix parsing filter flags so it becomes easy to select tests with spaces in their description
+
 ## [0.15.1.1] - 2023-10-04
 
 * Compatibility with `optparse-applicative > 0.18`.

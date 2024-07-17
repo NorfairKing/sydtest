@@ -11,7 +11,6 @@ import Autodocodec
 import Autodocodec.Yaml
 import Control.Applicative
 import Control.Monad
-import Data.Functor ((<&>))
 import Data.Maybe
 import Data.String
 import Data.Text (Text)
@@ -666,8 +665,8 @@ parseFlags =
     <*> doubleSwitch ["debug"] (help "Turn on debug mode. This implies --no-randomise-execution-order, --synchronous, --progress and --fail-fast.")
     <*> doubleSwitch ["profile"] (help "Turn on profiling mode.")
 
-manyOptional :: OptParse.Mod OptionFields [Text] -> OptParse.Parser [Text]
-manyOptional modifier = mconcat <$> many (option (str <&> T.words) modifier)
+manyOptional :: OptParse.Mod OptionFields Text -> OptParse.Parser [Text]
+manyOptional modifier = many (option str modifier)
 
 seedSettingFlags :: OptParse.Parser (Maybe SeedSetting)
 seedSettingFlags =

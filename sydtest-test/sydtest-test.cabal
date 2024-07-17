@@ -90,6 +90,7 @@ test-suite sydtest-test
       Test.Syd.ExpectationSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
+      Test.Syd.OptParseSpec
       Test.Syd.PathSpec
       Test.Syd.ScenarioSpec
       Test.Syd.SequentialSpec
@@ -107,6 +108,7 @@ test-suite sydtest-test
     , base >=4.7 && <5
     , bytestring
     , fast-myers-diff
+    , optparse-applicative
     , path
     , path-io
     , safe-coloured-text

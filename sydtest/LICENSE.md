@@ -1,6 +1,6 @@
 # Sydtest License
 
-Copyright (c) 2020-2022 Tom Sydney Kerckhove
+Copyright (c) 2020-2024 Tom Sydney Kerckhove
 
 ## Anyone
 

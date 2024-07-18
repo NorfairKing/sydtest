@@ -91,54 +91,54 @@ let
       passthru = (old.passthru or { }) // { inherit webdriverDeps; };
     });
 
-  sydtestPackages =
-    {
-      "sydtest" = overrideCabal (sydtestPkg "sydtest") (old: {
-        # We turn off tests on other versions because they generate different
-        # random data and/or add different data to the callstack.
-        # This makes the output tests fail.
-        doCheck = self.ghc.version == "9.4.8";
-      });
-      "sydtest-aeson" = sydtestPkg "sydtest-aeson";
-      "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
-      "sydtest-discover" = sydtestPkg "sydtest-discover";
-      "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
-      "sydtest-hspec" = sydtestPkg "sydtest-hspec";
-      "sydtest-persistent" = sydtestPkg "sydtest-persistent";
-      "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
-      "sydtest-process" = sydtestPkg "sydtest-process";
-      "sydtest-servant" = sydtestPkg "sydtest-servant";
-      "sydtest-typed-process" = sydtestPkg "sydtest-typed-process";
-      "sydtest-wai" = sydtestPkg "sydtest-wai";
-      "sydtest-yesod" = sydtestPkg "sydtest-yesod";
-      "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
-        testDepends = (old.testDepends or [ ]) ++ [ redis ];
-      });
-      "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
-        testDepends = (old.testDepends or [ ]) ++ [ postgresql ];
-        # Turn off testing there's something wrong with a gclib version on
-        # older nixpkgs versions?
-        doCheck = false;
-      });
-      "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
-        passthru = (old.passthru or { }) // {
-          inherit fontsConfig;
-          inherit setupFontsConfigScript;
-          inherit enableWebdriver;
-        };
-      });
-      "sydtest-webdriver-screenshot" = enableWebdriver (sydtestPkg "sydtest-webdriver-screenshot");
-      "sydtest-webdriver-yesod" = enableWebdriver (sydtestPkg "sydtest-webdriver-yesod");
-      "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
-    } //
-    # https://github.com/mongodb-haskell/mongodb/issues/143
-    optionalAttrs (versionOlder mongodb.version "6.0") {
-      "sydtest-mongo" = (enableMongo (sydtestPkg "sydtest-mongo")).overrideAttrs (old: {
-        passthru = (old.passthru or { }) // {
-          inherit enableMongo;
-        };
-      });
-    };
+  sydtestPackages = {
+    "sydtest" = sydtestPkg "sydtest";
+    "sydtest-aeson" = sydtestPkg "sydtest-aeson";
+    "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
+    "sydtest-discover" = sydtestPkg "sydtest-discover";
+    "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
+    "sydtest-hspec" = sydtestPkg "sydtest-hspec";
+    "sydtest-persistent" = sydtestPkg "sydtest-persistent";
+    "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
+    "sydtest-process" = sydtestPkg "sydtest-process";
+    "sydtest-servant" = sydtestPkg "sydtest-servant";
+    "sydtest-typed-process" = sydtestPkg "sydtest-typed-process";
+    "sydtest-wai" = sydtestPkg "sydtest-wai";
+    "sydtest-yesod" = sydtestPkg "sydtest-yesod";
+    "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
+      testDepends = (old.testDepends or [ ]) ++ [ redis ];
+    });
+    "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
+      testDepends = (old.testDepends or [ ]) ++ [ postgresql ];
+      # Turn off testing there's something wrong with a gclib version on
+      # older nixpkgs versions?
+      doCheck = false;
+    });
+    "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
+      passthru = (old.passthru or { }) // {
+        inherit fontsConfig;
+        inherit setupFontsConfigScript;
+        inherit enableWebdriver;
+      };
+    });
+    "sydtest-webdriver-screenshot" = enableWebdriver (sydtestPkg "sydtest-webdriver-screenshot");
+    "sydtest-webdriver-yesod" = enableWebdriver (sydtestPkg "sydtest-webdriver-yesod");
+    "sydtest-test" = overrideCabal (sydtestPkg "sydtest-test") (old: {
+      # We turn off tests on other versions because they generate different
+      # random data and/or add different data to the callstack.
+      # This makes the output tests fail.
+      doCheck = self.ghc.version == "9.6.5";
+    });
+    "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
+  } //
+  # https://github.com/mongodb-haskell/mongodb/issues/143
+  optionalAttrs (versionOlder mongodb.version "6.0") {
+    "sydtest-mongo" = (enableMongo (sydtestPkg "sydtest-mongo")).overrideAttrs (old: {
+      passthru = (old.passthru or { }) // {
+        inherit enableMongo;
+      };
+    });
+  };
 
 in
 {

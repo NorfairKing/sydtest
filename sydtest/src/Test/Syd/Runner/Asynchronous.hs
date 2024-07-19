@@ -16,7 +16,6 @@ where
 
 import Control.Concurrent.Async as Async
 import Control.Concurrent.MVar
-import Control.Concurrent.QSem
 import Control.Concurrent.STM as STM
 import Control.Exception
 import Control.Monad
@@ -24,8 +23,6 @@ import Control.Monad.Reader
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Data.Vector (Vector)
-import qualified Data.Vector as V
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
 import Test.QuickCheck.IO ()
@@ -75,11 +72,11 @@ data JobQueue = JobQueue
     jobQueueWorkingCount :: !(TVar Int)
   }
 
--- | Make a new job queue with a given number of workers and capacity
-newJobQueue :: Word -> Word -> IO JobQueue
-newJobQueue nbWorkers spots = do
+-- | Make a new job queue with a given capacity
+newJobQueue :: Word -> IO JobQueue
+newJobQueue spots = do
   jobQueueTBQueue <- newTBQueueIO (fromIntegral spots)
-  jobQueueWorkingCount <- newTVarIO (fromIntegral 0)
+  jobQueueWorkingCount <- newTVarIO (fromIntegral (0 :: Word))
   pure JobQueue {..}
 
 -- | Enqueue a job, block until that's possible.
@@ -88,9 +85,9 @@ enqueueJob JobQueue {..} job =
   atomically $ writeTBQueue jobQueueTBQueue job
 
 -- | Dequeue a job.
-dequeueJob :: JobQueue -> IO Job
+dequeueJob :: JobQueue -> STM Job
 dequeueJob JobQueue {..} =
-  atomically $ readTBQueue jobQueueTBQueue
+  readTBQueue jobQueueTBQueue
 
 -- | Block until all workers are done (waiting to dequeue a job).
 blockUntilDone :: JobQueue -> IO ()
@@ -101,8 +98,9 @@ blockUntilDone JobQueue {..} = do
     -- Wait for all workers to stop working.
     currentlyRunning <- readTVar jobQueueWorkingCount
     when (currentlyRunning > 0) retry
-  -- No new work can be started now, because the queue is empty and no worker
-  -- are running.
+
+-- No new work can be started now, because the queue is empty and no worker
+-- are running.
 
 withJobQueueWorkers :: Word -> JobQueue -> IO a -> IO a
 withJobQueueWorkers nbWorkers jobQueue func =
@@ -114,16 +112,15 @@ withJobQueueWorkers nbWorkers jobQueue func =
     (\_ -> func)
 
 jobQueueWorker :: JobQueue -> Int -> IO ()
-jobQueueWorker JobQueue{..} workerIx = do
+jobQueueWorker jobQueue workerIx = do
   forever $ do
     bracket
-      (atomically $ do
-         -- Pick a job in queue and increase the count
-         job <- readTBQueue jobQueueTBQueue
-         modifyTVar' jobQueueWorkingCount (+1)
-         pure job
+      ( atomically $ do
+          -- Pick a job in queue and increase the count
+          modifyTVar' (jobQueueWorkingCount jobQueue) (+ 1)
+          dequeueJob jobQueue
       )
-      (\_ -> atomically $ modifyTVar' jobQueueWorkingCount (subtract 1))
+      (\_ -> atomically $ modifyTVar' (jobQueueWorkingCount jobQueue) (subtract 1))
       (\job -> job workerIx)
 
 -- The plan is as follows:
@@ -168,7 +165,7 @@ runner :: Settings -> Word -> MVar () -> HandleForest '[] () -> IO ()
 runner settings nbThreads failFastVar handleForest = do
   let nbWorkers = nbThreads
   let nbSpacesOnTheJobQueue = nbWorkers * 2
-  jobQueue <- newJobQueue nbWorkers nbSpacesOnTheJobQueue
+  jobQueue <- newJobQueue nbSpacesOnTheJobQueue
 
   withJobQueueWorkers nbWorkers jobQueue $ do
     let waitForWorkersDone :: IO ()

@@ -7,7 +7,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-24.05";
     nixpkgs-23_11.url = "github:NixOS/nixpkgs?ref=nixos-23.11";
-    nixpkgs-23_05.url = "github:NixOS/nixpkgs?ref=nixos-23.05";
     horizon-advance.url = "git+https://gitlab.horizon-haskell.net/package-sets/horizon-advance";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     autodocodec.url = "github:NorfairKing/autodocodec";
@@ -26,7 +25,6 @@
     { self
     , nixpkgs
     , nixpkgs-23_11
-    , nixpkgs-23_05
     , horizon-advance
     , pre-commit-hooks
     , autodocodec
@@ -54,14 +52,13 @@
     {
       overrides.${system} = pkgs.callPackage ./nix/overrides.nix { };
       overlays.${system} = import ./nix/overlay.nix;
-      packages.${system} = haskellPackages.sydtestPackages;
+      packages.${system}.default = haskellPackages.sydtestRelease;
       checks.${system} =
         let
           backwardCompatibilityCheckFor = nixpkgs: (haskellPackagesFor nixpkgs).sydtestRelease;
           allNixpkgs = {
             inherit
-              nixpkgs-23_11
-              nixpkgs-23_05;
+              nixpkgs-23_11;
           };
           backwardCompatibilityChecks = pkgs.lib.mapAttrs (_: nixpkgs: backwardCompatibilityCheckFor nixpkgs) allNixpkgs;
         in
@@ -90,7 +87,7 @@
           cabal-install
           postgresql
           redis
-          mongodb
+          # mongodb
           zlib
         ]) ++ self.checks.${system}.pre-commit.enabledPackages;
         shellHook = ''
@@ -103,4 +100,4 @@
         public-key = "sydtest.cachix.org-1:fyby3c42t+0iTABcLd/R3POxzJhCQ/9gYM7Sh879+9w=";
       };
     };
-} 
+}

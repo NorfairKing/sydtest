@@ -28,7 +28,7 @@ tests:
     - QuickCheck
     - bytestring
     - fast-myers-diff
-    - optparse-applicative
+    - opt-env-conf-test
     - path
     - path-io
     - safe-coloured-text

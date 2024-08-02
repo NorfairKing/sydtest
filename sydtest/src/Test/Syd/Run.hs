@@ -26,6 +26,7 @@ import Data.Typeable
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Generics (Generic)
+import OptEnvConf
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
@@ -129,7 +130,7 @@ instance IsTest (ReaderT env IO ()) where
 instance IsTest (outerArgs -> ReaderT env IO ()) where
   type Arg1 (outerArgs -> ReaderT env IO ()) = outerArgs
   type Arg2 (outerArgs -> ReaderT env IO ()) = env
-  runTest func = runTest (\outerArgs env -> runReaderT (func outerArgs) env)
+  runTest func = runTest (\outerArgs e -> runReaderT (func outerArgs) e)
 
 runIOTestWithArg ::
   (outerArgs -> innerArg -> IO ()) ->
@@ -424,6 +425,37 @@ instance HasCodec SeedSetting where
       g = \case
         RandomSeed -> Left "random"
         FixedSeed i -> Right i
+
+instance HasParser SeedSetting where
+  settingsParser =
+    choice
+      [ setting
+          [ help "Use a random seed for pseudo-randomness",
+            switch RandomSeed,
+            long "random-seed"
+          ],
+        RandomSeed
+          <$ setting
+            [ help "Use a random seed for pseudo-randomness",
+              OptEnvConf.reader exists,
+              env "RANDOM_SEED",
+              metavar "ANY"
+            ],
+        FixedSeed
+          <$> setting
+            [ help "Seed for pseudo-randomness",
+              OptEnvConf.reader auto,
+              option,
+              long "seed",
+              env "SEED",
+              metavar "INT"
+            ],
+        setting
+          [ help "Seed for pseudo-randomness",
+            conf "seed"
+          ],
+        pure $ testRunSettingSeed defaultTestRunSettings
+      ]
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,

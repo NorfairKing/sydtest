@@ -3,11 +3,11 @@
     "autodocodec": {
       "flake": false,
       "locked": {
-        "lastModified": 1719160008,
-        "narHash": "sha256-ZVcod9Yp3lzzZa/NEkqHp0jnxRrcMv3Z+sQ1dxmpnPo=",
+        "lastModified": 1722508061,
+        "narHash": "sha256-D4xBLLPqC7gqk00vmIo8RaYEliczdwS63mB4PW+P228=",
         "owner": "NorfairKing",
         "repo": "autodocodec",
-        "rev": "36779707f38ec3aeb0a591ff8043a63717c96ea2",
+        "rev": "d5f9869861d8678c7e6dfce339446fee490b8991",
         "type": "github"
       },
       "original": {
@@ -242,22 +242,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-23_05": {
-      "locked": {
-        "lastModified": 1704290814,
-        "narHash": "sha256-LWvKHp7kGxk/GEtlrGYV68qIvPHkU9iToomNFGagixU=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "70bdadeb94ffc8806c0570eb5c2695ad29f0e421",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-23.05",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs-23_11": {
       "locked": {
         "lastModified": 1719957072,
@@ -397,11 +381,11 @@
     "opt-env-conf": {
       "flake": false,
       "locked": {
-        "lastModified": 1720421273,
-        "narHash": "sha256-zfwjcewkPidFEAtF9ozqxiCbr3uxFM8aYlncp5cyigU=",
+        "lastModified": 1722710629,
+        "narHash": "sha256-UlhTRHUzJv+mryf+rZ3bRJUtOYITqbPBIZl6QpwdMEI=",
         "owner": "NorfairKing",
         "repo": "opt-env-conf",
-        "rev": "2e6aaaa65eb3f5008b05c28adc29312bd8a47d46",
+        "rev": "1a8d79f4748ae566c525de8951ee6907ac3739a8",
         "type": "github"
       },
       "original": {
@@ -437,7 +421,6 @@
         "fast-myers-diff": "fast-myers-diff",
         "horizon-advance": "horizon-advance",
         "nixpkgs": "nixpkgs_5",
-        "nixpkgs-23_05": "nixpkgs-23_05",
         "nixpkgs-23_11": "nixpkgs-23_11",
         "opt-env-conf": "opt-env-conf",
         "pre-commit-hooks": "pre-commit-hooks",
@@ -448,11 +431,11 @@
     "safe-coloured-text": {
       "flake": false,
       "locked": {
-        "lastModified": 1719786575,
-        "narHash": "sha256-7jd3H3Fc5hb9NP+9gnWdTGCHkQ+28GgUD0IS/uzdkTQ=",
+        "lastModified": 1722709522,
+        "narHash": "sha256-zglWqKISYz34A+/PvqwvwrbQYSEcko8C595VAeINitw=",
         "owner": "NorfairKing",
         "repo": "safe-coloured-text",
-        "rev": "a58b782acc873a40a0eeb20eb4dc22c6df9c9dee",
+        "rev": "046f10147a058c00c2706d98c341219e3cbc7669",
         "type": "github"
       },
       "original": {

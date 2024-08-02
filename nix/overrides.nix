@@ -147,6 +147,7 @@ in
   sydtestRelease = symlinkJoin {
     name = "sydtest-release";
     paths = attrValues self.sydtestPackages;
+    passthru = self.sydtestPackages;
   };
   # Until https://github.com/jfischoff/tmp-postgres/issues/281
   tmp-postgres =

@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest
-version:        0.15.1.3
+version:        0.16.0.0
 synopsis:       A modern testing framework for Haskell with good defaults and advanced testing features.
 description:    A modern testing framework for Haskell with good defaults and advanced testing features. Sydtest aims to make the common easy and the hard possible. See https://github.com/NorfairKing/sydtest#readme for more information.
 category:       Testing
@@ -63,16 +63,14 @@ library
     , QuickCheck
     , async
     , autodocodec
-    , autodocodec-yaml >=0.2.0.0
     , base >=4.7 && <5
     , bytestring
     , containers
     , dlist
-    , envparse
     , fast-myers-diff
     , filepath
     , mtl
-    , optparse-applicative
+    , opt-env-conf >=0.5
     , path
     , path-io
     , pretty-show

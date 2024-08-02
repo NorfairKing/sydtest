@@ -29,6 +29,18 @@ ghc-options:
 extra-deps:
 - fast-myers-diff-0.0.0
 
+- github: NorfairKing/opt-env-conf
+  commit: 1a8d79f4748ae566c525de8951ee6907ac3739a8
+  subdirs:
+    - opt-env-conf
+    - opt-env-conf-test
+- github: NorfairKing/autodocodec
+  commit: d5f9869861d8678c7e6dfce339446fee490b8991
+  subdirs:
+    - autodocodec
+    - autodocodec-nix
+    - autodocodec-schema
+    - autodocodec-yaml
 - github: NorfairKing/validity
   commit: 57c4897ccfeb3de60489e0328113798f059ef140
   subdirs:
@@ -50,12 +62,6 @@ extra-deps:
   - safe-coloured-text
   - safe-coloured-text-layout
   - safe-coloured-text-gen
-- github: NorfairKing/autodocodec
-  commit: 36779707f38ec3aeb0a591ff8043a63717c96ea2
-  subdirs:
-    - autodocodec
-    - autodocodec-yaml
-    - autodocodec-schema
 - tmp-postgres-1.34.1.0@sha256:a08a5fc554cfe19def3cb25bdbdb48456ab217669633ac01973231e1402d27cb,4959
 - ansi-wl-pprint-0.6.9@sha256:fb737bc96e2aef34ad595d54ced7a73f648c521ebcb00fe0679aff45ccd49212,2448
 

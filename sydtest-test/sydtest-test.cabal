@@ -109,7 +109,7 @@ test-suite sydtest-test
     , base >=4.7 && <5
     , bytestring
     , fast-myers-diff
-    , optparse-applicative
+    , opt-env-conf-test
     , path
     , path-io
     , safe-coloured-text

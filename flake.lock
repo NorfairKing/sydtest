@@ -3,11 +3,11 @@
     "autodocodec": {
       "flake": false,
       "locked": {
-        "lastModified": 1719160008,
-        "narHash": "sha256-ZVcod9Yp3lzzZa/NEkqHp0jnxRrcMv3Z+sQ1dxmpnPo=",
+        "lastModified": 1722508061,
+        "narHash": "sha256-D4xBLLPqC7gqk00vmIo8RaYEliczdwS63mB4PW+P228=",
         "owner": "NorfairKing",
         "repo": "autodocodec",
-        "rev": "36779707f38ec3aeb0a591ff8043a63717c96ea2",
+        "rev": "d5f9869861d8678c7e6dfce339446fee490b8991",
         "type": "github"
       },
       "original": {
@@ -397,11 +397,11 @@
     "opt-env-conf": {
       "flake": false,
       "locked": {
-        "lastModified": 1720421273,
-        "narHash": "sha256-zfwjcewkPidFEAtF9ozqxiCbr3uxFM8aYlncp5cyigU=",
+        "lastModified": 1722380989,
+        "narHash": "sha256-cpVaucTmX9+hrUqyucLv3S5qoX2PL2mL1X6DCOjrlU0=",
         "owner": "NorfairKing",
         "repo": "opt-env-conf",
-        "rev": "2e6aaaa65eb3f5008b05c28adc29312bd8a47d46",
+        "rev": "14d502e235923daaf39d746c861869a6cdd8a890",
         "type": "github"
       },
       "original": {

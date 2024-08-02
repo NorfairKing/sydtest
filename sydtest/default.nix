@@ -1,8 +1,8 @@
 { mkDerivation, async, autodocodec, autodocodec-yaml, base
 , bytestring, containers, dlist, envparse, fast-myers-diff
-, filepath, lib, MonadRandom, mtl, optparse-applicative, path
-, path-io, pretty-show, QuickCheck, quickcheck-io, random
-, random-shuffle, safe, safe-coloured-text
+, filepath, lib, MonadRandom, mtl, opt-env-conf
+, optparse-applicative, path, path-io, pretty-show, QuickCheck
+, quickcheck-io, random, random-shuffle, safe, safe-coloured-text
 , safe-coloured-text-terminfo, stm, svg-builder, text, vector
 }:
 mkDerivation {
@@ -11,7 +11,7 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [
     async autodocodec autodocodec-yaml base bytestring containers dlist
-    envparse fast-myers-diff filepath MonadRandom mtl
+    envparse fast-myers-diff filepath MonadRandom mtl opt-env-conf
     optparse-applicative path path-io pretty-show QuickCheck
     quickcheck-io random random-shuffle safe safe-coloured-text
     safe-coloured-text-terminfo stm svg-builder text vector

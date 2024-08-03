@@ -30,7 +30,7 @@ extra-deps:
 - fast-myers-diff-0.0.0
 
 - github: NorfairKing/opt-env-conf
-  commit: aa77dbe0333a9af40dbac1a2df4716c822ff6e82
+  commit: e1e7846edcdba5294c7f476292c7f04bec9a8e8e
   subdirs:
     - opt-env-conf
     - opt-env-conf-test

@@ -1,5 +1,5 @@
 name: sydtest
-version: 0.15.1.3
+version: 0.16.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -26,16 +26,13 @@ library:
     - QuickCheck
     - async
     - autodocodec
-    - autodocodec-yaml >=0.2.0.0
     - bytestring
     - containers
     - dlist
-    - envparse
     - fast-myers-diff
     - filepath
     - mtl
-    - opt-env-conf
-    - optparse-applicative
+    - opt-env-conf >=0.5
     - path
     - path-io
     - pretty-show

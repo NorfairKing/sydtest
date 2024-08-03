@@ -15,6 +15,5 @@ Settings
   , settingRetries = 3
   , settingFailOnFlaky = False
   , settingReportProgress = ReportNoProgress
-  , settingDebug = False
   , settingProfile = False
   }

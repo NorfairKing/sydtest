@@ -121,10 +121,8 @@
     Retries: 3 (does not look flaky)
   [31m✗ [m[31mdoes not fail the suite when an exception happens while producing[m               [32m      0.00 ms[m
     Retries: 3 (does not look flaky)
-    [31mGolden output not found[m
   [31m✗ [m[31mdoes not fail the suite when an exception happens while writing[m                 [32m      0.00 ms[m
     Retries: 3 (does not look flaky)
-    [31mGolden output not found[m
   [31m✗ [m[31mdoes not fail the suite when an exception happens while checking for equality[m   [32m      0.00 ms[m
     Retries: 3 (does not look flaky)
   [33moutputResultForest[m
@@ -642,12 +640,12 @@
   [36m  output-test/Spec.hs:111[m
   [31m✗ [m[31m41 [m[31mGolden.does not fail the suite when an exception happens while producing[m
        Retries: 3 (does not look flaky)
-       [31mGolden output not found[m
+       ExitFailure 1
   
   [36m  output-test/Spec.hs:119[m
   [31m✗ [m[31m42 [m[31mGolden.does not fail the suite when an exception happens while writing[m
        Retries: 3 (does not look flaky)
-       [31mGolden output not found[m
+       ExitFailure 1
   
   [36m  output-test/Spec.hs:126[m
   [31m✗ [m[31m43 [m[31mGolden.does not fail the suite when an exception happens while checking for equality[m

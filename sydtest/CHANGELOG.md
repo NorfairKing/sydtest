@@ -1,14 +1,26 @@
 # Changelog
 
+## [0.16.0.0] - 2024-08-03
+
+### Changed
+
+* `opt-env-conf`-based settings parsing.
+
 ## [0.15.1.3] - 2024-07-20
+
+### Changed
 
 * Fix race condition in the asynchronous runner
 
 ## [0.15.1.2] - 2024-07-18
 
+### Changed
+
 * Fix parsing filter flags so it becomes easy to select tests with spaces in their description
 
 ## [0.15.1.1] - 2023-10-04
+
+### Changed
 
 * Compatibility with `optparse-applicative > 0.18`.
 * Compatibility with `GHC >= 9.7`.
@@ -16,17 +28,26 @@
 
 ## [0.15.1.0] - 2023-07-28
 
+### Added
+
 * `setupAroundWithAll`: so it's easier to use multiple outer resources to provide an inner resource, without the need of extra type annotation.
 
 ## [0.15.0.0] - 2023-04-08
+
+### Added
 
 * `DefBeforeAllWithNode`: so that `beforeAllWith` can be defined in terms of it and have better parallelism properties.
 * `DefSetupNode`: so that `beforeAll_` can be defined in terms of it and have better parallelism properties.
 
 ## [0.14.0.0] - 2023-04-05
 
+### Added
+
 * Profiling mode, for figuring out why your test suite is slow.
   Use `--profile` to turn it on.
+
+### Changed
+
 * An improved asynchronous test runner.
 * Made `--debug` imply `--retries 0`
 

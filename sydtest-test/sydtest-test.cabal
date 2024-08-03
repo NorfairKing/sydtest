@@ -15,6 +15,7 @@ license:        AllRightsReserved
 build-type:     Simple
 extra-source-files:
     test_resources/defaultSettings-show.golden
+    test_resources/documentation.txt
     test_resources/even/2
     test_resources/even/4
     test_resources/even/odd/3

@@ -130,7 +130,7 @@ instance IsTest (ReaderT env IO ()) where
 instance IsTest (outerArgs -> ReaderT env IO ()) where
   type Arg1 (outerArgs -> ReaderT env IO ()) = outerArgs
   type Arg2 (outerArgs -> ReaderT env IO ()) = env
-  runTest func = runTest (\outerArgs env -> runReaderT (func outerArgs) env)
+  runTest func = runTest (\outerArgs e -> runReaderT (func outerArgs) e)
 
 runIOTestWithArg ::
   (outerArgs -> innerArg -> IO ()) ->
@@ -429,18 +429,32 @@ instance HasCodec SeedSetting where
 instance HasParser SeedSetting where
   settingsParser =
     choice
-      [ FixedSeed
+      [ setting
+          [ help "Use a random seed for pseudo-randomness",
+            switch RandomSeed,
+            long "random-seed"
+          ],
+        RandomSeed
+          <$ setting
+            [ help "Use a random seed for pseudo-randomness",
+              OptEnvConf.reader exists,
+              env "RANDOM_SEED",
+              metavar "ANY"
+            ],
+        FixedSeed
           <$> setting
-            [ help "Randomness seed",
+            [ help "Seed for pseudo-randomness",
               OptEnvConf.reader auto,
-              name "seed",
+              option,
+              long "seed",
+              env "SEED",
               metavar "INT"
             ],
         setting
-          [ help "Use a random seed for randomness",
-            switch RandomSeed,
-            long "random-seed"
-          ]
+          [ help "Seed for pseudo-randomness",
+            conf "seed"
+          ],
+        pure $ testRunSettingSeed defaultTestRunSettings
       ]
 
 data TestRunResult = TestRunResult

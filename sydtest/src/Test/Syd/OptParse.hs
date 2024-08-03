@@ -4,7 +4,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Test.Syd.OptParse where
 
@@ -54,7 +53,7 @@ data Settings = Settings
     settingGoldenStart :: !Bool,
     -- | Whether to overwrite golden tests instead of having them fail
     settingGoldenReset :: !Bool,
-    -- | Whether to use colour in the output
+    -- | Whether to use colour in the output, 'Nothing' means "detect"
     settingColour :: !(Maybe Bool),
     -- | The filters to use to select which tests to run
     settingFilters :: ![Text],
@@ -68,115 +67,58 @@ data Settings = Settings
     settingFailOnFlaky :: !Bool,
     -- | How to report progress
     settingReportProgress :: !ReportProgress,
-    -- | Debug mode
-    settingDebug :: !Bool,
     -- | Profiling mode
     settingProfile :: !Bool
   }
   deriving (Show, Eq, Generic)
 
 instance HasParser Settings where
-  settingsParser = do
-    settingSeed <- setting [metavar "SeedSetting"]
-    settingRandomiseExecutionOrder <- setting [metavar "Bool"]
-    settingThreads <- setting [metavar "Threads"]
-    settingMaxSuccess <- setting [metavar "Int"]
-    settingMaxSize <- setting [metavar "Int"]
-    settingMaxDiscard <- setting [metavar "Int"]
-    settingMaxShrinks <- setting [metavar "Int"]
-    settingGoldenStart <- setting [metavar "Bool"]
-    settingGoldenReset <- setting [metavar "Bool"]
-    settingColour <- setting [metavar "Maybe Bool"]
-    settingFilters <- setting [metavar "[Text]"]
-    settingFailFast <- setting [metavar "Bool"]
-    settingIterations <- setting [metavar "Iterations"]
-    settingRetries <- setting [metavar "Word"]
-    settingFailOnFlaky <- setting [metavar "Bool"]
-    settingReportProgress <- setting [metavar "ReportProgress"]
-    settingDebug <- setting [metavar "Bool"]
-    settingProfile <- setting [metavar "Bool"]
-    pure Settings {..}
+  settingsParser =
+    subEnv_ "sydtest" $
+      withConfigurableYamlConfig (runIO $ resolveFile' ".sydtest.yaml") $
+        checkMapEither combine settingsParser
+    where
+      combine Flags {..} = do
+        let d func = func defaultSettings
+        pure
+          Settings
+            { settingSeed = fromMaybe (d settingSeed) flagSeed,
+              settingRandomiseExecutionOrder =
+                fromMaybe
+                  ( if flagDebug
+                      then False
+                      else d settingRandomiseExecutionOrder
+                  )
+                  flagRandomiseExecutionOrder,
+              settingThreads =
+                fromMaybe
+                  ( if flagDebug
+                      then Synchronous
+                      else d settingThreads
+                  )
+                  flagThreads,
+              settingMaxSuccess = flagMaxSuccess,
+              settingMaxSize = flagMaxSize,
+              settingMaxDiscard = flagMaxDiscard,
+              settingMaxShrinks = flagMaxShrinks,
+              settingGoldenStart = flagGoldenStart,
+              settingGoldenReset = flagGoldenReset,
+              settingColour = flagColour,
+              settingFilters = flagFilters,
+              settingFailFast =
+                fromMaybe
+                  ( if flagDebug
+                      then True
+                      else d settingFailFast
+                  )
+                  flagFailFast,
+              settingIterations = fromMaybe (d settingIterations) flagIterations,
+              settingRetries = fromMaybe (d settingRetries) flagRetries,
+              settingFailOnFlaky = flagFailOnFlaky,
+              settingReportProgress = fromMaybe (d settingReportProgress) flagReportProgress,
+              settingProfile = flagProfile
+            }
 
-defaultSettings :: Settings
-defaultSettings =
-  let d func = func defaultTestRunSettings
-   in Settings
-        { settingSeed = d testRunSettingSeed,
-          settingRandomiseExecutionOrder = True,
-          settingThreads = ByCapabilities,
-          settingMaxSuccess = d testRunSettingMaxSuccess,
-          settingMaxSize = d testRunSettingMaxSize,
-          settingMaxDiscard = d testRunSettingMaxDiscardRatio,
-          settingMaxShrinks = d testRunSettingMaxShrinks,
-          settingGoldenStart = d testRunSettingGoldenStart,
-          settingGoldenReset = d testRunSettingGoldenReset,
-          settingColour = Nothing,
-          settingFilters = mempty,
-          settingFailFast = False,
-          settingIterations = OneIteration,
-          settingRetries = defaultRetries,
-          settingFailOnFlaky = False,
-          settingReportProgress = ReportNoProgress,
-          settingDebug = False,
-          settingProfile = False
-        }
-
-defaultRetries :: Word
-defaultRetries = 3
-
-deriveTerminalCapababilities :: Settings -> IO TerminalCapabilities
-deriveTerminalCapababilities settings = case settingColour settings of
-  Just False -> pure WithoutColours
-  Just True -> pure With8BitColours
-  Nothing -> detectTerminalCapabilities
-
-#ifdef mingw32_HOST_OS
-detectTerminalCapabilities :: IO TerminalCapabilities
-detectTerminalCapabilities = do
-  supports <- hSupportsANSIColor stdout
-  if supports
-    then pure With8BitColours
-    else pure WithoutColours
-#else
-detectTerminalCapabilities :: IO TerminalCapabilities
-detectTerminalCapabilities = getTerminalCapabilitiesFromEnv
-#endif
-
-data Threads
-  = -- | One thread
-    Synchronous
-  | -- | As many threads as 'getNumCapabilities' tells you you have
-    ByCapabilities
-  | -- | A given number of threads
-    Asynchronous !Word
-  deriving (Show, Read, Eq, Generic)
-
-data Iterations
-  = -- | Run the test suite once, the default
-    OneIteration
-  | -- | Run the test suite for the given number of iterations, or until we can find flakiness
-    Iterations !Word
-  | -- | Run the test suite over and over, until we can find some flakiness
-    Continuous
-  deriving (Show, Read, Eq, Generic)
-
-data ReportProgress
-  = -- | Don't report any progress, the default
-    ReportNoProgress
-  | -- | Report progress
-    ReportProgress
-  deriving (Show, Read, Eq, Generic)
-
--- -- | Combine everything to 'Settings'
--- combineToSettings :: Flags -> Environment -> Maybe Configuration -> IO Settings
--- combineToSettings Flags {..} Environment {..} mConf = do
---   let d func = func defaultSettings
---   let debugMode =
---         fromMaybe (d settingDebug) $
---           flagDebug <|> envDebug <|> mc configDebug
---   let threads =
---         fromMaybe (if debugMode then Synchronous else d settingThreads) $
---           flagThreads <|> envThreads <|> mc configThreads
 --   setReportProgress <-
 --     case flagReportProgress <|> envReportProgress <|> mc configReportProgress of
 --       Nothing ->
@@ -200,9 +142,6 @@ data ReportProgress
 --       { settingSeed =
 --           fromMaybe (d settingSeed) $
 --             flagSeed <|> envSeed <|> mc configSeed,
---         settingRandomiseExecutionOrder =
---           fromMaybe (if debugMode then False else d settingRandomiseExecutionOrder) $
---             flagRandomiseExecutionOrder <|> envRandomiseExecutionOrder <|> mc configRandomiseExecutionOrder,
 --         settingThreads = threads,
 --         settingMaxSuccess =
 --           fromMaybe (d settingMaxSuccess) $
@@ -216,13 +155,6 @@ data ReportProgress
 --         settingMaxShrinks =
 --           fromMaybe (d settingMaxShrinks) $
 --             flagMaxShrinks <|> envMaxShrinks <|> mc configMaxShrinks,
---         settingGoldenStart =
---           fromMaybe (d settingGoldenStart) $
---             flagGoldenStart <|> envGoldenStart <|> mc configGoldenStart,
---         settingGoldenReset =
---           fromMaybe (d settingGoldenReset) $
---             flagGoldenReset <|> envGoldenReset <|> mc configGoldenReset,
---         settingColour = flagColour <|> envColour <|> mc configColour,
 --         settingFilters = flagFilters <|> maybeToList envFilter <|> maybeToList (mc configFilter),
 --         settingFailFast =
 --           fromMaybe
@@ -238,7 +170,6 @@ data ReportProgress
 --           fromMaybe (d settingFailOnFlaky) $
 --             flagFailOnFlaky <|> envFailOnFlaky <|> mc configFailOnFlaky,
 --         settingReportProgress = setReportProgress,
---         settingDebug = debugMode,
 --         settingProfile =
 --           fromMaybe False $
 --             flagProfile <|> envProfile <|> mc configProfile
@@ -246,35 +177,274 @@ data ReportProgress
 --   where
 --     mc :: (Configuration -> Maybe a) -> Maybe a
 --     mc f = mConf >>= f
---
--- -- | What we find in the configuration variable.
--- --
--- -- Do nothing clever here, just represent the configuration file.
--- -- For example, use 'Maybe FilePath', not 'Path Abs File'.
--- --
--- -- Use 'readYamlConfigFile' or 'readFirstYamlConfigFile' to read a configuration.
--- data Configuration = Configuration
---   { configSeed :: !(Maybe SeedSetting),
---     configRandomiseExecutionOrder :: !(Maybe Bool),
---     configThreads :: !(Maybe Threads),
---     configMaxSize :: !(Maybe Int),
---     configMaxSuccess :: !(Maybe Int),
---     configMaxDiscard :: !(Maybe Int),
---     configMaxShrinks :: !(Maybe Int),
---     configGoldenStart :: !(Maybe Bool),
---     configGoldenReset :: !(Maybe Bool),
---     configColour :: !(Maybe Bool),
---     configFilter :: !(Maybe Text),
---     configFailFast :: !(Maybe Bool),
---     configIterations :: !(Maybe Iterations),
---     configRetries :: !(Maybe Word),
---     configFailOnFlaky :: !(Maybe Bool),
---     configReportProgress :: !(Maybe Bool),
---     configDebug :: !(Maybe Bool),
---     configProfile :: !(Maybe Bool)
---   }
---   deriving (Show, Eq, Generic)
---
+
+defaultSettings :: Settings
+defaultSettings =
+  let d func = func defaultTestRunSettings
+   in Settings
+        { settingSeed = d testRunSettingSeed,
+          settingRandomiseExecutionOrder = True,
+          settingThreads = ByCapabilities,
+          settingMaxSuccess = d testRunSettingMaxSuccess,
+          settingMaxSize = d testRunSettingMaxSize,
+          settingMaxDiscard = d testRunSettingMaxDiscardRatio,
+          settingMaxShrinks = d testRunSettingMaxShrinks,
+          settingGoldenStart = d testRunSettingGoldenStart,
+          settingGoldenReset = d testRunSettingGoldenReset,
+          settingColour = Nothing,
+          settingFilters = mempty,
+          settingFailFast = False,
+          settingIterations = OneIteration,
+          settingRetries = defaultRetries,
+          settingFailOnFlaky = False,
+          settingReportProgress = ReportNoProgress,
+          settingProfile = False
+        }
+
+defaultRetries :: Word
+defaultRetries = 3
+
+deriveTerminalCapababilities :: Settings -> IO TerminalCapabilities
+deriveTerminalCapababilities settings = case settingColour settings of
+  Just False -> pure WithoutColours
+  Just True -> pure With8BitColours
+  Nothing -> detectTerminalCapabilities
+
+#ifdef mingw32_HOST_OS
+detectTerminalCapabilities :: IO TerminalCapabilities
+detectTerminalCapabilities = do
+  supports <- hSupportsANSIColor stdout
+  if supports
+    then pure With8BitColours
+    else pure WithoutColours
+#else
+detectTerminalCapabilities :: IO TerminalCapabilities
+detectTerminalCapabilities = getTerminalCapabilitiesFromEnv
+#endif
+-- We use an intermediate 'Flags' type so that default values can change based
+-- on parse settings. For example, the default value for 'flagThreads' depends
+-- on the value of 'flagDebug'.
+data Flags = Flags
+  { flagSeed :: !(Maybe SeedSetting),
+    flagRandomiseExecutionOrder :: !(Maybe Bool),
+    flagThreads :: !(Maybe Threads),
+    flagMaxSize :: !Int,
+    flagMaxSuccess :: !Int,
+    flagMaxDiscard :: !Int,
+    flagMaxShrinks :: !Int,
+    flagGoldenStart :: !Bool,
+    flagGoldenReset :: !Bool,
+    flagColour :: !(Maybe Bool),
+    flagFilters :: ![Text],
+    flagFailFast :: !(Maybe Bool),
+    flagIterations :: !(Maybe Iterations),
+    flagRetries :: !(Maybe Word),
+    flagFailOnFlaky :: !Bool,
+    flagReportProgress :: !(Maybe ReportProgress),
+    flagDebug :: !Bool,
+    flagProfile :: !Bool
+  }
+  deriving (Show, Eq, Generic)
+
+instance HasParser Flags where
+  settingsParser = do
+    flagSeed <- optional settingsParser
+    flagRandomiseExecutionOrder <-
+      optional $
+        yesNoSwitch -- TODO need yesNoSwitch without default
+          False
+          [ help "Run test suite in a random order",
+            long "randomise-execution-order",
+            long "randomize-execution-order"
+          ]
+    flagThreads <- optional settingsParser
+    flagMaxSize <-
+      setting
+        [ help "Maximum size parameter to pass to generators",
+          reader auto,
+          option,
+          long "max-size",
+          metavar "Int",
+          value $ testRunSettingMaxSize defaultTestRunSettings
+        ]
+    flagMaxSuccess <-
+      setting
+        [ help "Number of property test examples to run",
+          reader auto,
+          option,
+          long "max-success",
+          metavar "Int",
+          value $ testRunSettingMaxSuccess defaultTestRunSettings
+        ]
+    flagMaxDiscard <-
+      setting
+        [ help "Maximum number of property test inputs to discard before considering the test failed",
+          reader auto,
+          option,
+          long "max-discard",
+          metavar "Int",
+          value $ testRunSettingMaxDiscardRatio defaultTestRunSettings
+        ]
+    flagMaxShrinks <-
+      setting
+        [ help "Maximum shrinks to try to apply to a failing property test input",
+          reader auto,
+          option,
+          long "max-shrinks",
+          metavar "Int",
+          value $ testRunSettingMaxShrinks defaultTestRunSettings
+        ]
+    flagGoldenStart <-
+      yesNoSwitch
+        False
+        [ help "Produce initial golden output if it does not exist yet",
+          long "golden-start"
+        ]
+    flagGoldenReset <-
+      yesNoSwitch
+        False
+        [ help "Overwrite golden output",
+          long "golden-reset"
+        ]
+    flagColour <-
+      optional $
+        yesNoSwitch
+          False
+          [ help "Use colour in output",
+            long "colour",
+            long "color"
+          ]
+    flagFilters <-
+      many $
+        setting
+          [ help "Filter to select parts of the test suite",
+            reader str,
+            argument,
+            metavar "FILTER"
+          ]
+    flagFailFast <-
+      optional $ -- TODO we need a yesNoSwitch without default
+        yesNoSwitch
+          False
+          [ help "Stop testing when a test failure occurs",
+            long "fail-fast"
+          ]
+    flagIterations <- optional settingsParser
+    flagRetries <-
+      optional $
+        setting
+          [ help "The number of retries to use for flakiness diagnostics. 0 means 'no retries'",
+            reader auto,
+            option,
+            name "retries",
+            metavar "INTEGER"
+          ]
+    flagFailOnFlaky <-
+      yesNoSwitch
+        False
+        [ help "Fail when any flakiness is detected, even when flakiness is allowed",
+          long "fail-on-flaky"
+        ]
+    flagReportProgress <-
+      optional settingsParser
+    flagDebug <-
+      yesNoSwitch
+        False
+        [ help "Turn on debug mode",
+          long "debug"
+        ]
+    flagProfile <-
+      yesNoSwitch
+        False
+        [ help "Turn on profiling mode",
+          long "profile"
+        ]
+    pure Flags {..}
+
+data Threads
+  = -- | One thread
+    Synchronous
+  | -- | As many threads as 'getNumCapabilities' tells you you have
+    ByCapabilities
+  | -- | A given number of threads
+    Asynchronous !Word
+  deriving (Show, Read, Eq, Generic)
+
+instance HasParser Threads where
+  settingsParser =
+    choice
+      [ ( \case
+            1 -> Synchronous
+            w -> Asynchronous w
+        )
+          <$> setting
+            [ help "How many threads to use to execute tests in asynchrnously",
+              reader auto,
+              option,
+              long "jobs",
+              long "threads",
+              metavar "INT"
+            ],
+        setting
+          [ help "Use only one thread, to execute tests synchronously",
+            switch Synchronous,
+            long "synchronous"
+          ]
+      ]
+
+data Iterations
+  = -- | Run the test suite once, the default
+    OneIteration
+  | -- | Run the test suite for the given number of iterations, or until we can find flakiness
+    Iterations !Word
+  | -- | Run the test suite over and over, until we can find some flakiness
+    Continuous
+  deriving (Show, Read, Eq, Generic)
+
+instance HasParser Iterations where
+  settingsParser =
+    choice
+      [ ( \case
+            0 -> Continuous
+            1 -> OneIteration
+            i -> Iterations i
+        )
+          <$> setting
+            [ help "How many iterations of the suite to run, for example to diagnose flakiness",
+              reader auto,
+              option,
+              long "iterations",
+              metavar "INT"
+            ],
+        setting
+          [ help "Run the test suite over and over again until it fails, for example to diagnose flakiness",
+            switch Continuous,
+            long "continuous"
+          ]
+      ]
+
+data ReportProgress
+  = -- | Don't report any progress, the default
+    ReportNoProgress
+  | -- | Report progress
+    ReportProgress
+  deriving (Show, Read, Eq, Generic)
+
+instance HasParser ReportProgress where
+  settingsParser =
+    choice
+      [ setting
+          [ help "Report per-example progress",
+            switch ReportProgress,
+            long "progress"
+          ],
+        setting
+          [ help "Don't report per-example progress",
+            switch ReportNoProgress,
+            long "no-progress"
+          ]
+      ]
+
 -- -- | We use 'autodocodec' for parsing a YAML config.
 -- instance HasCodec Configuration where
 --   codec =

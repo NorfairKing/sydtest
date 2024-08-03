@@ -26,6 +26,7 @@ import Data.Typeable
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Generics (Generic)
+import OptEnvConf
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
@@ -424,6 +425,23 @@ instance HasCodec SeedSetting where
       g = \case
         RandomSeed -> Left "random"
         FixedSeed i -> Right i
+
+instance HasParser SeedSetting where
+  settingsParser =
+    choice
+      [ FixedSeed
+          <$> setting
+            [ help "Randomness seed",
+              OptEnvConf.reader auto,
+              name "seed",
+              metavar "INT"
+            ],
+        setting
+          [ help "Use a random seed for randomness",
+            switch RandomSeed,
+            long "random-seed"
+          ]
+      ]
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,

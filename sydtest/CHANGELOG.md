@@ -1,5 +1,10 @@
 # Changelog
 
+### Changed
+
+- sydtest won't crash anymore or behave weirdly or leak ressource in repl when
+  interrupted by ctrl-C. See discussion here: https://github.com/NorfairKing/sydtest/issues/80#issuecomment-2286517212
+
 ## [0.17.0.0] - 2024-08-04
 
 ### Changed

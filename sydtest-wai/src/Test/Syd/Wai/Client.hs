@@ -66,6 +66,16 @@ instance IsTest (outerArgs -> WaiClientM env ()) where
   type Arg2 (outerArgs -> WaiClientM env ()) = WaiClient env
   runTest func = runTest (\outerArgs waiClient -> runWaiClientM waiClient (func outerArgs))
 
+instance IsTest (WaiClientM env (GoldenTest a)) where
+  type Arg1 (WaiClientM env (GoldenTest a)) = ()
+  type Arg2 (WaiClientM env (GoldenTest a)) = WaiClient env
+  runTest func = runTest (\() -> func)
+
+instance IsTest (outerArgs -> WaiClientM env (GoldenTest a)) where
+  type Arg1 (outerArgs -> WaiClientM env (GoldenTest a)) = outerArgs
+  type Arg2 (outerArgs -> WaiClientM env (GoldenTest a)) = WaiClient env
+  runTest func = runTest (\outerArgs waiClient -> runWaiClientM waiClient (func outerArgs))
+
 -- | For compatibility with @hspec-wai@
 type WaiSession st a = WaiClientM st a
 

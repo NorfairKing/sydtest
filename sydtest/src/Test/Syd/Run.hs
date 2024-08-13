@@ -374,8 +374,13 @@ runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
 
 exceptionHandlers :: [Handler (Either SomeException a)]
 exceptionHandlers =
-  [ -- Re-throw AsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
-    Handler (\e -> throwIO (e :: AsyncException)),
+  [ -- Re-throw SomeAsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
+    -- This is also critical for correctness, because library such as async
+    -- uses this signal for `concurrently`, and `race`, ..., and if we ignore
+    -- this exception, we can end in a context where half of the logic has
+    -- stopped and yet we continue.
+    -- See https://github.com/NorfairKing/sydtest/issues/80
+    Handler (\e -> throwIO (e :: SomeAsyncException)),
     -- Catch all the rest
     Handler (\e -> return $ Left (e :: SomeException))
   ]

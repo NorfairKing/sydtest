@@ -1,6 +1,7 @@
-{ mkDerivation, base, bytestring, fast-myers-diff, lib
+{ mkDerivation, async, base, bytestring, fast-myers-diff, lib
 , opt-env-conf-test, path, path-io, QuickCheck, random
-, safe-coloured-text, stm, sydtest, sydtest-discover, text, vector
+, safe-coloured-text, stm, sydtest, sydtest-discover, text, time
+, vector
 }:
 mkDerivation {
   pname = "sydtest-test";
@@ -8,8 +9,9 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [ base ];
   testHaskellDepends = [
-    base bytestring fast-myers-diff opt-env-conf-test path path-io
-    QuickCheck random safe-coloured-text stm sydtest text vector
+    async base bytestring fast-myers-diff opt-env-conf-test path
+    path-io QuickCheck random safe-coloured-text stm sydtest text time
+    vector
   ];
   testToolDepends = [ sydtest-discover ];
   doHaddock = false;

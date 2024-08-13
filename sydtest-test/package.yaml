@@ -36,6 +36,8 @@ tests:
     - sydtest >=0.17
     - text
     - vector
+    - time
+    - async
 
   sydtest-output-test:
     main: Main.hs

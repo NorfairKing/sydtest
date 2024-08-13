@@ -4,7 +4,7 @@
 }:
 mkDerivation {
   pname = "sydtest-wai";
-  version = "0.2.0.1";
+  version = "0.2.0.2";
   src = ./.;
   libraryHaskellDepends = [
     base bytestring case-insensitive http-client http-types mtl network

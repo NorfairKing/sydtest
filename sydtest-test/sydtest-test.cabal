@@ -88,6 +88,7 @@ test-suite sydtest-test
       Test.Syd.AroundSpec
       Test.Syd.DescriptionsSpec
       Test.Syd.DiffSpec
+      Test.Syd.ExceptionSpec
       Test.Syd.ExpectationSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
@@ -107,6 +108,7 @@ test-suite sydtest-test
       sydtest-discover:sydtest-discover
   build-depends:
       QuickCheck
+    , async
     , base >=4.7 && <5
     , bytestring
     , fast-myers-diff
@@ -117,5 +119,6 @@ test-suite sydtest-test
     , stm
     , sydtest >=0.17
     , text
+    , time
     , vector
   default-language: Haskell2010

@@ -6,7 +6,7 @@
 }:
 mkDerivation {
   pname = "sydtest";
-  version = "0.17.0.1";
+  version = "0.17.0.2";
   src = ./.;
   libraryHaskellDepends = [
     async autodocodec base bytestring containers dlist fast-myers-diff

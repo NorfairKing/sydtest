@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0.2] - 2024-09-26
+
+### Changed
+
+- Sydtest won't crash anymore, behave weirdly, or leak resources when executed
+  in a REPL and interrupted by C-c.
+
 ## [0.17.0.1] - 2024-09-26
 
 ### Changed

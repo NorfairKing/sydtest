@@ -15,15 +15,18 @@ module Test.Syd.Yesod.Def
     yesodSpecWithSiteSetupFunc,
     yesodSpecWithSiteSetupFunc',
     yesodClientSetupFunc,
+    yesodClientSetupFuncWithMiddlewares,
     YesodSpec,
     yit,
     ydescribe,
   )
 where
 
+import Data.List (foldl')
 import GHC.Stack (HasCallStack)
 import Network.HTTP.Client as HTTP
 import Network.URI
+import Network.Wai (Middleware)
 import Test.Syd
 import Test.Syd.Wai
 import Test.Syd.Yesod.Client
@@ -161,8 +164,12 @@ yesodSpecWithSiteSetupFunc' setupFunc = setupAroundWith' $ \man inner -> do
   yesodClientSetupFunc man site
 
 yesodClientSetupFunc :: (YesodDispatch site) => HTTP.Manager -> site -> SetupFunc (YesodClient site)
-yesodClientSetupFunc man site = do
-  application <- liftIO $ Yesod.toWaiAppPlain site
+yesodClientSetupFunc man site = yesodClientSetupFuncWithMiddlewares man site []
+
+yesodClientSetupFuncWithMiddlewares :: (YesodDispatch site) => HTTP.Manager -> site -> [Middleware] -> SetupFunc (YesodClient site)
+yesodClientSetupFuncWithMiddlewares man site middlewares = do
+  application' <- liftIO $ Yesod.toWaiAppPlain site
+  let application = foldl' (\app middleware -> middleware app) application' middlewares
   p <- applicationSetupFunc application
   let client =
         YesodClient

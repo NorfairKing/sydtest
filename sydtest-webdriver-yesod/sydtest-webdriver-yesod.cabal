@@ -36,6 +36,7 @@ library
     , sydtest-webdriver
     , sydtest-yesod
     , text
+    , wai
     , webdriver
     , yesod
   default-language: Haskell2010

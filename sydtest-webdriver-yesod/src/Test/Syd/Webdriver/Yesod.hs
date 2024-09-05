@@ -16,6 +16,7 @@
 module Test.Syd.Webdriver.Yesod
   ( -- * Defining webdriver tests with yesod
     webdriverYesodSpec,
+    webdriverYesodSpecWithMiddlewares,
 
     -- * Implementing webdriver tests with yesod
     openRoute,
@@ -41,6 +42,7 @@ import qualified Data.Text.Encoding as TE
 import Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTP
 import Network.URI
+import Network.Wai (Middleware)
 import Test.Syd
 import Test.Syd.Wai
 import Test.Syd.Webdriver
@@ -57,6 +59,18 @@ webdriverYesodSpec ::
 webdriverYesodSpec appSetupFunc = webdriverSpec $ \man -> do
   site <- appSetupFunc man
   YesodClient {..} <- yesodClientSetupFunc man site
+  pure (yesodClientSiteURI, yesodClientSite)
+
+-- | Run webdriver tests given a 'SetupFunc' for your app.
+webdriverYesodSpecWithMiddlewares ::
+  (Yesod.YesodDispatch app) =>
+  (HTTP.Manager -> SetupFunc app) ->
+  [Middleware] ->
+  WebdriverSpec app ->
+  Spec
+webdriverYesodSpecWithMiddlewares appSetupFunc middlewares = webdriverSpec $ \man -> do
+  site <- appSetupFunc man
+  YesodClient {..} <- yesodClientSetupFuncWithMiddlewares middlewares man site
   pure (yesodClientSiteURI, yesodClientSite)
 
 -- | Open a given yesod 'Route'

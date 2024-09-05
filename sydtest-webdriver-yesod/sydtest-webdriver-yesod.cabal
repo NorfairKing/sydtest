@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-webdriver-yesod
-version:        0.0.0.1
+version:        0.0.1.0
 synopsis:       A webdriver+yesod companion library for sydtest
 category:       Testing
 author:         Tom Sydney Kerckhove
@@ -36,6 +36,7 @@ library
     , sydtest-webdriver
     , sydtest-yesod
     , text
+    , wai
     , webdriver
     , yesod
   default-language: Haskell2010

@@ -17,10 +17,13 @@ module Test.Syd.Yesod
     yesodSpecWithSiteSupplier,
     yesodSpecWithSiteSupplierWith,
     yesodSpecWithSiteSetupFunc,
+    yesodSpecWithSiteSetupFuncWithMiddlewares,
     yesodSpecWithSiteSetupFunc',
+    yesodSpecWithSiteSetupFuncWithMiddlewares',
 
     -- *** Setup functions
     yesodClientSetupFunc,
+    yesodClientSetupFuncWithMiddlewares,
 
     -- ** Tests against a remote instance of a site
     yesodE2ESpec,

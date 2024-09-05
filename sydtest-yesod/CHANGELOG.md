@@ -1,5 +1,9 @@
 # Changelog
 
+### Added
+
+* Support for adding Middlewares to your Yesod application within testing
+
 ## [0.3.0.3] - 2025-03-20
 
 ### Changed

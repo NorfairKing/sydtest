@@ -13,7 +13,9 @@ module Test.Syd.Yesod.Def
     yesodSpecWithSiteSupplier,
     yesodSpecWithSiteSupplierWith,
     yesodSpecWithSiteSetupFunc,
+    yesodSpecWithSiteSetupFuncWithMiddlewares,
     yesodSpecWithSiteSetupFunc',
+    yesodSpecWithSiteSetupFuncWithMiddlewares',
     yesodClientSetupFunc,
     yesodClientSetupFuncWithMiddlewares,
     YesodSpec,
@@ -151,6 +153,15 @@ yesodSpecWithSiteSetupFunc ::
   TestDef (HTTP.Manager ': outers) ()
 yesodSpecWithSiteSetupFunc setupFunc = yesodSpecWithSiteSetupFunc' $ \man () -> setupFunc man
 
+-- `yesodSpecWithSiteSetupFunc` with middlewares
+yesodSpecWithSiteSetupFuncWithMiddlewares ::
+  (YesodDispatch site) =>
+  [Middleware] ->
+  (HTTP.Manager -> SetupFunc site) ->
+  TestDef (HTTP.Manager ': outers) (YesodClient site) ->
+  TestDef (HTTP.Manager ': outers) ()
+yesodSpecWithSiteSetupFuncWithMiddlewares middlewares setupFunc = yesodSpecWithSiteSetupFuncWithMiddlewares' middlewares $ \man () -> setupFunc man
+
 -- | Using a function that supplies a 'site', using a 'SetupFunc'.
 --
 -- This function assumed that you've already set up the 'HTTP.Manager' beforehand using something like 'managerSpec'.
@@ -163,11 +174,21 @@ yesodSpecWithSiteSetupFunc' setupFunc = setupAroundWith' $ \man inner -> do
   site <- setupFunc man inner
   yesodClientSetupFunc man site
 
-yesodClientSetupFunc :: (YesodDispatch site) => HTTP.Manager -> site -> SetupFunc (YesodClient site)
-yesodClientSetupFunc man site = yesodClientSetupFuncWithMiddlewares man site []
+yesodSpecWithSiteSetupFuncWithMiddlewares' ::
+  (YesodDispatch site) =>
+  [Middleware] ->
+  (HTTP.Manager -> inner -> SetupFunc site) ->
+  TestDef (HTTP.Manager ': outers) (YesodClient site) ->
+  TestDef (HTTP.Manager ': outers) inner
+yesodSpecWithSiteSetupFuncWithMiddlewares' middlewares setupFunc = setupAroundWith' $ \man inner -> do
+  site <- setupFunc man inner
+  yesodClientSetupFuncWithMiddlewares middlewares man site
 
-yesodClientSetupFuncWithMiddlewares :: (YesodDispatch site) => HTTP.Manager -> site -> [Middleware] -> SetupFunc (YesodClient site)
-yesodClientSetupFuncWithMiddlewares man site middlewares = do
+yesodClientSetupFunc :: (YesodDispatch site) => HTTP.Manager -> site -> SetupFunc (YesodClient site)
+yesodClientSetupFunc = yesodClientSetupFuncWithMiddlewares []
+
+yesodClientSetupFuncWithMiddlewares :: (YesodDispatch site) => [Middleware] -> HTTP.Manager -> site -> SetupFunc (YesodClient site)
+yesodClientSetupFuncWithMiddlewares middlewares man site = do
   application' <- liftIO $ Yesod.toWaiAppPlain site
   let application = foldl' (\app middleware -> middleware app) application' middlewares
   p <- applicationSetupFunc application

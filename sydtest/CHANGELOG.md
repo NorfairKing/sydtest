@@ -1,5 +1,30 @@
 # Changelog
 
+### Added
+
+- The test `Assertion` which displays a diff in case of error (so `shouldBe`, `shouldReturn`, golden tests and variations) will now timeout (after `2s`) when computing the diff between expected and actual value. In case of timeout, the values are displayed without any diff formatting. This ensure that test suite runtime won't be dominated by computing diff on some pathological cases. See https://github.com/NorfairKing/sydtest/issues/92
+- The smart constructor `mkNotEqualButShouldHaveBeenEqual` 
+- You can use your own diff algorithm using the constructor `NotEqualButShouldHaveBeenEqualWithDiff`.
+- Test suite does not crash if failed assertion trie to print values containing
+  lazy exception. For example `shouldBe (1, error "nop") (2, 3)` was crashing
+  sydTest, the exception is now reported as the failure reason for the test.
+  Note that this is counter intuitive, because the test is failing because
+  values are not equal (e.g. `(1, _) != (2, _)`), and this will be reported
+  differently.
+
+
+### Changed
+
+The diff computation between actual value and reference changed so diff can timeout. See See https://github.com/NorfairKing/sydtest/issues/92 for discussion.
+
+This does not change the usual API (`shouldBe` or `GoldenTest`), but some internal changed and you may need to adapt. The change is straightforward, most of the functions are not `IO`:
+
+- `stringsNotEqualButShouldHaveBeenEqual`, `textsNotEqualButShouldHaveBeenEqual` and `bytestringsNotEqualButShouldHaveBeenEqual` are now `IO Assertion` (was `Assertion`) in order to implement the timeout logic described for `shouldBe`
+- The `Assertion` `NotEqualButShouldHaveBeenEqual` is removed and replaced by `NotEqualButShouldHaveBeenEqualWithDiff` which embed the difference between both values.
+- the record field `goldenTestCompare` of `GoldenTest` changed from `a -> a ->
+  Maybe Assertion` to `a -> a -> IO (Maybe Assertion)`.
+
+
 ## [0.17.0.0] - 2024-08-04
 
 ### Changed

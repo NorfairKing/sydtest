@@ -4,6 +4,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NumDecimals #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -16,17 +17,23 @@ module Test.Syd.Run where
 import Autodocodec
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.DeepSeq (force)
 import Control.Exception
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Data.IORef
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Typeable
+import qualified Data.Vector as V
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Generics (Generic)
+import Myers.Diff (Diff, getTextDiff)
 import OptEnvConf
+import System.Timeout (timeout)
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
@@ -34,6 +41,7 @@ import Test.QuickCheck.Property hiding (Result (..))
 import qualified Test.QuickCheck.Property as QCP
 import Test.QuickCheck.Random
 import Text.Printf
+import Text.Show.Pretty (ppShow)
 
 class IsTest e where
   -- | The argument from 'aroundAll'
@@ -481,7 +489,9 @@ data TestStatus = TestPassed | TestFailed
 --
 -- You will probably not want to use this directly in everyday tests, use `shouldBe` or a similar function instead.
 data Assertion
-  = NotEqualButShouldHaveBeenEqual !String !String
+  = -- | Both strings are not equal. The latest argument is a diff between both
+    -- arguments. If `Nothing`, the raw values will be displayed instead of the diff.
+    NotEqualButShouldHaveBeenEqualWithDiff !String !String !(Maybe [Diff Text])
   | EqualButShouldNotHaveBeenEqual !String !String
   | PredicateSucceededButShouldHaveFailed
       !String -- Value
@@ -492,6 +502,35 @@ data Assertion
   | ExpectationFailed !String
   | Context !Assertion !String
   deriving (Show, Eq, Typeable, Generic)
+
+-- | Returns the diff between two strings
+--
+-- Be careful, this function runtime is not bounded and it can take a lot of
+-- time (hours) if the input strings are complex. This is exposed for
+-- reference, but you may want to use 'mkNotEqualButShouldHaveBeenEqual' which
+-- ensures that diff computation timeouts.
+computeDiff :: String -> String -> [Diff Text]
+computeDiff a b = V.toList $ getTextDiff (T.pack a) (T.pack b)
+
+-- | Assertion when both arguments are not equal. While display a diff between
+-- both at the end of tests. The diff computation is cancelled after 2s.
+mkNotEqualButShouldHaveBeenEqual ::
+  (Show a) =>
+  a ->
+  a ->
+  IO Assertion
+mkNotEqualButShouldHaveBeenEqual actual expected = do
+  let ppActual = ppShow actual
+  let ppExpected = ppShow expected
+
+  let diffNotEvaluated = computeDiff ppActual ppExpected
+  -- we want to evaluate the diff in order to ensure that its
+  -- computation happen in the timeout block
+  -- and is not instead later because of lazy evaluation.
+  --
+  -- The safe option here is to evaluate to normal form with `force`.
+  diff <- timeout 2e6 (evaluate (force diffNotEvaluated))
+  pure $ NotEqualButShouldHaveBeenEqualWithDiff ppActual ppExpected diff
 
 instance Exception Assertion
 

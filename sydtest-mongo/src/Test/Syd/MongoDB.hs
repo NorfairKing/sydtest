@@ -59,10 +59,11 @@ goldenBSONDocumentFile fp produceActualDocument =
         ensureDir (parent ap)
         SB.writeFile (fromAbsFile ap) $ LB.toStrict $ runPut $ putDocument d,
       goldenTestCompare = \actual expected ->
-        pure $
-          if actual == expected
-            then Nothing
-            else Just (Context (stringsNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)) (goldenContext fp))
+        if actual == expected
+          then pure Nothing
+          else do
+            assertion <- stringsNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
+            pure $ Just (Context assertion (goldenContext fp))
     }
 
 -- | Test that the given 'Bson.Document' is the same as what we find in the given golden file.

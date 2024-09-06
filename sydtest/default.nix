@@ -1,5 +1,5 @@
 { mkDerivation, async, autodocodec, base, bytestring, containers
-, dlist, fast-myers-diff, filepath, lib, MonadRandom, mtl
+, deepseq, dlist, fast-myers-diff, filepath, lib, MonadRandom, mtl
 , opt-env-conf, path, path-io, pretty-show, QuickCheck
 , quickcheck-io, random, random-shuffle, safe, safe-coloured-text
 , safe-coloured-text-terminfo, stm, svg-builder, text, vector
@@ -9,9 +9,9 @@ mkDerivation {
   version = "0.17.0.2";
   src = ./.;
   libraryHaskellDepends = [
-    async autodocodec base bytestring containers dlist fast-myers-diff
-    filepath MonadRandom mtl opt-env-conf path path-io pretty-show
-    QuickCheck quickcheck-io random random-shuffle safe
+    async autodocodec base bytestring containers deepseq dlist
+    fast-myers-diff filepath MonadRandom mtl opt-env-conf path path-io
+    pretty-show QuickCheck quickcheck-io random random-shuffle safe
     safe-coloured-text safe-coloured-text-terminfo stm svg-builder text
     vector
   ];

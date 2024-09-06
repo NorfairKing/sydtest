@@ -287,4 +287,6 @@ spec = do
 
   describe "outputEqualityAssertionFailed" $ do
     it "can output a large diff quickly enough" $
-      length (outputEqualityAssertionFailed (replicate 10000 'a') "b") `shouldBe` 3
+      let a = replicate 10000 'a'
+          b = "b"
+       in length (outputEqualityAssertionFailed a b (Just $ computeDiff a b)) `shouldBe` 3

@@ -1,0 +1,19 @@
+Settings
+  { settingSeed = FixedSeed 42
+  , settingRandomiseExecutionOrder = True
+  , settingThreads = ByCapabilities
+  , settingMaxSuccess = 100
+  , settingMaxSize = 100
+  , settingMaxDiscard = 10
+  , settingMaxShrinks = 100
+  , settingGoldenStart = False
+  , settingGoldenReset = False
+  , settingColour = Nothing
+  , settingFilters = []
+  , settingFailFast = False
+  , settingIterations = OneIteration
+  , settingRetries = 3
+  , settingFailOnFlaky = False
+  , settingReportProgress = ReportNoProgress
+  , settingProfile = False
+  }

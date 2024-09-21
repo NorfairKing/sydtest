@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.18.0.0] - 2024-09-26
+
+### Added
+
+- The test `Assertion` which displays a diff in case of error (so `shouldBe`,
+  `shouldReturn`, golden tests and variations) will now timeout (after `2s`)
+  when computing the diff between expected and actual value.
+  In case of timeout, the values are displayed without any diff formatting.
+  This ensure that test suite runtime won't be dominated by computing diff on
+  some pathological cases.
+- The smart constructor `mkNotEqualButShouldHaveBeenEqual` 
+- You can use your own diff algorithm using the constructor
+  `NotEqualButShouldHaveBeenEqualWithDiff`.
+- Test suite does not crash if failed assertion tries to print values
+  containing lazy exception.
+  For example `shouldBe (1, error "nop") (2, 3)` was crashing before.
+  The exception is now reported as the failure reason for the test.
+  Note that this can be counter intuitive, because the test is failing because
+  values are not equal (e.g. `(1, _) != (2, _)`), and this will be reported
+  differently.
+
+
+### Changed
+
+The diff computation between actual value and reference changed so diff can
+timeout.
+
+This does not change the usual API (`shouldBe` or `GoldenTest`), but some
+internal changed and you may need to adapt.
+The change is straightforward, most of the functions are not `IO`:
+
+- `stringsNotEqualButShouldHaveBeenEqual`,
+  `textsNotEqualButShouldHaveBeenEqual` and
+  `bytestringsNotEqualButShouldHaveBeenEqual` are now `IO Assertion` (was
+  `Assertion`) in order to implement the timeout logic described for
+  `shouldBe`.
+  The `Assertion` `NotEqualButShouldHaveBeenEqual` is removed and replaced by
+  `NotEqualButShouldHaveBeenEqualWithDiff` which embed the difference between
+  both values.
+- The record field `goldenTestCompare` of `GoldenTest` changed from `a -> a ->
+  Maybe Assertion` to `a -> a -> IO (Maybe Assertion)`.
+
 ## [0.17.0.2] - 2024-09-26
 
 ### Changed

@@ -127,23 +127,24 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
       )
       callback
   report ProgressTestDone
-  let (testRunResultStatus, testRunResultException) = case Hspec.resultStatus result of
-        Hspec.Success -> (TestPassed, Nothing)
-        -- This is certainly a debatable choice, but there's no need to make
-        -- tests fail here, and there's no way to know ahead of time whether
-        -- a test is pending so we have no choice.
-        Hspec.Pending _ _ -> (TestPassed, Nothing)
-        Hspec.Failure mloc fr ->
-          let withExtraContext :: Maybe String -> SomeException -> SomeException
-              withExtraContext = maybe id (\extraContext se -> SomeException $ addContextToException se extraContext)
-              niceLocation :: Hspec.Location -> String
-              niceLocation Hspec.Location {..} = intercalate ":" [locationFile, show locationLine, show locationColumn]
-              withLocationContext :: SomeException -> SomeException
-              withLocationContext = withExtraContext $ niceLocation <$> mloc
-              exception = failureReasonToException withExtraContext fr
-           in ( TestFailed,
-                Just $ SomeException $ addContextToException (withLocationContext exception) (Hspec.resultInfo result)
-              )
+  (testRunResultStatus, testRunResultException) <- case Hspec.resultStatus result of
+    Hspec.Success -> pure (TestPassed, Nothing)
+    -- This is certainly a debatable choice, but there's no need to make
+    -- tests fail here, and there's no way to know ahead of time whether
+    -- a test is pending so we have no choice.
+    Hspec.Pending _ _ -> pure (TestPassed, Nothing)
+    Hspec.Failure mloc fr -> do
+      let withExtraContext :: Maybe String -> SomeException -> SomeException
+          withExtraContext = maybe id (\extraContext se -> SomeException $ addContextToException se extraContext)
+          niceLocation :: Hspec.Location -> String
+          niceLocation Hspec.Location {..} = intercalate ":" [locationFile, show locationLine, show locationColumn]
+          withLocationContext :: SomeException -> SomeException
+          withLocationContext = withExtraContext $ niceLocation <$> mloc
+      exception <- failureReasonToException withExtraContext fr
+      pure
+        ( TestFailed,
+          Just $ SomeException $ addContextToException (withLocationContext exception) (Hspec.resultInfo result)
+        )
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing
   let testRunResultGoldenCase = Nothing
@@ -155,12 +156,12 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
 
   pure TestRunResult {..}
 
-failureReasonToException :: (Maybe String -> SomeException -> SomeException) -> Hspec.FailureReason -> SomeException
+failureReasonToException :: (Maybe String -> SomeException -> SomeException) -> Hspec.FailureReason -> IO SomeException
 failureReasonToException withExtraContext = \case
-  Hspec.NoReason -> SomeException $ ExpectationFailed "Hspec had no more information about this failure."
-  Hspec.Reason s -> SomeException $ ExpectationFailed s
-  Hspec.ExpectedButGot mExtraContext expected actual -> withExtraContext mExtraContext $ SomeException $ NotEqualButShouldHaveBeenEqual actual expected
-  Hspec.Error mExtraContext e -> withExtraContext mExtraContext e
+  Hspec.NoReason -> pure $ SomeException $ ExpectationFailed "Hspec had no more information about this failure."
+  Hspec.Reason s -> pure $ SomeException $ ExpectationFailed s
+  Hspec.ExpectedButGot mExtraContext expected actual -> withExtraContext mExtraContext . SomeException <$> mkNotEqualButShouldHaveBeenEqual actual expected
+  Hspec.Error mExtraContext e -> pure $ withExtraContext mExtraContext e
 #if MIN_VERSION_hspec_core(2,11,0)
-  Hspec.ColorizedReason s -> SomeException $ ExpectationFailed s
+  Hspec.ColorizedReason s -> pure $ SomeException $ ExpectationFailed s
 #endif

@@ -710,15 +710,8 @@
   [31m✗ [m[31m54 [m[31mString.compares strings[m
        Retries: 3 (does not look flaky)
        Expected these values to be equal:
-       [34mActual:   [m
-       f[31mo[mo
-       ba[31mr[m	q[31muu[mx[41m [m
-       [34mExpected: [m
-       fo[32mq[m
-       ba[32mz[m	q[32me[mx
-       [34mInline diff: [m
-       f[31mo[mo[32mq[m
-       ba[31mr[m[32mz[m	q[31muu[m[32me[mx[41m [m
+       [34mActual:   [m"f[31mo[mo\nba[31mr[m\tq[31muu[mx[41m [m"
+       [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
   
   [36m  output-test/Spec.hs:192[m
   [31m✗ [m[31m55 [m[31mString.compares texts[m
@@ -731,15 +724,8 @@
   [31m✗ [m[31m56 [m[31mString.compares texts[m
        Retries: 3 (does not look flaky)
        Expected these values to be equal:
-       [34mActual:   [m
-       f[31mo[mo
-       ba[31mr[m	q[31muu[mx[41m [m
-       [34mExpected: [m
-       fo[32mq[m
-       ba[32mz[m	q[32me[mx
-       [34mInline diff: [m
-       f[31mo[mo[32mq[m
-       ba[31mr[m[32mz[m	q[31muu[m[32me[mx[41m [m
+       [34mActual:   [m"f[31mo[mo\nba[31mr[m\tq[31muu[mx[41m [m"
+       [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
   
   [36m  output-test/Spec.hs:194[m
   [31m✗ [m[31m57 [m[31mString.compares bytestrings[m

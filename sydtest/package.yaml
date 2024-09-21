@@ -1,5 +1,5 @@
 name: sydtest
-version: 0.17.0.2
+version: 0.18.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -29,7 +29,7 @@ library:
     - bytestring
     - containers
     - dlist
-    - fast-myers-diff
+    - fast-myers-diff >= 0.0.1
     - filepath
     - mtl
     - opt-env-conf >=0.5
@@ -45,6 +45,7 @@ library:
     - svg-builder
     - text
     - vector
+    - deepseq
   when:
     - condition: 'os(windows)'
       then:

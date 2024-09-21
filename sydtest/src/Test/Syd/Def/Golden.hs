@@ -34,10 +34,11 @@ goldenByteStringFile fp produceBS =
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) actual,
       goldenTestCompare = \actual expected ->
-        pure $
-          if actual == expected
-            then Nothing
-            else Just $ Context (bytestringsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
+        if actual == expected
+          then pure Nothing
+          else do
+            assertion <- bytestringsNotEqualButShouldHaveBeenEqual actual expected
+            pure $ Just $ Context assertion (goldenContext fp)
     }
 
 -- | Test that the given lazy bytestring is the same as what we find in the given golden file.
@@ -61,12 +62,13 @@ goldenLazyByteStringFile fp produceBS =
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) (LB.toStrict actual),
       goldenTestCompare = \actual expected ->
-        pure $
-          let actualBS = LB.toStrict actual
-              expectedBS = LB.toStrict expected
-           in if actualBS == expectedBS
-                then Nothing
-                else Just $ Context (bytestringsNotEqualButShouldHaveBeenEqual actualBS expectedBS) (goldenContext fp)
+        let actualBS = LB.toStrict actual
+            expectedBS = LB.toStrict expected
+         in if actualBS == expectedBS
+              then pure Nothing
+              else do
+                assertion <- bytestringsNotEqualButShouldHaveBeenEqual actualBS expectedBS
+                pure $ Just $ Context assertion (goldenContext fp)
     }
 
 -- | Test that the given lazy bytestring is the same as what we find in the given golden file.
@@ -90,12 +92,13 @@ goldenByteStringBuilderFile fp produceBS =
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) (LB.toStrict (SBB.toLazyByteString actual)),
       goldenTestCompare = \actual expected ->
-        pure $
-          let actualBS = LB.toStrict (SBB.toLazyByteString actual)
-              expectedBS = LB.toStrict (SBB.toLazyByteString expected)
-           in if actualBS == expectedBS
-                then Nothing
-                else Just $ Context (bytestringsNotEqualButShouldHaveBeenEqual actualBS expectedBS) (goldenContext fp)
+        let actualBS = LB.toStrict (SBB.toLazyByteString actual)
+            expectedBS = LB.toStrict (SBB.toLazyByteString expected)
+         in if actualBS == expectedBS
+              then pure Nothing
+              else do
+                assertion <- bytestringsNotEqualButShouldHaveBeenEqual actualBS expectedBS
+                pure $ Just $ Context assertion (goldenContext fp)
     }
 
 -- | Test that the given text is the same as what we find in the given golden file.
@@ -115,10 +118,11 @@ goldenTextFile fp produceBS =
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) (TE.encodeUtf8 actual),
       goldenTestCompare = \actual expected ->
-        pure $
-          if actual == expected
-            then Nothing
-            else Just $ Context (textsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
+        if actual == expected
+          then pure Nothing
+          else do
+            assertion <- textsNotEqualButShouldHaveBeenEqual actual expected
+            pure $ Just $ Context assertion (goldenContext fp)
     }
 
 -- | Test that the given string is the same as what we find in the given golden file.
@@ -138,10 +142,11 @@ goldenStringFile fp produceBS =
         ensureDir $ parent resolvedFile
         SB.writeFile (fromAbsFile resolvedFile) (TE.encodeUtf8 (T.pack actual)),
       goldenTestCompare = \actual expected ->
-        pure $
-          if actual == expected
-            then Nothing
-            else Just $ Context (stringsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
+        if actual == expected
+          then pure Nothing
+          else do
+            assertion <- stringsNotEqualButShouldHaveBeenEqual actual expected
+            pure $ Just $ Context assertion (goldenContext fp)
     }
 
 -- | Test that the show instance has not changed for the given value.

@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Test.Syd.Output where
 
@@ -16,12 +17,12 @@ import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe
+import Data.String (IsString (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as LTB
 import qualified Data.Text.Lazy.Builder as Text
 import qualified Data.Text.Lazy.IO as LTIO
-import qualified Data.Vector as V
 import Data.Word
 import GHC.Stack
 import Myers.Diff
@@ -413,7 +414,7 @@ outputSomeException outerException =
 
 outputAssertion :: Assertion -> [[Chunk]]
 outputAssertion = \case
-  NotEqualButShouldHaveBeenEqual actual expected -> outputEqualityAssertionFailed actual expected
+  NotEqualButShouldHaveBeenEqualWithDiff actual expected diffM -> outputEqualityAssertionFailed actual expected diffM
   EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
   PredicateFailedButShouldHaveSucceeded actual mName -> outputPredicateSuccessAssertionFailed actual mName
   PredicateSucceededButShouldHaveFailed actual mName -> outputPredicateFailAssertionFailed actual mName
@@ -461,10 +462,21 @@ splitChunksIntoLines =
         -- We skip them one by one.
         Just ne -> currentLine : go ne cs
 
-outputEqualityAssertionFailed :: String -> String -> [[Chunk]]
-outputEqualityAssertionFailed actual expected =
-  let diff = V.toList $ getTextDiff (T.pack actual) (T.pack expected)
-      -- Add a header to a list of lines of chunks
+outputEqualityAssertionFailed :: String -> String -> Maybe [PolyDiff Text Text] -> [[Chunk]]
+outputEqualityAssertionFailed actual expected diffM =
+  case diffM of
+    Just diff -> formatDiff actual expected diff
+    Nothing ->
+      concat
+        [ [[chunk "Expected these values to be equal:"]],
+          [[chunk "Diff computation took too long and was canceled"]],
+          [[fromString actual]],
+          [[fromString expected]]
+        ]
+
+formatDiff :: String -> String -> [PolyDiff Text Text] -> [[Chunk]]
+formatDiff actual expected diff =
+  let -- Add a header to a list of lines of chunks
       chunksLinesWithHeader :: Chunk -> [[Chunk]] -> [[Chunk]]
       chunksLinesWithHeader header = \case
         -- If there is only one line, put the header on that line.

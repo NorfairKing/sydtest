@@ -128,12 +128,12 @@ spec = do
         { goldenTestRead = pure (Just ()),
           goldenTestProduce = pure (),
           goldenTestWrite = \() -> pure (),
-          goldenTestCompare = \actual expected -> pure $ case 1 `div` (0 :: Int) of
-            1 -> Nothing
+          goldenTestCompare = \actual expected -> case 1 `div` (0 :: Int) of
+            1 -> pure Nothing
             _ ->
               if actual == expected
-                then Nothing
-                else Just $ NotEqualButShouldHaveBeenEqual (show actual) (show expected)
+                then pure Nothing
+                else Just <$> mkNotEqualButShouldHaveBeenEqual (show actual) (show expected)
         }
 
     describe "outputResultForest" $ do

@@ -36,7 +36,22 @@ import Text.Printf
 -- it removes all the arguments initially provided to sydtest and provides a
 -- reproducible environment.
 setNullArgs :: IO a -> IO a
-setNullArgs action = withArgs [] action
+setNullArgs action = do
+  -- Check that args are not empty before setting it to empty.
+  -- This is a workaround for https://gitlab.haskell.org/ghc/ghc/-/issues/18261
+  -- In summary, `withArgs` is not thread-safe, hence we would like to avoid it
+  -- as much as possible.
+  --
+  -- If sydtest is used in a more complex environment which may use `withArgs`
+  -- too, we would like to avoid a complete crash of the program.
+  --
+  -- Especially, if sydtest is used itself in a sydtest test (e.g. in order to
+  -- test sydtest command line itself), it may crash, see
+  -- https://github.com/NorfairKing/sydtest/issues/91 for details.
+  args <- getArgs
+  if null args
+    then action
+    else withArgs [] action
 
 sydTestResult :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestResult settings spec = do

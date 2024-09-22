@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0.1] - 2024-09-26
+
+### Changed
+
+* Only use `withArgs` when the argument list isn't already empty.
+  This works around a concurrency issue wherein `withArgs` cannot be run twice from multiple threads.
+
 ## [0.17.0.0] - 2024-08-04
 
 ### Changed

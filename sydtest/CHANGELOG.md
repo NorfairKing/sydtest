@@ -11,6 +11,7 @@
 
 ### Changed
 
+>>>>>>> dc113b8 (Fix repeated calls of withArgs being unsafe)
 * Only use `withArgs` when the argument list isn't already empty.
   This works around a concurrency issue wherein `withArgs` cannot be run twice from multiple threads.
 

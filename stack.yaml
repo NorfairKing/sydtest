@@ -27,8 +27,10 @@ ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages -O0
 
 extra-deps:
-- fast-myers-diff-0.0.0
-
+- github: NorfairKing/fast-myers-diff
+  commit: d7c1a675af3889698b987485a630f96a993226fa
+  subdirs:
+    - fast-myers-diff
 - github: NorfairKing/opt-env-conf
   commit: 1a8d79f4748ae566c525de8951ee6907ac3739a8
   subdirs:

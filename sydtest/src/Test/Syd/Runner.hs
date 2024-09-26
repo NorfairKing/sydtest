@@ -35,8 +35,8 @@ import Text.Printf
 -- The action behaves as if no command line argument were provided. Especially,
 -- it removes all the arguments initially provided to sydtest and provides a
 -- reproducible environment.
-setNullArgs :: IO a -> IO a
-setNullArgs action = do
+withNullArgs :: IO a -> IO a
+withNullArgs action = do
   -- Check that args are not empty before setting it to empty.
   -- This is a workaround for https://gitlab.haskell.org/ghc/ghc/-/issues/18261
   -- In summary, `withArgs` is not thread-safe, hence we would like to avoid it
@@ -67,7 +67,7 @@ sydTestOnce :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestOnce settings spec = do
   specForest <- execTestDefM settings spec
   tc <- deriveTerminalCapababilities settings
-  setNullArgs $ do
+  withNullArgs $ do
     setPseudorandomness (settingSeed settings)
     case settingThreads settings of
       Synchronous -> runSpecForestInterleavedWithOutputSynchronously settings specForest
@@ -94,7 +94,7 @@ sydTestOnce settings spec = do
 
 sydTestIterations :: Maybe Word -> Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestIterations totalIterations settings spec =
-  setNullArgs $ do
+  withNullArgs $ do
     nbCapabilities <- fromIntegral <$> getNumCapabilities
 
     let runOnce settings_ = do

@@ -44,6 +44,7 @@ import Network.Socket.Wait as Port
 import Network.URI
 import Path
 import Path.IO
+import System.Environment (getEnvironment)
 import System.Exit
 import System.Process.Typed
 import Test.Syd
@@ -179,18 +180,21 @@ webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager uri app = do
           { chromeOptions =
               [ -- We don't set the --user-data-dir because it makes the
                 -- chromedriver timeout for unknown reasons.
-                -- "--user-data-dir="
+                -- "--user-data-dir=" <> fromAbsDir tempDir,
                 "--headless",
                 -- Bypass OS security model to run on nix as well
                 "--no-sandbox",
-                -- No need for a GPU in headless mode?
+                -- No need for a GPU in headless mode(?)
                 "--disable-gpu",
                 -- Overcome limited resource problem
                 "--disable-dev-shm-usage",
                 -- Normalise setup for screenshots
                 "--use-gl=angle",
                 "--use-angle=swiftshader",
-                "--window-size=1920,1080",
+                -- 1080 + 87, the height of the bar that says "Chrome is Being Controlled by Automated Test Software".
+                "--window-size=1920,1167",
+                -- Toke
+                "--disable-infobars",
                 -- So that screenshots tests don't start failing when something new is added at the bottom of the page that isn't even on the screen
                 "--hide-scrollbars"
               ],
@@ -218,16 +222,25 @@ data SeleniumServerHandle = SeleniumServerHandle
 seleniumServerSetupFunc :: SetupFunc SeleniumServerHandle
 seleniumServerSetupFunc = do
   tempDir <- tempDirSetupFunc "selenium-server"
+  environment <- liftIO getEnvironment
+  configDir <- liftIO $ resolveDir tempDir "config"
+  cacheDir <- liftIO $ resolveDir tempDir "cache"
+  let newEnvironment =
+        environment
+          ++ [ ("XDG_CONFIG_HOME", fromAbsDir configDir),
+               ("XDG_CACHE_HOME", fromAbsDir cacheDir)
+             ]
   portInt <- liftIO getFreePort
   let processConfig =
         setStdout nullStream $
           setStderr nullStream $
-            setWorkingDir (fromAbsDir tempDir) $
-              proc
-                "selenium-server"
-                [ "-port",
-                  show portInt
-                ]
+            setEnv newEnvironment $
+              setWorkingDir (fromAbsDir tempDir) $
+                proc
+                  "selenium-server"
+                  [ "-port",
+                    show portInt
+                  ]
   _ <- typedProcessSetupFunc processConfig
   liftIO $ Port.wait "127.0.0.1" portInt
   let seleniumServerHandlePort = fromIntegral portInt

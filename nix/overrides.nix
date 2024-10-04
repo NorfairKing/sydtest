@@ -80,8 +80,8 @@ let
   enableWebdriver = haskellPkg: overrideCabal haskellPkg (old:
     let
       webdriverDeps = [
-        chromedriver
         chromium
+        chromedriver
         selenium-server-standalone
       ];
     in

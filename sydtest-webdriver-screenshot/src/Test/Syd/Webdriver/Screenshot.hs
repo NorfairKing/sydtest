@@ -19,6 +19,7 @@ import Control.Monad.Reader
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Vector.Storable as Vector
+import Debug.Trace
 import Path
 import Path.IO
 import System.Exit
@@ -90,13 +91,14 @@ pureGoldenScreenshot fp contents =
             pure $
               Just $
                 ExpectationFailed $
-                  unlines
-                    [ "Screenshots differ.",
-                      "expected: " <> fromAbsFile expectedPath,
-                      "actual: " <> fromAbsFile actualPath,
-                      "diff: " <> fromAbsFile diffFile,
-                      "similarity: " <> show (imageSimilarity actual expected)
-                    ]
+                  trace "sim" $
+                    unlines
+                      [ "Screenshots differ.",
+                        "expected: " <> fromAbsFile expectedPath,
+                        "actual: " <> fromAbsFile actualPath,
+                        "diff: " <> fromAbsFile diffFile,
+                        "similarity: " <> show (imageSimilarity actual expected)
+                      ]
     }
 
 imageSimilarity :: Image PixelRGB8 -> Image PixelRGB8 -> Double
@@ -108,12 +110,14 @@ imageSimilarity actual expected =
           flip map [0 .. width - 1] $ \w ->
             sum $
               flip map [0 .. height - 1] $ \h ->
-                let actualPixel = pixelAt actual w h
-                    expectedPixel = pixelAt expected w h
-                 in diffPixel actualPixel expectedPixel
+                let actualPixel = lookupPixelAt actual w h
+                    expectedPixel = lookupPixelAt expected w h
+                 in pixelSimilarity actualPixel expectedPixel
 
-diffPixel :: PixelRGB8 -> PixelRGB8 -> Double
-diffPixel (PixelRGB8 r1 g1 b1) (PixelRGB8 r2 g2 b2) =
+pixelSimilarity :: Maybe PixelRGB8 -> Maybe PixelRGB8 -> Double
+pixelSimilarity Nothing _ = 0
+pixelSimilarity _ Nothing = 0
+pixelSimilarity (Just (PixelRGB8 r1 g1 b1)) (Just (PixelRGB8 r2 g2 b2)) =
   if and [r1 == r2, g1 == g2, b1 == b2]
     then 1
     else 0
@@ -129,14 +133,24 @@ computeImageDiff actual expected =
             mutableImage <- createMutableImage width height (PixelRGB8 0 0 0)
             forM_ [0 .. width - 1] $ \w ->
               forM_ [0 .. height - 1] $ \h -> do
-                let actualPixel = pixelAt actual w h
-                    expectedPixel = pixelAt expected w h
+                let actualPixel = lookupPixelAt actual w h
+                    expectedPixel = lookupPixelAt expected w h
                 writePixel mutableImage w h (computePixelDiff actualPixel expectedPixel)
             pure $ mutableImageData mutableImage
         }
 
-computePixelDiff :: PixelRGB8 -> PixelRGB8 -> PixelRGB8
-computePixelDiff (PixelRGB8 r1 g1 b1) (PixelRGB8 r2 g2 b2) =
+lookupPixelAt :: (Pixel a) => Image a -> Int -> Int -> Maybe a
+lookupPixelAt image w h
+  | w < 0 = Nothing
+  | h < 0 = Nothing
+  | w >= imageWidth image = Nothing
+  | h >= imageHeight image = Nothing
+  | otherwise = Just $ pixelAt image w h
+
+computePixelDiff :: Maybe PixelRGB8 -> Maybe PixelRGB8 -> PixelRGB8
+computePixelDiff Nothing _ = PixelRGB8 0 0 255
+computePixelDiff _ Nothing = PixelRGB8 255 0 0
+computePixelDiff (Just (PixelRGB8 r1 g1 b1)) (Just (PixelRGB8 r2 g2 b2)) =
   if or [r1 /= r2, g1 /= g2, b1 /= b2]
     then PixelRGB8 0 255 0
     else PixelRGB8 0 0 0

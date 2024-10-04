@@ -44,7 +44,7 @@ extra-deps:
     - autodocodec-schema
     - autodocodec-yaml
 - github: NorfairKing/validity
-  commit: 57c4897ccfeb3de60489e0328113798f059ef140
+  commit: 9e58a7a6ed8cd59cb60ab426cef2edf6a1340b33
   subdirs:
     - validity
     - validity-aeson

@@ -26,7 +26,6 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Typeable
 import qualified Data.Vector as V
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
@@ -506,7 +505,7 @@ data Assertion
       !(Maybe String) -- Name of the predicate
   | ExpectationFailed !String
   | Context !Assertion !String
-  deriving (Show, Eq, Typeable, Generic)
+  deriving (Show, Eq, Generic)
 
 -- | Returns the diff between two strings
 --
@@ -559,7 +558,7 @@ data GoldenCase
   = GoldenNotFound
   | GoldenStarted
   | GoldenReset
-  deriving (Show, Eq, Typeable, Generic)
+  deriving (Show, Eq, Generic)
 
 type ProgressReporter = Progress -> IO ()
 

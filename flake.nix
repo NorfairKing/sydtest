@@ -11,7 +11,7 @@
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     autodocodec.url = "github:NorfairKing/autodocodec";
     autodocodec.flake = false;
-    validity.url = "github:NorfairKing/validity";
+    validity.url = "github:NorfairKing/validity/upgrade";
     validity.flake = false;
     safe-coloured-text.url = "github:NorfairKing/safe-coloured-text";
     safe-coloured-text.flake = false;

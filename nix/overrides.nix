@@ -81,6 +81,7 @@ let
     let
       webdriverDeps = [
         chromium
+        chromedriver
         selenium-server-standalone
       ];
     in

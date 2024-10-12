@@ -180,7 +180,7 @@ webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager uri app = do
           { chromeOptions =
               [ -- We don't set the --user-data-dir because it makes the
                 -- chromedriver timeout for unknown reasons.
-                -- "--user-data-dir=",
+                -- "--user-data-dir=" <> fromAbsDir tempDir,
                 "--headless",
                 -- Bypass OS security model to run on nix as well
                 "--no-sandbox",
@@ -191,7 +191,10 @@ webdriverTestEnvSetupFunc SeleniumServerHandle {..} manager uri app = do
                 -- Normalise setup for screenshots
                 "--use-gl=angle",
                 "--use-angle=swiftshader",
-                "--window-size=1920,1080",
+                -- 1080 + 87, the height of the bar that says "Chrome is Being Controlled by Automated Test Software".
+                "--window-size=1920,1167",
+                -- Toke
+                "--disable-infobars",
                 -- So that screenshots tests don't start failing when something new is added at the bottom of the page that isn't even on the screen
                 "--hide-scrollbars"
               ],

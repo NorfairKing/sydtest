@@ -158,15 +158,4 @@ in
           rev = "7f2467a6d6d5f6db7eed59919a6773fe006cf22b";
         })
       { });
-  webdriver =
-    if versionAtLeast self.aeson.version "2" && versionOlder super.webdriver.version "0.10"
-    then
-      (self.callCabal2nix "webdriver"
-        (builtins.fetchGit
-          {
-            url = "https://github.com/codedownio/hs-webdriver";
-            rev = "e63f96fc9ebc82b70a7ea9bf3ba0c1dea5c80048";
-          })
-        { })
-    else super.webdriver;
 } // sydtestPackages

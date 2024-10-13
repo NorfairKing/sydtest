@@ -3,7 +3,7 @@
 }:
 mkDerivation {
   pname = "sydtest-hspec";
-  version = "0.4.0.2";
+  version = "0.4.0.3";
   src = ./.;
   libraryHaskellDepends = [
     base hspec-core mtl QuickCheck stm sydtest

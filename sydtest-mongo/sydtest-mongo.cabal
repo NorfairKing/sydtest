@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-mongo
-version:        0.1.0.0
+version:        0.2.0.0
 synopsis:       An mongoDB companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
@@ -49,7 +49,7 @@ library
     , path-io
     , port-utils
     , process
-    , sydtest >=0.17
+    , sydtest >=0.18
     , sydtest-process
     , text
     , yaml

@@ -1,5 +1,5 @@
 name: sydtest-mongo
-version: 0.1.0.0
+version: 0.2.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -29,7 +29,7 @@ library:
   - path-io
   - port-utils
   - process
-  - sydtest >=0.17
+  - sydtest >=0.18
   - sydtest-process
   - text
   - yaml

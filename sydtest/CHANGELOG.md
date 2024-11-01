@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.0.1] - 2024-11-01
+
+### Changed
+
+- Fixed `mkNotEqualButShouldHaveBeenEqual` logic so it keeps the escape
+  sequence for `Text` and `String`. This fix a regression introduced in
+  0.18.0.0.
+
 ## [0.18.0.0] - 2024-09-26
 
 ### Added

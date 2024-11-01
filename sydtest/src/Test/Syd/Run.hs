@@ -40,7 +40,6 @@ import Test.QuickCheck.Property hiding (Result (..))
 import qualified Test.QuickCheck.Property as QCP
 import Test.QuickCheck.Random
 import Text.Printf
-import Text.Show.Pretty (ppShow)
 
 class IsTest e where
   -- | The argument from 'aroundAll'
@@ -519,22 +518,18 @@ computeDiff a b = V.toList $ getTextDiff (T.pack a) (T.pack b)
 -- | Assertion when both arguments are not equal. While display a diff between
 -- both at the end of tests. The diff computation is cancelled after 2s.
 mkNotEqualButShouldHaveBeenEqual ::
-  (Show a) =>
-  a ->
-  a ->
+  String ->
+  String ->
   IO Assertion
 mkNotEqualButShouldHaveBeenEqual actual expected = do
-  let ppActual = ppShow actual
-  let ppExpected = ppShow expected
-
-  let diffNotEvaluated = computeDiff ppActual ppExpected
+  let diffNotEvaluated = computeDiff actual expected
   -- we want to evaluate the diff in order to ensure that its
   -- computation happen in the timeout block
   -- and is not instead later because of lazy evaluation.
   --
   -- The safe option here is to evaluate to normal form with `force`.
   diff <- timeout 2e6 (evaluate (force diffNotEvaluated))
-  pure $ NotEqualButShouldHaveBeenEqualWithDiff ppActual ppExpected diff
+  pure $ NotEqualButShouldHaveBeenEqualWithDiff actual expected diff
 
 instance Exception Assertion
 

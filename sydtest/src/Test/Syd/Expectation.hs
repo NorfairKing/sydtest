@@ -29,7 +29,7 @@ import Text.Show.Pretty
 
 -- | Assert that two values are equal according to `==`.
 shouldBe :: (HasCallStack, Show a, Eq a) => a -> a -> IO ()
-shouldBe actual expected = unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual actual expected
+shouldBe actual expected = unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
 
 infix 1 `shouldBe`
 
@@ -63,7 +63,7 @@ shouldNotSatisfyNamed actual name p = when (p actual) $ throwIO $ PredicateSucce
 shouldReturn :: (HasCallStack, Show a, Eq a) => IO a -> a -> IO ()
 shouldReturn computeActual expected = do
   actual <- computeActual
-  unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual actual expected
+  unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
 
 infix 1 `shouldReturn`
 

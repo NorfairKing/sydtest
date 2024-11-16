@@ -164,9 +164,11 @@ This repository contains many companion libraries to write integration tests wit
 | Fully configurable via configuration file                                                 | ✔️       | ✔️                                                           | ✖️                                                                |
 | Pending tests                                                                             | ✔️       | ✔️                                                           | ✖️                                                                |
 | Iterative testing to diagnose flakiness                                                   | ✔️       | ✖️                                                           | ?                                                                |
+| Test timeout                                                                              | ✔️       | ✖️                                                           | ?                                                                |
+| Test timeout by default                                                                   | ✔️       | ✖️                                                           | ?                                                                |
 | Automatic flakiness diagnostics                                                           | ✔️       | ✖️                                                           | ?                                                                |
 | Flakiness combinators to practically deal with flakiness                                  | ✔️       | ✖️                                                           | ?                                                                |
-| Test suite profiling with nice graphs                                                     | ✔️       | ✖️                                                      | ✖️                                                                |
+| Test suite profiling with nice graphs                                                     | ✔️       | ✖️                                                           | ✖️                                                                |
 
 * ✔️: Supported 
 * Lib: Possible with an extra library

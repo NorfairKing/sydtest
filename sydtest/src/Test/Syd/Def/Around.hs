@@ -215,6 +215,7 @@ aroundWith' func (TestDefM rwst) =
               DefAfterAllNode f sdf -> DefAfterAllNode f $ modifyForest sdf
               DefParallelismNode f sdf -> DefParallelismNode f $ modifyForest sdf
               DefRandomisationNode f sdf -> DefRandomisationNode f $ modifyForest sdf
+              DefTimeoutNode f sdf -> DefTimeoutNode f $ modifyForest sdf
               DefRetriesNode f sdf -> DefRetriesNode f $ modifyForest sdf
               DefFlakinessNode f sdf -> DefFlakinessNode f $ modifyForest sdf
               DefExpectationNode f sdf -> DefExpectationNode f $ modifyForest sdf

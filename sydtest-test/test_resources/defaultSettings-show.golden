@@ -12,6 +12,7 @@ Settings
   , settingFilters = []
   , settingFailFast = False
   , settingIterations = OneIteration
+  , settingTimeout = TimeoutAfterMicros 60000000
   , settingRetries = 3
   , settingFailOnFlaky = False
   , settingReportProgress = ReportNoProgress

@@ -179,6 +179,11 @@ module Test.Syd
     withExecutionOrderRandomisation,
     ExecutionOrderRandomisation (..),
 
+    -- *** Modifying the timeout
+    modifyTimeout,
+    withoutTimeout,
+    withTimeout,
+
     -- *** Modifying the number of retries
     modifyRetries,
     withoutRetries,

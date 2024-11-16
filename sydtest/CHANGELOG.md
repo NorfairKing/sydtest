@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.19.0.0] - 2024-11-17
+
+### Added
+
+- Timeout support
+- `modifiedTimeout`
+- `withoutTimeout`
+- `withTimeout`
+
+### Changed
+
+- Tests now timeout after 60 seconds by default.
+
 ## [0.18.0.1] - 2024-11-01
 
 ### Changed

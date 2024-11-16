@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -56,6 +57,8 @@ data Settings = Settings
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
     settingIterations :: !Iterations,
+    -- | How many microseconds wait for a test to finish before considering it failed
+    settingTimeout :: !Timeout,
     -- | How many times to retry a test for flakiness diagnostics
     settingRetries :: !Word,
     -- | Whether to fail when any flakiness is detected in tests declared as flaky
@@ -123,6 +126,7 @@ instance HasParser Settings where
                   )
                   flagFailFast,
               settingIterations = flagIterations,
+              settingTimeout = flagTimeout,
               settingRetries =
                 fromMaybe
                   ( if flagDebug
@@ -152,11 +156,16 @@ defaultSettings =
           settingFilters = mempty,
           settingFailFast = False,
           settingIterations = OneIteration,
+          settingTimeout = TimeoutAfterMicros defaultTimeout,
           settingRetries = defaultRetries,
           settingFailOnFlaky = False,
           settingReportProgress = ReportNoProgress,
           settingProfile = False
         }
+
+-- 60 seconds
+defaultTimeout :: Int
+defaultTimeout = 60_000_000
 
 defaultRetries :: Word
 defaultRetries = 3
@@ -196,6 +205,7 @@ data Flags = Flags
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !Iterations,
     flagRetries :: !(Maybe Word),
+    flagTimeout :: !Timeout,
     flagFailOnFlaky :: !Bool,
     flagReportProgress :: !(Maybe ReportProgress),
     flagDebug :: !Bool,
@@ -293,6 +303,7 @@ instance HasParser Flags where
             name "fail-fast"
           ]
     flagIterations <- settingsParser
+    flagTimeout <- settingsParser
     flagRetries <-
       optional $
         setting
@@ -322,6 +333,39 @@ instance HasParser Flags where
           value $ settingProfile defaultSettings
         ]
     pure Flags {..}
+
+data Timeout
+  = DoNotTimeout
+  | TimeoutAfterMicros !Int
+  deriving (Show, Read, Eq, Generic)
+
+instance HasCodec Timeout where
+  codec = dimapCodec f g codec
+    where
+      f = \case
+        Nothing -> DoNotTimeout
+        Just i -> TimeoutAfterMicros i
+      g = \case
+        DoNotTimeout -> Nothing
+        TimeoutAfterMicros i -> Just i
+
+instance HasParser Timeout where
+  settingsParser =
+    choice
+      [ setting
+          [ help "Don't timeout",
+            switch DoNotTimeout,
+            long "no-timeout"
+          ],
+        TimeoutAfterMicros
+          <$> setting
+            [ help "After how many microseconds to consider a test failed",
+              reader auto,
+              name "timeout",
+              value defaultTimeout,
+              metavar "MICROSECONDS"
+            ]
+      ]
 
 data Threads
   = -- | One thread

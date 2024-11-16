@@ -23,6 +23,11 @@ module Test.Syd.Modify
     withExecutionOrderRandomisation,
     ExecutionOrderRandomisation (..),
 
+    -- * Modifying timeouts
+    modifyTimeout,
+    withoutTimeout,
+    withTimeout,
+
     -- * Modifying the number of retries
     modifyRetries,
     withoutRetries,
@@ -48,6 +53,7 @@ where
 import Control.Monad.RWS.Strict
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
+import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecDef
 
@@ -89,6 +95,18 @@ randomiseExecutionOrder = withExecutionOrderRandomisation RandomiseExecutionOrde
 -- | Annotate a test group with 'ExecutionOrderRandomisation'.
 withExecutionOrderRandomisation :: ExecutionOrderRandomisation -> TestDefM a b c -> TestDefM a b c
 withExecutionOrderRandomisation p = censor ((: []) . DefRandomisationNode p)
+
+-- | Modify the test timeout
+modifyTimeout :: (Timeout -> Timeout) -> TestDefM a b c -> TestDefM a b c
+modifyTimeout modTimeout = censor ((: []) . DefTimeoutNode modTimeout)
+
+-- | Turn off timeouts
+withoutTimeout :: TestDefM a b c -> TestDefM a b c
+withoutTimeout = modifyTimeout (const DoNotTimeout)
+
+-- | Turn off timeouts
+withTimeout :: Int -> TestDefM a b c -> TestDefM a b c
+withTimeout i = modifyTimeout (const (TimeoutAfterMicros i))
 
 -- | Modify the number of retries to use in flakiness diagnostics.
 modifyRetries :: (Word -> Word) -> TestDefM a b c -> TestDefM a b c

@@ -23,7 +23,8 @@ runSpecForestSynchronously settings testForest =
     <$> runReaderT
       (goForest testForest)
       Env
-        { eRetries = settingRetries settings,
+        { eTimeout = settingTimeout settings,
+          eRetries = settingRetries settings,
           eFlakinessMode = MayNotBeFlaky,
           eExpectationMode = ExpectPassing,
           eExternalResources = HNil
@@ -50,6 +51,7 @@ runSpecForestSynchronously settings testForest =
                 noProgressReporter
                 eExternalResources
                 td
+                eTimeout
                 eRetries
                 eFlakinessMode
                 eExpectationMode
@@ -113,6 +115,11 @@ runSpecForestSynchronously settings testForest =
         liftIO $ fmap SubForestNode <$> (runReaderT (goForest sdf) e `finally` func externalResources)
       DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest sdf -- Ignore, it's synchronous anyway
       DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest sdf -- Ignore, randomisation has already happened.
+      DefTimeoutNode modTimeout sdf ->
+        fmap SubForestNode
+          <$> withReaderT
+            (\e -> e {eTimeout = modTimeout (eTimeout e)})
+            (goForest sdf)
       DefRetriesNode modRetries sdf ->
         fmap SubForestNode
           <$> withReaderT
@@ -133,7 +140,8 @@ type R a = ReaderT (Env a) IO
 
 -- Not exported, on purpose.
 data Env externalResources = Env
-  { eRetries :: !Word,
+  { eTimeout :: !Timeout,
+    eRetries :: !Word,
     eFlakinessMode :: !FlakinessMode,
     eExpectationMode :: !ExpectationMode,
     eExternalResources :: !(HList externalResources)

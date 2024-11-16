@@ -191,6 +191,7 @@ runner settings nbThreads failFastVar handleForest = do
                             noProgressReporter
                             eExternalResources
                             td
+                            eTimeout
                             eRetries
                             eFlakinessMode
                             eExpectationMode
@@ -284,6 +285,10 @@ runner settings nbThreads failFastVar handleForest = do
               (goForest sdf)
           DefRandomisationNode _ sdf ->
             goForest sdf -- Ignore, randomisation has already happened.
+          DefTimeoutNode modTimeout sdf ->
+            withReaderT
+              (\e -> e {eTimeout = modTimeout (eTimeout e)})
+              (goForest sdf)
           DefRetriesNode modRetries sdf ->
             withReaderT
               (\e -> e {eRetries = modRetries (eRetries e)})
@@ -301,6 +306,7 @@ runner settings nbThreads failFastVar handleForest = do
       (goForest handleForest)
       Env
         { eParallelism = Parallel,
+          eTimeout = settingTimeout settings,
           eRetries = settingRetries settings,
           eFlakinessMode = MayNotBeFlaky,
           eExpectationMode = ExpectPassing,
@@ -313,6 +319,7 @@ type R a = ReaderT (Env a) IO
 -- Not exported, on purpose.
 data Env externalResources = Env
   { eParallelism :: !Parallelism,
+    eTimeout :: !Timeout,
     eRetries :: !Word,
     eFlakinessMode :: !FlakinessMode,
     eExpectationMode :: !ExpectationMode,
@@ -381,6 +388,7 @@ printer settings failFastVar suiteBegin handleForest = do
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefTimeoutNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefRetriesNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefExpectationNode _ sdf -> fmap SubForestNode <$> goForest sdf
@@ -442,6 +450,7 @@ waiter failFastVar handleForest = do
         DefAfterAllNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest sdf
+        DefTimeoutNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefRetriesNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefFlakinessNode _ sdf -> fmap SubForestNode <$> goForest sdf
         DefExpectationNode _ sdf -> fmap SubForestNode <$> goForest sdf

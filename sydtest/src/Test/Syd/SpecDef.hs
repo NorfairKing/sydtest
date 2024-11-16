@@ -127,6 +127,11 @@ data SpecDefTree (outers :: [Type]) inner extra where
     ExecutionOrderRandomisation ->
     SpecDefForest outers inner extra ->
     SpecDefTree outers inner extra
+  DefTimeoutNode ::
+    -- | Modify the timeout setting
+    (Timeout -> Timeout) ->
+    SpecDefForest outers inner extra ->
+    SpecDefTree outers inner extra
   DefRetriesNode ::
     -- | Modify the number of retries
     (Word -> Word) ->
@@ -161,6 +166,7 @@ instance Functor (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func $ goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p $ goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p $ goF sdf
+          DefTimeoutNode p sdf -> DefTimeoutNode p $ goF sdf
           DefRetriesNode p sdf -> DefRetriesNode p $ goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p $ goF sdf
           DefExpectationNode p sdf -> DefExpectationNode p $ goF sdf
@@ -183,6 +189,7 @@ instance Foldable (SpecDefTree a c) where
           DefAfterAllNode _ sdf -> goF sdf
           DefParallelismNode _ sdf -> goF sdf
           DefRandomisationNode _ sdf -> goF sdf
+          DefTimeoutNode _ sdf -> goF sdf
           DefRetriesNode _ sdf -> goF sdf
           DefFlakinessNode _ sdf -> goF sdf
           DefExpectationNode _ sdf -> goF sdf
@@ -205,6 +212,7 @@ instance Traversable (SpecDefTree a c) where
           DefAfterAllNode func sdf -> DefAfterAllNode func <$> goF sdf
           DefParallelismNode p sdf -> DefParallelismNode p <$> goF sdf
           DefRandomisationNode p sdf -> DefRandomisationNode p <$> goF sdf
+          DefTimeoutNode p sdf -> DefTimeoutNode p <$> goF sdf
           DefRetriesNode p sdf -> DefRetriesNode p <$> goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
           DefExpectationNode p sdf -> DefExpectationNode p <$> goF sdf
@@ -243,6 +251,7 @@ filterTestForest fs = fromMaybe [] . goForest DList.empty
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest dl sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest dl sdf
       DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest dl sdf
+      DefTimeoutNode func sdf -> DefTimeoutNode func <$> goForest dl sdf
       DefRetriesNode func sdf -> DefRetriesNode func <$> goForest dl sdf
       DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest dl sdf
       DefExpectationNode func sdf -> DefExpectationNode func <$> goForest dl sdf
@@ -265,6 +274,7 @@ randomiseTestForest = goForest
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest sdf
       DefParallelismNode func sdf -> DefParallelismNode func <$> goForest sdf
+      DefTimeoutNode i sdf -> DefTimeoutNode i <$> goForest sdf
       DefRetriesNode i sdf -> DefRetriesNode i <$> goForest sdf
       DefFlakinessNode i sdf -> DefFlakinessNode i <$> goForest sdf
       DefExpectationNode i sdf -> DefExpectationNode i <$> goForest sdf
@@ -292,6 +302,7 @@ markSpecForestAsPending mMessage = goForest
       DefAroundAllWithNode func sdf -> DefAroundAllWithNode func $ goForest sdf
       DefAfterAllNode func sdf -> DefAfterAllNode func $ goForest sdf
       DefParallelismNode func sdf -> DefParallelismNode func $ goForest sdf
+      DefTimeoutNode i sdf -> DefTimeoutNode i $ goForest sdf
       DefRetriesNode i sdf -> DefRetriesNode i $ goForest sdf
       DefFlakinessNode i sdf -> DefFlakinessNode i $ goForest sdf
       DefRandomisationNode eor sdf -> DefRandomisationNode eor (goForest sdf)

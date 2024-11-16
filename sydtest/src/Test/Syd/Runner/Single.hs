@@ -4,7 +4,9 @@ module Test.Syd.Runner.Single (runSingleTestWithFlakinessMode) where
 
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
+import System.Timeout (timeout)
 import Test.Syd.HList
+import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecDef
 
@@ -24,6 +26,8 @@ runSingleTestWithFlakinessMode ::
       ((HList externalResources -> () -> t) -> t) ->
       IO TestRunResult
     ) ->
+  -- | Timeout
+  Timeout ->
   -- | Max retries
   Word ->
   -- | Flakiness mode
@@ -32,8 +36,8 @@ runSingleTestWithFlakinessMode ::
   ExpectationMode ->
   -- | Test result
   IO TestRunReport
-runSingleTestWithFlakinessMode progressReporter l td maxRetries fm em = do
-  results <- runSingleTestWithRetries progressReporter l td maxRetries em
+runSingleTestWithFlakinessMode progressReporter l td mTimeout maxRetries fm em = do
+  results <- runSingleTestWithRetries progressReporter l td mTimeout maxRetries em
   pure
     TestRunReport
       { testRunReportExpectationMode = em,
@@ -53,24 +57,54 @@ runSingleTestWithRetries ::
       ((HList externalResources -> () -> t) -> t) ->
       IO TestRunResult
     ) ->
+  -- | Timeout
+  Timeout ->
   -- | Max retries
   Word ->
   -- | Expectation mode
   ExpectationMode ->
   -- If the test ever passed, and the last test result
   IO (NonEmpty TestRunResult)
-runSingleTestWithRetries progressReporter l td maxRetries em = go maxRetries
+runSingleTestWithRetries progressReporter l td mTimeout maxRetries em = go maxRetries
   where
     go :: Word -> IO (NonEmpty TestRunResult)
     go w
-      | w <= 1 = (:| []) <$> runFunc
+      | w <= 1 = (:| []) . either id id <$> runWithTimeout
       | otherwise = do
-          result <- runFunc
-          if testStatusMatchesExpectationMode (testRunResultStatus result) em
-            then pure (result :| [])
-            else do
-              rest <- go (pred w)
-              pure (result NE.<| rest)
+          mResult <- runWithTimeout
+          case mResult of
+            -- Don't retry on timeout
+            Left result -> pure (result :| [])
+            Right result ->
+              if testStatusMatchesExpectationMode (testRunResultStatus result) em
+                then pure (result :| [])
+                else do
+                  rest <- go (pred w)
+                  pure (result NE.<| rest)
       where
+        runWithTimeout :: IO (Either TestRunResult TestRunResult)
+        runWithTimeout = case mTimeout of
+          DoNotTimeout -> Right <$> runFunc
+          TimeoutAfterMicros micros -> do
+            mResult <- timeout micros runFunc
+            pure $ case mResult of
+              Nothing -> Left timeoutResult
+              Just result -> Right result
+
         runFunc :: IO TestRunResult
         runFunc = testDefVal td progressReporter (\f -> f l ())
+
+        timeoutResult :: TestRunResult
+        timeoutResult =
+          TestRunResult
+            { testRunResultStatus = TestFailed,
+              testRunResultException = Nothing,
+              testRunResultNumTests = Nothing,
+              testRunResultNumShrinks = Nothing,
+              testRunResultFailingInputs = [],
+              testRunResultLabels = Nothing,
+              testRunResultClasses = Nothing,
+              testRunResultTables = Nothing,
+              testRunResultGoldenCase = Nothing,
+              testRunResultExtraInfo = Just "Timeout!"
+            }

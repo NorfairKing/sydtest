@@ -604,6 +604,7 @@ specForestWidth = goF 0
       DefAroundAllWithNode _ sdf -> goF level sdf
       DefAfterAllNode _ sdf -> goF level sdf
       DefParallelismNode _ sdf -> goF level sdf
+      DefTimeoutNode _ sdf -> goF level sdf
       DefRetriesNode _ sdf -> goF level sdf
       DefRandomisationNode _ sdf -> goF level sdf
       DefFlakinessNode _ sdf -> goF level sdf

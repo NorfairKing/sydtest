@@ -140,11 +140,13 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
           niceLocation Hspec.Location {..} = intercalate ":" [locationFile, show locationLine, show locationColumn]
           withLocationContext :: SomeException -> SomeException
           withLocationContext = withExtraContext $ niceLocation <$> mloc
+          withContext :: SomeException -> Contextual
+          withContext e = addContextToException (withLocationContext e) (Hspec.resultInfo result)
+
       exception <- failureReasonToException withExtraContext fr
-      pure
-        ( TestFailed,
-          Just $ SomeException $ addContextToException (withLocationContext exception) (Hspec.resultInfo result)
-        )
+
+      pure (TestFailed, Just $ maybeAddContextToException withContext exception fr)
+
   let testRunResultNumTests = Nothing
   let testRunResultNumShrinks = Nothing
   let testRunResultGoldenCase = Nothing
@@ -165,3 +167,8 @@ failureReasonToException withExtraContext = \case
 #if MIN_VERSION_hspec_core(2,11,0)
   Hspec.ColorizedReason s -> pure $ SomeException $ ExpectationFailed s
 #endif
+
+maybeAddContextToException :: (SomeException -> Contextual) -> SomeException -> Hspec.FailureReason -> SomeException
+maybeAddContextToException withContext e = \case
+  Hspec.ExpectedButGot {} -> e
+  _ -> SomeException (withContext e)

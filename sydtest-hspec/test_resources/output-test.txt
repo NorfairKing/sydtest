@@ -1,0 +1,43 @@
+Tests:
+
+✗ failure with no reason                                                   0.00 ms
+  Retries: 3 (does not look flaky)
+✗ failure with reason                                                      0.00 ms
+  Retries: 3 (does not look flaky)
+✗ failure with "expected x but got y"                                      0.00 ms
+  Retries: 3 (does not look flaky)
+✗ failure with error                                                       0.00 ms
+  Retries: 3 (does not look flaky)
+
+
+Failures:
+
+    src/Test/Syd/Hspec.hs:68
+  ✗ 1 failure with no reason
+      Retries: 3 (does not look flaky)
+      ExpectationFailed "Hspec had no more information about this failure."
+  
+    src/Test/Syd/Hspec.hs:68
+  ✗ 2 failure with reason
+      Retries: 3 (does not look flaky)
+      Contextual "ExpectationFailed \"failure reason\"" "test/Test/Syd/OutputSpec.hs:33:30"
+  
+    src/Test/Syd/Hspec.hs:68
+  ✗ 3 failure with "expected x but got y"
+      Retries: 3 (does not look flaky)
+      Expected these values to be equal:
+      Actual:   8
+      Expected: 6
+  
+    src/Test/Syd/Hspec.hs:68
+  ✗ 4 failure with error
+      Retries: 3 (does not look flaky)
+      error msg
+  
+
+  Examples:                     12
+  Passed:                       0
+  Failed:                       4
+  Sum of test runtimes:         0.00 seconds
+  Test suite took:              0.00 seconds
+

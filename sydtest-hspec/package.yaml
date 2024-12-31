@@ -1,5 +1,5 @@
 name: sydtest-hspec
-version: 0.4.0.3
+version: 0.4.0.4
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -12,6 +12,7 @@ synopsis: An Hspec companion library for sydtest
 extra-source-files:
 - CHANGELOG.md
 - LICENSE.md
+- test_resources/**/*
 
 dependencies:
 - base >= 4.7 && < 5
@@ -36,6 +37,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - hspec
+    - safe-coloured-text
     - stm
     - sydtest
     - sydtest-hspec
+    - text

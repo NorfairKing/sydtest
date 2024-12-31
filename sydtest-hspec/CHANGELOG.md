@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0.4] - 2025-01-07
+
+### Changed
+
+ * Fixed test failure report when using `mkNotEqualButShouldHaveBeenEqual`
+
 ## [0.4.0.3] - 2024-10-13
 
 ### Added

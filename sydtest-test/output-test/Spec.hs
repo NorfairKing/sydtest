@@ -94,6 +94,7 @@ spec = do
   describe "assertions" $ do
     it "shouldBe" $ 3 `shouldBe` (4 :: Int)
     it "shouldNotBe" $ 3 `shouldNotBe` (3 :: Int)
+    it "shouldNotBe" $ (-0.0) `shouldNotBe` (0.0 :: Double)
     it "shouldSatisfy" $ (3 :: Int) `shouldSatisfy` even
     it "shouldNotSatisfy" $ (3 :: Int) `shouldNotSatisfy` odd
     it "shouldSatisfyNamed" $ shouldSatisfyNamed (3 :: Int) "even" even

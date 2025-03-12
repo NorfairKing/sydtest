@@ -29,41 +29,41 @@ import Text.Show.Pretty
 
 -- | Assert that two values are equal according to `==`.
 shouldBe :: (HasCallStack, Show a, Eq a) => a -> a -> IO ()
-shouldBe actual expected = unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
+shouldBe actual expected = unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual (T.pack $ ppShow actual) (T.pack $ ppShow expected)
 
 infix 1 `shouldBe`
 
 -- | Assert that two values are not equal according to `==`.
 shouldNotBe :: (HasCallStack, Show a, Eq a) => a -> a -> IO ()
-shouldNotBe actual expected = unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected)
+shouldNotBe actual expected = unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (T.pack $ ppShow actual) (T.pack $ ppShow expected)
 
 infix 1 `shouldNotBe`
 
 -- | Assert that a value satisfies the given predicate.
 shouldSatisfy :: (HasCallStack, Show a) => a -> (a -> Bool) -> IO ()
-shouldSatisfy actual p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual) Nothing
+shouldSatisfy actual p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (T.pack $ ppShow actual) Nothing
 
 -- | Assert that a value satisfies the given predicate with the given predicate name.
 shouldSatisfyNamed :: (HasCallStack, Show a) => a -> String -> (a -> Bool) -> IO ()
-shouldSatisfyNamed actual name p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (ppShow actual) (Just name)
+shouldSatisfyNamed actual name p = unless (p actual) $ throwIO $ PredicateFailedButShouldHaveSucceeded (T.pack $ ppShow actual) (Just $ T.pack name)
 
 infix 1 `shouldSatisfy`
 
 -- | Assert that a value does not satisfy the given predicate.
 shouldNotSatisfy :: (HasCallStack, Show a) => a -> (a -> Bool) -> IO ()
-shouldNotSatisfy actual p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual) Nothing
+shouldNotSatisfy actual p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (T.pack $ ppShow actual) Nothing
 
 infix 1 `shouldNotSatisfy`
 
 -- | Assert that a value does not satisfy the given predicate with the given predicate name.
 shouldNotSatisfyNamed :: (HasCallStack, Show a) => a -> String -> (a -> Bool) -> IO ()
-shouldNotSatisfyNamed actual name p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (ppShow actual) (Just name)
+shouldNotSatisfyNamed actual name p = when (p actual) $ throwIO $ PredicateSucceededButShouldHaveFailed (T.pack $ ppShow actual) (Just $ T.pack name)
 
 -- | Assert that computation returns the given value (according to `==`).
 shouldReturn :: (HasCallStack, Show a, Eq a) => IO a -> a -> IO ()
 shouldReturn computeActual expected = do
   actual <- computeActual
-  unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual (ppShow actual) (ppShow expected)
+  unless (actual == expected) $ throwIO =<< mkNotEqualButShouldHaveBeenEqual (T.pack $ ppShow actual) (T.pack $ ppShow expected)
 
 infix 1 `shouldReturn`
 
@@ -71,7 +71,7 @@ infix 1 `shouldReturn`
 shouldNotReturn :: (HasCallStack, Show a, Eq a) => IO a -> a -> IO ()
 shouldNotReturn computeActual expected = do
   actual <- computeActual
-  unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (ppShow actual) (ppShow expected)
+  unless (actual /= expected) $ throwIO $ EqualButShouldNotHaveBeenEqual (T.pack $ ppShow actual) (T.pack $ ppShow expected)
 
 infix 1 `shouldNotReturn`
 
@@ -119,25 +119,25 @@ textShouldBe actual expected = unless (actual == expected) $ throwIO =<< textsNo
 -- Note that using function could mess up the colours in your terminal if the Texts contain ANSI codes.
 -- In that case you may want to `show` your values first or use `shouldBe` instead.
 stringsNotEqualButShouldHaveBeenEqual :: String -> String -> IO Assertion
-stringsNotEqualButShouldHaveBeenEqual actual expected = mkNotEqualButShouldHaveBeenEqual actual expected
+stringsNotEqualButShouldHaveBeenEqual actual expected = mkNotEqualButShouldHaveBeenEqual (T.pack actual) (T.pack expected)
 
 -- | An assertion that says two 'Text's should have been equal according to `==`.
 --
 -- Note that using function could mess up the colours in your terminal if the Texts contain ANSI codes.
 -- In that case you may want to `show` your values first or use `shouldBe` instead.
 textsNotEqualButShouldHaveBeenEqual :: Text -> Text -> IO Assertion
-textsNotEqualButShouldHaveBeenEqual actual expected = mkNotEqualButShouldHaveBeenEqual (T.unpack actual) (T.unpack expected)
+textsNotEqualButShouldHaveBeenEqual actual expected = mkNotEqualButShouldHaveBeenEqual actual expected
 
 -- | An assertion that says two 'ByteString's should have been equal according to `==`.
 bytestringsNotEqualButShouldHaveBeenEqual :: ByteString -> ByteString -> IO Assertion
-bytestringsNotEqualButShouldHaveBeenEqual actual expected = mkNotEqualButShouldHaveBeenEqual (show actual) (show expected)
+bytestringsNotEqualButShouldHaveBeenEqual actual expected = mkNotEqualButShouldHaveBeenEqual (T.pack $ show actual) (T.pack $ show expected)
 
 -- | Make a test fail
 --
 -- Note that this is mostly backward compatible, but it has return type 'a' instead of '()' because execution will not continue beyond this function.
 -- In this way it is not entirely backward compatible with hspec because now there could be an ambiguous type error.
 expectationFailure :: (HasCallStack) => String -> IO a
-expectationFailure = throwIO . ExpectationFailed
+expectationFailure = throwIO . ExpectationFailed . T.pack
 
 -- | Annotate a given action with a context, for contextual assertions
 --

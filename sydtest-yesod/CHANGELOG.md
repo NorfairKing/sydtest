@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0.3] - 2025-03-20
+
+### Changed
+
+* Fixed a bug in which dashes weren't correctly dropped from parsed routes.
+
 ## [0.3.0.2] - 2023-10-09
 
 ### Added

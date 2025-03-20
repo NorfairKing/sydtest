@@ -7,7 +7,7 @@
 }:
 mkDerivation {
   pname = "sydtest-yesod";
-  version = "0.3.0.2";
+  version = "0.3.0.3";
   src = ./.;
   libraryHaskellDepends = [
     base binary bytestring case-insensitive containers cookie

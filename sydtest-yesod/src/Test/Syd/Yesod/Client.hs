@@ -144,9 +144,15 @@ getLocation = do
     decodePath' :: ByteString -> ([Text], [(Text, Text)])
     decodePath' b =
       let (ss, q) = decodePath $ extractPath b
-       in (ss, map unJust $ queryToQueryText q)
+       in (map resolveDashes ss, map unJust $ queryToQueryText q)
     unJust (a, Just b) = (a, b)
     unJust (a, Nothing) = (a, mempty)
+    -- See
+    -- https://github.com/yesodweb/yesod/blob/8e5059b36f79700aa8f70314f1ce9cc537c99d7d/yesod-core/src/Yesod/Core/Class/Yesod.hs#L193-L195
+    -- and
+    -- https://github.com/yesodweb/yesod/blob/8e5059b36f79700aa8f70314f1ce9cc537c99d7d/yesod-core/src/Yesod/Core/Class/Yesod.hs#L174-L176
+    resolveDashes :: Text -> Text
+    resolveDashes t = if T.all (== '-') t then T.drop 1 t else t
 
 -- | Get the 'Location' header of most recently received response, and assert that it is a valid Route.
 requireLocation :: (ParseRoute site) => YesodClientM localSite (Route site)

@@ -81,7 +81,7 @@ spec = managerSpec . modifyMaxSuccess (`div` 20) . yesodSpecWithSiteSetupFunc ap
             addPostParam "contents" (T.pack contents)
           statusIs 200
 
-  -- A proprety test that does the above, but also goes and finds the thought that was posted,
+  -- A property test that does the above, but also goes and finds the thought that was posted,
   -- both on the page and in the database.
   -- We generate alphanumeric titles and contents just so that we don't have to depend on `genvalidity` here and figure out encodings correctly.
   it "can post any blogpost and then look it up" $ \yc ->
@@ -111,3 +111,10 @@ spec = managerSpec . modifyMaxSuccess (`div` 20) . yesodSpecWithSiteSetupFunc ap
           bodyContains $ T.unpack titleText
           bodyContains $ T.unpack contentsText
           statusIs 200
+
+  it "can get the correct location when the argument is empty" $ \yc -> do
+    forAll arbitrary $ \arg ->
+      runYesodClientM yc $ do
+        get $ EmptyRouteR arg
+        statusIs 303
+        locationShouldBe $ EmptyRouteR arg

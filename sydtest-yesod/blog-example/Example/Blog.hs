@@ -48,6 +48,7 @@ mkYesod
     / HomeR GET
     /new-thought NewThoughtR GET POST
     /thought/#ThoughtId ThoughtR GET
+    /dashtest/#String EmptyRouteR GET
 |]
 
 type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
@@ -122,6 +123,9 @@ getThoughtR thoughtId = do
       <p>
         #{thoughtContents thought}
     |]
+
+getEmptyRouteR :: String -> Handler Html
+getEmptyRouteR t = redirect $ EmptyRouteR t
 
 main :: IO ()
 main = runStderrLoggingT $

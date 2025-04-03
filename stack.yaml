@@ -28,23 +28,23 @@ ghc-options:
 
 extra-deps:
 - github: NorfairKing/fast-myers-diff
-  commit: d7c1a675af3889698b987485a630f96a993226fa
+  commit: 4a5c31884b8fc399085bffacd15d6cb5624b3177
   subdirs:
     - fast-myers-diff
 - github: NorfairKing/opt-env-conf
-  commit: 1a8d79f4748ae566c525de8951ee6907ac3739a8
+  commit: f1a744f9497e0c0e017262dfa24b7aefe5250dd0
   subdirs:
     - opt-env-conf
     - opt-env-conf-test
 - github: NorfairKing/autodocodec
-  commit: d5f9869861d8678c7e6dfce339446fee490b8991
+  commit: 7439601de128dadf562430f4216cbdb28580ed20
   subdirs:
     - autodocodec
     - autodocodec-nix
     - autodocodec-schema
     - autodocodec-yaml
 - github: NorfairKing/validity
-  commit: 9e58a7a6ed8cd59cb60ab426cef2edf6a1340b33
+  commit: 512aea6e0a112f5df09cc0b08f7fceffb122abc6
   subdirs:
     - validity
     - validity-aeson
@@ -59,7 +59,7 @@ extra-deps:
     - genvalidity-text
 
 - github: NorfairKing/safe-coloured-text
-  commit: 61f14d21b7399fe97da24e484c2f9fedaf532bb8
+  commit: 9ed65a40b3b2fade447c9d5fcb941d58f6367308
   subdirs:
   - safe-coloured-text
   - safe-coloured-text-layout

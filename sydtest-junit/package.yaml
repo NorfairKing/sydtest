@@ -1,0 +1,42 @@
+name: sydtest-junit
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2025 Tom Sydney Kerckhove"
+category: Testing
+synopsis: An JUnit XML companion library for sydtest
+
+extra-source-files:
+- CHANGELOG.md
+- LICENSE.md
+- test_resources/**/*
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+    - junit-xml
+    - sydtest
+    - text
+
+tests:
+  sydtest-junit-test:
+    main: Main.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - bytestring
+    - junit-xml
+    - path
+    - path-io
+    - sydtest
+    - sydtest-junit

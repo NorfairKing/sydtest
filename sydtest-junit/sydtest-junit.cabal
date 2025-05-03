@@ -1,0 +1,62 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.36.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-junit
+version:        0.0.0.0
+synopsis:       An JUnit XML companion library for sydtest
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+copyright:      Copyright (c) 2025 Tom Sydney Kerckhove
+license:        OtherLicense
+license-file:   LICENSE.md
+build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+    LICENSE.md
+    test_resources/example.xml
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd.JUnit
+  other-modules:
+      Paths_sydtest_junit
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , junit-xml
+    , sydtest
+    , text
+  default-language: Haskell2010
+
+test-suite sydtest-junit-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Spec
+      Test.Syd.JUnitSpec
+      Paths_sydtest_junit
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , junit-xml
+    , path
+    , path-io
+    , sydtest
+    , sydtest-junit
+  default-language: Haskell2010

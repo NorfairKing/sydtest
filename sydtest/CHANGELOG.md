@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0.1] - 2025-05-09
+
+### Added
+
+- `--skip-passed`: Skip passing tests and rerun once the entire suite is
+  skipped.
+
 ## [0.19.0.0] - 2024-11-17
 
 ### Added

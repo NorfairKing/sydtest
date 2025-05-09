@@ -263,6 +263,7 @@ import Test.Syd.HList
 import Test.Syd.Modify
 import Test.Syd.OptParse
 import Test.Syd.Output
+import Test.Syd.ReRun
 import Test.Syd.Run
 import Test.Syd.Runner
 import Test.Syd.SVG
@@ -283,7 +284,7 @@ sydTest spec = do
 -- This function performs no option-parsing.
 sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
-  resultForest <- sydTestResult sets spec
+  resultForest <- withRerunByReport sets (sydTestResult sets) spec
 
   when (settingProfile sets) $ do
     p <- resolveFile' "sydtest-profile.html"

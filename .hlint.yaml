@@ -30,3 +30,5 @@
     name: "Redundant pure"
 - ignore:
     name: "Use when"
+- ignore:
+    name: "Use record patterns"

@@ -13,7 +13,7 @@ data SpecTree a
   = SpecifyNode Text a -- A test with its description
   | PendingNode Text (Maybe Text)
   | DescribeNode Text (SpecForest a) -- A description
-  | SubForestNode (SpecForest a) -- A test with its description
+  | SubForestNode (SpecForest a)
   deriving (Functor)
 
 instance Foldable SpecTree where

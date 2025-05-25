@@ -38,9 +38,6 @@ let
             "--ghc-options=-Werror"
             "--ghc-options=-Wno-deprecations"
           ];
-          # Ugly hack because we can't just add flags to the 'test' invocation.
-          # Show test output as we go, instead of all at once afterwards.
-          testTarget = (old.testTarget or "") + " --show-details=direct";
         })
     );
 
@@ -127,7 +124,7 @@ let
       # We turn off tests on other versions because they generate different
       # random data and/or add different data to the callstack.
       # This makes the output tests fail.
-      doCheck = self.ghc.version == "9.6.5";
+      doCheck = self.ghc.version == "9.8.4";
     });
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
   } //

@@ -1,4 +1,4 @@
-[36mUsage: [m[33msydtest[m [36m[[m[37m--config-file[m [33mFILE_PATH[m[36m][m [36m[[m[37m--random-seed[m [36m|[m [37m--seed[m [33mINT[m[36m][m [36m[[m[37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m[36m][m [36m[[m[37m--jobs[m[36m|[m[37m--threads[m [33mINT[m [36m|[m [37m--synchronous[m[36m][m [36m[[m[37m--max-size[m [33mInt[m[36m][m [36m[[m[37m--max-success[m [33mInt[m[36m][m [36m[[m[37m--max-discard[m [33mInt[m[36m][m [36m[[m[37m--max-shrinks[m [33mInt[m[36m][m [36m[[m[37m--[no-]golden-start[m[36m][m [36m[[m[37m--[no-]golden-reset[m[36m][m [36m[[m[37m--[no-]colour[m[36m|[m[37m--[no-]color[m[36m][m [36m[[m[33mFILTER[m [36m[[m[33mFILTER[m[36m][m [36m|[m [37m-f[m[36m|[m[37m--filter[m[36m|[m[37m-m[m[36m|[m[37m--match[m [33mFILTER[m[36m][m [36m[[m[37m--[no-]fail-fast[m[36m][m [36m[[m[37m--continuous[m [36m|[m [37m--iterations[m [33mINT[m[36m][m [36m[[m[37m--no-timeout[m [36m|[m [36m[[m[37m--timeout[m [33mMICROSECONDS[m[36m][m[36m][m [36m[[m[37m--retries[m [33mINTEGER[m[36m][m [36m[[m[37m--[no-]fail-on-flaky[m[36m][m [36m[[m[37m--progress[m [36m|[m [37m--no-progress[m[36m][m [36m[[m[37m--[no-]debug[m[36m][m [36m[[m[37m--[no-]profile[m[36m][m
+[36mUsage: [m[33msydtest[m [36m[[m[37m--config-file[m [33mFILE_PATH[m[36m][m [36m[[m[37m--random-seed[m [36m|[m [37m--seed[m [33mINT[m[36m][m [36m[[m[37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m[36m][m [36m[[m[37m--jobs[m[36m|[m[37m--threads[m [33mINT[m [36m|[m [37m--synchronous[m[36m][m [36m[[m[37m--max-size[m [33mInt[m[36m][m [36m[[m[37m--max-success[m [33mInt[m[36m][m [36m[[m[37m--max-discard[m [33mInt[m[36m][m [36m[[m[37m--max-shrinks[m [33mInt[m[36m][m [36m[[m[37m--[no-]golden-start[m[36m][m [36m[[m[37m--[no-]golden-reset[m[36m][m [36m[[m[37m--[no-]colour[m[36m|[m[37m--[no-]color[m[36m][m [36m[[m[33mFILTER[m [36m[[m[33mFILTER[m[36m][m [36m|[m [37m-f[m[36m|[m[37m--filter[m[36m|[m[37m-m[m[36m|[m[37m--match[m [33mFILTER[m[36m][m [36m[[m[37m--[no-]fail-fast[m[36m][m [36m[[m[37m--continuous[m [36m|[m [37m--iterations[m [33mINT[m[36m][m [36m[[m[37m--no-timeout[m [36m|[m [36m[[m[37m--timeout[m [33mMICROSECONDS[m[36m][m[36m][m [36m[[m[37m--retries[m [33mINTEGER[m[36m][m [36m[[m[37m--[no-]fail-on-flaky[m[36m][m [36m[[m[37m--[no-]skip-passed[m[36m][m [36m[[m[37m--report-file[m [33mFILE_PATH[m[36m][m [36m[[m[37m--progress[m [36m|[m [37m--no-progress[m[36m][m [36m[[m[37m--[no-]debug[m[36m][m [36m[[m[37m--[no-]profile[m[36m][m
 
 [36mAll settings[m:
   [34mShow this help text[m
@@ -151,6 +151,21 @@
     [37mfail-on-flaky[m: # [32mor null[m
       [33m<boolean>[m
 
+  [34mSkip tests that have already passed. When every test has passed, rerun them all.[m
+  [34mNote that you have to run with this flag once before it can activate.[m
+  switch: [37m--[no-]skip-passed[m
+  env: [37mSYDTEST_SKIP_PASSED[m [33mBOOL[m
+  config:
+    [37mskip-passed[m: # [32mor null[m
+      [33m<boolean>[m
+
+  [34mWhere to store the the test report for --skip-passed[m
+  option: [37m--report-file[m [33mFILE_PATH[m
+  env: [37mSYDTEST_REPORT_FILE[m [33mFILE_PATH[m
+  config:
+    [37mreport-file[m: # [32mor null[m
+      [33m<string>[m
+
   [34mReport per-example progress[m
   switch: [37m--progress[m
 
@@ -172,56 +187,64 @@
       [33m<boolean>[m
 
 [36mOptions[m:
-  [37m-h[m[36m|[m[37m--help[m                                                         [34mShow this help text[m                                                                                       
-  [37m--version[m                                                         [34mOutput version information[m                                                                                
-  [37m--config-file[m                                                     [34mPath to the configuration file[m                                                                            
-  [37m--random-seed[m                                                     [34mUse a random seed for pseudo-randomness[m                                                                   
-  [37m--seed[m                                                            [34mSeed for pseudo-randomness[m                                                                                
-  [37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m [34mRun test suite in a random order[m                                                                          
-  [37m--jobs[m[36m|[m[37m--threads[m                                                  [34mHow many threads to use to execute tests in asynchrnously[m                                                 
-  [37m--synchronous[m                                                     [34mUse only one thread, to execute tests synchronously[m                                                       
-  [37m--max-size[m                                                        [34mMaximum size parameter to pass to generators[m                                             default: [33m100[m     
-  [37m--max-success[m                                                     [34mNumber of property test examples to run[m                                                  default: [33m100[m     
-  [37m--max-discard[m                                                     [34mMaximum number of property test inputs to discard before considering the test failed[m     default: [33m10[m      
-  [37m--max-shrinks[m                                                     [34mMaximum shrinks to try to apply to a failing property test input[m                         default: [33m100[m     
-  [37m--[no-]golden-start[m                                               [34mProduce initial golden output if it does not exist yet[m                                                    
-  [37m--[no-]golden-reset[m                                               [34mOverwrite golden output[m                                                                                   
-  [37m--[no-]colour[m[36m|[m[37m--[no-]color[m                                        [34mUse colour in output[m                                                                                      
-  [33mFILTER[m                                                            [34mFilter to select parts of the test suite[m                                                                  
-  [33mFILTER[m                                                            [34mFilter to select parts of the test suite[m                                                                  
-  [37m-f[m[36m|[m[37m--filter[m[36m|[m[37m-m[m[36m|[m[37m--match[m                                            [34mFilter to select parts of the test suite[m                                                                  
-  [37m--[no-]fail-fast[m                                                  [34mStop testing when a test failure occurs[m                                                                   
-  [37m--continuous[m                                                      [34mRun the test suite over and over again until it fails, for example to diagnose flakiness[m                  
-  [37m--iterations[m                                                      [34mHow many iterations of the suite to run, for example to diagnose flakiness[m                                
-  [37m--no-timeout[m                                                      [34mDon't timeout[m                                                                                             
-  [37m--timeout[m                                                         [34mAfter how many microseconds to consider a test failed[m                                    default: [33m60000000[m
-  [37m--retries[m                                                         [34mThe number of retries to use for flakiness diagnostics. 0 means 'no retries'[m                              
-  [37m--[no-]fail-on-flaky[m                                              [34mFail when any flakiness is detected, even when flakiness is allowed[m                                       
-  [37m--progress[m                                                        [34mReport per-example progress[m                                                                               
-  [37m--no-progress[m                                                     [34mDon't report per-example progress[m                                                                         
-  [37m--[no-]debug[m                                                      [34mTurn on debug mode[m                                                                                        
-  [37m--[no-]profile[m                                                    [34mTurn on profiling mode[m                                                                                    
+  [37m-h[m[36m|[m[37m--help[m                                                         [34mShow this help text[m                                                                                                                                                      
+  [37m--version[m                                                         [34mOutput version information[m                                                                                                                                               
+  [37m--config-file[m                                                     [34mPath to the configuration file[m                                                                                                                                           
+  [37m--random-seed[m                                                     [34mUse a random seed for pseudo-randomness[m                                                                                                                                  
+  [37m--seed[m                                                            [34mSeed for pseudo-randomness[m                                                                                                                                               
+  [37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m [34mRun test suite in a random order[m                                                                                                                                         
+  [37m--jobs[m[36m|[m[37m--threads[m                                                  [34mHow many threads to use to execute tests in asynchrnously[m                                                                                                                
+  [37m--synchronous[m                                                     [34mUse only one thread, to execute tests synchronously[m                                                                                                                      
+  [37m--max-size[m                                                        [34mMaximum size parameter to pass to generators[m                                                                                                            default: [33m100[m     
+  [37m--max-success[m                                                     [34mNumber of property test examples to run[m                                                                                                                 default: [33m100[m     
+  [37m--max-discard[m                                                     [34mMaximum number of property test inputs to discard before considering the test failed[m                                                                    default: [33m10[m      
+  [37m--max-shrinks[m                                                     [34mMaximum shrinks to try to apply to a failing property test input[m                                                                                        default: [33m100[m     
+  [37m--[no-]golden-start[m                                               [34mProduce initial golden output if it does not exist yet[m                                                                                                                   
+  [37m--[no-]golden-reset[m                                               [34mOverwrite golden output[m                                                                                                                                                  
+  [37m--[no-]colour[m[36m|[m[37m--[no-]color[m                                        [34mUse colour in output[m                                                                                                                                                     
+  [33mFILTER[m                                                            [34mFilter to select parts of the test suite[m                                                                                                                                 
+  [33mFILTER[m                                                            [34mFilter to select parts of the test suite[m                                                                                                                                 
+  [37m-f[m[36m|[m[37m--filter[m[36m|[m[37m-m[m[36m|[m[37m--match[m                                            [34mFilter to select parts of the test suite[m                                                                                                                                 
+  [37m--[no-]fail-fast[m                                                  [34mStop testing when a test failure occurs[m                                                                                                                                  
+  [37m--continuous[m                                                      [34mRun the test suite over and over again until it fails, for example to diagnose flakiness[m                                                                                 
+  [37m--iterations[m                                                      [34mHow many iterations of the suite to run, for example to diagnose flakiness[m                                                                                               
+  [37m--no-timeout[m                                                      [34mDon't timeout[m                                                                                                                                                            
+  [37m--timeout[m                                                         [34mAfter how many microseconds to consider a test failed[m                                                                                                   default: [33m60000000[m
+  [37m--retries[m                                                         [34mThe number of retries to use for flakiness diagnostics. 0 means 'no retries'[m                                                                                             
+  [37m--[no-]fail-on-flaky[m                                              [34mFail when any flakiness is detected, even when flakiness is allowed[m                                                                                                      
+  [37m--[no-]skip-passed[m                                                [34mSkip tests that have already passed. When every test has passed, rerun them all.
+Note that you have to run with this flag once before it can activate.
+[m                  
+  [37m--report-file[m                                                     [34mWhere to store the the test report for --skip-passed[m                                                                                                                     
+  [37m--progress[m                                                        [34mReport per-example progress[m                                                                                                                                              
+  [37m--no-progress[m                                                     [34mDon't report per-example progress[m                                                                                                                                        
+  [37m--[no-]debug[m                                                      [34mTurn on debug mode[m                                                                                                                                                       
+  [37m--[no-]profile[m                                                    [34mTurn on profiling mode[m                                                                                                                                                   
 
 [36mEnvironment Variables[m:
-  [37mSYDTEST_CONFIG_FILE[m [33mFILE_PATH[m                                              [34mPath to the configuration file[m                                                                          
-  [37mSYDTEST_RANDOM_SEED[m [33mANY[m                                                    [34mUse a random seed for pseudo-randomness[m                                                                 
-  [37mSYDTEST_SEED[m [33mINT[m                                                           [34mSeed for pseudo-randomness[m                                                                              
-  [37mSYDTEST_RANDOMISE_EXECUTION_ORDER[m[36m|[m[37mSYDTEST_RANDOMIZE_EXECUTION_ORDER[m [33mBOOL[m   [34mRun test suite in a random order[m                                                                        
-  [37mSYDTEST_JOBS[m[36m|[m[37mSYDTEST_THREADS[m [33mINT[m                                           [34mHow many threads to use to execute tests in asynchrnously[m                                               
-  [37mSYDTEST_SYNCHRONOUS[m [33mANY[m                                                    [34mUse only one thread, to execute tests synchronously[m                                                     
-  [37mSYDTEST_MAX_SIZE[m [33mInt[m                                                       [34mMaximum size parameter to pass to generators[m                                           default: [33m100[m     
-  [37mSYDTEST_MAX_SUCCESS[m [33mInt[m                                                    [34mNumber of property test examples to run[m                                                default: [33m100[m     
-  [37mSYDTEST_MAX_DISCARD[m [33mInt[m                                                    [34mMaximum number of property test inputs to discard before considering the test failed[m   default: [33m10[m      
-  [37mSYDTEST_MAX_SHRINKS[m [33mInt[m                                                    [34mMaximum shrinks to try to apply to a failing property test input[m                       default: [33m100[m     
-  [37mSYDTEST_GOLDEN_START[m [33mBOOL[m                                                  [34mProduce initial golden output if it does not exist yet[m                                                  
-  [37mSYDTEST_GOLDEN_RESET[m [33mBOOL[m                                                  [34mOverwrite golden output[m                                                                                 
-  [37mSYDTEST_COLOUR[m[36m|[m[37mSYDTEST_COLOR[m [33mBOOL[m                                          [34mUse colour in output[m                                                                                    
-  [37mSYDTEST_FAIL_FAST[m [33mBOOL[m                                                     [34mStop testing when a test failure occurs[m                                                                 
-  [37mSYDTEST_TIMEOUT[m [33mMICROSECONDS[m                                               [34mAfter how many microseconds to consider a test failed[m                                  default: [33m60000000[m
-  [37mSYDTEST_RETRIES[m [33mINTEGER[m                                                    [34mThe number of retries to use for flakiness diagnostics. 0 means 'no retries'[m                            
-  [37mSYDTEST_FAIL_ON_FLAKY[m [33mBOOL[m                                                 [34mFail when any flakiness is detected, even when flakiness is allowed[m                                     
-  [37mSYDTEST_DEBUG[m [33mBOOL[m                                                         [34mTurn on debug mode[m                                                                                      
-  [37mSYDTEST_PROFILE[m [33mBOOL[m                                                       [34mTurn on profiling mode[m                                                                                  
+  [37mSYDTEST_CONFIG_FILE[m [33mFILE_PATH[m                                              [34mPath to the configuration file[m                                                                                                                                             
+  [37mSYDTEST_RANDOM_SEED[m [33mANY[m                                                    [34mUse a random seed for pseudo-randomness[m                                                                                                                                    
+  [37mSYDTEST_SEED[m [33mINT[m                                                           [34mSeed for pseudo-randomness[m                                                                                                                                                 
+  [37mSYDTEST_RANDOMISE_EXECUTION_ORDER[m[36m|[m[37mSYDTEST_RANDOMIZE_EXECUTION_ORDER[m [33mBOOL[m   [34mRun test suite in a random order[m                                                                                                                                           
+  [37mSYDTEST_JOBS[m[36m|[m[37mSYDTEST_THREADS[m [33mINT[m                                           [34mHow many threads to use to execute tests in asynchrnously[m                                                                                                                  
+  [37mSYDTEST_SYNCHRONOUS[m [33mANY[m                                                    [34mUse only one thread, to execute tests synchronously[m                                                                                                                        
+  [37mSYDTEST_MAX_SIZE[m [33mInt[m                                                       [34mMaximum size parameter to pass to generators[m                                                                                                              default: [33m100[m     
+  [37mSYDTEST_MAX_SUCCESS[m [33mInt[m                                                    [34mNumber of property test examples to run[m                                                                                                                   default: [33m100[m     
+  [37mSYDTEST_MAX_DISCARD[m [33mInt[m                                                    [34mMaximum number of property test inputs to discard before considering the test failed[m                                                                      default: [33m10[m      
+  [37mSYDTEST_MAX_SHRINKS[m [33mInt[m                                                    [34mMaximum shrinks to try to apply to a failing property test input[m                                                                                          default: [33m100[m     
+  [37mSYDTEST_GOLDEN_START[m [33mBOOL[m                                                  [34mProduce initial golden output if it does not exist yet[m                                                                                                                     
+  [37mSYDTEST_GOLDEN_RESET[m [33mBOOL[m                                                  [34mOverwrite golden output[m                                                                                                                                                    
+  [37mSYDTEST_COLOUR[m[36m|[m[37mSYDTEST_COLOR[m [33mBOOL[m                                          [34mUse colour in output[m                                                                                                                                                       
+  [37mSYDTEST_FAIL_FAST[m [33mBOOL[m                                                     [34mStop testing when a test failure occurs[m                                                                                                                                    
+  [37mSYDTEST_TIMEOUT[m [33mMICROSECONDS[m                                               [34mAfter how many microseconds to consider a test failed[m                                                                                                     default: [33m60000000[m
+  [37mSYDTEST_RETRIES[m [33mINTEGER[m                                                    [34mThe number of retries to use for flakiness diagnostics. 0 means 'no retries'[m                                                                                               
+  [37mSYDTEST_FAIL_ON_FLAKY[m [33mBOOL[m                                                 [34mFail when any flakiness is detected, even when flakiness is allowed[m                                                                                                        
+  [37mSYDTEST_SKIP_PASSED[m [33mBOOL[m                                                   [34mSkip tests that have already passed. When every test has passed, rerun them all.
+Note that you have to run with this flag once before it can activate.
+[m                    
+  [37mSYDTEST_REPORT_FILE[m [33mFILE_PATH[m                                              [34mWhere to store the the test report for --skip-passed[m                                                                                                                       
+  [37mSYDTEST_DEBUG[m [33mBOOL[m                                                         [34mTurn on debug mode[m                                                                                                                                                         
+  [37mSYDTEST_PROFILE[m [33mBOOL[m                                                       [34mTurn on profiling mode[m                                                                                                                                                     
 
 [36mConfiguration Values[m:
   [34mSeed for pseudo-randomness[m
@@ -294,6 +317,16 @@
   [37mfail-on-flaky[m:
     # [32mor null[m
     [33m<boolean>[m
+  [34mSkip tests that have already passed. When every test has passed, rerun them all.
+Note that you have to run with this flag once before it can activate.
+[m
+  [37mskip-passed[m:
+    # [32mor null[m
+    [33m<boolean>[m
+  [34mWhere to store the the test report for --skip-passed[m
+  [37mreport-file[m:
+    # [32mor null[m
+    [33m<string>[m
   [34mTurn on debug mode[m
   [37mdebug[m:
     # [32mor null[m

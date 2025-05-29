@@ -14,6 +14,7 @@ import Data.Maybe
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import OptEnvConf
+import Path
 import Path.IO
 import Paths_sydtest (version)
 import Test.Syd.Run
@@ -63,6 +64,10 @@ data Settings = Settings
     settingRetries :: !Word,
     -- | Whether to fail when any flakiness is detected in tests declared as flaky
     settingFailOnFlaky :: !Bool,
+    -- | Whether to skip running tests that have already passed.
+    settingSkipPassed :: !Bool,
+    -- | Where to store the report
+    settingReportFile :: !(Maybe (Path Abs File)),
     -- | How to report progress
     settingReportProgress :: !ReportProgress,
     -- | Profiling mode
@@ -135,6 +140,8 @@ instance HasParser Settings where
                   )
                   flagRetries,
               settingFailOnFlaky = flagFailOnFlaky,
+              settingSkipPassed = flagSkipPassed,
+              settingReportFile = flagReportFile,
               settingReportProgress = progress,
               settingProfile = flagProfile
             }
@@ -159,7 +166,9 @@ defaultSettings =
           settingTimeout = TimeoutAfterMicros defaultTimeout,
           settingRetries = defaultRetries,
           settingFailOnFlaky = False,
+          settingSkipPassed = False,
           settingReportProgress = ReportNoProgress,
+          settingReportFile = Nothing,
           settingProfile = False
         }
 
@@ -207,6 +216,8 @@ data Flags = Flags
     flagRetries :: !(Maybe Word),
     flagTimeout :: !Timeout,
     flagFailOnFlaky :: !Bool,
+    flagSkipPassed :: !Bool,
+    flagReportFile :: !(Maybe (Path Abs File)),
     flagReportProgress :: !(Maybe ReportProgress),
     flagDebug :: !Bool,
     flagProfile :: !Bool
@@ -318,8 +329,23 @@ instance HasParser Flags where
           name "fail-on-flaky",
           value $ settingFailOnFlaky defaultSettings
         ]
-    flagReportProgress <-
-      optional settingsParser
+    flagSkipPassed <-
+      yesNoSwitch
+        [ help $
+            unlines
+              [ "Skip tests that have already passed. When every test has passed, rerun them all.",
+                "Note that you have to run with this flag once before it can activate."
+              ],
+          name "skip-passed",
+          value $ settingSkipPassed defaultSettings
+        ]
+    flagReportFile <-
+      optional $
+        filePathSetting
+          [ help "Where to store the the test report for --skip-passed",
+            name "report-file"
+          ]
+    flagReportProgress <- optional settingsParser
     flagDebug <-
       yesNoSwitch
         [ help "Turn on debug mode",

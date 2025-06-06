@@ -1,5 +1,6 @@
 { mkDerivation, base, hspec, hspec-core, lib, mtl, QuickCheck
-, safe-coloured-text, stm, sydtest, sydtest-discover, text
+, safe-coloured-text, stm, sydtest, sydtest-discover, sydtest-test
+, text
 }:
 mkDerivation {
   pname = "sydtest-hspec";
@@ -9,7 +10,7 @@ mkDerivation {
     base hspec-core mtl QuickCheck stm sydtest
   ];
   testHaskellDepends = [
-    base hspec safe-coloured-text stm sydtest text
+    base hspec safe-coloured-text stm sydtest sydtest-test text
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

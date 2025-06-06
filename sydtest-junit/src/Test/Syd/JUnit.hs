@@ -10,7 +10,6 @@ import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as T
 import Test.Syd
-import Test.Syd.SpecDef
 import Text.XML.JUnit
 
 renderJUnitSuites :: Timed ResultForest -> [TestSuite]

@@ -40,3 +40,4 @@ tests:
     - path-io
     - sydtest
     - sydtest-junit
+    - sydtest-test

@@ -59,4 +59,5 @@ test-suite sydtest-junit-test
     , path-io
     , sydtest
     , sydtest-junit
+    , sydtest-test
   default-language: Haskell2010

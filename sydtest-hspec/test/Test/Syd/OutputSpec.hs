@@ -9,6 +9,7 @@ import Test.Hspec
 import qualified Test.Syd as Syd
 import Test.Syd.Hspec (fromHspec)
 import Test.Syd.OptParse (getSettings)
+import Test.Syd.TestUtils
 import Text.Colour
 
 spec :: Syd.Spec
@@ -36,17 +37,3 @@ hspecSpec = do
 
   it "failure with error" $ do
     throwIO (AssertionFailed "error msg") :: IO ()
-
-eraseTiming :: Syd.Timed Syd.ResultForest -> Syd.Timed Syd.ResultForest
-eraseTiming = fmap erasedTimedInResultForest . eraseTimed
-  where
-    eraseTimed :: Syd.Timed a -> Syd.Timed a
-    eraseTimed t =
-      t
-        { Syd.timedBegin = 0,
-          Syd.timedEnd = 0,
-          Syd.timedWorker = 0
-        }
-
-    erasedTimedInResultForest :: Syd.ResultForest -> Syd.ResultForest
-    erasedTimedInResultForest = fmap (fmap (fmap eraseTimed))

@@ -7,6 +7,7 @@ import Test.Syd
 import Test.Syd.JUnit
 import Test.Syd.OptParse
 import Test.Syd.Path
+import Test.Syd.TestUtils
 import Text.XML.JUnit
 
 spec :: Spec
@@ -19,7 +20,7 @@ spec = tempDirSpec "sydtest-junit" $
     tempFile <- resolveFile tdir "example.xml"
     let fp = fromAbsFile tempFile
 
-    writeXmlReport fp $ renderJUnitSuites result
+    writeXmlReport fp $ renderJUnitSuites $ eraseTiming result
     actual <- SB.readFile fp
     pure $ pureGoldenByteStringFile "test_resources/example.xml" actual
 

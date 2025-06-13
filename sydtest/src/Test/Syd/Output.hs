@@ -17,12 +17,12 @@ import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe
-import Data.String (IsString (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as LTB
 import qualified Data.Text.Lazy.Builder as Text
 import qualified Data.Text.Lazy.IO as LTIO
+import qualified Data.Vector as V
 import Data.Word
 import GHC.Stack
 import Myers.Diff
@@ -418,8 +418,8 @@ outputAssertion = \case
   EqualButShouldNotHaveBeenEqual actual notExpected -> outputNotEqualAssertionFailed actual notExpected
   PredicateFailedButShouldHaveSucceeded actual mName -> outputPredicateSuccessAssertionFailed actual mName
   PredicateSucceededButShouldHaveFailed actual mName -> outputPredicateFailAssertionFailed actual mName
-  ExpectationFailed s -> stringChunks s
-  Context a' context -> outputAssertion a' ++ stringChunks context
+  ExpectationFailed s -> textChunks s
+  Context a' context -> outputAssertion a' ++ textChunks context
 
 -- | Split a list of 'Chunk's into lines of [Chunks].
 --
@@ -462,7 +462,7 @@ splitChunksIntoLines =
         -- We skip them one by one.
         Just ne -> currentLine : go ne cs
 
-outputEqualityAssertionFailed :: String -> String -> Maybe [PolyDiff Text Text] -> [[Chunk]]
+outputEqualityAssertionFailed :: Text -> Text -> Maybe (V.Vector (PolyDiff Text Text)) -> [[Chunk]]
 outputEqualityAssertionFailed actual expected diffM =
   case diffM of
     Just diff -> formatDiff actual expected diff
@@ -470,11 +470,11 @@ outputEqualityAssertionFailed actual expected diffM =
       concat
         [ [[chunk "Expected these values to be equal:"]],
           [[chunk "Diff computation took too long and was canceled"]],
-          [[fromString actual]],
-          [[fromString expected]]
+          [[chunk actual]],
+          [[chunk expected]]
         ]
 
-formatDiff :: String -> String -> [PolyDiff Text Text] -> [[Chunk]]
+formatDiff :: Text -> Text -> V.Vector (PolyDiff Text Text) -> [[Chunk]]
 formatDiff actual expected diff =
   let -- Add a header to a list of lines of chunks
       chunksLinesWithHeader :: Chunk -> [[Chunk]] -> [[Chunk]]
@@ -492,24 +492,24 @@ formatDiff actual expected diff =
       actualChunks :: [[Chunk]]
       actualChunks = chunksLinesWithHeader (fore blue "Actual:   ") $
         splitChunksIntoLines $
-          flip mapMaybe diff $ \case
+          flip mapMaybe (V.toList diff) $ \case
             First t -> Just $ foreOrBack red t
             Second _ -> Nothing
             Both t _ -> Just $ chunk t
       expectedChunks :: [[Chunk]]
       expectedChunks = chunksLinesWithHeader (fore blue "Expected: ") $
         splitChunksIntoLines $
-          flip mapMaybe diff $ \case
+          flip mapMaybe (V.toList diff) $ \case
             First _ -> Nothing
             Second t -> Just $ foreOrBack green t
             Both t _ -> Just $ chunk t
       inlineDiffChunks :: [[Chunk]]
       inlineDiffChunks =
-        if length (lines actual) == 1 && length (lines expected) == 1
+        if length (T.lines actual) == 1 && length (T.lines expected) == 1
           then []
           else chunksLinesWithHeader (fore blue "Inline diff: ") $
             splitChunksIntoLines $
-              flip map diff $ \case
+              flip map (V.toList diff) $ \case
                 First t -> foreOrBack red t
                 Second t -> foreOrBack green t
                 Both t _ -> chunk t
@@ -520,35 +520,35 @@ formatDiff actual expected diff =
           inlineDiffChunks
         ]
 
-outputNotEqualAssertionFailed :: String -> String -> [[Chunk]]
+outputNotEqualAssertionFailed :: Text -> Text -> [[Chunk]]
 outputNotEqualAssertionFailed actual notExpected =
   if actual == notExpected -- String equality
     then
       [ [chunk "Did not expect equality of the values but both were:"],
-        [chunk (T.pack actual)]
+        [chunk actual]
       ]
     else
       [ [chunk "These two values were considered equal but should not have been equal:"],
-        [fore blue "Actual      : ", chunk (T.pack actual)],
-        [fore blue "Not Expected: ", chunk (T.pack notExpected)]
+        [fore blue "Actual      : ", chunk actual],
+        [fore blue "Not Expected: ", chunk notExpected]
       ]
 
-outputPredicateSuccessAssertionFailed :: String -> Maybe String -> [[Chunk]]
+outputPredicateSuccessAssertionFailed :: Text -> Maybe Text -> [[Chunk]]
 outputPredicateSuccessAssertionFailed actual mName =
   concat
     [ [ [chunk "Predicate failed, but should have succeeded, on this value:"],
-        [chunk (T.pack actual)]
+        [chunk actual]
       ],
-      concat [map (chunk "Predicate: " :) (stringChunks name) | name <- maybeToList mName]
+      concat [map (chunk "Predicate: " :) (textChunks name) | name <- maybeToList mName]
     ]
 
-outputPredicateFailAssertionFailed :: String -> Maybe String -> [[Chunk]]
+outputPredicateFailAssertionFailed :: Text -> Maybe Text -> [[Chunk]]
 outputPredicateFailAssertionFailed actual mName =
   concat
     [ [ [chunk "Predicate succeeded, but should have failed, on this value:"],
-        [chunk (T.pack actual)]
+        [chunk actual]
       ],
-      concat [map (chunk "Predicate: " :) (stringChunks name) | name <- maybeToList mName]
+      concat [map (chunk "Predicate: " :) (textChunks name) | name <- maybeToList mName]
     ]
 
 mContextChunks :: Maybe String -> [[Chunk]]
@@ -558,6 +558,11 @@ stringChunks :: String -> [[Chunk]]
 stringChunks s =
   let ls = lines s
    in map ((: []) . chunk . T.pack) ls
+
+textChunks :: Text -> [[Chunk]]
+textChunks s =
+  let ls = T.lines s
+   in map ((: []) . chunk) ls
 
 indexed :: [a] -> (Word -> a -> b) -> [b]
 indexed ls func = zipWith func [1 ..] ls

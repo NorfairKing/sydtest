@@ -35,6 +35,7 @@ library:
     - sydtest-wai
     - text
     - time
+    - wai
     - xml-conduit
     - yesod-core
     - yesod-test

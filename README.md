@@ -402,7 +402,7 @@ Empty groups are removed so that their resources are not even set up when there 
 Examples:
 ```console
 stack test --test-arguments="--match MyTest"
-cabal test --test-option="--match MyTest"
+cabal test --test-options="--match MyTest"
 ```
 
 Filter paths are separated with a `.`, for example: `--match MyTestGroup.MyTest`.
@@ -411,7 +411,7 @@ It is also possible to pass in multiple filters.
 The following example will match `MyTest1` or `MyTest2`:
 
 ```console
-cabal test --test-option="-m MyTest1" --test-option="-m MyTest2"
+cabal test --test-options="-m MyTest1" --test-option="-m MyTest2"
 ```
 
 ### Individual test execution timing and helpful output to find slow tests

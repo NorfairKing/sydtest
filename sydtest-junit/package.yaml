@@ -23,6 +23,8 @@ library:
     - junit-xml
     - sydtest
     - text
+    - path
+    - path-io
 
 tests:
   sydtest-junit-test:

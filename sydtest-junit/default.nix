@@ -5,7 +5,9 @@ mkDerivation {
   pname = "sydtest-junit";
   version = "0.0.0.0";
   src = ./.;
-  libraryHaskellDepends = [ base junit-xml sydtest text ];
+  libraryHaskellDepends = [
+    base junit-xml path path-io sydtest text
+  ];
   testHaskellDepends = [
     base bytestring junit-xml path path-io sydtest sydtest-test
   ];

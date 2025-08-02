@@ -1,7 +1,11 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Test.Syd.SVG (writeSvgReport) where
+module Test.Syd.SVG
+  ( writeProfile,
+    writeSvgReport,
+  )
+where
 
 import qualified Data.ByteString.Lazy as LB
 import Data.Maybe
@@ -10,9 +14,17 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
 import Graphics.Svg as Svg
+import Path
+import Path.IO
 import Test.Syd.Run
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
+
+writeProfile :: Timed ResultForest -> IO ()
+writeProfile resultForest = do
+  p <- resolveFile' "sydtest-profile.html"
+  writeSvgReport (fromAbsFile p) resultForest
+  putStrLn $ "Wrote profile graph to " <> fromAbsFile p
 
 writeSvgReport :: FilePath -> Timed ResultForest -> IO ()
 writeSvgReport fp trf = do

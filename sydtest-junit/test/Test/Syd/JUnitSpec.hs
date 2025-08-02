@@ -11,7 +11,7 @@ import Test.Syd.TestUtils
 import Text.XML.JUnit
 
 spec :: Spec
-spec = tempDirSpec "sydtest-junit" $
+spec = tempDirSpec "sydtest-junit" $ sequential $ do
   it "renders the xml the same way" $ \tdir -> do
     result <- sydTestResult defaultSettings exampleSpec
 
@@ -24,6 +24,10 @@ spec = tempDirSpec "sydtest-junit" $
     actual <- SB.readFile fp
     pure $ pureGoldenByteStringFile "test_resources/example.xml" actual
 
+  it "can be run with 'just' sydTestJUnit'" $ \tdir -> do
+    withCurrentDir tdir $
+      sydTestJUnit passingSpec
+
 exampleSpec :: Spec
 exampleSpec = do
   describe "subSuite" $ do
@@ -31,4 +35,10 @@ exampleSpec = do
     it "fails" False
   describe "withMessage" $ do
     it "errors" (error "failure message" :: Bool)
+  pending "skipped"
+
+passingSpec :: Spec
+passingSpec = do
+  describe "subSuite" $ do
+    it "passes" True
   pending "skipped"

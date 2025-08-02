@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
 
@@ -253,8 +252,6 @@ where
 
 import Control.Monad
 import Control.Monad.IO.Class
-import Path
-import Path.IO
 import System.Exit
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
@@ -286,10 +283,7 @@ sydTestWith :: Settings -> Spec -> IO ()
 sydTestWith sets spec = do
   resultForest <- withRerunByReport sets (sydTestResult sets) spec
 
-  when (settingProfile sets) $ do
-    p <- resolveFile' "sydtest-profile.html"
-    writeSvgReport (fromAbsFile p) resultForest
-    putStrLn $ "Wrote profile graph to " <> fromAbsFile p
+  when (settingProfile sets) $ writeProfile resultForest
 
   when (shouldExitFail sets (timedValue resultForest)) (exitWith (ExitFailure 1))
 

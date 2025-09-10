@@ -27,6 +27,7 @@ library:
   - sydtest-webdriver
   - sydtest-yesod
   - text
+  - wai
   - webdriver
   - yesod
 

@@ -28,6 +28,7 @@ library:
     - autodocodec
     - bytestring
     - containers
+    - deepseq
     - dlist
     - fast-myers-diff >= 0.0.1
     - filepath
@@ -45,7 +46,6 @@ library:
     - svg-builder
     - text
     - vector
-    - deepseq
   when:
     - condition: 'os(windows)'
       then:

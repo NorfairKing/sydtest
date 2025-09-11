@@ -1,4 +1,4 @@
-{ mkDerivation, async, base, bytestring, fast-myers-diff, lib
+{ mkDerivation, async, base, bytestring, fast-myers-diff, lib, mtl
 , opt-env-conf-test, path, path-io, QuickCheck, random
 , safe-coloured-text, stm, sydtest, sydtest-discover, text, time
 , vector
@@ -9,7 +9,7 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [ base ];
   testHaskellDepends = [
-    async base bytestring fast-myers-diff opt-env-conf-test path
+    async base bytestring fast-myers-diff mtl opt-env-conf-test path
     path-io QuickCheck random safe-coloured-text stm sydtest text time
     vector
   ];

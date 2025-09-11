@@ -16,6 +16,7 @@ module Test.Syd.Run where
 
 import Autodocodec
 import Control.Concurrent
+import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Control.DeepSeq (force)
 import Control.Exception
@@ -366,6 +367,98 @@ runGoldenTestWithArg createGolden TestRunSettings {..} _ wrapper = do
                 goldenTestWrite actual
                 pure (TestPassed, Just GoldenReset, Nothing)
               else pure (TestFailed, Nothing, Just $ SomeException assertion)
+  let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
+        Left e -> (TestFailed, Nothing, Just e)
+        Right trip -> trip
+  let testRunResultNumTests = Nothing
+  let testRunResultNumShrinks = Nothing
+  let testRunResultFailingInputs = []
+  let testRunResultExtraInfo = Nothing
+  let testRunResultLabels = Nothing
+  let testRunResultClasses = Nothing
+  let testRunResultTables = Nothing
+  pure TestRunResult {..}
+
+newtype StagedGolden a
+  = StagedGolden {unStagedGolden :: (forall m. (MonadIO m) => GoldenTest a -> m ()) -> IO ()}
+
+-- | Future-proof alias for 'StagedGolden'.
+stagedGolden ::
+  ((forall m. (MonadIO m) => GoldenTest a -> m ()) -> IO ()) ->
+  StagedGolden a
+stagedGolden = StagedGolden
+
+instance IsTest (StagedGolden a) where
+  type Arg1 (StagedGolden a) = ()
+  type Arg2 (StagedGolden a) = ()
+  runTest func = runTest (\() () -> func)
+
+instance IsTest (arg -> StagedGolden a) where
+  type Arg1 (arg -> StagedGolden a) = ()
+  type Arg2 (arg -> StagedGolden a) = arg
+  runTest func = runTest (\() -> func)
+
+instance IsTest (outerArgs -> innerArg -> StagedGolden a) where
+  type Arg1 (outerArgs -> innerArg -> StagedGolden a) = outerArgs
+  type Arg2 (outerArgs -> innerArg -> StagedGolden a) = innerArg
+  runTest = runStagedGoldenWithArg
+
+runStagedGoldenWithArg ::
+  (outerArgs -> innerArg -> StagedGolden a) ->
+  TestRunSettings ->
+  ProgressReporter ->
+  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
+  IO TestRunResult
+runStagedGoldenWithArg createStagedGolden TestRunSettings {..} progressReporter wrapper = do
+  let report = reportProgress progressReporter
+  errOrTrip <- applyWrapper2 wrapper $ \outerArgs innerArgs -> do
+    continueVar <- newEmptyMVar
+    goldenChan <- newChan
+    let StagedGolden runStagedGolden = createStagedGolden outerArgs innerArgs
+    let testThread = do
+          report ProgressTestStarting
+          runStagedGolden $ \golden -> liftIO $ do
+            writeChan goldenChan $ Just golden
+            -- Wait until the golden test has been processed and we can
+            -- continue.
+            takeMVar continueVar
+          writeChan goldenChan Nothing
+    -- withAsync means we can cancel the test thread when a golden test fails.
+    result <- withAsync testThread $ \_ -> do
+      let go mCase = do
+            mNextGolden <- readChan goldenChan
+            case mNextGolden of
+              Nothing -> pure (TestPassed, mCase, Nothing)
+              Just GoldenTest {..} -> do
+                mGolden <- goldenTestRead
+                case mGolden of
+                  Nothing ->
+                    if testRunSettingGoldenStart
+                      then do
+                        actual <- goldenTestProduce >>= evaluate
+                        goldenTestWrite actual
+                        putMVar continueVar ()
+                        go $ Just GoldenStarted
+                      else pure (TestFailed, Just GoldenNotFound, Nothing)
+                  Just golden -> do
+                    actual <- goldenTestProduce >>= evaluate
+                    mAssertion <- goldenTestCompare actual golden
+                    case mAssertion of
+                      Just assertion ->
+                        if testRunSettingGoldenReset
+                          then do
+                            goldenTestWrite actual
+                            putMVar continueVar ()
+                            go $ Just GoldenReset
+                          else pure (TestFailed, Nothing, Just $ SomeException assertion)
+                      Nothing -> do
+                        putMVar continueVar ()
+                        go Nothing
+      r <- go Nothing
+      report ProgressTestDone
+      pure r
+    pure result
+
   let (testRunResultStatus, testRunResultGoldenCase, testRunResultException) = case errOrTrip of
         Left e -> (TestFailed, Nothing, Just e)
         Right trip -> trip

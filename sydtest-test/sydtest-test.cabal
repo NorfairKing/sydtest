@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.1.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -23,6 +23,8 @@ extra-source-files:
     test_resources/odd/deep/5
     test_resources/output-test.txt
     test_resources/output.golden
+    test_resources/staged-golden/1.golden
+    test_resources/staged-golden/2.golden
 
 source-repository head
   type: git
@@ -113,6 +115,7 @@ test-suite sydtest-test
     , base >=4.7 && <5
     , bytestring
     , fast-myers-diff
+    , mtl
     , opt-env-conf-test
     , path
     , path-io

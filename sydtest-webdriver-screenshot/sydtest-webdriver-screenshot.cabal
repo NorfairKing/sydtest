@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.1.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -17,6 +17,8 @@ build-type:     Simple
 extra-source-files:
     LICENSE.md
     test_resources/home.png
+    test_resources/staged/1.png
+    test_resources/staged/2.png
 
 library
   exposed-modules:

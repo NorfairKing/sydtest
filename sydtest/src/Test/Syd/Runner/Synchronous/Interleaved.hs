@@ -139,7 +139,7 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
                 )
         DefAroundAllWithNode func sdf -> do
           e <- ask
-          let HCons x _ = eExternalResources e
+          let outers = eExternalResources e
           liftIO $
             fmap SubForestNode
               <$> applySimpleWrapper
@@ -147,9 +147,9 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
                 ( \b ->
                     runReaderT
                       (goForest sdf)
-                      (e {eExternalResources = HCons b (eExternalResources e)})
+                      (e {eExternalResources = HCons b outers})
                 )
-                x
+                outers
         DefAfterAllNode func sdf -> do
           e <- ask
           let externalResources = eExternalResources e

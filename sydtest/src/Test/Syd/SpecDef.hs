@@ -107,7 +107,7 @@ data SpecDefTree (outers :: [Type]) inner extra where
     SpecDefTree otherOuters inner extra
   DefAroundAllWithNode ::
     -- | The function that provides the new outer resource (once), using the old outer resource.
-    ((newOuter -> IO ()) -> (oldOuter -> IO ())) ->
+    ((newOuter -> IO ()) -> (HList (oldOuter ': otherOuters) -> IO ())) ->
     SpecDefForest (newOuter ': oldOuter ': otherOuters) inner extra ->
     SpecDefTree (oldOuter ': otherOuters) inner extra
   DefAfterAllNode ::

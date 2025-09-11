@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.21.0.0] - 2025-05-09
+
+This is technically a breaking change, but if you are not using the sydtest
+constructors directly, it should not break anything for you.
+
+### Added
+
+* `aroundAllWithAll`
+* `setupAroundAllWithAll`
+
+### Changed
+
+* Gave the 'DefAroundAllWithNode' constructor access to all outer resources
+  instead of just the latest one.
+
 ## [0.20.0.1] - 2025-05-09
 
 ### Added

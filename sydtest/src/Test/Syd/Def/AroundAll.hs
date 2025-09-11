@@ -114,7 +114,8 @@ aroundAll ::
   TestDefM otherOuters inner result
 aroundAll func = wrapForest $ \forest -> DefAroundAllNode func forest
 
--- | Run a custom action before and/or after all spec items in a group to provide access to a resource 'a' while using a resource 'b'
+-- | Run a custom action before and/or after all spec items in a group to
+-- provide access to a resource 'a' while using a resource 'b'
 --
 -- See the @FOOTGUN@ note in the docs for 'around_'.
 aroundAllWith ::
@@ -123,7 +124,18 @@ aroundAllWith ::
   ((newOuter -> IO ()) -> (oldOuter -> IO ())) ->
   TestDefM (newOuter ': oldOuter ': otherOuters) inner result ->
   TestDefM (oldOuter ': otherOuters) inner result
-aroundAllWith func = wrapForest $ \forest -> DefAroundAllWithNode func forest
+aroundAllWith func = wrapForest $ \forest ->
+  DefAroundAllWithNode (\useNew (HCons x _) -> func useNew x) forest
+
+-- | Run a custom action before and/or after all spec items in a group to
+-- provide access to a resource 'a' while using all outer resources.
+aroundAllWithAll ::
+  forall newOuter oldOuter otherOuters inner result.
+  -- | The function that provides the new outer resource (once), using the old outer resource.
+  ((newOuter -> IO ()) -> (HList (oldOuter ': otherOuters) -> IO ())) ->
+  TestDefM (newOuter ': oldOuter ': otherOuters) inner result ->
+  TestDefM (oldOuter ': otherOuters) inner result
+aroundAllWithAll func = wrapForest $ \forest -> DefAroundAllWithNode func forest
 
 -- | Declare a node in the spec def forest
 wrapForest ::

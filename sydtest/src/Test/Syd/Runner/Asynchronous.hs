@@ -261,16 +261,16 @@ runner settings nbThreads failFastVar handleForest = do
                 )
           DefAroundAllWithNode func sdf -> do
             e <- ask
-            let HCons x _ = eExternalResources e
+            let outers = eExternalResources e
             liftIO $
               func
                 ( \b -> do
                     runReaderT
                       (goForest sdf)
-                      (e {eExternalResources = HCons b (eExternalResources e)})
+                      (e {eExternalResources = HCons b outers})
                     waitForWorkersDone
                 )
-                x
+                outers
           DefAfterAllNode func sdf -> do
             e <- ask
             liftIO $

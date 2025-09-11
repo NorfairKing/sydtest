@@ -111,3 +111,12 @@ setupAroundAllWith ::
 setupAroundAllWith sf = aroundAllWith $ \takeNewOuter oldOuter ->
   let SetupFunc provideNewOuter = sf oldOuter
    in provideNewOuter $ \newOuter -> takeNewOuter newOuter
+
+-- | Use 'aroundAllWithAll' with a 'SetupFunc'
+setupAroundAllWithAll ::
+  (HList (oldOuter ': outers) -> SetupFunc newOuter) ->
+  TestDefM (newOuter ': oldOuter ': outers) inner result ->
+  TestDefM (oldOuter ': outers) inner result
+setupAroundAllWithAll sf = aroundAllWithAll $ \takeNewOuter oldOuter ->
+  let SetupFunc provideNewOuter = sf oldOuter
+   in provideNewOuter $ \newOuter -> takeNewOuter newOuter

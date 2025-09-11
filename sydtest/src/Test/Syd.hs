@@ -133,6 +133,7 @@ module Test.Syd
     aroundAll,
     aroundAll_,
     aroundAllWith,
+    aroundAllWithAll,
 
     -- *** Dependencies around each of a group of tests
     before,
@@ -158,6 +159,7 @@ module Test.Syd
     -- ****** AroundAll
     setupAroundAll,
     setupAroundAllWith,
+    setupAroundAllWithAll,
 
     -- *** Declaring different test settings
     modifyMaxSuccess,

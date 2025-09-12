@@ -417,11 +417,7 @@ runStagedGoldenWithArg createStagedGolden TestRunSettings {..} progressReporter 
     let StagedGolden runStagedGolden = createStagedGolden outerArgs innerArgs
     let testThread = do
           report ProgressTestStarting
-<<<<<<< HEAD
           runStagedGolden $ \golden -> liftIO $ do
-=======
-          runStagedGolden $ \golden -> do
->>>>>>> 890cfec (Staged golden tests)
             writeChan goldenChan $ Just golden
             -- Wait until the golden test has been processed and we can
             -- continue.

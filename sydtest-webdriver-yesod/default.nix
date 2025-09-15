@@ -1,7 +1,7 @@
 { mkDerivation, base, bytestring, http-client, http-types, lib, mtl
 , network-uri, path, path-io, sydtest, sydtest-discover
-, sydtest-wai, sydtest-webdriver, sydtest-yesod, text, webdriver
-, yesod
+, sydtest-wai, sydtest-webdriver, sydtest-yesod, text, wai
+, webdriver, yesod
 }:
 mkDerivation {
   pname = "sydtest-webdriver-yesod";
@@ -9,7 +9,8 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [
     base bytestring http-client http-types mtl network-uri sydtest
-    sydtest-wai sydtest-webdriver sydtest-yesod text webdriver yesod
+    sydtest-wai sydtest-webdriver sydtest-yesod text wai webdriver
+    yesod
   ];
   testHaskellDepends = [
     base path path-io sydtest sydtest-webdriver yesod

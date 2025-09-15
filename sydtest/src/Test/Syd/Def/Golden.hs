@@ -163,5 +163,5 @@ goldenPrettyShowInstance fp a = pureGoldenStringFile fp (ppShow a)
 -- >   if actual == expected
 -- >     then Nothing
 -- >     else Just $ Context (stringsNotEqualButShouldHaveBeenEqual actual expected) (goldenContext fp)
-goldenContext :: FilePath -> String
-goldenContext fp = "The golden results are in: " <> fp
+goldenContext :: FilePath -> Text
+goldenContext fp = T.pack $ "The golden results are in: " <> fp

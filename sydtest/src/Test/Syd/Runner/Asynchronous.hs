@@ -20,11 +20,15 @@ import Control.Concurrent.STM as STM
 import Control.Exception
 import Control.Monad
 import Control.Monad.Reader
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
+import GHC.Conc (myThreadId)
+import System.Environment (lookupEnv)
+import System.IO (stderr)
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.OptParse
@@ -166,6 +170,12 @@ runner settings nbThreads failFastVar handleForest = do
   let nbWorkers = nbThreads
   let nbSpacesOnTheJobQueue = nbWorkers * 2
   jobQueue <- newJobQueue nbSpacesOnTheJobQueue
+  debugEnabled <- isJust <$> lookupEnv "SYDTEST_DEBUG_ASYNC"
+  let debugLog :: String -> IO ()
+      debugLog msg =
+        when debugEnabled $ do
+          tid <- myThreadId
+          TIO.hPutStrLn stderr (T.pack (show tid ++ " [sydtest-async] " ++ msg))
 
   withJobQueueWorkers nbWorkers jobQueue $ do
     let waitForWorkersDone :: IO ()
@@ -185,9 +195,32 @@ runner settings nbThreads failFastVar handleForest = do
                 Env {..} <- ask
 
                 liftIO $ do
-                  let runNow workerNr =
-                        timeItT workerNr $
-                          runSingleTestWithFlakinessMode
+                  let exceptionReport :: SomeException -> TestRunReport
+                      exceptionReport ex =
+                        let testRunResult =
+                              TestRunResult
+                                { testRunResultStatus = TestFailed,
+                                  testRunResultException = Just ex,
+                                  testRunResultNumTests = Nothing,
+                                  testRunResultNumShrinks = Nothing,
+                                  testRunResultFailingInputs = [],
+                                  testRunResultLabels = Nothing,
+                                  testRunResultClasses = Nothing,
+                                  testRunResultTables = Nothing,
+                                  testRunResultGoldenCase = Nothing,
+                                  testRunResultExtraInfo = Nothing
+                                }
+                         in TestRunReport
+                              { testRunReportExpectationMode = eExpectationMode,
+                                testRunReportRawResults = testRunResult :| [],
+                                testRunReportFlakinessMode = eFlakinessMode
+                              }
+
+                  let runNow workerNr = do
+                        debugLog $ "worker " ++ show workerNr ++ " started"
+                        begin <- getMonotonicTimeNSec
+                        reportOrErr <-
+                          try $ runSingleTestWithFlakinessMode
                             noProgressReporter
                             eExternalResources
                             td
@@ -195,25 +228,53 @@ runner settings nbThreads failFastVar handleForest = do
                             eRetries
                             eFlakinessMode
                             eExpectationMode
+                        end <- getMonotonicTimeNSec
+                        case reportOrErr of
+                          Right report -> do
+                            debugLog $ "worker " ++ show workerNr ++ " finished status=" ++ show (testRunReportStatus settings report)
+                            pure
+                              Timed
+                                { timedValue = report,
+                                  timedWorker = workerNr,
+                                  timedBegin = begin,
+                                  timedEnd = end
+                                }
+                          Left ex -> case fromException ex of
+                            Just asyncEx -> throwIO (asyncEx :: AsyncException)
+                            Nothing -> do
+                              debugLog $ "worker " ++ show workerNr ++ " raised " ++ displayException ex
+                              pure
+                                Timed
+                                  { timedValue = exceptionReport ex,
+                                    timedWorker = workerNr,
+                                    timedBegin = begin,
+                                    timedEnd = end
+                                  }
+
+                  let evaluateFailFast timed =
+                        if not (settingFailFast settings)
+                          then pure (False, timed)
+                          else do
+                            let value = timedValue timed
+                            outcome <- try $ evaluate (testRunReportFailed settings value)
+                            case outcome of
+                              Right shouldFail -> pure (shouldFail, timed)
+                              Left ex -> case fromException ex of
+                                Just asyncEx -> throwIO (asyncEx :: AsyncException)
+                                Nothing ->
+                                  let failureReport = exceptionReport ex
+                                   in do
+                                      debugLog $ "fail-fast check raised " ++ displayException ex
+                                      pure (True, timed {timedValue = failureReport})
 
                   let job :: Int -> IO ()
-                      job workerNr = do
-                        -- Start the test
-                        result <- runNow workerNr
-
-                        -- Put the result in the mvar
-                        putMVar var result
-
-                        -- If we should fail fast, put the
-                        -- fail-fast var so that no new
-                        -- jobs are started by the
-                        -- scheduler.
-                        when
-                          ( settingFailFast settings
-                              && testRunReportFailed settings (timedValue result)
-                          )
-                          $ do
-                            putMVar failFastVar ()
+                      job workerNr = mask $ \restore -> do
+                        timed <- restore (runNow workerNr)
+                        (shouldFail, timed') <- restore (evaluateFailFast timed)
+                        putMVar var timed'
+                        when shouldFail $ do
+                          debugLog $ "worker " ++ show workerNr ++ " triggered fail-fast"
+                          void $ tryPutMVar failFastVar ()
 
                   -- When enqueuing a sequential job, make sure all workers are
                   -- done before and after.

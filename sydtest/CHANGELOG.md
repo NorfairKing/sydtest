@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.22.0.0] - 2025-09-28
+
+### Changed
+
+* Fail on an empty test suite.
+
 ## [0.21.0.0] - 2025-05-09
 
 This is technically a breaking change, but if you are not using the sydtest

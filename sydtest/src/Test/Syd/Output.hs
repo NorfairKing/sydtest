@@ -70,7 +70,7 @@ outputFailuresHeader = outputHeader "Failures:"
 
 outputFailuresWithHeading :: Settings -> ResultForest -> [[Chunk]]
 outputFailuresWithHeading settings rf =
-  if shouldExitFail settings rf
+  if anyFailedTests settings rf
     then
       concat
         [ outputFailuresHeader,
@@ -93,7 +93,11 @@ outputStats timed =
               | testSuiteStatExamples /= testSuiteStatSuccesses
             ],
             [ [ chunk "Passed:                       ",
-                fore green $ chunk (T.pack (show testSuiteStatSuccesses))
+                ( if testSuiteStatSuccesses <= 0
+                    then fore red
+                    else fore green
+                )
+                  $ chunk (T.pack (show testSuiteStatSuccesses))
               ],
               [ chunk "Failed:                       ",
                 ( if testSuiteStatFailures > 0

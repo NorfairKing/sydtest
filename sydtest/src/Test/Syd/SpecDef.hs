@@ -403,7 +403,22 @@ instance Monoid TestSuiteStats where
       }
 
 shouldExitFail :: Settings -> ResultForest -> Bool
-shouldExitFail settings = any (any (testRunReportFailed settings . timedValue . testDefVal))
+shouldExitFail settings resultForest =
+  -- Fail if there were no tests.
+  --
+  -- This is technically valid but in practice we don't ever want to
+  -- consider an empty test suite succesfull.
+  --
+  -- By considering an empty test suite unsuccesful, we can catch cases in
+  -- which we have accidentally used a filter that does not match any
+  -- tests at all.
+  null resultForest
+    -- ... or if any tests failed.
+    || anyFailedTests settings resultForest
+
+anyFailedTests :: Settings -> ResultForest -> Bool
+anyFailedTests settings resultForest =
+  any (any (testRunReportFailed settings . timedValue . testDefVal)) resultForest
 
 data TestRunReport = TestRunReport
   { testRunReportExpectationMode :: !ExpectationMode,

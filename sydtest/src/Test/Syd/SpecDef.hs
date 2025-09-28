@@ -414,7 +414,11 @@ shouldExitFail settings resultForest =
   -- tests at all.
   null resultForest
     -- ... or if any tests failed.
-    || any (any (testRunReportFailed settings . timedValue . testDefVal)) resultForest
+    || anyFailedTests settings resultForest
+
+anyFailedTests :: Settings -> ResultForest -> Bool
+anyFailedTests settings resultForest =
+  any (any (testRunReportFailed settings . timedValue . testDefVal)) resultForest
 
 data TestRunReport = TestRunReport
   { testRunReportExpectationMode :: !ExpectationMode,

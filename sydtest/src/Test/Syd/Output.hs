@@ -70,7 +70,7 @@ outputFailuresHeader = outputHeader "Failures:"
 
 outputFailuresWithHeading :: Settings -> ResultForest -> [[Chunk]]
 outputFailuresWithHeading settings rf =
-  if shouldExitFail settings rf
+  if anyFailedTests settings rf
     then
       concat
         [ outputFailuresHeader,

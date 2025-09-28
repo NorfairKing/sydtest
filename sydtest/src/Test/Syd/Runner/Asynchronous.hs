@@ -26,9 +26,6 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
-import GHC.Conc (myThreadId)
-import System.Environment (lookupEnv)
-import System.IO (stderr)
 import Test.QuickCheck.IO ()
 import Test.Syd.HList
 import Test.Syd.OptParse
@@ -170,12 +167,6 @@ runner settings nbThreads failFastVar handleForest = do
   let nbWorkers = nbThreads
   let nbSpacesOnTheJobQueue = nbWorkers * 2
   jobQueue <- newJobQueue nbSpacesOnTheJobQueue
-  debugEnabled <- isJust <$> lookupEnv "SYDTEST_DEBUG_ASYNC"
-  let debugLog :: String -> IO ()
-      debugLog msg =
-        when debugEnabled $ do
-          tid <- myThreadId
-          TIO.hPutStrLn stderr (T.pack (show tid ++ " [sydtest-async] " ++ msg))
 
   withJobQueueWorkers nbWorkers jobQueue $ do
     let waitForWorkersDone :: IO ()
@@ -217,7 +208,6 @@ runner settings nbThreads failFastVar handleForest = do
                               }
 
                   let runNow workerNr = do
-                        debugLog $ "worker " ++ show workerNr ++ " started"
                         begin <- getMonotonicTimeNSec
                         reportOrErr <-
                           try $ runSingleTestWithFlakinessMode
@@ -230,8 +220,7 @@ runner settings nbThreads failFastVar handleForest = do
                             eExpectationMode
                         end <- getMonotonicTimeNSec
                         case reportOrErr of
-                          Right report -> do
-                            debugLog $ "worker " ++ show workerNr ++ " finished status=" ++ show (testRunReportStatus settings report)
+                          Right report ->
                             pure
                               Timed
                                 { timedValue = report,
@@ -241,8 +230,7 @@ runner settings nbThreads failFastVar handleForest = do
                                 }
                           Left ex -> case fromException ex of
                             Just asyncEx -> throwIO (asyncEx :: AsyncException)
-                            Nothing -> do
-                              debugLog $ "worker " ++ show workerNr ++ " raised " ++ displayException ex
+                            Nothing ->
                               pure
                                 Timed
                                   { timedValue = exceptionReport ex,
@@ -263,17 +251,14 @@ runner settings nbThreads failFastVar handleForest = do
                                 Just asyncEx -> throwIO (asyncEx :: AsyncException)
                                 Nothing ->
                                   let failureReport = exceptionReport ex
-                                   in do
-                                      debugLog $ "fail-fast check raised " ++ displayException ex
-                                      pure (True, timed {timedValue = failureReport})
+                                   in pure (True, timed {timedValue = failureReport})
 
                   let job :: Int -> IO ()
                       job workerNr = mask $ \restore -> do
                         timed <- restore (runNow workerNr)
                         (shouldFail, timed') <- restore (evaluateFailFast timed)
                         putMVar var timed'
-                        when shouldFail $ do
-                          debugLog $ "worker " ++ show workerNr ++ " triggered fail-fast"
+                        when shouldFail $
                           void $ tryPutMVar failFastVar ()
 
                   -- When enqueuing a sequential job, make sure all workers are

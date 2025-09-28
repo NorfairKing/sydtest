@@ -93,7 +93,11 @@ outputStats timed =
               | testSuiteStatExamples /= testSuiteStatSuccesses
             ],
             [ [ chunk "Passed:                       ",
-                fore green $ chunk (T.pack (show testSuiteStatSuccesses))
+                ( if testSuiteStatSuccesses <= 0
+                    then fore red
+                    else fore green
+                )
+                  $ chunk (T.pack (show testSuiteStatSuccesses))
               ],
               [ chunk "Failed:                       ",
                 ( if testSuiteStatFailures > 0

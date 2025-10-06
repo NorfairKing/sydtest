@@ -35,33 +35,6 @@ import Test.Syd.Runner.Single
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
-import System.Environment (lookupEnv)
-import System.IO (hFlush, hPutStrLn, stderr, withFile, IOMode (AppendMode))
-import System.IO.Unsafe (unsafePerformIO)
-
-traceHandle :: Maybe (String, (String -> IO ()))
-traceHandle = unsafePerformIO $ do
-  mPath <- lookupEnv "SYDTEST_TRACE_FILE"
-  case mPath of
-    Nothing -> do
-      traceEnv <- lookupEnv "SYDTEST_TRACE"
-      let enabled = maybe False (not . null) traceEnv
-      pure $ if enabled then Just ("stderr", \msg -> hPutStrLn stderr msg >> hFlush stderr) else Nothing
-    Just path -> do
-      let write msg = withFile path AppendMode (\h -> hPutStrLn h msg)
-      pure $ Just (path, write)
-{-# NOINLINE traceHandle #-}
-
-traceEnabled :: Bool
-traceEnabled = case traceHandle of
-  Nothing -> False
-  Just _ -> True
-
-traceMsg :: String -> IO ()
-traceMsg msg =
-  case traceHandle of
-    Nothing -> pure ()
-    Just (_, writer) -> writer msg
 
 runSpecForestAsynchronously :: Settings -> Word -> TestForest '[] () -> IO ResultForest
 runSpecForestAsynchronously settings nbThreads testForest = do
@@ -109,12 +82,8 @@ newJobQueue spots = do
 
 -- | Enqueue a job, block until that's possible.
 enqueueJob :: JobQueue -> Job -> IO ()
-enqueueJob JobQueue {..} job = do
+enqueueJob JobQueue {..} job =
   atomically $ writeTBQueue jobQueueTBQueue job
-  when traceEnabled $ do
-    len <- atomically $ STM.lengthTBQueue jobQueueTBQueue
-    running <- STM.readTVarIO jobQueueWorkingCount
-    traceMsg $ "enqueueJob queueLen=" <> show len <> " running=" <> show running
 
 -- | Dequeue a job.
 dequeueJob :: JobQueue -> STM Job
@@ -124,23 +93,12 @@ dequeueJob JobQueue {..} =
 -- | Block until all workers are done (waiting to dequeue a job).
 blockUntilDone :: JobQueue -> IO ()
 blockUntilDone JobQueue {..} = do
-  start <- getMonotonicTimeNSec
   atomically $ do
     -- Wait until the queue is empty.
     isEmptyTBQueue jobQueueTBQueue >>= STM.check
     -- Wait for all workers to stop working.
     currentlyRunning <- readTVar jobQueueWorkingCount
     when (currentlyRunning > 0) retry
-  end <- getMonotonicTimeNSec
-  let waitedMillis = fromIntegral (end - start) / 1.0e6 :: Double
-  when (waitedMillis > 100.0) $ do
-    (len, running) <- atomically $ do
-      len <- STM.lengthTBQueue jobQueueTBQueue
-      running <- readTVar jobQueueWorkingCount
-      pure (len, running)
-    traceMsg $ "blockUntilDone waited "
-      <> show waitedMillis
-      <> "ms (queueLen=" <> show len <> ", running=" <> show running <> ")"
 
 -- No new work can be started now, because the queue is empty and no worker
 -- are running.
@@ -161,20 +119,10 @@ jobQueueWorker jobQueue workerIx = do
       ( atomically $ do
           -- Pick a job in queue and increase the count
           modifyTVar' (jobQueueWorkingCount jobQueue) (+ 1)
-          job <- dequeueJob jobQueue
-          len <- STM.lengthTBQueue (jobQueueTBQueue jobQueue)
-          running <- readTVar (jobQueueWorkingCount jobQueue)
-          pure (job, len, running)
+          dequeueJob jobQueue
       )
       (\_ -> atomically $ modifyTVar' (jobQueueWorkingCount jobQueue) (subtract 1))
-      (\(job, len, running) -> do
-          when traceEnabled $ traceMsg $ "worker " <> show workerIx <> " picked job (queueLen=" <> show len <> ", running=" <> show running <> ")"
-          job workerIx
-          when traceEnabled $ do
-            running <- STM.readTVarIO (jobQueueWorkingCount jobQueue)
-            len <- atomically $ STM.lengthTBQueue (jobQueueTBQueue jobQueue)
-            traceMsg $ "worker " <> show workerIx <> " finished job (queueLen=" <> show len <> ", running=" <> show running <> ")"
-      )
+      (\job -> job workerIx)
 
 -- The plan is as follows:
 --

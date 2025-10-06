@@ -20,6 +20,7 @@ import Control.Concurrent.STM as STM
 import Control.Exception
 import Control.Monad
 import Control.Monad.Reader
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -185,9 +186,31 @@ runner settings nbThreads failFastVar handleForest = do
                 Env {..} <- ask
 
                 liftIO $ do
-                  let runNow workerNr =
-                        timeItT workerNr $
-                          runSingleTestWithFlakinessMode
+                  let exceptionReport :: SomeException -> TestRunReport
+                      exceptionReport ex =
+                        let testRunResult =
+                              TestRunResult
+                                { testRunResultStatus = TestFailed,
+                                  testRunResultException = Just ex,
+                                  testRunResultNumTests = Nothing,
+                                  testRunResultNumShrinks = Nothing,
+                                  testRunResultFailingInputs = [],
+                                  testRunResultLabels = Nothing,
+                                  testRunResultClasses = Nothing,
+                                  testRunResultTables = Nothing,
+                                  testRunResultGoldenCase = Nothing,
+                                  testRunResultExtraInfo = Nothing
+                                }
+                         in TestRunReport
+                              { testRunReportExpectationMode = eExpectationMode,
+                                testRunReportRawResults = testRunResult :| [],
+                                testRunReportFlakinessMode = eFlakinessMode
+                              }
+
+                  let runNow workerNr = do
+                        begin <- getMonotonicTimeNSec
+                        reportOrErr <-
+                          try $ runSingleTestWithFlakinessMode
                             noProgressReporter
                             eExternalResources
                             td
@@ -195,25 +218,52 @@ runner settings nbThreads failFastVar handleForest = do
                             eRetries
                             eFlakinessMode
                             eExpectationMode
+                        end <- getMonotonicTimeNSec
+                        case reportOrErr of
+                          Right report ->
+                            pure
+                              Timed
+                                { timedValue = report,
+                                  timedWorker = workerNr,
+                                  timedBegin = begin,
+                                  timedEnd = end
+                                }
+                          Left ex -> case fromException ex of
+                            Just asyncEx -> throwIO (asyncEx :: AsyncException)
+                            Nothing ->
+                              pure
+                                Timed
+                                  { timedValue = exceptionReport ex,
+                                    timedWorker = workerNr,
+                                    timedBegin = begin,
+                                    timedEnd = end
+                                  }
+
+                  let evaluateFailFast timed =
+                        if not (settingFailFast settings)
+                          then pure (False, timed)
+                          else do
+                            let value = timedValue timed
+                            outcome <- try $ evaluate (testRunReportFailed settings value)
+                            case outcome of
+                              Right shouldFail -> pure (shouldFail, timed)
+                              Left ex -> case fromException ex of
+                                Just asyncEx -> throwIO (asyncEx :: AsyncException)
+                                Nothing ->
+                                  let failureReport = exceptionReport ex
+                                   in pure (True, timed {timedValue = failureReport})
 
                   let job :: Int -> IO ()
-                      job workerNr = do
-                        -- Start the test
-                        result <- runNow workerNr
-
-                        -- Put the result in the mvar
-                        putMVar var result
-
-                        -- If we should fail fast, put the
-                        -- fail-fast var so that no new
-                        -- jobs are started by the
-                        -- scheduler.
-                        when
-                          ( settingFailFast settings
-                              && testRunReportFailed settings (timedValue result)
-                          )
-                          $ do
-                            putMVar failFastVar ()
+                      job workerNr = mask $ \restore -> do
+                        alreadyFailed <- isJust <$> tryReadMVar failFastVar
+                        if alreadyFailed && settingFailFast settings
+                          then pure ()
+                          else do
+                            timed <- restore (runNow workerNr)
+                            (shouldFail, timed') <- restore (evaluateFailFast timed)
+                            putMVar var timed'
+                            when shouldFail $
+                              void $ tryPutMVar failFastVar ()
 
                   -- When enqueuing a sequential job, make sure all workers are
                   -- done before and after.
@@ -361,10 +411,17 @@ printer settings failFastVar suiteBegin handleForest = do
             liftIO $
               race
                 (readMVar failFastVar)
-                (takeMVar var)
-          case failFastOrResult of
-            Left () -> pure Nothing
-            Right result -> do
+                (readMVar var)
+          mResult <-
+            liftIO $
+              case failFastOrResult of
+                Right result -> do
+                  _ <- takeMVar var
+                  pure (Just result)
+                Left () -> tryTakeMVar var
+          case mResult of
+            Nothing -> pure Nothing
+            Just result -> do
               let td' = td {testDefVal = result}
               level <- ask
               outputLinesP $ outputSpecifyLines settings level treeWidth t td'
@@ -432,10 +489,16 @@ waiter failFastVar handleForest = do
           failFastOrResult <-
             race
               (readMVar failFastVar)
-              (takeMVar var)
-          case failFastOrResult of
-            Left () -> pure Nothing
-            Right result -> do
+              (readMVar var)
+          mResult <-
+            case failFastOrResult of
+              Right result -> do
+                _ <- takeMVar var
+                pure (Just result)
+              Left () -> tryTakeMVar var
+          case mResult of
+            Nothing -> pure Nothing
+            Just result -> do
               let td' = td {testDefVal = result}
               pure $ Just $ SpecifyNode t td'
         DefPendingNode t mr -> pure $ Just $ PendingNode t mr

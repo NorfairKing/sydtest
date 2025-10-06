@@ -336,28 +336,28 @@
        Retries: 3 (does not look flaky)
        foobar
        CallStack (from HasCallStack):
-         error, called at output-test/Spec.hs:35:28 in main:Spec
+         error, called at output-test/Spec.hs:35:28 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
   
   [36m  output-test/Spec.hs:36[m
   [31m✗ [m[31m2 [m[31merror.Impure error[m
        Retries: 3 (does not look flaky)
        foobar
        CallStack (from HasCallStack):
-         error, called at output-test/Spec.hs:36:24 in main:Spec
+         error, called at output-test/Spec.hs:36:24 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
   
   [36m  output-test/Spec.hs:38[m
   [31m✗ [m[31m3 [m[31mundefined.Pure undefined[m
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         undefined, called at output-test/Spec.hs:38:31 in main:Spec
+         undefined, called at output-test/Spec.hs:38:31 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
   
   [36m  output-test/Spec.hs:39[m
   [31m✗ [m[31m4 [m[31mundefined.Impure undefined[m
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         undefined, called at output-test/Spec.hs:39:28 in main:Spec
+         undefined, called at output-test/Spec.hs:39:28 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
   
   [36m  output-test/Spec.hs:40[m
   [31m✗ [m[31m5 [m[31mExit code[m
@@ -780,7 +780,7 @@
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         undefined, called at output-test/Spec.hs:205:26 in main:Spec
+         undefined, called at output-test/Spec.hs:205:26 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
        context
   
   [36m  output-test/Spec.hs:211[m
@@ -888,7 +888,7 @@
        Generated: [33m0[m
        Prelude.undefined
        CallStack (from HasCallStack):
-         undefined, called at output-test/Spec.hs:339:80 in main:Spec
+         undefined, called at output-test/Spec.hs:339:80 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
   
   [36m  output-test/Spec.hs:340[m
   [31m✗ [m[31m80 [m[31mcombinators.should not crash (undefined generator)[m
@@ -897,11 +897,11 @@
        Generated: [33mException thrown while showing test case:
   Prelude.undefined
   CallStack (from HasCallStack):
-    undefined, called at output-test/Spec.hs:340:74 in main:Spec
+    undefined, called at output-test/Spec.hs:340:74 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
 [m
        Prelude.undefined
        CallStack (from HasCallStack):
-         undefined, called at output-test/Spec.hs:340:74 in main:Spec
+         undefined, called at output-test/Spec.hs:340:74 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
   
   [36m  output-test/Spec.hs:343[m
   [31m✗ [m[31m81 [m[31mcombinators.should be even[m
@@ -912,7 +912,7 @@
        Retries: 3 (does not look flaky)
        Prelude.undefined
        CallStack (from HasCallStack):
-         undefined, called at output-test/Spec.hs:346:29 in main:Spec
+         undefined, called at output-test/Spec.hs:346:29 in sydtest-test-0.0.0.0-inplace-sydtest-output-test:Spec
   
   [36m  output-test/Spec.hs:349[m
   [31m✗ [m[31m83 [m[31mrandomness.always outputs the same pseudorandomness[m

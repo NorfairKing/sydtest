@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
 -- | This module defines all the functions you will use to define your test suite.
@@ -66,7 +67,7 @@ describe ::
   TestDefM outers inner () ->
   TestDefM outers inner ()
 describe s =
-  let t = T.pack s
+  let !t = T.pack s
    in local (\tde -> tde {testDefEnvDescriptionPath = t : testDefEnvDescriptionPath tde})
         . censor ((: []) . DefDescribeNode t)
 
@@ -171,6 +172,7 @@ it ::
   test ->
   TestDefM outers inner ()
 it s t = withFrozenCallStack $ do
+  let !label = T.pack s
   sets <- asks testDefEnvTestRunSettings
   let testDef =
         TDef
@@ -183,7 +185,7 @@ it s t = withFrozenCallStack $ do
                 ),
             testDefCallStack = callStack
           }
-  tell [DefSpecifyNode (T.pack s) testDef ()]
+  tell [DefSpecifyNode label testDef ()]
 
 xit ::
   forall outers inner test.

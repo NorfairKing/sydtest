@@ -38,7 +38,7 @@ import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecForest
 
-data TDef value = TDef {testDefVal :: value, testDefCallStack :: CallStack}
+data TDef value = TDef {testDefVal :: !value, testDefCallStack :: !CallStack}
   deriving (Functor, Foldable, Traversable)
 
 type TestForest outers inner = SpecDefForest outers inner ()
@@ -62,90 +62,90 @@ data SpecDefTree (outers :: [Type]) inner extra where
   -- | Define a test
   DefSpecifyNode ::
     -- | The description of the test
-    Text ->
+    !Text ->
     -- | How the test can be run given a function that provides the resources
-    TDef (ProgressReporter -> ((HList outers -> inner -> IO ()) -> IO ()) -> IO TestRunResult) ->
-    extra ->
+    !(TDef (ProgressReporter -> ((HList outers -> inner -> IO ()) -> IO ()) -> IO TestRunResult)) ->
+    !extra ->
     SpecDefTree outers inner extra
   -- | Define a pending test
   DefPendingNode ::
     -- | The description of the test
-    Text ->
+    !Text ->
     -- | The reason why the test is pending
-    Maybe Text ->
+    !(Maybe Text) ->
     SpecDefTree outers inner extra
   -- | Group tests using a description
   DefDescribeNode ::
     -- | The description
-    Text ->
-    SpecDefForest outers inner extra ->
+    !Text ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   DefSetupNode ::
     -- | The function that runs before the test
-    IO () ->
-    SpecDefForest outers inner extra ->
+    !(IO ()) ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   DefBeforeAllNode ::
     -- | The function to run (once), beforehand, to produce the outer resource.
-    IO outer ->
-    SpecDefForest (outer ': otherOuters) inner extra ->
+    !(IO outer) ->
+    !(SpecDefForest (outer ': otherOuters) inner extra) ->
     SpecDefTree otherOuters inner extra
   DefBeforeAllWithNode ::
     -- | The function to run (once), beforehand, to produce the outer resource.
-    (oldOuter -> IO newOuter) ->
-    SpecDefForest (newOuter ': oldOuter ': otherOuters) inner extra ->
+    !(oldOuter -> IO newOuter) ->
+    !(SpecDefForest (newOuter ': oldOuter ': otherOuters) inner extra) ->
     SpecDefTree (oldOuter ': otherOuters) inner extra
   DefWrapNode ::
     -- | The function that wraps running the tests.
-    (IO () -> IO ()) ->
-    SpecDefForest outers inner extra ->
+    !(IO () -> IO ()) ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   DefAroundAllNode ::
     -- | The function that provides the outer resource (once), around the tests.
-    ((outer -> IO ()) -> IO ()) ->
-    SpecDefForest (outer ': otherOuters) inner extra ->
+    !((outer -> IO ()) -> IO ()) ->
+    !(SpecDefForest (outer ': otherOuters) inner extra) ->
     SpecDefTree otherOuters inner extra
   DefAroundAllWithNode ::
     -- | The function that provides the new outer resource (once), using the old outer resource.
-    ((newOuter -> IO ()) -> (HList (oldOuter ': otherOuters) -> IO ())) ->
-    SpecDefForest (newOuter ': oldOuter ': otherOuters) inner extra ->
+    !((newOuter -> IO ()) -> (HList (oldOuter ': otherOuters) -> IO ())) ->
+    !(SpecDefForest (newOuter ': oldOuter ': otherOuters) inner extra) ->
     SpecDefTree (oldOuter ': otherOuters) inner extra
   DefAfterAllNode ::
     -- | The function to run (once), afterwards, using all outer resources.
-    (HList outers -> IO ()) ->
-    SpecDefForest outers inner extra ->
+    !(HList outers -> IO ()) ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   -- | Control the level of parallelism for a given group of tests
   DefParallelismNode ::
     -- | The level of parallelism
-    Parallelism ->
-    SpecDefForest outers inner extra ->
+    !Parallelism ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   -- | Control the execution order randomisation for a given group of tests
   DefRandomisationNode ::
     -- | The execution order randomisation
-    ExecutionOrderRandomisation ->
-    SpecDefForest outers inner extra ->
+    !ExecutionOrderRandomisation ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   DefTimeoutNode ::
     -- | Modify the timeout setting
-    (Timeout -> Timeout) ->
-    SpecDefForest outers inner extra ->
+    !(Timeout -> Timeout) ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   DefRetriesNode ::
     -- | Modify the number of retries
-    (Word -> Word) ->
-    SpecDefForest outers inner extra ->
+    !(Word -> Word) ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   DefFlakinessNode ::
     -- | Whether to allow flakiness
-    FlakinessMode ->
-    SpecDefForest outers inner extra ->
+    !FlakinessMode ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
   DefExpectationNode ::
     -- | Whether to expect passing or failing
-    ExpectationMode ->
-    SpecDefForest outers inner extra ->
+    !ExpectationMode ->
+    !(SpecDefForest outers inner extra) ->
     SpecDefTree outers inner extra
 
 instance Functor (SpecDefTree a c) where

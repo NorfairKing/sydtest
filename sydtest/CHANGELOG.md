@@ -8,7 +8,7 @@
   trees.
   This fixes certain space leaks that can occur when test descriptions are
   computed instead of being literals.
-  Thanks @guiboo for the report and the fix!
+  Thanks @guibou for the report and the fix!
 
 ## [0.22.0.0] - 2025-09-28
 

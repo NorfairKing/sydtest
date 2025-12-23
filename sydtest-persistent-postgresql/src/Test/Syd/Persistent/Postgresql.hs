@@ -46,9 +46,9 @@ tempCachedPostgresDBSetupFunc cache =
 
 tempPostgresSnapshotSetupFunc :: Temp.DB -> SetupFunc Temp.Snapshot
 tempPostgresSnapshotSetupFunc db =
-  SetupFunc $ \takeSnapshot -> do
+  SetupFunc $ \useSnapshot -> do
     errOrRes <- Temp.withSnapshot db $ \snapshot ->
-      takeSnapshot snapshot
+      useSnapshot snapshot
     case errOrRes of
       Left err -> liftIO $ expectationFailure $ show err
       Right r -> pure r
@@ -59,18 +59,25 @@ tempSnapshottedPostgresDBSetupFunc snapshot =
 
 snapshottedDBSetupFuncForMigration :: Migration -> SetupFunc Temp.DB
 snapshottedDBSetupFuncForMigration migration = do
+  liftIO $ putStrLn "Setting up DB cache"
   cache <- tempPostgresDBCacheSetupFunc
+  liftIO $ putStrLn "Setting up DB from cache"
   db <- tempCachedPostgresDBSetupFunc cache
+  liftIO $ putStrLn "Migrating cached db"
   poolBeforeMigration <- tempPostgresDBConnectionPoolSetupFunc db
-  _ <- liftIO $ flip runSqlPool poolBeforeMigration $ migrationRunner migration
+  _ <- liftIO $ do
+    putStrLn "Running migration"
+    flip runSqlPool poolBeforeMigration $ migrationRunner migration
+  liftIO $ putStrLn "Taking snapshot of migrated db"
   snapshot <- tempPostgresSnapshotSetupFunc db
+  liftIO $ putStrLn "Setting up DB from snapshot"
   tempSnapshottedPostgresDBSetupFunc snapshot
 
 tempPostgresDBConnectionPoolSetupFunc :: Temp.DB -> SetupFunc ConnectionPool
 tempPostgresDBConnectionPoolSetupFunc db =
   SetupFunc $ \takeConnectionPool -> do
     runNoLoggingT $
-      withPostgresqlPool (toConnectionString db) 1 $ \pool -> do
+      withPostgresqlPool (toConnectionString db) 4 $ \pool -> do
         liftIO $ takeConnectionPool pool
 
 type PostgresSpec' outers = TestDef (Temp.DB ': outers) ConnectionPool
@@ -133,7 +140,6 @@ runPostgresqlTest = runPersistentTest
 --
 -- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
 postgresqlMigrationSucceedsSpec :: FilePath -> Migration -> Spec
-postgresqlMigrationSucceedsSpec _ _ =
-  pure ()
-
--- migrationsSucceedsSpecHelper connectionPoolSetupFunc
+postgresqlMigrationSucceedsSpec fp migration =
+  persistPostgresqlSpec (pure ()) $
+    migrationsSucceedsSpecHelper fp migration

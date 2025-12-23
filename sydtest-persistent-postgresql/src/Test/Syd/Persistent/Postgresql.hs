@@ -59,18 +59,11 @@ tempSnapshottedPostgresDBSetupFunc snapshot =
 
 snapshottedDBSetupFuncForMigration :: Migration -> SetupFunc Temp.DB
 snapshottedDBSetupFuncForMigration migration = do
-  liftIO $ putStrLn "Setting up DB cache"
   cache <- tempPostgresDBCacheSetupFunc
-  liftIO $ putStrLn "Setting up DB from cache"
   db <- tempCachedPostgresDBSetupFunc cache
-  liftIO $ putStrLn "Migrating cached db"
   poolBeforeMigration <- tempPostgresDBConnectionPoolSetupFunc db
-  _ <- liftIO $ do
-    putStrLn "Running migration"
-    flip runSqlPool poolBeforeMigration $ migrationRunner migration
-  liftIO $ putStrLn "Taking snapshot of migrated db"
+  _ <- liftIO $ runSqlPool (migrationRunner migration) poolBeforeMigration
   snapshot <- tempPostgresSnapshotSetupFunc db
-  liftIO $ putStrLn "Setting up DB from snapshot"
   tempSnapshottedPostgresDBSetupFunc snapshot
 
 tempPostgresDBConnectionPoolSetupFunc :: Temp.DB -> SetupFunc ConnectionPool
@@ -115,23 +108,6 @@ persistPostgresqlSpec migration =
   setupAroundAll (snapshottedDBSetupFuncForMigration migration)
     . setupAroundWith' (\db _ -> tempPostgresDBConnectionPoolSetupFunc db)
 
--- -- | Set up a postgresql connection and migrate it to run the given function.
--- withConnectionPool :: Migration -> (ConnectionPool -> IO r) -> IO r
--- withConnectionPool migration func = unSetupFunc (connectionPoolSetupFunc migration) func
---
--- -- | The 'SetupFunc' version of 'withConnectionPool'.
--- connectionPoolSetupFunc :: Migration -> SetupFunc ConnectionPool
--- connectionPoolSetupFunc migration = SetupFunc $ \takeConnectionPool -> do
---   errOrRes <- Temp.with $ \db ->
---     runNoLoggingT $
---       withPostgresqlPool (toConnectionString db) 1 $ \pool -> do
---         _ <- flip runSqlPool pool $ migrationRunner migration
---         liftIO $ takeConnectionPool pool
---   case errOrRes of
---     Left err -> liftIO $ expectationFailure $ show err
---     Right r -> pure r
---
-
 -- | A flipped version of 'runSqlPool' to run your tests
 runPostgresqlTest :: ConnectionPool -> SqlPersistM a -> IO a
 runPostgresqlTest = runPersistentTest
@@ -141,5 +117,10 @@ runPostgresqlTest = runPersistentTest
 -- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
 postgresqlMigrationSucceedsSpec :: FilePath -> Migration -> Spec
 postgresqlMigrationSucceedsSpec fp migration =
-  persistPostgresqlSpec (pure ()) $
-    migrationsSucceedsSpecHelper fp migration
+  setupAroundAll tempPostgresDBCacheSetupFunc
+    . setupAroundWith'
+      ( \cache _ -> do
+          db <- tempCachedPostgresDBSetupFunc cache
+          tempPostgresDBConnectionPoolSetupFunc db
+      )
+    $ migrationsSucceedsSpecHelper fp migration

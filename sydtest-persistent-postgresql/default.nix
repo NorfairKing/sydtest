@@ -1,4 +1,4 @@
-{ mkDerivation, base, lib, monad-logger, mtl, persistent
+{ mkDerivation, base, lib, monad-logger, mtl, path, persistent
 , persistent-postgresql, sydtest, sydtest-discover
 , sydtest-persistent, tmp-postgres
 }:
@@ -7,7 +7,7 @@ mkDerivation {
   version = "0.2.0.3";
   src = ./.;
   libraryHaskellDepends = [
-    base monad-logger mtl persistent-postgresql sydtest
+    base monad-logger mtl path persistent-postgresql sydtest
     sydtest-persistent tmp-postgres
   ];
   testHaskellDepends = [ base persistent sydtest ];

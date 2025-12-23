@@ -16,7 +16,10 @@ import Control.Monad.Logger
 import Control.Monad.Reader
 import Database.Persist.Postgresql
 import Database.Postgres.Temp as Temp
+import Path
+import System.Environment (unsetEnv)
 import Test.Syd
+import Test.Syd.Path
 import Test.Syd.Persistent
 
 tempPostgresDBSetupFunc :: SetupFunc Temp.DB
@@ -26,6 +29,14 @@ tempPostgresDBSetupFunc =
 tempPostgresDBSetupFuncWith :: Temp.Config -> SetupFunc Temp.DB
 tempPostgresDBSetupFuncWith config =
   SetupFunc $ \takeDB -> do
+    -- Clear PostgreSQL environment variables that might interfere with tmp-postgres
+    liftIO $ do
+      unsetEnv "PGHOST"
+      unsetEnv "PGPORT"
+      unsetEnv "PGDATABASE"
+      unsetEnv "PGUSER"
+      unsetEnv "PGPASSWORD"
+      unsetEnv "PGDATA"
     errOrRes <- Temp.withConfig config $ \db ->
       takeDB db
     case errOrRes of
@@ -33,12 +44,15 @@ tempPostgresDBSetupFuncWith config =
       Right r -> pure r
 
 tempPostgresDBCacheSetupFunc :: SetupFunc Temp.Cache
-tempPostgresDBCacheSetupFunc =
-  SetupFunc Temp.withDbCache
-
-tempPostgresDBCacheSetupFuncWith :: Temp.CacheConfig -> SetupFunc Temp.Cache
-tempPostgresDBCacheSetupFuncWith config =
-  SetupFunc $ Temp.withDbCacheConfig config
+tempPostgresDBCacheSetupFunc = do
+  tmpDir <- tempDirSetupFunc "sydtest-postgresql"
+  SetupFunc $
+    Temp.withDbCacheConfig
+      ( Temp.defaultCacheConfig
+          { Temp.cacheTemporaryDirectory = fromAbsDir tmpDir,
+            Temp.cacheDirectoryType = Temp.Temporary
+          }
+      )
 
 tempCachedPostgresDBSetupFunc :: Temp.Cache -> SetupFunc Temp.DB
 tempCachedPostgresDBSetupFunc cache =
@@ -64,10 +78,10 @@ snapshottedDBSetupFuncForMigration migration = do
   liftIO $ putStrLn "Setting up DB from cache"
   db <- tempCachedPostgresDBSetupFunc cache
   liftIO $ putStrLn "Migrating cached db"
-  poolBeforeMigration <- tempPostgresDBConnectionPoolSetupFunc db
-  _ <- liftIO $ do
-    putStrLn "Running migration"
-    flip runSqlPool poolBeforeMigration $ migrationRunner migration
+
+  pool <- tempPostgresDBConnectionPoolSetupFunc db
+  migratePoolSetupFunc migration pool
+
   liftIO $ putStrLn "Taking snapshot of migrated db"
   tempPostgresSnapshotSetupFunc db
 
@@ -77,6 +91,13 @@ tempPostgresDBConnectionPoolSetupFunc db =
     runNoLoggingT $
       withPostgresqlPool (toConnectionString db) 4 $ \pool -> do
         liftIO $ takeConnectionPool pool
+
+migratePoolSetupFunc :: Migration -> ConnectionPool -> SetupFunc ()
+migratePoolSetupFunc migration pool =
+  SetupFunc $ \takeUnit -> do
+    putStrLn "Running migration"
+    flip runSqlPool pool $ migrationRunner migration
+    liftIO $ takeUnit ()
 
 type PostgresSpec' outers = TestDef (Temp.Snapshot ': outers) ConnectionPool
 
@@ -108,12 +129,14 @@ type PostgresSpec = PostgresSpec' '[]
 -- >         liftIO $ mp `shouldBe` Just p
 --
 -- This sets up the database connection around every test, so state is not preserved accross tests.
-persistPostgresqlSpec :: Migration -> PostgresSpec -> SpecWith a
+persistPostgresqlSpec :: Migration -> PostgresSpec' outers -> TestDef outers a
 persistPostgresqlSpec migration =
   setupAroundAll (snapshottedDBSetupFuncForMigration migration)
     . setupAroundWith'
       ( \snapshot _ -> do
+          liftIO $ putStrLn "Creating DB from snapshot"
           db <- tempSnapshottedPostgresDBSetupFunc snapshot
+          liftIO $ putStrLn "Created DB from snapshot"
           tempPostgresDBConnectionPoolSetupFunc db
       )
 

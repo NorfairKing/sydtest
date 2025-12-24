@@ -11,18 +11,13 @@ module Test.Syd.Persistent.Postgresql
   )
 where
 
-import Control.Concurrent (getNumCapabilities)
 import Control.Exception
 import Control.Monad
 import Control.Monad.Logger
 import Control.Monad.Reader
-import qualified Data.ByteString as SB
-import Data.Maybe (fromMaybe)
-import Data.Monoid (Last (..))
 import Data.String
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as TE
 import Database.Persist.Postgresql
 import qualified Database.PostgreSQL.Simple as PostgreSQL
 import qualified Database.PostgreSQL.Simple.Options as Options
@@ -92,41 +87,45 @@ testDBSetupFunc db = do
 
   let createUserAndDB =
         withAdminConn $ \conn -> do
-          PostgreSQL.execute
-            conn
-            ( "CREATE USER "
-                <> fromString (Text.unpack testuser)
-                <> " WITH PASSWORD ?;"
-            )
-            (PostgreSQL.Only testpassword)
+          _ <-
+            PostgreSQL.execute
+              conn
+              ( "CREATE USER "
+                  <> fromString (Text.unpack testuser)
+                  <> " WITH PASSWORD ?;"
+              )
+              (PostgreSQL.Only testpassword)
 
-          PostgreSQL.execute
-            conn
-            ( "CREATE DATABASE "
-                <> fromString (Text.unpack testdb)
-                <> " OWNER "
-                <> fromString (Text.unpack testuser)
-                <> ";"
-            )
-            ()
+          _ <-
+            PostgreSQL.execute
+              conn
+              ( "CREATE DATABASE "
+                  <> fromString (Text.unpack testdb)
+                  <> " OWNER "
+                  <> fromString (Text.unpack testuser)
+                  <> ";"
+              )
+              ()
           pure ()
 
   let cleanupUserAndDB =
         withAdminConn $ \conn -> do
-          PostgreSQL.execute
-            conn
-            ( "DROP DATABASE "
-                <> fromString (Text.unpack testdb)
-                <> ";"
-            )
-            ()
-          PostgreSQL.execute
-            conn
-            ( "DROP USER "
-                <> fromString (Text.unpack testuser)
-                <> ";"
-            )
-            ()
+          _ <-
+            PostgreSQL.execute
+              conn
+              ( "DROP DATABASE "
+                  <> fromString (Text.unpack testdb)
+                  <> ";"
+              )
+              ()
+          _ <-
+            PostgreSQL.execute
+              conn
+              ( "DROP USER "
+                  <> fromString (Text.unpack testuser)
+                  <> ";"
+              )
+              ()
           pure ()
 
   SetupFunc $ \takeUnit ->

@@ -53,20 +53,16 @@ adminConfig =
     { Temp.createDbConfig = Temp.Zlich
     }
 
-dbConnectionPoolSetupFunc :: Temp.DB -> SetupFunc ConnectionPool
-dbConnectionPoolSetupFunc db =
-  SetupFunc $ \takeConnectionPool -> do
-    runNoLoggingT $
-      -- TODO multiple connections
-      withPostgresqlPool (toConnectionString db) 1 $ \pool -> do
-        liftIO $ takeConnectionPool pool
-
 dbConnectionOptionsPoolSetupFunc :: Postgres.Options -> SetupFunc ConnectionPool
 dbConnectionOptionsPoolSetupFunc options =
   SetupFunc $ \takeConnectionPool -> do
     runNoLoggingT $ do
-      connectionCount <- liftIO getNumCapabilities -- Assuming postgres runs on the same machine.
-      withPostgresqlPool (Options.toConnectionString options) 1 $ \pool -> do
+      -- We use a fixed (small) number of connections to avoid overwhelming
+      -- the temporary database server that's being called from multiple
+      -- tests.
+      -- But not 1 to avoid hiding failures that would have come from using
+      -- multiple connections in the same test.
+      withPostgresqlPool (Options.toConnectionString options) 3 $ \pool -> do
         liftIO $ takeConnectionPool pool
 
 adminDBSetupFunc :: SetupFunc Temp.DB
@@ -183,14 +179,6 @@ persistPostgresqlSpec migration =
           migratePoolSetupFunc migration pool
           pure pool
       )
-
--- | The 'SetupFunc' version of 'withConnectionPool'.
-connectionPoolSetupFunc :: Migration -> SetupFunc ConnectionPool
-connectionPoolSetupFunc migration = do
-  db <- tempDBSetupFunc
-  pool <- dbConnectionPoolSetupFunc db
-  liftIO $ runSqlPool (migrationRunner migration) pool
-  pure pool
 
 -- | A flipped version of 'runSqlPool' to run your tests
 runPostgresqlTest :: ConnectionPool -> SqlPersistM a -> IO a

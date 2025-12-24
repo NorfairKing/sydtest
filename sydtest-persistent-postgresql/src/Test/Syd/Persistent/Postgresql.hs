@@ -6,13 +6,12 @@
 -- | Testing with a temporary postgresql database using persistent-postgresql
 module Test.Syd.Persistent.Postgresql
   ( persistPostgresqlSpec,
-    connectionPoolSetupFunc,
-    runSqlPool,
     runPostgresqlTest,
     postgresqlMigrationSucceedsSpec,
   )
 where
 
+import Control.Concurrent (getNumCapabilities)
 import Control.Exception
 import Control.Monad
 import Control.Monad.Logger
@@ -29,14 +28,24 @@ import qualified Database.PostgreSQL.Simple as PostgreSQL
 import qualified Database.PostgreSQL.Simple.Options as Options
 import qualified Database.PostgreSQL.Simple.Options as Postgres
 import Database.Postgres.Temp as Temp
+import System.Environment
 import System.Random
 import Test.Syd
 import Test.Syd.Persistent
 
 tempDBSetupFunc :: SetupFunc Temp.DB
 tempDBSetupFunc = SetupFunc $ \takeTempDB -> do
-  errOrRes <- Temp.withConfig adminConfig $ \db ->
-    liftIO $ takeTempDB db
+  errOrRes <- Temp.withConfig adminConfig $ \db -> do
+    -- Clear PostgreSQL environment variables that might interfere with tmp-postgres
+    -- TODO upstream this
+    unsetEnv "PGHOST"
+    unsetEnv "PGPORT"
+    unsetEnv "PGDATABASE"
+    unsetEnv "PGUSER"
+    unsetEnv "PGPASSWORD"
+    unsetEnv "PGDATA"
+
+    takeTempDB db
   case errOrRes of
     Left err -> liftIO $ expectationFailure $ show err
     Right r -> pure r
@@ -58,8 +67,8 @@ dbConnectionPoolSetupFunc db =
 dbConnectionOptionsPoolSetupFunc :: Postgres.Options -> SetupFunc ConnectionPool
 dbConnectionOptionsPoolSetupFunc options =
   SetupFunc $ \takeConnectionPool -> do
-    runNoLoggingT $
-      -- TODO multiple connections
+    runNoLoggingT $ do
+      connectionCount <- liftIO getNumCapabilities -- Assuming postgres runs on the same machine.
       withPostgresqlPool (Options.toConnectionString options) 1 $ \pool -> do
         liftIO $ takeConnectionPool pool
 

@@ -6,7 +6,6 @@
 -- | Testing with a temporary postgresql database using persistent-postgresql
 module Test.Syd.Persistent.Postgresql
   ( persistPostgresqlSpec,
-    withConnectionPool,
     connectionPoolSetupFunc,
     runSqlPool,
     runPostgresqlTest,
@@ -178,10 +177,6 @@ persistPostgresqlSpec migration =
           migratePoolSetupFunc migration pool
           pure pool
       )
-
--- | Set up a postgresql connection and migrate it to run the given function.
-withConnectionPool :: Migration -> (ConnectionPool -> IO r) -> IO r
-withConnectionPool migration func = unSetupFunc (connectionPoolSetupFunc migration) func
 
 -- | The 'SetupFunc' version of 'withConnectionPool'.
 connectionPoolSetupFunc :: Migration -> SetupFunc ConnectionPool

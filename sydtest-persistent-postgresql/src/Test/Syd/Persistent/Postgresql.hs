@@ -1,13 +1,18 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
 -- | Testing with a temporary postgresql database using persistent-postgresql
 module Test.Syd.Persistent.Postgresql
   ( persistPostgresqlSpec,
+    persistPostgresqlAdminSpec,
+    persistPostgresqlDatabaseSpec,
     runPostgresqlTest,
     postgresqlMigrationSucceedsSpec,
+    postgresqlMigrationSucceedsSpec',
+    connectionPoolSetupFunc,
   )
 where
 
@@ -171,13 +176,23 @@ migratePoolSetupFunc migration pool =
 -- This sets up the database connection around every test, so state is not preserved accross tests.
 persistPostgresqlSpec :: Migration -> TestDef (Temp.DB ': outers) ConnectionPool -> TestDef outers a
 persistPostgresqlSpec migration =
+  persistPostgresqlAdminSpec
+    . persistPostgresqlDatabaseSpec migration
+
+persistPostgresqlAdminSpec :: TestDef (Temp.DB ': outers) a -> TestDef outers a
+persistPostgresqlAdminSpec =
   setupAroundAll adminDBSetupFunc
-    . setupAroundWith'
-      ( \db _ -> do
-          pool <- testDBSetupFunc db
-          migratePoolSetupFunc migration pool
-          pure pool
-      )
+
+connectionPoolSetupFunc :: Temp.DB -> Migration -> SetupFunc ConnectionPool
+connectionPoolSetupFunc db migration = do
+  pool <- testDBSetupFunc db
+  migratePoolSetupFunc migration pool
+  pure pool
+
+persistPostgresqlDatabaseSpec :: (HContains outers Temp.DB) => Migration -> TestDef outers ConnectionPool -> TestDef outers a
+persistPostgresqlDatabaseSpec migration =
+  setupAroundWith' $ \db _ ->
+    connectionPoolSetupFunc db migration
 
 -- | A flipped version of 'runSqlPool' to run your tests
 runPostgresqlTest :: ConnectionPool -> SqlPersistM a -> IO a
@@ -186,7 +201,16 @@ runPostgresqlTest = runPersistentTest
 -- | Test that the given migration succeeds, when applied to the current database.
 --
 -- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
-postgresqlMigrationSucceedsSpec :: FilePath -> Migration -> Spec
+postgresqlMigrationSucceedsSpec :: FilePath -> Migration -> TestDef outers void
 postgresqlMigrationSucceedsSpec fp migration =
   persistPostgresqlSpec (pure ()) $
+    migrationsSucceedsSpecHelper fp migration
+
+postgresqlMigrationSucceedsSpec' ::
+  (HContains outers Temp.DB) =>
+  FilePath ->
+  Migration ->
+  TestDef outers void
+postgresqlMigrationSucceedsSpec' fp migration =
+  persistPostgresqlDatabaseSpec (pure ()) $
     migrationsSucceedsSpecHelper fp migration

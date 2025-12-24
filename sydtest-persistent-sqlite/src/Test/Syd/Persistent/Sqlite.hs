@@ -70,7 +70,7 @@ runSqliteTest = runPersistentTest
 -- | Test that the given migration succeeds, when applied to the current database.
 --
 -- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
-sqliteMigrationSucceedsSpec :: FilePath -> Migration -> Spec
+sqliteMigrationSucceedsSpec :: FilePath -> Migration -> TestDef outers void
 sqliteMigrationSucceedsSpec fp migration =
   setupAround (connectionPoolSetupFunc (pure ())) $
     migrationsSucceedsSpecHelper fp migration

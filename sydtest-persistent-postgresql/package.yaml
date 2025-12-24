@@ -20,11 +20,16 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - bytestring
   - monad-logger
   - mtl
   - persistent-postgresql
+  - postgres-options
+  - postgresql-simple
+  - random
   - sydtest
   - sydtest-persistent
+  - text
   - tmp-postgres
 
 tests:

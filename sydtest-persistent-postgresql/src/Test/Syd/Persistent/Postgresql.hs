@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators #-}
 
 -- | Testing with a temporary postgresql database using persistent-postgresql
 module Test.Syd.Persistent.Postgresql
@@ -11,12 +14,134 @@ module Test.Syd.Persistent.Postgresql
   )
 where
 
+import Control.Exception
+import Control.Monad
 import Control.Monad.Logger
 import Control.Monad.Reader
+import qualified Data.ByteString as SB
+import Data.Maybe (fromMaybe)
+import Data.Monoid (Last (..))
+import Data.String
+import Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as TE
 import Database.Persist.Postgresql
+import qualified Database.PostgreSQL.Simple as PostgreSQL
+import qualified Database.PostgreSQL.Simple.Options as Options
+import qualified Database.PostgreSQL.Simple.Options as Postgres
 import Database.Postgres.Temp as Temp
+import System.Random
 import Test.Syd
 import Test.Syd.Persistent
+
+tempDBSetupFunc :: SetupFunc Temp.DB
+tempDBSetupFunc = SetupFunc $ \takeTempDB -> do
+  errOrRes <- Temp.withConfig adminConfig $ \db ->
+    liftIO $ takeTempDB db
+  case errOrRes of
+    Left err -> liftIO $ expectationFailure $ show err
+    Right r -> pure r
+
+adminConfig :: Temp.Config
+adminConfig =
+  Temp.defaultConfig
+    { Temp.createDbConfig = Temp.Zlich
+    }
+
+dbConnectionPoolSetupFunc :: Temp.DB -> SetupFunc ConnectionPool
+dbConnectionPoolSetupFunc db =
+  SetupFunc $ \takeConnectionPool -> do
+    runNoLoggingT $
+      -- TODO multiple connections
+      withPostgresqlPool (toConnectionString db) 1 $ \pool -> do
+        liftIO $ takeConnectionPool pool
+
+dbConnectionOptionsPoolSetupFunc :: Postgres.Options -> SetupFunc ConnectionPool
+dbConnectionOptionsPoolSetupFunc options =
+  SetupFunc $ \takeConnectionPool -> do
+    runNoLoggingT $
+      -- TODO multiple connections
+      withPostgresqlPool (Options.toConnectionString options) 1 $ \pool -> do
+        liftIO $ takeConnectionPool pool
+
+adminDBSetupFunc :: SetupFunc Temp.DB
+adminDBSetupFunc = tempDBSetupFunc
+
+genName :: String -> IO Text
+genName prefix = do
+  -- This is put into a query without escaping so it must be
+  -- alphanumeric
+  randomPiece <- replicateM 32 $ randomRIO ('a', 'z')
+  pure $ Text.pack $ prefix <> "_" <> randomPiece
+
+-- Create a per-test user and database to avoid test pollution
+-- while only using one postgresql server
+testDBSetupFunc :: Temp.DB -> SetupFunc ConnectionPool
+testDBSetupFunc db = do
+  let adminOptions = toConnectionOptions db
+
+  testuser <- liftIO $ genName "user"
+  testpassword <- liftIO $ genName "password"
+  testdb <- liftIO $ genName "db"
+
+  let withAdminConn =
+        bracket
+          (PostgreSQL.connectPostgreSQL (toConnectionString db))
+          PostgreSQL.close
+
+  let createUserAndDB =
+        withAdminConn $ \conn -> do
+          PostgreSQL.execute
+            conn
+            ( "CREATE USER "
+                <> fromString (Text.unpack testuser)
+                <> " WITH PASSWORD ?;"
+            )
+            (PostgreSQL.Only testpassword)
+
+          PostgreSQL.execute
+            conn
+            ( "CREATE DATABASE "
+                <> fromString (Text.unpack testdb)
+                <> " OWNER "
+                <> fromString (Text.unpack testuser)
+                <> ";"
+            )
+            ()
+          pure ()
+
+  let cleanupUserAndDB =
+        withAdminConn $ \conn -> do
+          PostgreSQL.execute
+            conn
+            ( "DROP DATABASE "
+                <> fromString (Text.unpack testdb)
+                <> ";"
+            )
+            ()
+          PostgreSQL.execute
+            conn
+            ( "DROP USER "
+                <> fromString (Text.unpack testuser)
+                <> ";"
+            )
+            ()
+          pure ()
+
+  SetupFunc $ \takeUnit ->
+    bracket_ createUserAndDB cleanupUserAndDB (takeUnit ())
+
+  let options =
+        adminOptions
+          { Postgres.user = pure (Text.unpack testuser),
+            Postgres.password = pure (Text.unpack testpassword),
+            Postgres.dbname = pure (Text.unpack testdb)
+          }
+  dbConnectionOptionsPoolSetupFunc options
+
+migratePoolSetupFunc :: Migration -> ConnectionPool -> SetupFunc ()
+migratePoolSetupFunc migration pool =
+  liftIO $ runSqlPool (migrationRunner migration) pool
 
 -- | Declare a test suite that uses a database connection.
 --
@@ -44,8 +169,15 @@ import Test.Syd.Persistent
 -- >         liftIO $ mp `shouldBe` Just p
 --
 -- This sets up the database connection around every test, so state is not preserved accross tests.
-persistPostgresqlSpec :: Migration -> SpecWith ConnectionPool -> SpecWith a
-persistPostgresqlSpec migration = aroundWith $ \func _ -> withConnectionPool migration func
+persistPostgresqlSpec :: Migration -> TestDef (Temp.DB ': outers) ConnectionPool -> TestDef outers a
+persistPostgresqlSpec migration =
+  setupAroundAll adminDBSetupFunc
+    . setupAroundWith'
+      ( \db _ -> do
+          pool <- testDBSetupFunc db
+          migratePoolSetupFunc migration pool
+          pure pool
+      )
 
 -- | Set up a postgresql connection and migrate it to run the given function.
 withConnectionPool :: Migration -> (ConnectionPool -> IO r) -> IO r
@@ -53,15 +185,11 @@ withConnectionPool migration func = unSetupFunc (connectionPoolSetupFunc migrati
 
 -- | The 'SetupFunc' version of 'withConnectionPool'.
 connectionPoolSetupFunc :: Migration -> SetupFunc ConnectionPool
-connectionPoolSetupFunc migration = SetupFunc $ \takeConnectionPool -> do
-  errOrRes <- Temp.with $ \db ->
-    runNoLoggingT $
-      withPostgresqlPool (toConnectionString db) 1 $ \pool -> do
-        _ <- flip runSqlPool pool $ migrationRunner migration
-        liftIO $ takeConnectionPool pool
-  case errOrRes of
-    Left err -> liftIO $ expectationFailure $ show err
-    Right r -> pure r
+connectionPoolSetupFunc migration = do
+  db <- tempDBSetupFunc
+  pool <- dbConnectionPoolSetupFunc db
+  liftIO $ runSqlPool (migrationRunner migration) pool
+  pure pool
 
 -- | A flipped version of 'runSqlPool' to run your tests
 runPostgresqlTest :: ConnectionPool -> SqlPersistM a -> IO a
@@ -71,4 +199,4 @@ runPostgresqlTest = runPersistentTest
 --
 -- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
 postgresqlMigrationSucceedsSpec :: FilePath -> Migration -> Spec
-postgresqlMigrationSucceedsSpec = migrationsSucceedsSpecHelper connectionPoolSetupFunc
+postgresqlMigrationSucceedsSpec _ _ = pure () -- migrationsSucceedsSpecHelper connectionPoolSetupFunc

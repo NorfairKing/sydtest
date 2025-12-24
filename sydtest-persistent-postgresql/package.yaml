@@ -1,5 +1,5 @@
 name: sydtest-persistent-postgresql
-version: 0.2.0.3
+version: 0.3.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -23,8 +23,12 @@ library:
   - monad-logger
   - mtl
   - persistent-postgresql
+  - postgres-options
+  - postgresql-simple
+  - random
   - sydtest
   - sydtest-persistent
+  - text
   - tmp-postgres
 
 tests:

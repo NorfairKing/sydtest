@@ -1,14 +1,16 @@
 { mkDerivation, base, lib, monad-logger, mtl, persistent
-, persistent-postgresql, sydtest, sydtest-discover
-, sydtest-persistent, tmp-postgres
+, persistent-postgresql, postgres-options, postgresql-simple
+, random, sydtest, sydtest-discover, sydtest-persistent, text
+, tmp-postgres
 }:
 mkDerivation {
   pname = "sydtest-persistent-postgresql";
-  version = "0.2.0.3";
+  version = "0.3.0.0";
   src = ./.;
   libraryHaskellDepends = [
-    base monad-logger mtl persistent-postgresql sydtest
-    sydtest-persistent tmp-postgres
+    base monad-logger mtl persistent-postgresql postgres-options
+    postgresql-simple random sydtest sydtest-persistent text
+    tmp-postgres
   ];
   testHaskellDepends = [ base persistent sydtest ];
   testToolDepends = [ sydtest-discover ];

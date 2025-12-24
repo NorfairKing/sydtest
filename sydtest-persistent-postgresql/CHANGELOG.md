@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0.0] - 2025-12-26
+
+### Changed
+
+* Complete overhaul: Tests now run with their own database based on a template
+  database instead of their own entire postgres server.
+
 ## [0.2.0.3] - 2023-10-09
 
 ### Added

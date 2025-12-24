@@ -71,4 +71,6 @@ runSqliteTest = runPersistentTest
 --
 -- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
 sqliteMigrationSucceedsSpec :: FilePath -> Migration -> Spec
-sqliteMigrationSucceedsSpec = migrationsSucceedsSpecHelper connectionPoolSetupFunc
+sqliteMigrationSucceedsSpec fp migration =
+  setupAround (connectionPoolSetupFunc (pure ())) $
+    migrationsSucceedsSpecHelper fp migration

@@ -7,10 +7,9 @@ import Test.Syd.Persistent.Example
 import Test.Syd.Persistent.Postgresql
 
 spec :: Spec
-spec =
-  describe "persistPostgresqlSpec" $ do
-    postgresqlMigrationSucceedsSpec "test_resources/migration.sql" migrateExample
-
+spec = do
+  postgresqlMigrationSucceedsSpec "test_resources/migration.sql" migrateExample
+  describe "persistPostgresqlSpec" $
     persistPostgresqlSpec migrateExample $ do
       it "can write and read this example person" $ \pool ->
         runPostgresqlTest pool $ do

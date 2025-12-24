@@ -194,4 +194,6 @@ runPostgresqlTest = runPersistentTest
 --
 -- See 'Test.Syd.Persistent.migrationsSucceedsSpec" for details.
 postgresqlMigrationSucceedsSpec :: FilePath -> Migration -> Spec
-postgresqlMigrationSucceedsSpec _ _ = pure () -- migrationsSucceedsSpecHelper connectionPoolSetupFunc
+postgresqlMigrationSucceedsSpec fp migration =
+  persistPostgresqlSpec (pure ()) $
+    migrationsSucceedsSpecHelper fp migration

@@ -35,17 +35,14 @@ import Test.Syd.Persistent
 
 tempDBSetupFunc :: SetupFunc Temp.DB
 tempDBSetupFunc = SetupFunc $ \takeTempDB -> do
-  errOrRes <- Temp.withConfig adminConfig $ \db -> do
-    -- Clear PostgreSQL environment variables that might interfere with tmp-postgres
-    -- TODO upstream this
-    unsetEnv "PGHOST"
-    unsetEnv "PGPORT"
-    unsetEnv "PGDATABASE"
-    unsetEnv "PGUSER"
-    unsetEnv "PGPASSWORD"
-    unsetEnv "PGDATA"
-
-    takeTempDB db
+  -- Clear PostgreSQL environment variables that might interfere with tmp-postgres
+  unsetEnv "PGHOST"
+  unsetEnv "PGPORT"
+  unsetEnv "PGDATABASE"
+  unsetEnv "PGUSER"
+  unsetEnv "PGPASSWORD"
+  unsetEnv "PGDATA"
+  errOrRes <- Temp.withConfig adminConfig takeTempDB
   case errOrRes of
     Left err -> liftIO $ expectationFailure $ show err
     Right r -> pure r

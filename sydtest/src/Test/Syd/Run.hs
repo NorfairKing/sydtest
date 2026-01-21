@@ -26,7 +26,6 @@ import Data.IORef
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Vector as V
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
@@ -587,16 +586,16 @@ data TestStatus = TestPassed | TestFailed
 data Assertion
   = -- | Both strings are not equal. The latest argument is a diff between both
     -- arguments. If `Nothing`, the raw values will be displayed instead of the diff.
-    NotEqualButShouldHaveBeenEqualWithDiff !String !String !(Maybe [Diff Text])
-  | EqualButShouldNotHaveBeenEqual !String !String
+    NotEqualButShouldHaveBeenEqualWithDiff !Text !Text !(Maybe (V.Vector (Diff Text)))
+  | EqualButShouldNotHaveBeenEqual !Text !Text
   | PredicateSucceededButShouldHaveFailed
-      !String -- Value
-      !(Maybe String) -- Name of the predicate
+      !Text -- Value
+      !(Maybe Text) -- Name of the predicate
   | PredicateFailedButShouldHaveSucceeded
-      !String -- Value
-      !(Maybe String) -- Name of the predicate
-  | ExpectationFailed !String
-  | Context !Assertion !String
+      !Text -- Value
+      !(Maybe Text) -- Name of the predicate
+  | ExpectationFailed !Text
+  | Context !Assertion !Text
   deriving (Show, Eq, Generic)
 
 -- | Returns the diff between two strings
@@ -605,14 +604,14 @@ data Assertion
 -- time (hours) if the input strings are complex. This is exposed for
 -- reference, but you may want to use 'mkNotEqualButShouldHaveBeenEqual' which
 -- ensures that diff computation timeouts.
-computeDiff :: String -> String -> [Diff Text]
-computeDiff a b = V.toList $ getTextDiff (T.pack a) (T.pack b)
+computeDiff :: Text -> Text -> V.Vector (Diff Text)
+computeDiff a b = getTextDiff a b
 
 -- | Assertion when both arguments are not equal. While display a diff between
 -- both at the end of tests. The diff computation is cancelled after 2s.
 mkNotEqualButShouldHaveBeenEqual ::
-  String ->
-  String ->
+  Text ->
+  Text ->
   IO Assertion
 mkNotEqualButShouldHaveBeenEqual actual expected = do
   let diffNotEvaluated = computeDiff actual expected

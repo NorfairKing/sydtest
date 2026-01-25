@@ -1,5 +1,26 @@
 # Changelog
 
+
+## [0.23.0.1] - 2026-01-26
+
+### Changed
+
+* Fixed AI autodetection
+
+## [0.23.0.0] - 2026-01-26
+
+### Added
+
+* Terse output format
+* AI-executor detection
+
+### Changed
+
+* Simplified outputting code.
+
+This is technically a breaking change, but if you are not using the sydtest
+output code directly, it should not break anything for you.
+
 ## [0.22.0.0] - 2025-09-28
 
 ### Changed

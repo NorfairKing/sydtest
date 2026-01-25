@@ -17,18 +17,19 @@ import Test.Syd.Runner.Wrappers
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 
-runSpecForestSynchronously :: Settings -> TestForest '[] () -> IO ResultForest
+runSpecForestSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestSynchronously settings testForest =
-  extractNext
-    <$> runReaderT
-      (goForest testForest)
-      Env
-        { eTimeout = settingTimeout settings,
-          eRetries = settingRetries settings,
-          eFlakinessMode = MayNotBeFlaky,
-          eExpectationMode = ExpectPassing,
-          eExternalResources = HNil
-        }
+  timeItT 0 $
+    extractNext
+      <$> runReaderT
+        (goForest testForest)
+        Env
+          { eTimeout = settingTimeout settings,
+            eRetries = settingRetries settings,
+            eFlakinessMode = MayNotBeFlaky,
+            eExpectationMode = ExpectPassing,
+            eExternalResources = HNil
+          }
   where
     goForest :: forall a. TestForest a () -> R a (Next ResultForest)
     goForest [] = pure (Continue [])

@@ -21,6 +21,7 @@ extra-source-files:
     test_resources/even/odd/3
     test_resources/odd/3
     test_resources/odd/deep/5
+    test_resources/output-test-terse.txt
     test_resources/output-test.txt
     test_resources/output.golden
     test_resources/staged-golden/1.golden
@@ -74,8 +75,6 @@ test-suite sydtest-output-test
       QuickCheck
     , base >=4.7 && <5
     , bytestring
-    , random
-    , safe-coloured-text
     , stm
     , sydtest
     , text
@@ -119,7 +118,6 @@ test-suite sydtest-test
     , opt-env-conf-test
     , path
     , path-io
-    , safe-coloured-text
     , stm
     , sydtest >=0.17
     , text

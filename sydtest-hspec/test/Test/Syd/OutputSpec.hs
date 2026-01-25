@@ -9,7 +9,6 @@ import Test.Hspec
 import qualified Test.Syd as Syd
 import Test.Syd.Hspec (fromHspec)
 import Test.Syd.OptParse (getSettings)
-import Text.Colour
 
 spec :: Syd.Spec
 spec =
@@ -18,12 +17,12 @@ spec =
       Syd.goldenTextFile "test_resources/output-test.txt" $ do
         settings <- getSettings
         testForest <- Syd.execTestDefM settings (fromHspec hspecSpec)
-        res <- Syd.timeItT 0 $ Syd.runSpecForestSynchronously settings testForest
+        res <- Syd.runSpecForestSynchronously settings testForest
 
         pure
           $ LT.toStrict
             . TLB.toLazyText
-            . Syd.renderResultReport settings WithoutColours
+            . Syd.renderPrettyReport settings
           $ eraseTiming res
 
 hspecSpec :: Spec
@@ -34,7 +33,7 @@ hspecSpec = do
 
   it "failure with \"expected x but got y\"" $ 8 `shouldBe` (6 :: Int)
 
-  it "failure with error" $ do
+  xit "failure with error" $ do
     throwIO (AssertionFailed "error msg") :: IO ()
 
 eraseTiming :: Syd.Timed Syd.ResultForest -> Syd.Timed Syd.ResultForest

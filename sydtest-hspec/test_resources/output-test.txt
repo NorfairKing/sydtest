@@ -1,43 +1,38 @@
-Tests:
+[34mTests:[m
 
-✗ failure with no reason                                                   0.00 ms
+[31m✗ [m[31mfailure with no reason[m                                             [32m      0.00 ms[m
   Retries: 3 (does not look flaky)
-✗ failure with reason                                                      0.00 ms
+[31m✗ [m[31mfailure with reason[m                                                [32m      0.00 ms[m
   Retries: 3 (does not look flaky)
-✗ failure with "expected x but got y"                                      0.00 ms
+[31m✗ [m[31mfailure with "expected x but got y"[m                                [32m      0.00 ms[m
   Retries: 3 (does not look flaky)
-✗ failure with error                                                       0.00 ms
-  Retries: 3 (does not look flaky)
+[32m✓ [m[32mfailure with error[m                                                 [32m      0.00 ms[m
 
 
-Failures:
+[34mFailures:[m
 
-    src/Test/Syd/Hspec.hs:68
-  ✗ 1 failure with no reason
+  [36m  src/Test/Syd/Hspec.hs:68[m
+  [31m✗ [m[31m1 [m[31mfailure with no reason[m
       Retries: 3 (does not look flaky)
-      ExpectationFailed "Hspec had no more information about this failure."
+      Hspec had no more information about this failure.
   
-    src/Test/Syd/Hspec.hs:68
-  ✗ 2 failure with reason
+  [36m  src/Test/Syd/Hspec.hs:68[m
+  [31m✗ [m[31m2 [m[31mfailure with reason[m
       Retries: 3 (does not look flaky)
-      Contextual "ExpectationFailed \"failure reason\"" "test/Test/Syd/OutputSpec.hs:33:30"
+      failure reason
+      test/Test/Syd/OutputSpec.hs:32:30
   
-    src/Test/Syd/Hspec.hs:68
-  ✗ 3 failure with "expected x but got y"
+  [36m  src/Test/Syd/Hspec.hs:68[m
+  [31m✗ [m[31m3 [m[31mfailure with "expected x but got y"[m
       Retries: 3 (does not look flaky)
       Expected these values to be equal:
-      Actual:   8
-      Expected: 6
-  
-    src/Test/Syd/Hspec.hs:68
-  ✗ 4 failure with error
-      Retries: 3 (does not look flaky)
-      error msg
+      [34mActual:   [m[31m8[m
+      [34mExpected: [m[32m6[m
   
 
-  Examples:                     12
-  Passed:                       0
-  Failed:                       4
-  Sum of test runtimes:         0.00 seconds
-  Test suite took:              0.00 seconds
+  Examples:                     [32m10[m
+  Passed:                       [32m1[m
+  Failed:                       [31m3[m
+  Sum of test runtimes:[33m         0.00 seconds[m
+  Test suite took:     [33m         0.00 seconds[m
 

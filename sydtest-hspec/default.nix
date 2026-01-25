@@ -1,5 +1,5 @@
-{ mkDerivation, base, hspec, hspec-core, lib, mtl, QuickCheck
-, safe-coloured-text, stm, sydtest, sydtest-discover, text
+{ mkDerivation, base, hspec, hspec-core, lib, mtl, QuickCheck, stm
+, sydtest, sydtest-discover, text
 }:
 mkDerivation {
   pname = "sydtest-hspec";
@@ -8,9 +8,7 @@ mkDerivation {
   libraryHaskellDepends = [
     base hspec-core mtl QuickCheck stm sydtest
   ];
-  testHaskellDepends = [
-    base hspec safe-coloured-text stm sydtest text
-  ];
+  testHaskellDepends = [ base hspec stm sydtest text ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   description = "An Hspec companion library for sydtest";

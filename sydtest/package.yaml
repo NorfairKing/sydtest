@@ -1,5 +1,5 @@
 name: sydtest
-version: 0.22.0.0
+version: 0.23.0.1
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -33,7 +33,7 @@ library:
     - fast-myers-diff >= 0.0.1
     - filepath
     - mtl
-    - opt-env-conf >=0.5
+    - opt-env-conf >=0.10
     - path
     - path-io
     - pretty-show

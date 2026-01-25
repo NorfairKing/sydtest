@@ -533,34 +533,34 @@ instance HasCodec SeedSetting where
 
 instance HasParser SeedSetting where
   settingsParser =
-    choice
-      [ setting
-          [ help "Use a random seed for pseudo-randomness",
-            switch RandomSeed,
-            long "random-seed"
-          ],
-        RandomSeed
-          <$ setting
+    withDefault (testRunSettingSeed defaultTestRunSettings) $
+      choice
+        [ setting
             [ help "Use a random seed for pseudo-randomness",
-              OptEnvConf.reader exists,
-              env "RANDOM_SEED",
-              metavar "ANY"
+              switch RandomSeed,
+              long "random-seed"
             ],
-        FixedSeed
-          <$> setting
+          RandomSeed
+            <$ setting
+              [ help "Use a random seed for pseudo-randomness",
+                OptEnvConf.reader exists,
+                env "RANDOM_SEED",
+                metavar "ANY"
+              ],
+          FixedSeed
+            <$> setting
+              [ help "Seed for pseudo-randomness",
+                OptEnvConf.reader auto,
+                option,
+                long "seed",
+                env "SEED",
+                metavar "INT"
+              ],
+          setting
             [ help "Seed for pseudo-randomness",
-              OptEnvConf.reader auto,
-              option,
-              long "seed",
-              env "SEED",
-              metavar "INT"
-            ],
-        setting
-          [ help "Seed for pseudo-randomness",
-            conf "seed"
-          ],
-        pure $ testRunSettingSeed defaultTestRunSettings
-      ]
+              conf "seed"
+            ]
+        ]
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,

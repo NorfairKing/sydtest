@@ -5,13 +5,19 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.OptParse where
 
 import Autodocodec
 import Control.Applicative
+import Control.Concurrent (getNumCapabilities)
+import Control.Monad
+import Control.Monad.IO.Class
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import Data.Text (Text)
+import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import OptEnvConf
 import Path
@@ -22,7 +28,6 @@ import Text.Colour
 
 #ifdef mingw32_HOST_OS
 import System.Console.ANSI (hSupportsANSIColor)
-import System.IO (stdout)
 #else
 import Text.Colour.Capabilities.FromEnv
 #endif
@@ -50,8 +55,8 @@ data Settings = Settings
     settingGoldenStart :: !Bool,
     -- | Whether to overwrite golden tests instead of having them fail
     settingGoldenReset :: !Bool,
-    -- | Whether to use colour in the output, 'Nothing' means "detect"
-    settingColour :: !(Maybe Bool),
+    -- | Whether to use colour in the output
+    settingTerminalCapabilities :: !TerminalCapabilities,
     -- | The filters to use to select which tests to run
     settingFilters :: ![Text],
     -- | Whether to stop upon the first test failure
@@ -71,18 +76,43 @@ data Settings = Settings
     -- | How to report progress
     settingReportProgress :: !ReportProgress,
     -- | Profiling mode
-    settingProfile :: !Bool
+    settingProfile :: !Bool,
+    -- | Output format
+    settingOutputFormat :: !OutputFormat
   }
   deriving (Show, Eq, Generic)
+
+-- | Output format for test results
+data OutputFormat
+  = -- | Pretty output with colors, unicode symbols, and detailed formatting
+    OutputFormatPretty
+  | -- | Terse output optimized for machine/AI consumption
+    OutputFormatTerse
+  deriving (Show, Eq, Generic, Enum, Bounded)
+
+instance HasCodec OutputFormat where
+  codec =
+    stringConstCodec $
+      (OutputFormatPretty, "pretty")
+        :| [(OutputFormatTerse, "terse")]
 
 instance HasParser Settings where
   settingsParser =
     subEnv_ "sydtest" $
       withConfigurableYamlConfig (runIO $ resolveFile' ".sydtest.yaml") $
-        checkMapEither combine settingsParser
+        checkMapIO combine settingsParser
     where
+      combine :: Flags -> IO (Either String Settings)
       combine Flags {..} = do
-        let d func = func defaultSettings
+        let d :: forall a. (Settings -> a) -> a
+            d func = func defaultSettings
+        terminalCapabilities <- case flagColour of
+          Just False -> pure WithoutColours
+          Just True -> pure With8BitColours
+          Nothing -> case flagAiExecutor of
+            Just True -> pure WithoutColours
+            _ -> detectTerminalCapabilities
+
         let threads =
               fromMaybe
                 ( if flagDebug
@@ -90,61 +120,90 @@ instance HasParser Settings where
                     else d settingThreads
                 )
                 flagThreads
-        progress <- case flagReportProgress of
+        case threads of
+          ByCapabilities -> do
+            i <- getNumCapabilities
+
+            when (i == 1) $ do
+              let outputLine :: [Chunk] -> IO ()
+                  outputLine lineChunks = liftIO $ do
+                    putChunksLocaleWith terminalCapabilities lineChunks
+                    TIO.putStrLn ""
+              mapM_
+                ( outputLine
+                    . (: [])
+                    . fore red
+                )
+                [ chunk "WARNING: Only one CPU core detected, make sure to compile your test suite with these ghc options:",
+                  chunk "         -threaded -rtsopts -with-rtsopts=-N",
+                  chunk "         (This is important for correctness as well as speed, as a parallel test suite can find thread safety problems.)"
+                ]
+          _ -> pure ()
+        errOrProgress <- case flagReportProgress of
           Nothing ->
             pure $
-              if threads == Synchronous
-                then
-                  if flagDebug
-                    then ReportProgress
-                    else d settingReportProgress
-                else d settingReportProgress
+              Right $
+                if threads == Synchronous
+                  then
+                    if flagDebug
+                      then ReportProgress
+                      else d settingReportProgress
+                  else d settingReportProgress
+          Just ReportNoProgress -> pure $ Right ReportNoProgress
           Just ReportProgress ->
             if threads /= Synchronous
-              then Left "Reporting progress in asynchronous runners is not supported. You can use --synchronous or --debug to use a synchronous runner."
-              else pure ReportProgress
-          Just ReportNoProgress -> pure ReportNoProgress
-        pure
-          Settings
-            { settingSeed = flagSeed,
-              settingRandomiseExecutionOrder =
-                fromMaybe
-                  ( if flagDebug
-                      then False
-                      else d settingRandomiseExecutionOrder
-                  )
-                  flagRandomiseExecutionOrder,
-              settingThreads = threads,
-              settingMaxSuccess = flagMaxSuccess,
-              settingMaxSize = flagMaxSize,
-              settingMaxDiscard = flagMaxDiscard,
-              settingMaxShrinks = flagMaxShrinks,
-              settingGoldenStart = flagGoldenStart,
-              settingGoldenReset = flagGoldenReset,
-              settingColour = flagColour,
-              settingFilters = flagFilters,
-              settingFailFast =
-                fromMaybe
-                  ( if flagDebug
-                      then True
-                      else d settingFailFast
-                  )
-                  flagFailFast,
-              settingIterations = flagIterations,
-              settingTimeout = flagTimeout,
-              settingRetries =
-                fromMaybe
-                  ( if flagDebug
-                      then 0
-                      else d settingRetries
-                  )
-                  flagRetries,
-              settingFailOnFlaky = flagFailOnFlaky,
-              settingSkipPassed = flagSkipPassed,
-              settingReportFile = flagReportFile,
-              settingReportProgress = progress,
-              settingProfile = flagProfile
-            }
+              then pure $ Left "Reporting progress in asynchronous runners is not supported. You can use --synchronous or --debug to use a synchronous runner."
+              else pure $ Right ReportProgress
+        forM errOrProgress $ \progress -> do
+          pure $
+            Settings
+              { settingSeed = flagSeed,
+                settingRandomiseExecutionOrder =
+                  fromMaybe
+                    ( if flagDebug
+                        then False
+                        else d settingRandomiseExecutionOrder
+                    )
+                    flagRandomiseExecutionOrder,
+                settingThreads = threads,
+                settingMaxSuccess = flagMaxSuccess,
+                settingMaxSize = flagMaxSize,
+                settingMaxDiscard = flagMaxDiscard,
+                settingMaxShrinks = flagMaxShrinks,
+                settingGoldenStart = flagGoldenStart,
+                settingGoldenReset = flagGoldenReset,
+                settingTerminalCapabilities = terminalCapabilities,
+                settingFilters = flagFilters,
+                settingFailFast =
+                  fromMaybe
+                    ( if flagDebug
+                        then True
+                        else d settingFailFast
+                    )
+                    flagFailFast,
+                settingIterations = flagIterations,
+                settingTimeout = flagTimeout,
+                settingRetries =
+                  fromMaybe
+                    ( if flagDebug
+                        then 0
+                        else d settingRetries
+                    )
+                    flagRetries,
+                settingFailOnFlaky = flagFailOnFlaky,
+                settingSkipPassed = flagSkipPassed,
+                settingReportFile = flagReportFile,
+                settingReportProgress = progress,
+                settingProfile = flagProfile,
+                settingOutputFormat =
+                  fromMaybe
+                    ( case flagAiExecutor of
+                        Nothing -> OutputFormatPretty
+                        Just False -> OutputFormatPretty
+                        Just True -> OutputFormatTerse
+                    )
+                    flagOutputFormat
+              }
 
 defaultSettings :: Settings
 defaultSettings =
@@ -159,7 +218,7 @@ defaultSettings =
           settingMaxShrinks = d testRunSettingMaxShrinks,
           settingGoldenStart = d testRunSettingGoldenStart,
           settingGoldenReset = d testRunSettingGoldenReset,
-          settingColour = Nothing,
+          settingTerminalCapabilities = With8BitColours,
           settingFilters = mempty,
           settingFailFast = False,
           settingIterations = OneIteration,
@@ -169,7 +228,8 @@ defaultSettings =
           settingSkipPassed = False,
           settingReportProgress = ReportNoProgress,
           settingReportFile = Nothing,
-          settingProfile = False
+          settingProfile = False,
+          settingOutputFormat = OutputFormatPretty
         }
 
 -- 60 seconds
@@ -178,12 +238,6 @@ defaultTimeout = 60_000_000
 
 defaultRetries :: Word
 defaultRetries = 3
-
-deriveTerminalCapababilities :: Settings -> IO TerminalCapabilities
-deriveTerminalCapababilities settings = case settingColour settings of
-  Just False -> pure WithoutColours
-  Just True -> pure With8BitColours
-  Nothing -> detectTerminalCapabilities
 
 #ifdef mingw32_HOST_OS
 detectTerminalCapabilities :: IO TerminalCapabilities
@@ -196,6 +250,7 @@ detectTerminalCapabilities = do
 detectTerminalCapabilities :: IO TerminalCapabilities
 detectTerminalCapabilities = getTerminalCapabilitiesFromEnv
 #endif
+
 -- We use an intermediate 'Flags' type so that default values can change based
 -- on parse settings. For example, the default value for 'flagThreads' depends
 -- on the value of 'flagDebug'.
@@ -220,7 +275,9 @@ data Flags = Flags
     flagReportFile :: !(Maybe (Path Abs File)),
     flagReportProgress :: !(Maybe ReportProgress),
     flagDebug :: !Bool,
-    flagProfile :: !Bool
+    flagProfile :: !Bool,
+    flagAiExecutor :: !(Maybe Bool),
+    flagOutputFormat :: !(Maybe OutputFormat)
   }
   deriving (Show, Eq, Generic)
 
@@ -358,6 +415,42 @@ instance HasParser Flags where
           name "profile",
           value $ settingProfile defaultSettings
         ]
+    flagAiExecutor <-
+      optional $
+        choice
+          [ setting
+              [ help "Indicate that an AI is executing tests, sets defaults to 'no colours' and 'terse output'",
+                switch True,
+                long "ai-executor"
+              ],
+            setting
+              [ help "Turn off ai mode. This lets AIs opt out of ai-executor mode",
+                switch False,
+                long "no-ai-executor"
+              ],
+            setting
+              [ help "Activate AI executor mode based on env vars",
+                reader exists,
+                -- Feel free to add env vars here.
+                unprefixedEnv "CLAUDECODE",
+                metavar "ANY"
+              ]
+          ]
+
+    flagOutputFormat <-
+      optional $
+        choice
+          [ setting
+              [ help "Use terse output (compact, no colors, failures only)",
+                switch OutputFormatTerse,
+                long "terse"
+              ],
+            setting
+              [ help "Use pretty output (colors, unicode, detailed formatting)",
+                switch OutputFormatPretty,
+                long "pretty"
+              ]
+          ]
     pure Flags {..}
 
 data Timeout

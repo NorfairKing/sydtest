@@ -32,7 +32,7 @@ extra-deps:
   subdirs:
     - fast-myers-diff
 - github: NorfairKing/opt-env-conf
-  commit: f1a744f9497e0c0e017262dfa24b7aefe5250dd0
+  commit: b6da7e94827e89cc8af8c02e0f61d7a856a610d7
   subdirs:
     - opt-env-conf
     - opt-env-conf-test

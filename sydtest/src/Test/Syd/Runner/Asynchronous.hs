@@ -35,7 +35,7 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
 
-runSpecForestAsynchronously :: Settings -> Word -> TestForest '[] () -> IO ResultForest
+runSpecForestAsynchronously :: Settings -> Word -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestAsynchronously settings nbThreads testForest = do
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
@@ -50,8 +50,22 @@ runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest =
   failFastVar <- newEmptyMVar
   suiteBegin <- getMonotonicTimeNSec
   let runRunner = runner settings nbThreads failFastVar handleForest
-      runPrinter = liftIO $ printer settings failFastVar suiteBegin handleForest
+      runPrinter = case settingOutputFormat settings of
+        OutputFormatPretty -> liftIO $ printer settings failFastVar suiteBegin handleForest
+        OutputFormatTerse -> liftIO $ waiter failFastVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
+
+  let outputLine :: [Chunk] -> IO ()
+      outputLine lineChunks = liftIO $ do
+        putChunksLocaleWith (settingTerminalCapabilities settings) lineChunks
+        TIO.putStrLn ""
+      outputLines :: [[Chunk]] -> IO ()
+      outputLines = mapM_ outputLine
+
+  outputLines $ case settingOutputFormat settings of
+    OutputFormatPretty -> outputPrettySummary settings resultForest
+    OutputFormatTerse -> outputTerseSummary settings resultForest
+
   pure resultForest
 
 type HandleForest a b = SpecDefForest a b (MVar (Timed TestRunReport))
@@ -328,11 +342,9 @@ data Env externalResources = Env
 
 printer :: Settings -> MVar () -> Word64 -> HandleForest '[] () -> IO (Timed ResultForest)
 printer settings failFastVar suiteBegin handleForest = do
-  tc <- deriveTerminalCapababilities settings
-
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
-        putChunksLocaleWith tc lineChunks
+        putChunksLocaleWith (settingTerminalCapabilities settings) lineChunks
         TIO.putStrLn ""
 
       treeWidth :: Int
@@ -394,9 +406,6 @@ printer settings failFastVar suiteBegin handleForest = do
         DefExpectationNode _ sdf -> fmap SubForestNode <$> goForest sdf
   mapM_ outputLine outputTestsHeader
   resultForest <- fromMaybe [] <$> runReaderT (goForest handleForest) 0
-  outputLine [chunk " "]
-  mapM_ outputLine $ outputFailuresWithHeading settings resultForest
-  outputLine [chunk " "]
   suiteEnd <- getMonotonicTimeNSec
   let timedResult =
         Timed
@@ -405,12 +414,6 @@ printer settings failFastVar suiteBegin handleForest = do
             timedBegin = suiteBegin,
             timedEnd = suiteEnd
           }
-  mapM_ outputLine $ outputStats (computeTestSuiteStats settings <$> timedResult)
-  outputLine [chunk " "]
-
-  when (settingProfile settings) $ do
-    mapM_ outputLine (outputProfilingInfo timedResult)
-    outputLine [chunk " "]
 
   pure timedResult
 
@@ -419,8 +422,8 @@ addLevel = withReaderT succ
 
 type P = ReaderT Int IO
 
-waiter :: MVar () -> HandleForest '[] () -> IO ResultForest
-waiter failFastVar handleForest = do
+waiter :: MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
+waiter failFastVar handleForest = timeItT 0 $ do
   let goForest :: HandleForest a b -> IO (Maybe ResultForest)
       goForest hts = do
         rts <- catMaybes <$> mapM goTree hts

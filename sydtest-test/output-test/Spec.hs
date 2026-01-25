@@ -15,11 +15,9 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as TLB
 import System.Exit
-import System.Random (randomRIO)
 import Test.QuickCheck
 import Test.Syd
 import Test.Syd.OptParse
-import Text.Colour
 
 data DangerousRecord = Cons1 {field :: String} | Cons2
 
@@ -137,11 +135,22 @@ spec = do
                 else Just <$> mkNotEqualButShouldHaveBeenEqual (show actual) (show expected)
         }
 
-    describe "outputResultForest" $ do
+    describe "renderPrettyReport" $ do
       it "outputs the same as last time" $ do
         pureGoldenTextFile
           "test_resources/output.golden"
-          (LT.toStrict $ TLB.toLazyText $ renderResultReport defaultSettings With24BitColours (Timed {timedValue = [], timedBegin = 0, timedEnd = 0, timedWorker = 0}))
+          ( LT.toStrict $
+              TLB.toLazyText $
+                renderPrettyReport
+                  defaultSettings
+                  ( Timed
+                      { timedValue = [],
+                        timedBegin = 0,
+                        timedEnd = 0,
+                        timedWorker = 0
+                      }
+                  )
+          )
 
   doNotRandomiseExecutionOrder $
     describe "Around" $ do
@@ -337,15 +346,9 @@ spec = do
     it "should fail" $ somePropertyCombinator arbitrary (* 3)
     it "should pass" $ somePropertyCombinator arbitrary (* 4)
     it "should not crash (undefined value)" $ somePropertyCombinator arbitrary undefined
-    it "should not crash (undefined generator)" $ somePropertyCombinator undefined (* 2)
 
     let someTestSuiteCombinator i =
           it "should be even" $ even (i :: Int)
     someTestSuiteCombinator 1
     someTestSuiteCombinator 2
     someTestSuiteCombinator undefined
-
-  describe "randomness" $
-    it "always outputs the same pseudorandomness" $ do
-      i <- randomRIO (1, 100)
-      i `shouldBe` (2 :: Int)

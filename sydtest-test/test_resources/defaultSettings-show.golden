@@ -8,7 +8,7 @@ Settings
   , settingMaxShrinks = 100
   , settingGoldenStart = False
   , settingGoldenReset = False
-  , settingColour = Nothing
+  , settingTerminalCapabilities = With8BitColours
   , settingFilters = []
   , settingFailFast = False
   , settingIterations = OneIteration
@@ -19,4 +19,5 @@ Settings
   , settingReportFile = Nothing
   , settingReportProgress = ReportNoProgress
   , settingProfile = False
+  , settingOutputFormat = OutputFormatPretty
   }

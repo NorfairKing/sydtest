@@ -26,10 +26,9 @@ import Text.Colour
 
 runSpecForestInterleavedWithOutputSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputSynchronously settings testForest = do
-  tc <- deriveTerminalCapababilities settings
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks = liftIO $ do
-        putChunksLocaleWith tc lineChunks
+        putChunksLocaleWith (settingTerminalCapabilities settings) lineChunks
         TIO.putStrLn ""
 
       treeWidth :: Int
@@ -44,7 +43,9 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
         liftIO $ outputLine $ pad level line
 
       outputLinesR :: [[Chunk]] -> R a ()
-      outputLinesR = mapM_ outputLineR
+      outputLinesR cs = case settingOutputFormat settings of
+        OutputFormatPretty -> mapM_ outputLineR cs
+        OutputFormatTerse -> return ()
 
   let goForest :: TestForest a () -> R a (Next ResultForest)
       goForest [] = pure (Continue [])

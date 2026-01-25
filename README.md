@@ -170,6 +170,7 @@ This repository contains many companion libraries to write integration tests wit
 | Automatic flakiness diagnostics                                                           | ✔️       | ✖️                                                           | ?                                                                |
 | Flakiness combinators to practically deal with flakiness                                  | ✔️       | ✖️                                                           | ?                                                                |
 | Test suite profiling with nice graphs                                                     | ✔️       | ✖️                                                           | ✖️                                                                |
+| AI-friendly terse output mode (`--ai-executor`, also auto-detected)                       | ✔️       | ?                                                           | ?                                                                |
 
 * ✔️: Supported 
 * Lib: Possible with an extra library

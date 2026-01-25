@@ -1,4 +1,4 @@
-[36mUsage: [m[33msydtest[m [36m[[m[37m--config-file[m [33mFILE_PATH[m[36m][m [36m[[m[37m--random-seed[m [36m|[m [37m--seed[m [33mINT[m[36m][m [36m[[m[37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m[36m][m [36m[[m[37m--jobs[m[36m|[m[37m--threads[m [33mINT[m [36m|[m [37m--synchronous[m[36m][m [36m[[m[37m--max-size[m [33mInt[m[36m][m [36m[[m[37m--max-success[m [33mInt[m[36m][m [36m[[m[37m--max-discard[m [33mInt[m[36m][m [36m[[m[37m--max-shrinks[m [33mInt[m[36m][m [36m[[m[37m--[no-]golden-start[m[36m][m [36m[[m[37m--[no-]golden-reset[m[36m][m [36m[[m[37m--[no-]colour[m[36m|[m[37m--[no-]color[m[36m][m [36m[[m[33mFILTER[m [36m[[m[33mFILTER[m[36m][m [36m|[m [37m-f[m[36m|[m[37m--filter[m[36m|[m[37m-m[m[36m|[m[37m--match[m [33mFILTER[m[36m][m [36m[[m[37m--[no-]fail-fast[m[36m][m [36m[[m[37m--continuous[m [36m|[m [37m--iterations[m [33mINT[m[36m][m [36m[[m[37m--no-timeout[m [36m|[m [36m[[m[37m--timeout[m [33mMICROSECONDS[m[36m][m[36m][m [36m[[m[37m--retries[m [33mINTEGER[m[36m][m [36m[[m[37m--[no-]fail-on-flaky[m[36m][m [36m[[m[37m--[no-]skip-passed[m[36m][m [36m[[m[37m--report-file[m [33mFILE_PATH[m[36m][m [36m[[m[37m--progress[m [36m|[m [37m--no-progress[m[36m][m [36m[[m[37m--[no-]debug[m[36m][m [36m[[m[37m--[no-]profile[m[36m][m
+[36mUsage: [m[33msydtest[m [36m[[m[37m--config-file[m [33mFILE_PATH[m[36m][m [36m[[m[37m--random-seed[m [36m|[m [37m--seed[m [33mINT[m[36m][m [36m[[m[37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m[36m][m [36m[[m[37m--jobs[m[36m|[m[37m--threads[m [33mINT[m [36m|[m [37m--synchronous[m[36m][m [36m[[m[37m--max-size[m [33mInt[m[36m][m [36m[[m[37m--max-success[m [33mInt[m[36m][m [36m[[m[37m--max-discard[m [33mInt[m[36m][m [36m[[m[37m--max-shrinks[m [33mInt[m[36m][m [36m[[m[37m--[no-]golden-start[m[36m][m [36m[[m[37m--[no-]golden-reset[m[36m][m [36m[[m[37m--[no-]colour[m[36m|[m[37m--[no-]color[m[36m][m [36m[[m[33mFILTER[m [36m[[m[33mFILTER[m[36m][m [36m|[m [37m-f[m[36m|[m[37m--filter[m[36m|[m[37m-m[m[36m|[m[37m--match[m [33mFILTER[m[36m][m [36m[[m[37m--[no-]fail-fast[m[36m][m [36m[[m[37m--continuous[m [36m|[m [37m--iterations[m [33mINT[m[36m][m [36m[[m[37m--no-timeout[m [36m|[m [36m[[m[37m--timeout[m [33mMICROSECONDS[m[36m][m[36m][m [36m[[m[37m--retries[m [33mINTEGER[m[36m][m [36m[[m[37m--[no-]fail-on-flaky[m[36m][m [36m[[m[37m--[no-]skip-passed[m[36m][m [36m[[m[37m--report-file[m [33mFILE_PATH[m[36m][m [36m[[m[37m--progress[m [36m|[m [37m--no-progress[m[36m][m [36m[[m[37m--[no-]debug[m[36m][m [36m[[m[37m--[no-]profile[m[36m][m [36m[[m[37m--ai-executor[m [36m|[m [37m--no-ai-executor[m[36m][m [36m[[m[37m--terse[m [36m|[m [37m--pretty[m[36m][m
 
 [36mAll settings[m:
   [34mShow this help text[m
@@ -24,6 +24,7 @@
       , random
       , [33m<integer>[m # [32m64 bit signed integer[m
       ]
+  default: [33mFixedSeed 42[m
 
   [34mRun test suite in a random order[m
   switch: [37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m
@@ -186,6 +187,21 @@
     [37mprofile[m: # [32mor null[m
       [33m<boolean>[m
 
+  [34mIndicate that an AI is executing tests, sets defaults to 'no colours' and 'terse output'[m
+  switch: [37m--ai-executor[m
+
+  [34mTurn off ai mode. This lets AIs opt out of ai-executor mode[m
+  switch: [37m--no-ai-executor[m
+
+  [34mActivate AI executor mode based on env vars[m
+  env: [37mSYDTEST_CLAUDECODE[m [33mANY[m
+
+  [34mUse terse output (compact, no colors, failures only)[m
+  switch: [37m--terse[m
+
+  [34mUse pretty output (colors, unicode, detailed formatting)[m
+  switch: [37m--pretty[m
+
 [36mOptions[m:
   [37m-h[m[36m|[m[37m--help[m                                                         [34mShow this help text[m                                                                                                                                                      
   [37m--version[m                                                         [34mOutput version information[m                                                                                                                                               
@@ -220,6 +236,10 @@ Note that you have to run with this flag once before it can activate.
   [37m--no-progress[m                                                     [34mDon't report per-example progress[m                                                                                                                                        
   [37m--[no-]debug[m                                                      [34mTurn on debug mode[m                                                                                                                                                       
   [37m--[no-]profile[m                                                    [34mTurn on profiling mode[m                                                                                                                                                   
+  [37m--ai-executor[m                                                     [34mIndicate that an AI is executing tests, sets defaults to 'no colours' and 'terse output'[m                                                                                 
+  [37m--no-ai-executor[m                                                  [34mTurn off ai mode. This lets AIs opt out of ai-executor mode[m                                                                                                              
+  [37m--terse[m                                                           [34mUse terse output (compact, no colors, failures only)[m                                                                                                                     
+  [37m--pretty[m                                                          [34mUse pretty output (colors, unicode, detailed formatting)[m                                                                                                                 
 
 [36mEnvironment Variables[m:
   [37mSYDTEST_CONFIG_FILE[m [33mFILE_PATH[m                                              [34mPath to the configuration file[m                                                                                                                                             
@@ -245,9 +265,11 @@ Note that you have to run with this flag once before it can activate.
   [37mSYDTEST_REPORT_FILE[m [33mFILE_PATH[m                                              [34mWhere to store the the test report for --skip-passed[m                                                                                                                       
   [37mSYDTEST_DEBUG[m [33mBOOL[m                                                         [34mTurn on debug mode[m                                                                                                                                                         
   [37mSYDTEST_PROFILE[m [33mBOOL[m                                                       [34mTurn on profiling mode[m                                                                                                                                                     
+  [37mSYDTEST_CLAUDECODE[m [33mANY[m                                                     [34mActivate AI executor mode based on env vars[m                                                                                                                                
 
 [36mConfiguration Values[m:
   [34mSeed for pseudo-randomness[m
+  default: [33mFixedSeed 42[m
   [37mseed[m:
     # [32many of[m
     [ [33mnull[m

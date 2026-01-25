@@ -64,7 +64,8 @@
             inherit
               nixpkgs-25_05
               nixpkgs-24_11
-              nixpkgs-24_05;
+              nixpkgs-24_05
+              ;
           };
           backwardCompatibilityChecks = pkgs.lib.mapAttrs (_: nixpkgs: backwardCompatibilityCheckFor nixpkgs) allNixpkgs;
         in

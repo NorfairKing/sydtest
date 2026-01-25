@@ -33,7 +33,6 @@ tests:
     - opt-env-conf-test
     - path
     - path-io
-    - safe-coloured-text
     - stm
     - sydtest >=0.17
     - text
@@ -50,9 +49,6 @@ tests:
     dependencies:
     - QuickCheck
     - bytestring
-    - random
-    - random
-    - safe-coloured-text
     - stm
     - sydtest
     - text

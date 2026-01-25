@@ -14,9 +14,6 @@ module Test.Syd.Runner
 where
 
 import Control.Concurrent (getNumCapabilities)
-import Control.Monad
-import Control.Monad.IO.Class
-import qualified Data.Text.IO as TIO
 import System.Environment
 import System.Mem (performGC)
 import System.Random (mkStdGen, setStdGen)
@@ -27,7 +24,6 @@ import Test.Syd.Run
 import Test.Syd.Runner.Asynchronous
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour
 import Text.Printf
 
 -- | Set the command line argument of the underlying action to empty.
@@ -66,41 +62,25 @@ sydTestResult settings spec = do
 sydTestOnce :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestOnce settings spec = do
   specForest <- execTestDefM settings spec
-  tc <- deriveTerminalCapababilities settings
   withNullArgs $ do
     setPseudorandomness (settingSeed settings)
     case settingThreads settings of
       Synchronous -> runSpecForestInterleavedWithOutputSynchronously settings specForest
       ByCapabilities -> do
         i <- fromIntegral <$> getNumCapabilities
-
-        when (i == 1) $ do
-          let outputLine :: [Chunk] -> IO ()
-              outputLine lineChunks = liftIO $ do
-                putChunksLocaleWith tc lineChunks
-                TIO.putStrLn ""
-          mapM_
-            ( outputLine
-                . (: [])
-                . fore red
-            )
-            [ chunk "WARNING: Only one CPU core detected, make sure to compile your test suite with these ghc options:",
-              chunk "         -threaded -rtsopts -with-rtsopts=-N",
-              chunk "         (This is important for correctness as well as speed, as a parallel test suite can find thread safety problems.)"
-            ]
         runSpecForestInterleavedWithOutputAsynchronously settings i specForest
       Asynchronous i ->
         runSpecForestInterleavedWithOutputAsynchronously settings i specForest
 
 sydTestIterations :: Maybe Word -> Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
-sydTestIterations totalIterations settings spec =
+sydTestIterations totalIterations settings spec = do
   withNullArgs $ do
     nbCapabilities <- fromIntegral <$> getNumCapabilities
 
     let runOnce settings_ = do
           setPseudorandomness (settingSeed settings_)
           specForest <- execTestDefM settings_ spec
-          r <- timeItT 0 $ case settingThreads settings_ of
+          r <- case settingThreads settings_ of
             Synchronous -> runSpecForestSynchronously settings_ specForest
             ByCapabilities -> runSpecForestAsynchronously settings_ nbCapabilities specForest
             Asynchronous i -> runSpecForestAsynchronously settings_ i specForest

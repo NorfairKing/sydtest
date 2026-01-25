@@ -7,7 +7,6 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as LTB
 import Test.Syd
 import Test.Syd.OptParse
-import Text.Colour
 
 spec :: Spec
 spec = do
@@ -17,9 +16,8 @@ spec = do
         "test_resources/output.golden"
         ( LT.toStrict $
             LTB.toLazyText $
-              renderResultReport
+              renderPrettyReport
                 defaultSettings
-                With24BitColours
                 ( Timed
                     { timedValue = [],
                       timedWorker = 0,

@@ -36,7 +36,7 @@ spec = doNotRandomiseExecutionOrder $ do
   it "long diff timing is bounded" $ do
     -- with n = 1000 it takes 30s on my laptop, so 10k is enough to trigger the
     -- 2s timeout.
-    let n = 10_0000
+    let n = 10_000
     let test = do
           res <- try $ sydTest $ do
             it "test" $ do

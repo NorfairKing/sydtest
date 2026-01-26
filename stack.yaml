@@ -7,7 +7,6 @@ packages:
 - sydtest-hedgehog
 - sydtest-hedis
 - sydtest-hspec
-- sydtest-mongo
 - sydtest-persistent
 - sydtest-persistent-postgresql
 - sydtest-persistent-sqlite

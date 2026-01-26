@@ -3,7 +3,6 @@
 , libredirect
 , redis
 , postgresql
-, mongodb
 , iana-etc
 , chromedriver
 , chromium
@@ -40,35 +39,6 @@ let
           ];
         })
     );
-
-  enableMongo = haskellPkg: overrideCabal haskellPkg (old: {
-    buildDepends = (old.buildDepends or [ ]) ++ [ mongodb ];
-    # The mongodb library uses network-bsd's function getProtocolByName
-    # to lookup the port that corresponds to the tcp protocol:
-    # https://hackage.haskell.org/package/network-bsd-2.8.1.0/docs/Network-BSD.html#v:getProtocolByName
-    # This consults a system database that is in /etc/protocols, see
-    # https://linux.die.net/man/3/getprotobyname and
-    # https://linux.die.net/man/5/protocols
-    #
-    # However, this file doesn't exist in the nix sandbox, so we need to
-    # somehowe make the test suite think that it does.
-    #
-    # There's no way to put something at /etc/protocols in the test suite,
-    # but we can use LD_PRELOAD to use libredirect to replace the openat
-    # glibc calls that the test suite makes by openat calls that look for a
-    # different filename.
-    #
-    # This mapping from expected filename to actual filename is given in a
-    # NIX_REDIRECTS environment variable, and the /etc/protocols file that
-    # we want to use is in iana-etc.
-    preCheck = (old.preCheck or "") + ''
-      export NIX_REDIRECTS=/etc/protocols=${iana-etc}/etc/protocols
-      export LD_PRELOAD=${libredirect}/lib/libredirect.so
-    '';
-    postCheck = (old.postCheck or "") + ''
-      unset NIX_REDIRECTS LD_PRELOAD
-    '';
-  });
 
   fontsConfig = callPackage ./fonts-conf.nix { };
   setupFontsConfigScript = ''
@@ -127,14 +97,6 @@ let
       doCheck = self.ghc.version == "9.10.3";
     });
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
-  } //
-  # https://github.com/mongodb-haskell/mongodb/issues/143
-  optionalAttrs (versionOlder mongodb.version "6.0") {
-    "sydtest-mongo" = (enableMongo (sydtestPkg "sydtest-mongo")).overrideAttrs (old: {
-      passthru = (old.passthru or { }) // {
-        inherit enableMongo;
-      };
-    });
   };
 
 in

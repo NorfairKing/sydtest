@@ -85,12 +85,12 @@ outputTerseStats TestSuiteStats {..} totalTimeSeconds =
         [ [ chunk ", Flaky: ",
             fore red $ chunk (T.pack (show testSuiteStatFlakyTests))
           ]
-          | testSuiteStatFlakyTests > 0
+        | testSuiteStatFlakyTests > 0
         ],
         [ [ chunk ", Pending: ",
             fore magenta $ chunk (T.pack (show testSuiteStatPending))
           ]
-          | testSuiteStatPending > 0
+        | testSuiteStatPending > 0
         ],
         [ [ fore yellow $ chunk $ T.pack (printf " (%0.2f s)" totalTimeSeconds)
           ]

@@ -50,8 +50,7 @@ goldenJSONFile fp produceActualValue =
                 (TE.decodeUtf8 (LB.toStrict (JSON.encodePretty expected)))
             pure $
               Just
-                ( Context assertion (goldenContext fp)
-                )
+                (Context assertion (goldenContext fp))
     }
 
 -- | Test that the given 'JSON.Value' is the same as what we find in the given golden file.

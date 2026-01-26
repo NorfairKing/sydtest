@@ -81,7 +81,7 @@ outputStats timed =
           [ [ [ chunk "Examples:                     ",
                 fore green $ chunk (T.pack (show testSuiteStatExamples))
               ]
-              | testSuiteStatExamples /= testSuiteStatSuccesses
+            | testSuiteStatExamples /= testSuiteStatSuccesses
             ],
             [ [ chunk "Passed:                       ",
                 ( if testSuiteStatSuccesses <= 0
@@ -101,12 +101,12 @@ outputStats timed =
             [ [ chunk "Flaky:                        ",
                 fore red $ chunk (T.pack (show testSuiteStatFlakyTests))
               ]
-              | testSuiteStatFlakyTests > 0
+            | testSuiteStatFlakyTests > 0
             ],
             [ [ chunk "Pending:                      ",
                 fore magenta $ chunk (T.pack (show testSuiteStatPending))
               ]
-              | testSuiteStatPending > 0
+            | testSuiteStatPending > 0
             ],
             [ [ chunk "Sum of test runtimes:",
                 fore yellow $ chunk $ T.pack (printf "%13.2f seconds" sumTimeSeconds)
@@ -181,8 +181,8 @@ outputSpecifyLines settings level treeWidth specifyText (TDef timed _) =
                   _ -> fore green $ chunk (T.pack (printf "%d" w)),
                 " inputs."
               ]
-            | status == TestPassed,
-              w <- maybeToList testRunResultNumTests
+          | status == TestPassed,
+            w <- maybeToList testRunResultNumTests
           ],
           map pad $ labelsChunks (fromMaybe 1 testRunResultNumTests) testRunResultLabels,
           map pad $ classesChunks testRunResultClasses,
@@ -250,8 +250,7 @@ classesChunks (Just classes)
               . ( \(s, i) ->
                     [ chunk
                         ( T.pack
-                            ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s
-                            )
+                            (printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s)
                         )
                     ]
                 )
@@ -274,8 +273,7 @@ tablesChunks (Just tables) = concatMap (uncurry goTable) $ M.toList tables
               . ( \(s, i) ->
                     [ chunk
                         ( T.pack
-                            ( printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s
-                            )
+                            (printf "%5.2f%% %s" (100 * fromIntegral i / fromIntegral total :: Double) s)
                         )
                     ]
                 )

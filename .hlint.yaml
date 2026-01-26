@@ -32,3 +32,5 @@
     name: "Use when"
 - ignore:
     name: "Use record patterns"
+- ignore:
+    name: "Redundant reverse"

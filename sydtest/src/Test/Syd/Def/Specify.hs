@@ -179,8 +179,7 @@ it s t = withFrozenCallStack $ do
                 t
                 sets
                 progressReporter
-                ( \func -> supplyArgs (\_ arg2 -> func () arg2)
-                ),
+                (\func -> supplyArgs (\_ arg2 -> func () arg2)),
             testDefCallStack = callStack
           }
   tell [DefSpecifyNode (T.pack s) testDef ()]

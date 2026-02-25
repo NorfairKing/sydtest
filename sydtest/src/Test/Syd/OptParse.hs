@@ -28,6 +28,7 @@ import Text.Colour
 
 #ifdef mingw32_HOST_OS
 import System.Console.ANSI (hSupportsANSIColor)
+import System.IO (stdout)
 #else
 import Text.Colour.Capabilities.FromEnv
 #endif

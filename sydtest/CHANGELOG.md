@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.23.0.2] - 2026-02-26
+
+### Changed
+
+* Fixed a missing import on Windows.
 
 ## [0.23.0.1] - 2026-01-26
 

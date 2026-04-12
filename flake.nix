@@ -7,8 +7,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-25.11";
     nixpkgs-25_05.url = "github:NixOS/nixpkgs?ref=nixos-25.05";
-    nixpkgs-24_11.url = "github:NixOS/nixpkgs?ref=nixos-24.11";
-    nixpkgs-24_05.url = "github:NixOS/nixpkgs?ref=nixos-24.05";
     horizon-advance.url = "git+https://gitlab.horizon-haskell.net/package-sets/horizon-advance";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     autodocodec.url = "github:NorfairKing/autodocodec";
@@ -27,8 +25,6 @@
     { self
     , nixpkgs
     , nixpkgs-25_05
-    , nixpkgs-24_11
-    , nixpkgs-24_05
     , horizon-advance
     , pre-commit-hooks
     , autodocodec
@@ -63,8 +59,6 @@
           allNixpkgs = {
             inherit
               nixpkgs-25_05
-              nixpkgs-24_11
-              nixpkgs-24_05
               ;
           };
           backwardCompatibilityChecks = pkgs.lib.mapAttrs (_: nixpkgs: backwardCompatibilityCheckFor nixpkgs) allNixpkgs;

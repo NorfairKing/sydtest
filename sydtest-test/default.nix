@@ -14,6 +14,5 @@ mkDerivation {
   testToolDepends = [ sydtest-discover ];
   doHaddock = false;
   homepage = "https://github.com/NorfairKing/sydtest#readme";
-  license = lib.licenses.unfree;
-  hydraPlatforms = lib.platforms.none;
+  license = "unknown";
 }

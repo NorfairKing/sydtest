@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest
-version:        0.23.0.2
+version:        0.24.0.0
 synopsis:       A modern testing framework for Haskell with good defaults and advanced testing features.
 description:    A modern testing framework for Haskell with good defaults and advanced testing features. Sydtest aims to make the common easy and the hard possible. See https://github.com/NorfairKing/sydtest#readme for more information.
 category:       Testing
@@ -40,6 +40,11 @@ library
       Test.Syd.Expectation
       Test.Syd.HList
       Test.Syd.Modify
+      Test.Syd.Mutation.Forest
+      Test.Syd.MutationMode
+      Test.Syd.MutationMode.Common
+      Test.Syd.MutationMode.Single
+      Test.Syd.MutationMode.SingleCoverage
       Test.Syd.OptParse
       Test.Syd.Output
       Test.Syd.Output.Common
@@ -86,7 +91,9 @@ library
     , safe-coloured-text
     , stm
     , svg-builder
+    , sydtest-mutation-runtime
     , text
+    , transformers
     , vector
   default-language: Haskell2010
   if os(windows)

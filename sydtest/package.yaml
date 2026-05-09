@@ -1,5 +1,5 @@
 name: sydtest
-version: 0.23.0.2
+version: 0.24.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -44,7 +44,9 @@ library:
     - safe-coloured-text
     - stm
     - svg-builder
+    - sydtest-mutation-runtime
     - text
+    - transformers
     - vector
   when:
     - condition: 'os(windows)'

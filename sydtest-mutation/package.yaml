@@ -1,0 +1,44 @@
+name: sydtest-mutation
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+
+extra-source-files:
+- test_resources/**/*
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - sydtest
+  - sydtest-mutation-runtime
+
+tests:
+  sydtest-mutation-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - aeson
+    - aeson-pretty
+    - async
+    - bytestring
+    - containers
+    - genvalidity-sydtest
+    - genvalidity-sydtest-aeson
+    - path
+    - path-io
+    - sydtest
+    - sydtest-mutation
+    - sydtest-mutation-runtime
+    - text

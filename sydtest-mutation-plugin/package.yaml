@@ -1,0 +1,48 @@
+name: sydtest-mutation-plugin
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - aeson
+  - autodocodec
+  - bytestring
+  - containers
+  - directory
+  - filepath
+  - ghc
+  - ghc-boot
+  - mtl
+  - path
+  - path-io
+  - stm
+  - stm-containers
+  - sydtest-mutation-runtime
+  - template-haskell
+  - text
+  - yaml
+
+tests:
+  sydtest-mutation-plugin-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - containers
+    - ghc
+    - sydtest
+    - sydtest-mutation-plugin
+    - text

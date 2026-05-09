@@ -1,0 +1,71 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.3.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-mutation
+version:        0.0.0.0
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+license:        OtherLicense
+license-file:   LICENSE.md
+build-type:     Simple
+extra-source-files:
+    test_resources/augmented-manifest.json
+    test_resources/legacy-mutation-manifest.json
+    test_resources/mutation-manifest.json
+    test_resources/mutation-run-report.json
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd.Mutation
+  other-modules:
+      Paths_sydtest_mutation
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , sydtest
+    , sydtest-mutation-runtime
+  default-language: Haskell2010
+
+test-suite sydtest-mutation-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Test.Syd.AugmentedManifestSpec
+      Test.Syd.CoverageBaselineSpec
+      Test.Syd.ManifestSpec
+      Test.Syd.MutationIdSpec
+      Test.Syd.MutationSpec
+      Test.Syd.PhaseBoundarySpec
+      Paths_sydtest_mutation
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      aeson
+    , aeson-pretty
+    , async
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , genvalidity-sydtest
+    , genvalidity-sydtest-aeson
+    , path
+    , path-io
+    , sydtest
+    , sydtest-mutation
+    , sydtest-mutation-runtime
+    , text
+  default-language: Haskell2010

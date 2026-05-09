@@ -151,6 +151,44 @@ outputEqualityAssertionFailed actual expected diffM =
           [[fromString expected]]
         ]
 
+-- | Theme-friendly colours for diff output.  Using the named 'red' and
+-- 'green' (rather than 256-colour shades) lets each terminal apply its own
+-- palette.  Shared between 'formatDiff' (equality assertions) and
+-- 'Test.Syd.MutationMode.renderUnifiedDiff' (mutation reports).
+delColour, addColour :: Colour
+delColour = red
+addColour = green
+
+-- | Emphasise an intra-line changed substring.  Non-whitespace text gets
+-- bold + the brighter shade of the side's colour, so it stands out within
+-- a line that is otherwise foreground-coloured with the dull shade.
+-- Whitespace-only text has no glyph to colour, so fill the background
+-- instead.
+emphasiseIntraLine :: Colour -> Colour -> Text -> Chunk
+emphasiseIntraLine lineCol brightCol t =
+  if T.null (T.strip t)
+    then back lineCol (chunk t)
+    else bold (fore brightCol (chunk t))
+
+-- | Render the deletion side of a character-level diff.  'Both' chars get
+-- 'delColour' as their whole-line foreground; this-side changes (First
+-- chunks) get 'emphasiseIntraLine'd with 'brightRed'.  Addition-only
+-- chunks (Second) are dropped — they belong to the other side's line.
+renderDelSide :: [PolyDiff Text Text] -> [Chunk]
+renderDelSide =
+  mapMaybe $ \case
+    First t -> Just (emphasiseIntraLine delColour brightRed t)
+    Second _ -> Nothing
+    Both t _ -> Just (fore delColour (chunk t))
+
+-- | Symmetric counterpart of 'renderDelSide' for the addition side.
+renderAddSide :: [PolyDiff Text Text] -> [Chunk]
+renderAddSide =
+  mapMaybe $ \case
+    First _ -> Nothing
+    Second t -> Just (emphasiseIntraLine addColour brightGreen t)
+    Both t _ -> Just (fore addColour (chunk t))
+
 formatDiff :: String -> String -> [PolyDiff Text Text] -> [[Chunk]]
 formatDiff actual expected diff =
   let -- Add a header to a list of lines of chunks
@@ -161,25 +199,16 @@ formatDiff actual expected diff =
         -- If there is more than one line, put the header on a separate line before
         cs -> [header] : cs
 
-      -- If it's only whitespace, change the background, otherwise change the foreground
-      foreOrBack :: Colour -> Text -> Chunk
-      foreOrBack c t =
-        (if T.null (T.strip t) then back c else fore c)
-          (chunk t)
       actualChunks :: [[Chunk]]
-      actualChunks = chunksLinesWithHeader (fore blue "Actual:   ") $
-        splitChunksIntoLines $
-          flip mapMaybe diff $ \case
-            First t -> Just $ foreOrBack red t
-            Second _ -> Nothing
-            Both t _ -> Just $ chunk t
+      actualChunks =
+        chunksLinesWithHeader (fore blue "Actual:   ") $
+          splitChunksIntoLines $
+            renderDelSide diff
       expectedChunks :: [[Chunk]]
-      expectedChunks = chunksLinesWithHeader (fore blue "Expected: ") $
-        splitChunksIntoLines $
-          flip mapMaybe diff $ \case
-            First _ -> Nothing
-            Second t -> Just $ foreOrBack green t
-            Both t _ -> Just $ chunk t
+      expectedChunks =
+        chunksLinesWithHeader (fore blue "Expected: ") $
+          splitChunksIntoLines $
+            renderAddSide diff
       inlineDiffChunks :: [[Chunk]]
       inlineDiffChunks =
         if length (lines actual) == 1 && length (lines expected) == 1
@@ -187,8 +216,8 @@ formatDiff actual expected diff =
           else chunksLinesWithHeader (fore blue "Inline diff: ") $
             splitChunksIntoLines $
               flip map diff $ \case
-                First t -> foreOrBack red t
-                Second t -> foreOrBack green t
+                First t -> emphasiseIntraLine delColour brightRed t
+                Second t -> emphasiseIntraLine addColour brightGreen t
                 Both t _ -> chunk t
    in concat
         [ [[chunk "Expected these values to be equal:"]],

@@ -1,0 +1,81 @@
+{
+    "groups": [
+        [
+            {
+                "log_file": "children/Foo.Bar-ArithOp-5-14-15.txt",
+                "mutation": {
+                    "col_end": 15,
+                    "col_start": 14,
+                    "context_after": [
+                        "  in result"
+                    ],
+                    "context_before": [
+                        "add :: Int -> Int -> Int",
+                        "add x y ="
+                    ],
+                    "covering_tests": {
+                        "": [
+                            "add.adds two numbers",
+                            "add.commutativity:1"
+                        ]
+                    },
+                    "end_line": 5,
+                    "id": [
+                        "Foo.Bar",
+                        "ArithOp",
+                        "5",
+                        "14",
+                        "15"
+                    ],
+                    "line": 5,
+                    "module": "Foo.Bar",
+                    "mutated_lines": [
+                        "  result = x - y"
+                    ],
+                    "operator": "ArithOp",
+                    "original": "+",
+                    "replacement": "-",
+                    "source_file": "src/Foo/Bar.hs",
+                    "source_lines": [
+                        "  result = x + y"
+                    ],
+                    "timeout_micros": 30000000
+                },
+                "outcome": "survived"
+            }
+        ],
+        [
+            {
+                "mutation": {
+                    "col_end": 10,
+                    "col_start": 8,
+                    "context_after": [],
+                    "context_before": [],
+                    "covering_tests": {},
+                    "end_line": 12,
+                    "id": [
+                        "Foo.Bar",
+                        "BoolOp",
+                        "12",
+                        "8",
+                        "10"
+                    ],
+                    "line": 12,
+                    "module": "Foo.Bar",
+                    "mutated_lines": [],
+                    "operator": "BoolOp",
+                    "original": "&&",
+                    "replacement": "||",
+                    "source_lines": [],
+                    "timeout_micros": 30000000
+                },
+                "outcome": "uncovered"
+            }
+        ]
+    ],
+    "killed": 5,
+    "skipped": 0,
+    "survived": 1,
+    "timed_out": 0,
+    "uncovered": 1
+}

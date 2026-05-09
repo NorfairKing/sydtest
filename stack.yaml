@@ -24,6 +24,14 @@ packages:
 - sydtest-test
 - sydtest-misbehaved-test-suite
 
+- sydtest-mutation-runtime
+- sydtest-mutation-plugin
+- sydtest-mutation
+- sydtest-mutation-driver
+- sydtest-mutation-driver-gen
+- sydtest-mutation-example
+- sydtest-mutation-example-gen
+
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages -O0
 
@@ -33,7 +41,7 @@ extra-deps:
   subdirs:
     - fast-myers-diff
 - github: NorfairKing/opt-env-conf
-  commit: b6da7e94827e89cc8af8c02e0f61d7a856a610d7
+  commit: 5f115023d0f17de7241984bfc870e92a9a92960a
   subdirs:
     - opt-env-conf
     - opt-env-conf-test

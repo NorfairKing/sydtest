@@ -1,0 +1,19 @@
+name: sydtest-mutation-example
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  ghc-options:
+  - -fno-full-laziness
+  dependencies:
+  - mtl >= 2 && < 3
+

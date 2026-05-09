@@ -11,6 +11,7 @@
 , callPackage
 , ...
 }:
+
 self: super:
 with lib;
 with haskell.lib;
@@ -97,11 +98,26 @@ let
       doCheck = self.ghc.version == "9.10.3";
     });
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
+    "sydtest-mutation-runtime" = sydtestPkg "sydtest-mutation-runtime";
+    "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
+    "sydtest-mutation" = sydtestPkg "sydtest-mutation";
+    "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
+  };
+
+  mutationPackages = {
+    addManifest = callPackage ./addManifest.nix {
+      mutationPlugin = self.sydtest-mutation-plugin;
+    };
+    compileMutationReport = callPackage ./compileMutationReport.nix { };
+    assertMutationScore = callPackage ./assertMutationScore.nix { };
+    runMutations = callPackage ./runMutations.nix { };
+    makeMutationReport = callPackage ./makeMutationReport.nix { };
   };
 
 in
 {
   inherit sydtestPackages;
+  inherit mutationPackages;
 
   sydtestRelease = symlinkJoin {
     name = "sydtest-release";

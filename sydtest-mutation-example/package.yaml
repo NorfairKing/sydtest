@@ -1,0 +1,29 @@
+name: sydtest-mutation-example
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: MIT
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - sydtest
+  ghc-options:
+  - -fno-full-laziness
+
+tests:
+  sydtest-mutation-example-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest-mutation-example
+    - sydtest

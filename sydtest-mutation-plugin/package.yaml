@@ -1,0 +1,21 @@
+name: sydtest-mutation-plugin
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: MIT
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  exposed-modules:
+  - Test.Syd.Mutation.Plugin
+  - Test.Syd.Mutation.Plugin.Instrument
+  - Test.Syd.Mutation.Plugin.Runtime
+  dependencies:
+  - ghc
+  - mtl
+  - sydtest-mutation-runtime

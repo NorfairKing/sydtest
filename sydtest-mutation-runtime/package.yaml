@@ -1,0 +1,14 @@
+name: sydtest-mutation-runtime
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: MIT
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies: []

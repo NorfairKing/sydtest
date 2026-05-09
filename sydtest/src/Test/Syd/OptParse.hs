@@ -16,6 +16,8 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
@@ -61,7 +63,7 @@ data Settings = Settings
     -- | The filters to use to select which tests to run
     settingFilters :: ![Text],
     -- | Exact-match filters by 'TestId' (from @--filter-id@)
-    settingFilterIds :: ![Text],
+    settingFilterIds :: !(Set Text),
     -- | Whether to stop upon the first test failure
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
@@ -271,7 +273,7 @@ data Flags = Flags
     flagGoldenReset :: !Bool,
     flagColour :: !(Maybe Bool),
     flagFilters :: ![Text],
-    flagFilterIds :: ![Text],
+    flagFilterIds :: !(Set Text),
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !Iterations,
     flagRetries :: !(Maybe Word),
@@ -371,14 +373,15 @@ instance HasParser Flags where
               ]
         ]
     flagFilterIds <-
-      many $
-        setting
-          [ help "Select a single test by exact TestId (use the value shown by renderTestId after a failure)",
-            reader str,
-            option,
-            long "filter-id",
-            metavar "TEST_ID"
-          ]
+      fmap Set.fromList $
+        many $
+          setting
+            [ help "Select a single test by exact TestId (use the value shown by renderTestId after a failure)",
+              reader str,
+              option,
+              long "filter-id",
+              metavar "TEST_ID"
+            ]
     flagFailFast <-
       optional $
         yesNoSwitch

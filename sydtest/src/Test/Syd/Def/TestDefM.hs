@@ -6,7 +6,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE IncoherentInstances #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -18,6 +17,7 @@ import Control.Monad.Reader
 import Control.Monad.Writer.Strict
 import Data.Kind
 import Data.Maybe (mapMaybe)
+import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -66,18 +66,18 @@ data TestDefEnv = TestDefEnv
   }
   deriving (Show, Eq, Generic)
 
-execTestDefM :: Settings -> TestDefM outers inner result -> IO (TestForest outers inner)
-execTestDefM sets = fmap snd . runTestDefM sets
-
 -- | Like 'execTestDefM', but also returns a 'TestIdTrie' covering all tests
 -- in the resulting forest, and applies @--filter-id@ filtering.
 -- Use this when you need to enumerate test IDs and run the forest without
 -- evaluating the 'Spec' twice.
 execTestDefM' :: Settings -> Spec -> IO (TestForest '[] (), TestIdTrie)
 execTestDefM' sets spec = do
-  forest <- fmap (applyFilterIds (settingFilterIds sets)) (execTestDefM sets spec)
+  forest <- fmap (applyFilterIds (settingFilterIds sets) . snd) (runTestDefM sets spec)
   let ids = map fst (flattenTestForestWithIds forest)
   pure (forest, testIdTrieFromList ids)
+
+execTestDefM :: Settings -> TestDefM outers inner result -> IO (TestForest outers inner)
+execTestDefM sets = fmap snd . runTestDefM sets
 
 runTestDefM :: Settings -> TestDefM outers inner result -> IO (result, TestForest outers inner)
 runTestDefM sets defFunc = do
@@ -98,12 +98,12 @@ runTestDefM sets defFunc = do
           else testForest'
   pure (a, testForest'')
 
-applyFilterIds :: [Text] -> TestForest '[] () -> TestForest '[] ()
-applyFilterIds = \case
-  [] -> id
-  filterIds ->
-    let ids = Set.fromList (mapMaybe parseTestIdFilterArg filterIds)
-     in filterTestForestByTrie (testIdTrieFromSet ids)
+applyFilterIds :: Set Text -> TestForest '[] () -> TestForest '[] ()
+applyFilterIds filterIds
+  | Set.null filterIds = id
+  | otherwise =
+      let ids = Set.fromList (mapMaybe parseTestIdFilterArg (Set.toList filterIds))
+       in filterTestForestByTrie (testIdTrieFromSet ids)
 
 -- | Get the path of 'describe' strings upwards.
 --

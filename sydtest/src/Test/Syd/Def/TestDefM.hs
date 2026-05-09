@@ -16,15 +16,12 @@ import Control.Monad.Random
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
 import Data.Kind
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Test.QuickCheck.IO ()
 import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecDef
-import Test.Syd.TestId
 
 -- | A synonym for easy migration from hspec
 type Spec = SpecWith ()
@@ -65,16 +62,6 @@ data TestDefEnv = TestDefEnv
   }
   deriving (Show, Eq, Generic)
 
--- | Like 'execTestDefM', but also returns a 'TestIdTrie' covering all tests
--- in the resulting forest, and applies @--filter-id@ filtering.
--- Use this when you need to enumerate test IDs and run the forest without
--- evaluating the 'Spec' twice.
-execTestDefM' :: Settings -> Spec -> IO (TestForest '[] (), TestIdTrie)
-execTestDefM' sets spec = do
-  forest <- fmap (applyFilterIds (settingFilterIds sets) . snd) (runTestDefM sets spec)
-  let ids = map fst (flattenTestForestWithIds forest)
-  pure (forest, testIdTrieFromList ids)
-
 execTestDefM :: Settings -> TestDefM outers inner result -> IO (TestForest outers inner)
 execTestDefM sets = fmap snd . runTestDefM sets
 
@@ -96,11 +83,6 @@ runTestDefM sets defFunc = do
           then evalRand (randomiseTestForest testForest') stdgen
           else testForest'
   pure (a, testForest'')
-
-applyFilterIds :: Set TestId -> TestForest '[] () -> TestForest '[] ()
-applyFilterIds filterIds
-  | Set.null filterIds = id
-  | otherwise = filterTestForestByTrie (testIdTrieFromSet filterIds)
 
 -- | Get the path of 'describe' strings upwards.
 --

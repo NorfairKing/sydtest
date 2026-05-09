@@ -25,8 +25,6 @@ import Data.Foldable (find)
 import Data.Kind
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -39,7 +37,6 @@ import Test.Syd.HList
 import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.SpecForest
-import Test.Syd.TestId
 
 data TDef value = TDef {testDefVal :: value, testDefCallStack :: CallStack}
   deriving (Functor, Foldable, Traversable)
@@ -258,149 +255,6 @@ filterTestForest fs = fromMaybe [] . goForest DList.empty
       DefRetriesNode func sdf -> DefRetriesNode func <$> goForest dl sdf
       DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest dl sdf
       DefExpectationNode func sdf -> DefExpectationNode func <$> goForest dl sdf
-
--- | Flatten a 'TestForest' into a list of '(TestId, value)' pairs.
---
--- 'TestId's are assigned by traversing the forest in order.  Sibling nodes
--- with the same description text receive a zero-based per-description index
--- so that duplicate descriptions are still uniquely identified.
-flattenTestForestWithIds :: SpecDefForest '[] () result -> [(TestId, result)]
-flattenTestForestWithIds = goForest []
-  where
-    goForest :: [(Text, Int)] -> SpecDefForest outers inner c -> [(TestId, c)]
-    goForest path = snd . foldl (goTree path) (Map.empty, [])
-
-    goTree ::
-      [(Text, Int)] ->
-      (Map Text Int, [(TestId, c)]) ->
-      SpecDefTree outers inner c ->
-      (Map Text Int, [(TestId, c)])
-    goTree path (seen, acc) tree =
-      let (mkey, seen') = nextKey seen tree
-       in case tree of
-            DefSpecifyNode _ _ e ->
-              case mkey of
-                Nothing -> (seen', acc)
-                Just key -> (seen', acc ++ [(TestId (reverse (key : path)), e)])
-            DefPendingNode _ _ -> (seen', acc)
-            DefDescribeNode _ sub ->
-              case mkey of
-                Nothing -> (seen', acc)
-                Just key -> (seen', acc ++ goForest (key : path) sub)
-            -- Wrapper nodes are transparent: same path level, same trie step.
-            DefSetupNode _ sub -> (seen', acc ++ goForest path sub)
-            DefBeforeAllNode _ sub -> (seen', acc ++ goForest path sub)
-            DefBeforeAllWithNode _ sub -> (seen', acc ++ goForest path sub)
-            DefWrapNode _ sub -> (seen', acc ++ goForest path sub)
-            DefAroundAllNode _ sub -> (seen', acc ++ goForest path sub)
-            DefAroundAllWithNode _ sub -> (seen', acc ++ goForest path sub)
-            DefAfterAllNode _ sub -> (seen', acc ++ goForest path sub)
-            DefParallelismNode _ sub -> (seen', acc ++ goForest path sub)
-            DefRandomisationNode _ sub -> (seen', acc ++ goForest path sub)
-            DefTimeoutNode _ sub -> (seen', acc ++ goForest path sub)
-            DefRetriesNode _ sub -> (seen', acc ++ goForest path sub)
-            DefFlakinessNode _ sub -> (seen', acc ++ goForest path sub)
-            DefExpectationNode _ sub -> (seen', acc ++ goForest path sub)
-
-    nextKey :: Map Text Int -> SpecDefTree outers inner c -> (Maybe (Text, Int), Map Text Int)
-    nextKey seen tree = case descriptionOf tree of
-      Nothing -> (Nothing, seen)
-      Just t ->
-        let idx = Map.findWithDefault 0 t seen
-         in (Just (t, idx), Map.insert t (idx + 1) seen)
-
-    descriptionOf :: SpecDefTree outers inner c -> Maybe Text
-    descriptionOf = \case
-      DefSpecifyNode t _ _ -> Just t
-      DefPendingNode t _ -> Just t
-      DefDescribeNode t _ -> Just t
-      _ -> Nothing
-
--- | Filter a 'TestForest' to only the tests present in the given 'TestIdTrie'.
---
--- Wrapper nodes (setup, before-all, around-all, etc.) are kept whenever any
--- of their children are kept.
-filterTestForestByTrie :: TestIdTrie -> TestForest '[] () -> TestForest '[] ()
-filterTestForestByTrie trie = snd . filterForest trie Map.empty
-  where
-    filterForest ::
-      TestIdTrie ->
-      Map Text Int ->
-      SpecDefForest outers inner () ->
-      (Map Text Int, SpecDefForest outers inner ())
-    filterForest t seen trees = foldl (filterTree t) (seen, []) trees
-
-    filterTree ::
-      TestIdTrie ->
-      (Map Text Int, SpecDefForest outers inner ()) ->
-      SpecDefTree outers inner () ->
-      (Map Text Int, SpecDefForest outers inner ())
-    filterTree t (seen, acc) tree =
-      let (mkey, seen') = nextKey seen tree
-       in case tree of
-            DefSpecifyNode name td e ->
-              case mkey of
-                Nothing -> (seen', acc)
-                Just key -> case matchLeaf t key of
-                  False -> (seen', acc)
-                  True -> (seen', acc ++ [DefSpecifyNode name td e])
-            DefPendingNode _ _ -> (seen', acc)
-            DefDescribeNode name sub ->
-              case mkey of
-                Nothing -> (seen', acc)
-                Just key -> case stepTrie t key of
-                  Nothing -> (seen', acc)
-                  Just subTrie ->
-                    let (_, sub') = filterForest subTrie Map.empty sub
-                     in if null sub' then (seen', acc) else (seen', acc ++ [DefDescribeNode name sub'])
-            -- Wrapper nodes are transparent: pass the same trie level down.
-            DefSetupNode func sub -> keepWrapper seen' acc (DefSetupNode func) (filterForest t Map.empty sub)
-            DefBeforeAllNode func sub -> keepWrapper seen' acc (DefBeforeAllNode func) (filterForest t Map.empty sub)
-            DefBeforeAllWithNode func sub -> keepWrapper seen' acc (DefBeforeAllWithNode func) (filterForest t Map.empty sub)
-            DefWrapNode func sub -> keepWrapper seen' acc (DefWrapNode func) (filterForest t Map.empty sub)
-            DefAroundAllNode func sub -> keepWrapper seen' acc (DefAroundAllNode func) (filterForest t Map.empty sub)
-            DefAroundAllWithNode func sub -> keepWrapper seen' acc (DefAroundAllWithNode func) (filterForest t Map.empty sub)
-            DefAfterAllNode func sub -> keepWrapper seen' acc (DefAfterAllNode func) (filterForest t Map.empty sub)
-            DefParallelismNode p sub -> keepWrapper seen' acc (DefParallelismNode p) (filterForest t Map.empty sub)
-            DefRandomisationNode p sub -> keepWrapper seen' acc (DefRandomisationNode p) (filterForest t Map.empty sub)
-            DefTimeoutNode f sub -> keepWrapper seen' acc (DefTimeoutNode f) (filterForest t Map.empty sub)
-            DefRetriesNode f sub -> keepWrapper seen' acc (DefRetriesNode f) (filterForest t Map.empty sub)
-            DefFlakinessNode fm sub -> keepWrapper seen' acc (DefFlakinessNode fm) (filterForest t Map.empty sub)
-            DefExpectationNode em sub -> keepWrapper seen' acc (DefExpectationNode em) (filterForest t Map.empty sub)
-
-    keepWrapper ::
-      Map Text Int ->
-      SpecDefForest outers inner () ->
-      (SpecDefForest outers2 inner2 () -> SpecDefTree outers inner ()) ->
-      (Map Text Int, SpecDefForest outers2 inner2 ()) ->
-      (Map Text Int, SpecDefForest outers inner ())
-    keepWrapper seen' acc wrap (_, sub')
-      | null sub' = (seen', acc)
-      | otherwise = (seen', acc ++ [wrap sub'])
-
-    matchLeaf :: TestIdTrie -> (Text, Int) -> Bool
-    matchLeaf TrieLeaf _ = True
-    matchLeaf (TrieNode m) key = case Map.lookup key m of
-      Just TrieLeaf -> True
-      _ -> False
-
-    stepTrie :: TestIdTrie -> (Text, Int) -> Maybe TestIdTrie
-    stepTrie TrieLeaf _ = Just TrieLeaf
-    stepTrie (TrieNode m) key = Map.lookup key m
-
-    nextKey :: Map Text Int -> SpecDefTree outers inner c -> (Maybe (Text, Int), Map Text Int)
-    nextKey seen tree = case descriptionOf tree of
-      Nothing -> (Nothing, seen)
-      Just t ->
-        let idx = Map.findWithDefault 0 t seen
-         in (Just (t, idx), Map.insert t (idx + 1) seen)
-
-    descriptionOf :: SpecDefTree outers inner c -> Maybe Text
-    descriptionOf = \case
-      DefSpecifyNode t _ _ -> Just t
-      DefPendingNode t _ -> Just t
-      DefDescribeNode t _ -> Just t
-      _ -> Nothing
 
 randomiseTestForest :: (MonadRandom m) => SpecDefForest outers inner result -> m (SpecDefForest outers inner result)
 randomiseTestForest = goForest

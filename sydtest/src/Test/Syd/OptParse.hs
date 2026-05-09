@@ -16,10 +16,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import OptEnvConf
@@ -27,7 +24,6 @@ import Path
 import Path.IO
 import Paths_sydtest (version)
 import Test.Syd.Run
-import Test.Syd.TestId
 import Text.Colour
 
 #ifdef mingw32_HOST_OS
@@ -64,8 +60,6 @@ data Settings = Settings
     settingTerminalCapabilities :: !TerminalCapabilities,
     -- | The filters to use to select which tests to run
     settingFilters :: ![Text],
-    -- | Exact-match filters by 'TestId' (from @--filter-id@)
-    settingFilterIds :: !(Set TestId),
     -- | Whether to stop upon the first test failure
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
@@ -181,7 +175,6 @@ instance HasParser Settings where
                 settingGoldenReset = flagGoldenReset,
                 settingTerminalCapabilities = terminalCapabilities,
                 settingFilters = flagFilters,
-                settingFilterIds = flagFilterIds,
                 settingFailFast =
                   fromMaybe
                     ( if flagDebug
@@ -228,7 +221,6 @@ defaultSettings =
           settingGoldenReset = d testRunSettingGoldenReset,
           settingTerminalCapabilities = With8BitColours,
           settingFilters = mempty,
-          settingFilterIds = mempty,
           settingFailFast = False,
           settingIterations = OneIteration,
           settingTimeout = TimeoutAfterMicros defaultTimeout,
@@ -275,7 +267,6 @@ data Flags = Flags
     flagGoldenReset :: !Bool,
     flagColour :: !(Maybe Bool),
     flagFilters :: ![Text],
-    flagFilterIds :: !(Set TestId),
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !Iterations,
     flagRetries :: !(Maybe Word),
@@ -374,16 +365,6 @@ instance HasParser Flags where
                 metavar "FILTER"
               ]
         ]
-    flagFilterIds <-
-      fmap Set.fromList $
-        many $
-          setting
-            [ help "Select a single test by exact TestId (use the value shown by renderTestId after a failure)",
-              reader (maybeReader (parseTestIdFilterArg . T.pack)),
-              option,
-              long "filter-id",
-              metavar "TEST_ID"
-            ]
     flagFailFast <-
       optional $
         yesNoSwitch

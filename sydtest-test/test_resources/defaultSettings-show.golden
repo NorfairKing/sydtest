@@ -10,7 +10,6 @@ Settings
   , settingGoldenReset = False
   , settingTerminalCapabilities = With8BitColours
   , settingFilters = []
-  , settingFilterIds = fromList []
   , settingFailFast = False
   , settingIterations = OneIteration
   , settingTimeout = TimeoutAfterMicros 60000000

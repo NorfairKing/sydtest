@@ -61,7 +61,7 @@ sydTestResult settings spec = do
 
 sydTestOnce :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestOnce settings spec = do
-  specForest <- applyFilterIds (settingFilterIds settings) <$> execTestDefM settings spec
+  specForest <- execTestDefM settings spec
   withNullArgs $ do
     setPseudorandomness (settingSeed settings)
     case settingThreads settings of
@@ -79,7 +79,7 @@ sydTestIterations totalIterations settings spec = do
 
     let runOnce settings_ = do
           setPseudorandomness (settingSeed settings_)
-          specForest <- applyFilterIds (settingFilterIds settings_) <$> execTestDefM settings_ spec
+          specForest <- execTestDefM settings_ spec
           r <- case settingThreads settings_ of
             Synchronous -> runSpecForestSynchronously settings_ specForest
             ByCapabilities -> runSpecForestAsynchronously settings_ nbCapabilities specForest

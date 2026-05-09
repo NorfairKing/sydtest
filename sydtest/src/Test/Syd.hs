@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
@@ -213,6 +214,7 @@ module Test.Syd
     TestDefM (..),
     TestDef,
     execTestDefM,
+    execTestDefM',
     runTestDefM,
     IsTest (..),
 
@@ -225,6 +227,21 @@ module Test.Syd
     ResultForest,
     ResultTree,
     shouldExitFail,
+
+    -- ** Test identifiers
+    TestId,
+    renderTestId,
+    testIdFilterArg,
+    parseTestIdFilterArg,
+    TestIdTrie (..),
+    testIdTrieFromSet,
+    testIdTrieFromList,
+    flattenTestForestWithIds,
+    filterTestForestByTrie,
+
+    -- ** Running subsets of tests
+    getTestIds,
+    runFilteredForest,
 
     -- ** Hspec synonyms
 
@@ -271,6 +288,7 @@ import Test.Syd.Runner
 import Test.Syd.SVG
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
+import Test.Syd.TestId
 import Text.Show.Pretty (pPrint, ppShow)
 
 -- | Evaluate a test suite definition and then run it.
@@ -301,3 +319,20 @@ sydTestWith sets spec = do
 -- You can also just use 'liftIO' instead.
 runIO :: IO e -> TestDefM a b e
 runIO = liftIO
+
+-- | Enumerate all 'TestId's in a 'Spec' without running any tests.
+getTestIds :: Spec -> IO [TestId]
+getTestIds spec = do
+  forest <- execTestDefM defaultSettings spec
+  pure $ map fst (flattenTestForestWithIds forest)
+
+-- | Run a pre-built 'TestForest', filtered to only the tests in the given
+-- 'TestIdTrie'.  Returns 'True' if all selected tests passed.
+--
+-- Use 'execTestDefM'' to build the forest and full trie once, then call this
+-- function with a per-mutation trie on each iteration.
+runFilteredForest :: Settings -> TestForest '[] () -> TestIdTrie -> IO Bool
+runFilteredForest settings forest trie = do
+  let filtered = filterTestForestByTrie trie forest
+  timedResult <- runSpecForestSynchronously settings filtered
+  pure $ not $ anyFailedTests settings (timedValue timedResult)

@@ -60,6 +60,8 @@ data Settings = Settings
     settingTerminalCapabilities :: !TerminalCapabilities,
     -- | The filters to use to select which tests to run
     settingFilters :: ![Text],
+    -- | Exact-match filters by 'TestId' (from @--filter-id@)
+    settingFilterIds :: ![Text],
     -- | Whether to stop upon the first test failure
     settingFailFast :: !Bool,
     -- | How many iterations to use to look diagnose flakiness
@@ -175,6 +177,7 @@ instance HasParser Settings where
                 settingGoldenReset = flagGoldenReset,
                 settingTerminalCapabilities = terminalCapabilities,
                 settingFilters = flagFilters,
+                settingFilterIds = flagFilterIds,
                 settingFailFast =
                   fromMaybe
                     ( if flagDebug
@@ -221,6 +224,7 @@ defaultSettings =
           settingGoldenReset = d testRunSettingGoldenReset,
           settingTerminalCapabilities = With8BitColours,
           settingFilters = mempty,
+          settingFilterIds = mempty,
           settingFailFast = False,
           settingIterations = OneIteration,
           settingTimeout = TimeoutAfterMicros defaultTimeout,
@@ -267,6 +271,7 @@ data Flags = Flags
     flagGoldenReset :: !Bool,
     flagColour :: !(Maybe Bool),
     flagFilters :: ![Text],
+    flagFilterIds :: ![Text],
     flagFailFast :: !(Maybe Bool),
     flagIterations :: !Iterations,
     flagRetries :: !(Maybe Word),
@@ -365,6 +370,15 @@ instance HasParser Flags where
                 metavar "FILTER"
               ]
         ]
+    flagFilterIds <-
+      many $
+        setting
+          [ help "Select a single test by exact TestId (use the value shown by renderTestId after a failure)",
+            reader str,
+            option,
+            long "filter-id",
+            metavar "TEST_ID"
+          ]
     flagFailFast <-
       optional $
         yesNoSwitch

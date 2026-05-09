@@ -58,6 +58,7 @@ library
       Test.Syd.SpecDef
       Test.Syd.SpecForest
       Test.Syd.SVG
+      Test.Syd.TestId
   other-modules:
       Paths_sydtest
   hs-source-dirs:

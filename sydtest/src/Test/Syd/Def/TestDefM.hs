@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE IncoherentInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -98,10 +99,11 @@ runTestDefM sets defFunc = do
   pure (a, testForest'')
 
 applyFilterIds :: [Text] -> TestForest '[] () -> TestForest '[] ()
-applyFilterIds [] forest = forest
-applyFilterIds filterIds forest =
-  let ids = Set.fromList (mapMaybe parseTestIdFilterArg filterIds)
-   in filterTestForestByTrie (testIdTrieFromSet ids) forest
+applyFilterIds = \case
+  [] -> id
+  filterIds ->
+    let ids = Set.fromList (mapMaybe parseTestIdFilterArg filterIds)
+     in filterTestForestByTrie (testIdTrieFromSet ids)
 
 -- | Get the path of 'describe' strings upwards.
 --

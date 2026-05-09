@@ -98,13 +98,16 @@ let
       doCheck = self.ghc.version == "9.10.3";
     });
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
+  };
+
+  sydtestMutationPackages = {
     "sydtest-mutation-runtime" = sydtestPkg "sydtest-mutation-runtime";
     "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
     "sydtest-mutation" = sydtestPkg "sydtest-mutation";
     "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
   };
 
-  mutationPackages = {
+  mutationNixPackages = {
     addManifest = callPackage ./addManifest.nix {
       mutationPlugin = self.sydtest-mutation-plugin;
     };
@@ -117,12 +120,19 @@ let
 in
 {
   inherit sydtestPackages;
-  inherit mutationPackages;
+  inherit sydtestMutationPackages;
+  inherit mutationNixPackages;
 
   sydtestRelease = symlinkJoin {
     name = "sydtest-release";
     paths = attrValues self.sydtestPackages;
     passthru = self.sydtestPackages;
+  };
+
+  sydtestMutationRelease = symlinkJoin {
+    name = "sydtest-mutation-release";
+    paths = attrValues self.sydtestMutationPackages;
+    passthru = self.sydtestMutationPackages;
   };
   # Until https://github.com/jfischoff/tmp-postgres/issues/281
   tmp-postgres =
@@ -133,4 +143,4 @@ in
           rev = "7f2467a6d6d5f6db7eed59919a6773fe006cf22b";
         })
       { });
-} // sydtestPackages
+} // sydtestPackages // sydtestMutationPackages

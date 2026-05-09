@@ -16,7 +16,6 @@ import Control.Monad.Random
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
 import Data.Kind
-import Data.Maybe (mapMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -98,12 +97,10 @@ runTestDefM sets defFunc = do
           else testForest'
   pure (a, testForest'')
 
-applyFilterIds :: Set Text -> TestForest '[] () -> TestForest '[] ()
+applyFilterIds :: Set TestId -> TestForest '[] () -> TestForest '[] ()
 applyFilterIds filterIds
   | Set.null filterIds = id
-  | otherwise =
-      let ids = Set.fromList (mapMaybe parseTestIdFilterArg (Set.toList filterIds))
-       in filterTestForestByTrie (testIdTrieFromSet ids)
+  | otherwise = filterTestForestByTrie (testIdTrieFromSet filterIds)
 
 -- | Get the path of 'describe' strings upwards.
 --

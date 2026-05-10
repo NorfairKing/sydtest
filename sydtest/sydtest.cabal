@@ -40,6 +40,7 @@ library
       Test.Syd.Expectation
       Test.Syd.HList
       Test.Syd.Modify
+      Test.Syd.MutationMode
       Test.Syd.OptParse
       Test.Syd.Output
       Test.Syd.Output.Common

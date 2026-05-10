@@ -263,7 +263,7 @@ import Test.Syd.Def
 import Test.Syd.Expectation
 import Test.Syd.HList
 import Test.Syd.Modify
-import Test.Syd.Mutation.Runtime (runMutationMode)
+import Test.Syd.MutationMode (runMutationMode)
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.ReRun
@@ -281,7 +281,7 @@ sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
   case settingMutation sets of
-    Just manifestPath -> runMutationMode manifestPath
+    Just manifestPath -> runMutationMode sets manifestPath spec
     Nothing -> sydTestWith sets spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'

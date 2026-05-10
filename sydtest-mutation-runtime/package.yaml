@@ -11,5 +11,3 @@ dependencies:
 
 library:
   source-dirs: src
-  dependencies:
-  - process

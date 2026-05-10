@@ -1,4 +1,4 @@
-{ haskellPackages, pkgs, safe-coloured-text }:
+{ haskellPackages, pkgs }:
 
 # End-to-end mutation testing checks.
 #
@@ -7,7 +7,7 @@
 # suite in mutation mode, and fails if any mutation survived.
 
 let
-  inherit (haskellPackages.mutationNixPackages) addManifest compileMutationReport assertMutationScore;
+  inherit (haskellPackages.mutationNixPackages) addManifest assertMutationScore;
 
   # Build one mutation check.
   #
@@ -15,13 +15,15 @@ let
   # - testPackage: attr name in haskellPackages for the package containing the test binary
   # - testExecutableName: name of the executable inside testPackage
   # - exceptions: list of module names to skip during instrumentation (applies to all libraries)
+  #
+  # The mutations are run inside the Cabal build's checkPhase, so test resources
+  # (golden files, data files) are available at the expected relative paths.
   mutationCheck =
     { name
     , libraryPackages
     , testPackage
     , testExecutableName
     , exceptions ? [ ]
-    , testResourcesDir ? null
     }:
     let
       instrumentedHaskellPackages = haskellPackages.extend (_: super:
@@ -32,21 +34,27 @@ let
           })
           libraryPackages));
       manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
-      testPkg = pkgs.haskell.lib.overrideCabal
+      mutationFlags = pkgs.lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests;
+      # Run the test suite in mutation mode inside the Cabal build's checkPhase,
+      # where the working directory contains test_resources/ and other data files.
+      # The report is written to the 'report' output so assertMutationScore can read it.
+      report = ((pkgs.haskell.lib.overrideCabal
         (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${testPackage})
         (_old: {
           checkPhase = ''
-            find . -name "${testExecutableName}" -type f -exec install -Dm755 {} $out/bin/${testExecutableName} \;
+            echo "mutation-nix: running mutations from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"
+            exe=$(find dist -name "${testExecutableName}" -type f | head -1)
+            mkdir -p $report
+            "$exe" ${mutationFlags} | tee $report/report.txt
           '';
-        });
+          postCheck = "";
+        })).overrideAttrs (old: {
+        outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
+      }));
     in
     assertMutationScore {
       name = "mutation-${name}-assert";
-      report = compileMutationReport {
-        name = "mutation-${name}";
-        testExecutable = testPkg;
-        inherit testExecutableName manifests testResourcesDir;
-      };
+      report = report.report;
     };
 
 in
@@ -63,6 +71,5 @@ in
     libraryPackages = [ "safe-coloured-text" "safe-coloured-text-parsing" ];
     testPackage = "safe-coloured-text-gen";
     testExecutableName = "safe-coloured-text-test";
-    testResourcesDir = "${safe-coloured-text}/safe-coloured-text-gen";
   };
 }

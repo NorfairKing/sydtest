@@ -15,6 +15,7 @@ import Path.IO (resolveDir')
 import System.Environment (lookupEnv)
 import Test.Syd.Mutation.Manifest (MutationManifest (..), writeManifestFile)
 import Test.Syd.Mutation.Plugin.Instrument
+import Test.Syd.Mutation.Plugin.Operators (allOperators)
 
 plugin :: Plugin
 plugin =
@@ -66,7 +67,7 @@ mutationTypeCheckAction opts _ms tcGblEnv = do
     else do
       liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
       (binds', mutations) <-
-        runInstrument tcGblEnv $
+        runInstrument tcGblEnv allOperators $
           instrumentModule (tcg_binds tcGblEnv)
       -- The manifest dir comes from --manifest= plugin opt, or from the
       -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path

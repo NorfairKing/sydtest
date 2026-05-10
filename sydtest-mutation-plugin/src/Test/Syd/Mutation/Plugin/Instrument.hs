@@ -4,11 +4,13 @@
 
 module Test.Syd.Mutation.Plugin.Instrument
   ( MutationRecord (..),
+    MutationOperator (..),
     runInstrument,
     instrumentModule,
   )
 where
 
+import Control.Monad (foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
 import GHC
@@ -19,9 +21,32 @@ import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
-import GHC.Types.SourceText (SourceText (..), il_value, mkIntegralLit)
+import GHC.Types.SourceText (SourceText (NoSourceText))
 import Test.Syd.Mutation.Manifest (MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
+
+-- ---------------------------------------------------------------------------
+-- Operator
+
+-- | A single mutation operator.
+--
+-- 'operatorMatch' inspects a type-checked expression and, if it is a candidate
+-- for this operator, returns the mutated replacement together with the
+-- human-readable original and replacement strings used in the manifest.
+-- Returning 'Nothing' means "not a candidate".
+--
+-- The matched expression has already been recursively instrumented by the
+-- time 'operatorMatch' is called, so the operator only needs to inspect the
+-- top-level shape.
+data MutationOperator = MutationOperator
+  { operatorName :: String,
+    operatorDescription :: String,
+    -- | @Just (ty, mutated, originalStr, replacementStr)@ or @Nothing@.
+    -- The operator supplies the 'Type' because it already has it at hand when
+    -- it matches the expression shape; this avoids a separate type-extraction
+    -- step in the instrumenter.
+    operatorMatch :: LHsExpr GhcTc -> Maybe (Type, LHsExpr GhcTc, String, String)
+  }
 
 -- ---------------------------------------------------------------------------
 -- Monad
@@ -31,7 +56,9 @@ data InstrumentEnv = InstrumentEnv
     -- | Id for Test.Syd.Mutation.Runtime.ifMutation, looked up once per module.
     instrIfMutationId :: Id,
     -- | DataCon for Test.Syd.Mutation.Runtime.MutationId, looked up once per module.
-    instrMutationIdCon :: DataCon
+    instrMutationIdCon :: DataCon,
+    -- | Operators to try at each expression site.
+    instrOperators :: [MutationOperator]
   }
 
 type InstrM = WriterT [MutationRecord] (ReaderT InstrumentEnv TcM)
@@ -47,9 +74,10 @@ liftTcM = lift . lift
 -- then run the instrumentation.
 runInstrument ::
   TcGblEnv ->
+  [MutationOperator] ->
   InstrM a ->
   TcM (a, [MutationRecord])
-runInstrument tcGblEnv action = do
+runInstrument tcGblEnv operators action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -59,7 +87,8 @@ runInstrument tcGblEnv action = do
     InstrumentEnv
       { instrModule = modul,
         instrIfMutationId = ifMutId,
-        instrMutationIdCon = mutIdCon
+        instrMutationIdCon = mutIdCon,
+        instrOperators = operators
       }
 
 -- | Look up a value Id from the module's GlobalRdrEnv by OccName.
@@ -149,7 +178,8 @@ instrumentValBinds = \case
 instrumentLExpr :: LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
 instrumentLExpr le = do
   le' <- traverse (instrumentExpr (getLocA le)) le
-  tryMutate le'
+  InstrumentEnv {instrOperators} <- ask
+  tryMutateWith instrOperators le'
 
 instrumentExpr :: SrcSpan -> HsExpr GhcTc -> InstrM (HsExpr GhcTc)
 instrumentExpr _sp = \case
@@ -196,31 +226,18 @@ instrumentRecordBinds = \case
 -- ---------------------------------------------------------------------------
 -- Mutation candidates
 
--- | Decide whether a (recursively-instrumented) located expression is a
--- mutation candidate; if so, record the site and wrap it with 'ifMutation'.
-tryMutate :: LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-tryMutate le = case unLoc le of
-  HsOverLit _ (OverLit oltc@(OverLitTc {ol_type = ty}) (HsIntegral il))
-    | il_value il == 1 -> do
-        let il0 = mkIntegralLit (0 :: Integer)
-            -- Build the '0' literal by substituting inside the witness.
-            -- The witness is fromInteger dict (HsInteger _ 1 integerTy);
-            -- we swap the HsInteger value to 0.
-            witness0 = substIntegerInWitness 0 (ol_witness oltc)
-            oltc0 = oltc {ol_witness = witness0}
-            zero = noLocA (HsOverLit NoExtField (OverLit oltc0 (HsIntegral il0)))
-        mid <- recordMutation le "IntLit1To0" "1" "0"
-        wrapWithIfMutation ty mid zero le
-  _ -> pure le
-
--- | Substitute the Integer value in a @fromInteger dict (HsInteger _ n _)@ witness.
-substIntegerInWitness :: Integer -> HsExpr GhcTc -> HsExpr GhcTc
-substIntegerInWitness n = \case
-  HsApp x f arg -> HsApp x f (fmap (substIntegerInWitness n) arg)
-  HsLit x (HsInteger src _ ty) -> HsLit x (HsInteger src n ty)
-  -- HsWrap wraps the fromInteger application with a coercion.
-  XExpr (WrapExpr (HsWrap w e)) -> XExpr (WrapExpr (HsWrap w (substIntegerInWitness n e)))
-  e -> e
+-- | The list of operators to try.  Imported from 'Test.Syd.Mutation.Plugin.Operators'.
+-- Defined as a parameter here so that 'Instrument.hs' stays operator-agnostic.
+-- 'instrumentModule' is called with the concrete list from 'Plugin.hs'.
+tryMutateWith :: [MutationOperator] -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+tryMutateWith operators le =
+  foldM applyOperator le operators
+  where
+    applyOperator expr op = case operatorMatch op expr of
+      Nothing -> pure expr
+      Just (ty, mutated, origStr, replStr) -> do
+        mid <- recordMutation expr (operatorName op) origStr replStr
+        wrapWithIfMutation ty mid mutated expr
 
 -- | Record one mutation site and return its 'MutationId'.
 recordMutation ::

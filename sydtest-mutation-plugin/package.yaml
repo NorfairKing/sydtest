@@ -18,7 +18,8 @@ library:
   dependencies:
   - aeson
   - bytestring
-  - filepath
   - ghc
   - mtl
+  - path
+  - path-io
   - sydtest-mutation-runtime

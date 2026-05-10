@@ -13,8 +13,9 @@ import GHC.Driver.Env (Hsc, HscEnv (..))
 import GHC.Driver.Plugins
 import GHC.Driver.Session (WarningFlag (..), wopt_unset)
 import GHC.Tc.Types
+import Path
+import Path.IO (resolveDir')
 import System.Environment (lookupEnv)
-import System.FilePath ((</>))
 import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
@@ -74,21 +75,24 @@ mutationTypeCheckAction opts _ms tcGblEnv = do
       -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path
       -- can be passed without shell expansion in configureFlags).
       envDir <- liftIO $ lookupEnv "MUTATION_MANIFEST_DIR"
-      let resolvedDir = case manifestDirOpt of
+      let rawDir = case manifestDirOpt of
             (d : _) -> Just d
             [] -> envDir
-      liftIO $ case resolvedDir of
+      liftIO $ case rawDir of
         Nothing -> mapM_ (\r -> putStrLn $ "mutation: " ++ show (mutRecId r)) mutations
-        Just dir -> writeModuleManifest dir mn mutations
+        Just raw -> do
+          dir <- resolveDir' raw
+          writeModuleManifest dir mn mutations
       pure tcGblEnv {tcg_binds = binds'}
 
 -- | Write a JSON manifest file for one module to @<dir>/<ModuleName>.json@.
 -- Each module gets its own file, so no locking is needed.
-writeModuleManifest :: FilePath -> String -> [MutationRecord] -> IO ()
+writeModuleManifest :: Path Abs Dir -> String -> [MutationRecord] -> IO ()
 writeModuleManifest dir mn mutations = do
-  let path = dir </> mn ++ ".json"
-      entries = map recordToJson mutations
-  LB.writeFile path (encode entries)
+  fileName <- parseRelFile (mn ++ ".json")
+  LB.writeFile (fromAbsFile (dir </> fileName)) (encode entries)
+  where
+    entries = map recordToJson mutations
 
 recordToJson :: MutationRecord -> Value
 recordToJson MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement} =

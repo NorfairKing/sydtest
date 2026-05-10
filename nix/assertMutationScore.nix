@@ -15,8 +15,8 @@ stdenv.mkDerivation {
     echo "mutation-nix: checking mutation report at ${report}/report.txt"
     cat ${report}/report.txt
 
-    survived=$(grep "^Survived:" ${report}/report.txt | awk '{print $2}')
-    killed=$(grep "^Killed:" ${report}/report.txt | awk '{print $2}')
+    survived=$(grep "^Survived:" ${report}/report.txt | awk '{print $2}' || echo "0")
+    killed=$(grep "^Killed:" ${report}/report.txt | awk '{print $2}' || echo "0")
     total=$(( killed + survived ))
 
     echo ""

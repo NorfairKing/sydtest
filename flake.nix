@@ -66,8 +66,16 @@
               really-safe-money = addManifest super.really-safe-money;
             });
             instrumentedLib = instrumentedHaskellPackages.really-safe-money;
-            # Enable tests on really-safe-money-gen so the test executable is built.
-            testPkg = pkgs.haskell.lib.doCheck instrumentedHaskellPackages.really-safe-money-gen;
+            # Build really-safe-money-gen and install the test executable to $out/bin.
+            # doCheck = true so cabal includes test deps; checkPhase is skipped (the
+            # mutation runner invokes the binary directly via compileMutationReport).
+            testPkg = pkgs.haskell.lib.overrideCabal
+              (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.really-safe-money-gen)
+              (old: {
+                checkPhase = ''
+                  find . -name "really-safe-money-test" -type f -exec install -Dm755 {} $out/bin/really-safe-money-test \;
+                '';
+              });
             compileMutationReport = haskellPackages.mutationNixPackages.compileMutationReport;
             assertMutationScore = haskellPackages.mutationNixPackages.assertMutationScore;
           in

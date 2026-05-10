@@ -28,9 +28,7 @@ library
   hs-source-dirs:
       src
   build-depends:
-      aeson
-    , base >=4.7 && <5
-    , bytestring
+      base >=4.7 && <5
     , ghc
     , mtl
     , path

@@ -1,11 +1,8 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.Mutation.Plugin (plugin) where
 
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (Value, encode, object, (.=))
-import qualified Data.ByteString.Lazy as LB
 import Data.List (isPrefixOf, stripPrefix)
 import Data.Maybe (mapMaybe)
 import GHC
@@ -16,8 +13,8 @@ import GHC.Tc.Types
 import Path
 import Path.IO (resolveDir')
 import System.Environment (lookupEnv)
+import Test.Syd.Mutation.Manifest (MutationManifest (..), writeManifestFile)
 import Test.Syd.Mutation.Plugin.Instrument
-import Test.Syd.Mutation.Runtime (MutationId (..))
 
 plugin :: Plugin
 plugin =
@@ -88,17 +85,5 @@ mutationTypeCheckAction opts _ms tcGblEnv = do
 -- | Write a JSON manifest file for one module to @<dir>/<ModuleName>.json@.
 -- Each module gets its own file, so no locking is needed.
 writeModuleManifest :: Path Abs Dir -> String -> [MutationRecord] -> IO ()
-writeModuleManifest dir mn mutations = do
-  fileName <- parseRelFile (mn ++ ".json")
-  LB.writeFile (fromAbsFile (dir </> fileName)) (encode entries)
-  where
-    entries = map recordToJson mutations
-
-recordToJson :: MutationRecord -> Value
-recordToJson MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement} =
-  object
-    [ "id" .= parts,
-      "operator" .= mutRecOperator,
-      "original" .= mutRecOriginal,
-      "replacement" .= mutRecReplacement
-    ]
+writeModuleManifest dir mn mutations =
+  writeManifestFile dir mn (MutationManifest mutations)

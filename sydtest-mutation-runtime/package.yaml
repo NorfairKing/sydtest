@@ -11,3 +11,8 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+  - aeson
+  - bytestring
+  - path
+  - path-io

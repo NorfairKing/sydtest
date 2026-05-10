@@ -1,15 +1,12 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Test.Syd.MutationMode (runMutationMode) where
 
-import Data.Aeson (Value, decode, withArray, withObject, (.:))
-import Data.Aeson.Types (parseMaybe)
+import Data.Aeson (decode)
 import qualified Data.ByteString.Lazy as LB
-import Data.Maybe (fromMaybe)
 import Path
 import Path.IO (listDirRel)
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Def
+import Test.Syd.Mutation.Manifest (MutationManifest (..), MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..), renderMutationId, setActiveMutation)
 import Test.Syd.OptParse
 import Test.Syd.Run
@@ -58,13 +55,4 @@ readMutationsFromFile dir fileName = do
     Nothing -> do
       hPutStrLn stderr $ "mutation: failed to decode " ++ fromRelFile fileName
       pure []
-    Just val -> pure (parseMutationIds val)
-
-parseMutationIds :: Value -> [MutationId]
-parseMutationIds val = fromMaybe [] (parseMaybe parseArray val)
-  where
-    parseArray = withArray "mutations" $ \arr ->
-      mapM parseEntry (foldr (:) [] arr)
-    parseEntry = withObject "mutation" $ \o -> do
-      parts <- o .: "id"
-      pure (MutationId parts)
+    Just (MutationManifest records) -> pure (map mutRecId records)

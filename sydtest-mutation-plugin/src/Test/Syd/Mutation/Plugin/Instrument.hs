@@ -20,6 +20,7 @@ import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (..), il_value, mkIntegralLit)
+import Test.Syd.Mutation.Manifest (MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
 -- ---------------------------------------------------------------------------
@@ -32,15 +33,6 @@ data InstrumentEnv = InstrumentEnv
     -- | DataCon for Test.Syd.Mutation.Runtime.MutationId, looked up once per module.
     instrMutationIdCon :: DataCon
   }
-
--- | One discovered mutation site.
-data MutationRecord = MutationRecord
-  { mutRecId :: MutationId,
-    mutRecOperator :: String,
-    mutRecOriginal :: String,
-    mutRecReplacement :: String
-  }
-  deriving (Show)
 
 type InstrM = WriterT [MutationRecord] (ReaderT InstrumentEnv TcM)
 

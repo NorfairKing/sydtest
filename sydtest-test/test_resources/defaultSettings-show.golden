@@ -20,5 +20,5 @@ Settings
   , settingReportProgress = ReportNoProgress
   , settingProfile = False
   , settingOutputFormat = OutputFormatPretty
-  , settingMutation = Nothing
+  , settingMutation = []
   }

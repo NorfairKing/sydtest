@@ -24,7 +24,6 @@ library:
   dependencies:
     - MonadRandom
     - QuickCheck
-    - aeson
     - async
     - autodocodec
     - bytestring

@@ -80,8 +80,8 @@ data Settings = Settings
     settingProfile :: !Bool,
     -- | Output format
     settingOutputFormat :: !OutputFormat,
-    -- | Path to a mutation manifest directory; when set, run in mutation testing mode
-    settingMutation :: !(Maybe (Path Abs Dir))
+    -- | Paths to mutation manifest directories; when non-empty, run in mutation testing mode
+    settingMutation :: ![Path Abs Dir]
   }
   deriving (Show, Eq, Generic)
 
@@ -234,7 +234,7 @@ defaultSettings =
           settingReportFile = Nothing,
           settingProfile = False,
           settingOutputFormat = OutputFormatPretty,
-          settingMutation = Nothing
+          settingMutation = []
         }
 
 -- 60 seconds
@@ -283,7 +283,7 @@ data Flags = Flags
     flagProfile :: !Bool,
     flagAiExecutor :: !(Maybe Bool),
     flagOutputFormat :: !(Maybe OutputFormat),
-    flagMutation :: !(Maybe (Path Abs Dir))
+    flagMutation :: ![Path Abs Dir]
   }
   deriving (Show, Eq, Generic)
 
@@ -458,7 +458,7 @@ instance HasParser Flags where
               ]
           ]
     flagMutation <-
-      optional $
+      many $
         directoryPathSetting
           [ help "Path to mutation manifest directory; run in mutation testing mode",
             option,

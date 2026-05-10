@@ -1,8 +1,8 @@
-{ mkDerivation, aeson, async, autodocodec, base, bytestring
-, containers, deepseq, dlist, fast-myers-diff, filepath, lib
-, MonadRandom, mtl, opt-env-conf, path, path-io, pretty-show
-, QuickCheck, quickcheck-io, random, random-shuffle, safe
-, safe-coloured-text, safe-coloured-text-terminfo, stm, svg-builder
+{ mkDerivation, async, autodocodec, base, bytestring, containers
+, deepseq, dlist, fast-myers-diff, filepath, lib, MonadRandom, mtl
+, opt-env-conf, path, path-io, pretty-show, QuickCheck
+, quickcheck-io, random, random-shuffle, safe, safe-coloured-text
+, safe-coloured-text-terminfo, stm, svg-builder
 , sydtest-mutation-runtime, text, vector
 }:
 mkDerivation {
@@ -10,7 +10,7 @@ mkDerivation {
   version = "0.23.0.2";
   src = ./.;
   libraryHaskellDepends = [
-    aeson async autodocodec base bytestring containers deepseq dlist
+    async autodocodec base bytestring containers deepseq dlist
     fast-myers-diff filepath MonadRandom mtl opt-env-conf path path-io
     pretty-show QuickCheck quickcheck-io random random-shuffle safe
     safe-coloured-text safe-coloured-text-terminfo stm svg-builder

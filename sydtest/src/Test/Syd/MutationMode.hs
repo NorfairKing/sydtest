@@ -1,29 +1,25 @@
 module Test.Syd.MutationMode (runMutationMode) where
 
-import Data.Aeson (decode)
-import qualified Data.ByteString.Lazy as LB
 import Path
-import Path.IO (listDirRel)
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Def
-import Test.Syd.Mutation.Manifest (MutationManifest (..), MutationRecord (..))
-import Test.Syd.Mutation.Runtime (MutationId (..), renderMutationId, setActiveMutation)
+import Test.Syd.Mutation.Manifest (MutationManifest (..), MutationRecord (..), readManifestDir)
+import Test.Syd.Mutation.Runtime (renderMutationId, setActiveMutation)
 import Test.Syd.OptParse
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
 
--- | Run the spec once per mutation in the manifest directory, in-process.
+-- | Run the spec once per mutation in the manifest directories, in-process.
 --
 -- For each mutation, activates it via 'setActiveMutation', runs the suite
 -- synchronously, then deactivates it. Exit-fail means the mutation was killed.
 --
 -- Prints "Killed: N" and "Survived: M" so the Nix report derivation can parse them.
-runMutationMode :: Settings -> Path Abs Dir -> Spec -> IO ()
-runMutationMode settings manifestDir spec = do
-  (_, files) <- listDirRel manifestDir
-  let jsonFiles = filter (\f -> fileExtension f == Just ".json") files
-  mutations <- concat <$> mapM (readMutationsFromFile manifestDir) jsonFiles
+runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
+runMutationMode settings manifestDirs spec = do
+  MutationManifest records <- mconcat <$> mapM readManifestDir manifestDirs
+  let mutations = map mutRecId records
   -- [check] The forest is built once and reused across mutations. Test bodies
   -- (IO actions) are re-executed each run, so ifMutation's NOINLINE protects
   -- them. However, any values computed via runIO during spec construction are
@@ -46,13 +42,3 @@ runMutationMode settings manifestDir spec = do
       if shouldExitFail mutationSettings (timedValue timedResult)
         then pure (killed + 1, survived)
         else pure (killed, survived + 1)
-
--- | Read all 'MutationId's from a single JSON manifest file.
-readMutationsFromFile :: Path Abs Dir -> Path Rel File -> IO [MutationId]
-readMutationsFromFile dir fileName = do
-  bs <- LB.readFile (fromAbsFile (dir </> fileName))
-  case decode bs of
-    Nothing -> do
-      hPutStrLn stderr $ "mutation: failed to decode " ++ fromRelFile fileName
-      pure []
-    Just (MutationManifest records) -> pure (map mutRecId records)

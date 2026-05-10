@@ -41,7 +41,7 @@ let
         name = "mutation-${name}";
         testExecutable = testPkg;
         inherit testExecutableName;
-        manifest = instrumentedLib.manifest;
+        manifests = [ instrumentedLib.manifest ];
       };
     };
 

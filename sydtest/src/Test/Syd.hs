@@ -281,8 +281,8 @@ sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
   case settingMutation sets of
-    Just manifestPath -> runMutationMode sets manifestPath spec
-    Nothing -> sydTestWith sets spec
+    [] -> sydTestWith sets spec
+    dirs -> runMutationMode sets dirs spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'
 --

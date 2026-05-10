@@ -1,10 +1,11 @@
 { stdenv, lib }:
 
-# Run the test suite in mutation mode against a manifest and produce a report.
+# Run the test suite in mutation mode against one or more manifest directories
+# and produce a report.
 # Always succeeds — use assertMutationScore to fail on surviving mutations.
 
 { name # name for the derivation
-, manifest # the 'manifest' output of an addManifest-wrapped package
+, manifests # list of 'manifest' outputs from addManifest-wrapped packages
 , testExecutable # derivation containing the test executable
 , testExecutableName # name of the executable within testExecutable to invoke
 }:
@@ -17,9 +18,9 @@ stdenv.mkDerivation {
   buildInputs = [ testExecutable ];
 
   buildPhase = ''
-    echo "mutation-nix: running mutations from ${manifest}"
+    echo "mutation-nix: running mutations from ${lib.concatStringsSep ", " (map toString manifests)}"
     ${lib.getExe' testExecutable testExecutableName} \
-      --mutation "${manifest}" \
+      ${lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests} \
       | tee report.txt
   '';
 

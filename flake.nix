@@ -57,37 +57,7 @@
         forwardCompatibility = horizonPkgs.sydtestRelease;
         release = haskellPackages.sydtestRelease;
         mutation-release = haskellPackages.sydtestMutationRelease;
-        mutation-report-really-safe-money =
-          let
-            addManifest = haskellPackages.mutationNixPackages.addManifest { };
-            # Instrument really-safe-money and thread the instrumented version
-            # through so really-safe-money-gen picks it up as a dependency.
-            instrumentedHaskellPackages = haskellPackages.extend (_: super: {
-              really-safe-money = addManifest super.really-safe-money;
-            });
-            instrumentedLib = instrumentedHaskellPackages.really-safe-money;
-            # Build really-safe-money-gen and install the test executable to $out/bin.
-            # doCheck = true so cabal includes test deps; checkPhase is skipped (the
-            # mutation runner invokes the binary directly via compileMutationReport).
-            testPkg = pkgs.haskell.lib.overrideCabal
-              (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.really-safe-money-gen)
-              (old: {
-                checkPhase = ''
-                  find . -name "really-safe-money-test" -type f -exec install -Dm755 {} $out/bin/really-safe-money-test \;
-                '';
-              });
-            compileMutationReport = haskellPackages.mutationNixPackages.compileMutationReport;
-            assertMutationScore = haskellPackages.mutationNixPackages.assertMutationScore;
-          in
-          assertMutationScore {
-            name = "mutation-report-really-safe-money-assert";
-            report = compileMutationReport {
-              name = "mutation-report-really-safe-money";
-              testExecutable = testPkg;
-              testExecutableName = "really-safe-money-test";
-              manifest = instrumentedLib.manifest;
-            };
-          };
+      } // (import ./nix/mutation-checks.nix { inherit haskellPackages pkgs; }) // {
         shell = self.devShells.${system}.default;
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;

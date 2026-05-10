@@ -5,6 +5,9 @@
 module Test.Syd.Mutation.Plugin.Instrument
   ( MutationRecord (..),
     MutationOperator (..),
+    InstrumentEnv (..),
+    InstrM,
+    liftTcM,
     runInstrument,
     instrumentModule,
   )
@@ -53,6 +56,8 @@ data MutationOperator = MutationOperator
 
 data InstrumentEnv = InstrumentEnv
   { instrModule :: Module,
+    -- | The module's 'GlobalRdrEnv', used by operators to look up replacement ids.
+    instrRdrEnv :: GlobalRdrEnv,
     -- | Id for Test.Syd.Mutation.Runtime.ifMutation, looked up once per module.
     instrIfMutationId :: Id,
     -- | DataCon for Test.Syd.Mutation.Runtime.MutationId, looked up once per module.
@@ -86,6 +91,7 @@ runInstrument tcGblEnv operators action = do
     (runWriterT action)
     InstrumentEnv
       { instrModule = modul,
+        instrRdrEnv = rdrEnv,
         instrIfMutationId = ifMutId,
         instrMutationIdCon = mutIdCon,
         instrOperators = operators

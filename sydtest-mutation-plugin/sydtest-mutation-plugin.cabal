@@ -22,10 +22,20 @@ library
   exposed-modules:
       Test.Syd.Mutation.Plugin
       Test.Syd.Mutation.Plugin.Instrument
+      Test.Syd.Mutation.Plugin.Operator.AddToSub
+      Test.Syd.Mutation.Plugin.Operator.CmpEqToNeq
+      Test.Syd.Mutation.Plugin.Operator.CmpGtToGte
+      Test.Syd.Mutation.Plugin.Operator.CmpGteToGt
+      Test.Syd.Mutation.Plugin.Operator.CmpLtToLte
+      Test.Syd.Mutation.Plugin.Operator.CmpLteToLt
+      Test.Syd.Mutation.Plugin.Operator.CmpNeqToEq
+      Test.Syd.Mutation.Plugin.Operator.DivToMul
       Test.Syd.Mutation.Plugin.Operator.IntLit1To0
       Test.Syd.Mutation.Plugin.Operator.IntLitNTo0
       Test.Syd.Mutation.Plugin.Operator.IntLitNTo1
       Test.Syd.Mutation.Plugin.Operator.IntLitNegate
+      Test.Syd.Mutation.Plugin.Operator.MulToDiv
+      Test.Syd.Mutation.Plugin.Operator.SubToAdd
       Test.Syd.Mutation.Plugin.Operator.Util
       Test.Syd.Mutation.Plugin.Operators
       Test.Syd.Mutation.Plugin.Operators.TH

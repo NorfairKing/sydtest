@@ -4,6 +4,7 @@ module Test.Syd.Mutation.Plugin.Operator.Util
   ( opOccName,
     mkOpReplacement,
     mkIntLitReplacement,
+    lhsExprType,
   )
 where
 
@@ -77,3 +78,14 @@ substIntegerInWitness n = \case
   HsLit x (HsInteger src _ ty) -> HsLit x (HsInteger src n ty)
   XExpr (WrapExpr (HsWrap w e)) -> XExpr (WrapExpr (HsWrap w (substIntegerInWitness n e)))
   e -> e
+
+-- | Extract the result 'Type' of a type-checked expression.
+-- Works for overloaded literals and wrapped expressions.
+lhsExprType :: LHsExpr GhcTc -> Maybe Type
+lhsExprType = go . unLoc
+  where
+    go = \case
+      HsOverLit _ (OverLit (OverLitTc {ol_type = ty}) _) -> Just ty
+      XExpr (WrapExpr (HsWrap _ e)) -> go e
+      HsVar _ (L _ v) -> Just (idType v)
+      _ -> Nothing

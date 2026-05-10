@@ -57,7 +57,7 @@
         forwardCompatibility = horizonPkgs.sydtestRelease;
         release = haskellPackages.sydtestRelease;
         mutation-release = haskellPackages.sydtestMutationRelease;
-      } // (import ./nix/mutation-checks.nix { inherit haskellPackages pkgs; }) // {
+      } // (import ./nix/mutation-checks.nix { inherit haskellPackages pkgs safe-coloured-text; }) // {
         shell = self.devShells.${system}.default;
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;

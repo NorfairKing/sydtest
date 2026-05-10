@@ -1,9 +1,9 @@
-{ haskellPackages, pkgs }:
+{ haskellPackages, pkgs, safe-coloured-text }:
 
 # End-to-end mutation testing checks.
 #
-# Each check instruments a library with the mutation plugin, builds the
-# corresponding test executable against the instrumented library, runs the
+# Each check instruments one or more libraries with the mutation plugin, builds
+# the corresponding test executable against the instrumented libraries, runs the
 # suite in mutation mode, and fails if any mutation survived.
 
 let
@@ -11,22 +11,27 @@ let
 
   # Build one mutation check.
   #
-  # - libraryPackage: attr name in haskellPackages for the library to instrument
+  # - libraryPackages: list of attr names in haskellPackages for the libraries to instrument
   # - testPackage: attr name in haskellPackages for the package containing the test binary
   # - testExecutableName: name of the executable inside testPackage
-  # - exceptions: list of module names to skip during instrumentation
+  # - exceptions: list of module names to skip during instrumentation (applies to all libraries)
   mutationCheck =
     { name
-    , libraryPackage
+    , libraryPackages
     , testPackage
     , testExecutableName
     , exceptions ? [ ]
+    , testResourcesDir ? null
     }:
     let
-      instrumentedHaskellPackages = haskellPackages.extend (_: super: {
-        ${libraryPackage} = addManifest { inherit exceptions; } super.${libraryPackage};
-      });
-      instrumentedLib = instrumentedHaskellPackages.${libraryPackage};
+      instrumentedHaskellPackages = haskellPackages.extend (_: super:
+        builtins.listToAttrs (map
+          (pkg: {
+            name = pkg;
+            value = addManifest { inherit exceptions; } super.${pkg};
+          })
+          libraryPackages));
+      manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
       testPkg = pkgs.haskell.lib.overrideCabal
         (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${testPackage})
         (_old: {
@@ -40,8 +45,7 @@ let
       report = compileMutationReport {
         name = "mutation-${name}";
         testExecutable = testPkg;
-        inherit testExecutableName;
-        manifests = [ instrumentedLib.manifest ];
+        inherit testExecutableName manifests testResourcesDir;
       };
     };
 
@@ -49,8 +53,16 @@ in
 {
   mutation-really-safe-money = mutationCheck {
     name = "really-safe-money";
-    libraryPackage = "really-safe-money";
+    libraryPackages = [ "really-safe-money" ];
     testPackage = "really-safe-money-gen";
     testExecutableName = "really-safe-money-test";
+  };
+
+  mutation-safe-coloured-text = mutationCheck {
+    name = "safe-coloured-text";
+    libraryPackages = [ "safe-coloured-text" "safe-coloured-text-parsing" ];
+    testPackage = "safe-coloured-text-gen";
+    testExecutableName = "safe-coloured-text-test";
+    testResourcesDir = "${safe-coloured-text}/safe-coloured-text-gen";
   };
 }

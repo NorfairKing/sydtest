@@ -8,6 +8,7 @@
 , manifests # list of 'manifest' outputs from addManifest-wrapped packages
 , testExecutable # derivation containing the test executable
 , testExecutableName # name of the executable within testExecutable to invoke
+, testResourcesDir ? null # optional directory to cd into before running the test (for golden test resources)
 }:
 
 stdenv.mkDerivation {
@@ -19,9 +20,11 @@ stdenv.mkDerivation {
 
   buildPhase = ''
     echo "mutation-nix: running mutations from ${lib.concatStringsSep ", " (map toString manifests)}"
-    ${lib.getExe' testExecutable testExecutableName} \
-      ${lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests} \
-      | tee report.txt
+    (
+      ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
+      ${lib.getExe' testExecutable testExecutableName} \
+        ${lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests}
+    ) | tee report.txt
   '';
 
   installPhase = ''

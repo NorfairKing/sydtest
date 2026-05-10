@@ -16,6 +16,9 @@ library:
   - Test.Syd.Mutation.Plugin.Instrument
   - Test.Syd.Mutation.Plugin.Runtime
   dependencies:
+  - aeson
+  - bytestring
+  - filepath
   - ghc
   - mtl
   - sydtest-mutation-runtime

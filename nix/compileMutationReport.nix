@@ -17,9 +17,9 @@ stdenv.mkDerivation {
   buildInputs = [ testExecutable ];
 
   buildPhase = ''
-    echo "mutation-nix: running mutations from ${manifest}/mutation.manifest"
+    echo "mutation-nix: running mutations from ${manifest}"
     ${lib.getExe' testExecutable testExecutableName} \
-      --mutation "${manifest}/mutation.manifest" \
+      --mutation "${manifest}" \
       | tee report.txt
   '';
 

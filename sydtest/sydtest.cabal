@@ -66,12 +66,14 @@ library
   build-depends:
       MonadRandom
     , QuickCheck
+    , aeson
     , async
     , autodocodec
     , base >=4.7 && <5
     , bytestring
     , containers
     , deepseq
+    , directory
     , dlist
     , fast-myers-diff >=0.0.1
     , filepath

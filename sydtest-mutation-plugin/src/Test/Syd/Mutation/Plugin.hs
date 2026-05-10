@@ -1,9 +1,12 @@
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Test.Syd.Mutation.Plugin (plugin) where
 
-import Control.Concurrent (threadDelay)
-import Control.Exception (IOException, catch, throwIO)
 import Control.Monad.IO.Class (liftIO)
-import Data.List (intercalate, isInfixOf, isPrefixOf, stripPrefix)
+import Data.Aeson (Value, encode, object, (.=))
+import qualified Data.ByteString.Lazy as LB
+import Data.List (isPrefixOf, stripPrefix)
 import Data.Maybe (mapMaybe)
 import GHC
 import GHC.Driver.Env (Hsc, HscEnv (..))
@@ -11,7 +14,7 @@ import GHC.Driver.Plugins
 import GHC.Driver.Session (WarningFlag (..), wopt_unset)
 import GHC.Tc.Types
 import System.Environment (lookupEnv)
-import System.IO (IOMode (..), hClose, hPutStrLn, openFile)
+import System.FilePath ((</>))
 import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
@@ -59,7 +62,7 @@ mutationTypeCheckAction ::
 mutationTypeCheckAction opts _ms tcGblEnv = do
   let mn = moduleNameString (moduleName (tcg_mod tcGblEnv))
   let exceptions = mapMaybe (stripPrefix "--exception=") opts
-  let manifestPath = mapMaybe (stripPrefix "--manifest=") opts
+  let manifestDirOpt = mapMaybe (stripPrefix "--manifest=") opts
   if "Paths_" `isPrefixOf` mn || mn `elem` exceptions
     then pure tcGblEnv
     else do
@@ -67,38 +70,31 @@ mutationTypeCheckAction opts _ms tcGblEnv = do
       (binds', mutations) <-
         runInstrument tcGblEnv $
           instrumentModule (tcg_binds tcGblEnv)
-      -- The manifest path comes from --manifest= plugin opt, or from the
-      -- MUTATION_MANIFEST env var (used by the Nix build so the store path
+      -- The manifest dir comes from --manifest= plugin opt, or from the
+      -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path
       -- can be passed without shell expansion in configureFlags).
-      envPath <- liftIO $ lookupEnv "MUTATION_MANIFEST"
-      let resolvedPath = case manifestPath of
-            (p : _) -> Just p
-            [] -> envPath
-      liftIO $ case resolvedPath of
-        Nothing -> mapM_ (\r -> putStrLn $ "mutation: " ++ renderMutationId (mutRecId r)) mutations
-        Just path -> appendManifest path mutations
+      envDir <- liftIO $ lookupEnv "MUTATION_MANIFEST_DIR"
+      let resolvedDir = case manifestDirOpt of
+            (d : _) -> Just d
+            [] -> envDir
+      liftIO $ case resolvedDir of
+        Nothing -> mapM_ (\r -> putStrLn $ "mutation: " ++ show (mutRecId r)) mutations
+        Just dir -> writeModuleManifest dir mn mutations
       pure tcGblEnv {tcg_binds = binds'}
 
--- | Append mutation records to the manifest file, retrying on lock contention.
--- GHC may compile modules in parallel (-j); we retry on "resource busy" so
--- that concurrent plugin invocations do not race on the same file.
-appendManifest :: FilePath -> [MutationRecord] -> IO ()
-appendManifest path mutations = retryOnBusy 200 $ do
-  h <- openFile path AppendMode
-  mapM_ (hPutStrLn h . renderMutationId . mutRecId) mutations
-  hClose h
-  where
-    retryOnBusy :: Int -> IO () -> IO ()
-    retryOnBusy 0 action = action
-    retryOnBusy n action =
-      action `catch` \e -> do
-        let isBusy = "resource busy" `isInfixOf` show (e :: IOException)
-        if isBusy
-          then do
-            threadDelay 10000 -- 10ms
-            retryOnBusy (n - 1) action
-          else throwIO e
+-- | Write a JSON manifest file for one module to @<dir>/<ModuleName>.json@.
+-- Each module gets its own file, so no locking is needed.
+writeModuleManifest :: FilePath -> String -> [MutationRecord] -> IO ()
+writeModuleManifest dir mn mutations = do
+  let path = dir </> mn ++ ".json"
+      entries = map recordToJson mutations
+  LB.writeFile path (encode entries)
 
--- | Render a 'MutationId' as a tab-separated line for the manifest file.
-renderMutationId :: MutationId -> String
-renderMutationId (MutationId parts) = intercalate "\t" parts
+recordToJson :: MutationRecord -> Value
+recordToJson MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement} =
+  object
+    [ "id" .= parts,
+      "operator" .= mutRecOperator,
+      "original" .= mutRecOriginal,
+      "replacement" .= mutRecReplacement
+    ]

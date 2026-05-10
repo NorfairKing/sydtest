@@ -80,8 +80,8 @@ data Settings = Settings
     settingProfile :: !Bool,
     -- | Output format
     settingOutputFormat :: !OutputFormat,
-    -- | Path to a mutation manifest; when set, run in mutation testing mode
-    settingMutation :: !(Maybe FilePath)
+    -- | Path to a mutation manifest directory; when set, run in mutation testing mode
+    settingMutation :: !(Maybe (Path Abs Dir))
   }
   deriving (Show, Eq, Generic)
 
@@ -283,7 +283,7 @@ data Flags = Flags
     flagProfile :: !Bool,
     flagAiExecutor :: !(Maybe Bool),
     flagOutputFormat :: !(Maybe OutputFormat),
-    flagMutation :: !(Maybe FilePath)
+    flagMutation :: !(Maybe (Path Abs Dir))
   }
   deriving (Show, Eq, Generic)
 
@@ -459,12 +459,10 @@ instance HasParser Flags where
           ]
     flagMutation <-
       optional $
-        setting
-          [ help "Path to mutation manifest; run in mutation testing mode",
-            reader str,
+        directoryPathSetting
+          [ help "Path to mutation manifest directory; run in mutation testing mode",
             option,
-            long "mutation",
-            metavar "FILE"
+            long "mutation"
           ]
     pure Flags {..}
 

@@ -29,7 +29,6 @@ library:
     - autodocodec
     - bytestring
     - containers
-    - directory
     - deepseq
     - dlist
     - fast-myers-diff >= 0.0.1

@@ -73,7 +73,6 @@ library
     , bytestring
     , containers
     , deepseq
-    , directory
     , dlist
     , fast-myers-diff >=0.0.1
     , filepath

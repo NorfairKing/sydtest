@@ -41,11 +41,11 @@ import Test.Syd.Mutation.Runtime (MutationId (..))
 data MutationOperator = MutationOperator
   { operatorName :: String,
     operatorDescription :: String,
-    -- | @Just (ty, mutated, originalStr, replacementStr)@ or @Nothing@.
-    -- The operator supplies the 'Type' because it already has it at hand when
-    -- it matches the expression shape; this avoids a separate type-extraction
-    -- step in the instrumenter.
-    operatorMatch :: LHsExpr GhcTc -> Maybe (Type, LHsExpr GhcTc, String, String)
+    -- | @Just action@ if this expression is a mutation candidate, @Nothing@ otherwise.
+    -- The action runs in 'InstrM' so it can look up replacement operator ids via
+    -- 'TcM' when needed (e.g. swapping @(+)@ for @(-)@).
+    -- The action returns @(ty, mutated, originalStr, replacementStr)@.
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (Type, LHsExpr GhcTc, String, String))
   }
 
 -- ---------------------------------------------------------------------------
@@ -235,7 +235,8 @@ tryMutateWith operators le =
   where
     applyOperator expr op = case operatorMatch op expr of
       Nothing -> pure expr
-      Just (ty, mutated, origStr, replStr) -> do
+      Just action -> do
+        (ty, mutated, origStr, replStr) <- action
         mid <- recordMutation expr (operatorName op) origStr replStr
         wrapWithIfMutation ty mid mutated expr
 

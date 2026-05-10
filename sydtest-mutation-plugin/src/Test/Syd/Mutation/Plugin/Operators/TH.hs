@@ -23,7 +23,12 @@ collectOperators = do
       operatorDir = pluginDir ++ "Operator"
   files <- runIO $ do
     entries <- listDirectory operatorDir
-    pure $ sort $ filter (\f -> not ("." `isPrefixOf` f) && ".hs" `isSuffixOf` f) entries
+    -- Exclude helper modules that don't export theOperator (e.g. Util.hs).
+    let operatorFiles f =
+          not ("." `isPrefixOf` f)
+            && ".hs" `isSuffixOf` f
+            && f /= "Util.hs"
+    pure $ sort $ filter operatorFiles entries
   mapM_ (addDependentFile . (\f -> operatorDir ++ "/" ++ f)) files
   operatorExprs <- forM files $ \file -> do
     let modName = "Test.Syd.Mutation.Plugin.Operator." ++ dropExtension (takeFileName file)

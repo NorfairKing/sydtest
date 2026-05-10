@@ -44,6 +44,7 @@ library:
     - safe-coloured-text
     - stm
     - svg-builder
+    - sydtest-mutation-runtime
     - text
     - vector
   when:

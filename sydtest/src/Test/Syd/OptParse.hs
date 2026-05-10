@@ -79,7 +79,9 @@ data Settings = Settings
     -- | Profiling mode
     settingProfile :: !Bool,
     -- | Output format
-    settingOutputFormat :: !OutputFormat
+    settingOutputFormat :: !OutputFormat,
+    -- | Path to a mutation manifest; when set, run in mutation testing mode
+    settingMutation :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -203,7 +205,8 @@ instance HasParser Settings where
                         Just False -> OutputFormatPretty
                         Just True -> OutputFormatTerse
                     )
-                    flagOutputFormat
+                    flagOutputFormat,
+                settingMutation = flagMutation
               }
 
 defaultSettings :: Settings
@@ -230,7 +233,8 @@ defaultSettings =
           settingReportProgress = ReportNoProgress,
           settingReportFile = Nothing,
           settingProfile = False,
-          settingOutputFormat = OutputFormatPretty
+          settingOutputFormat = OutputFormatPretty,
+          settingMutation = Nothing
         }
 
 -- 60 seconds
@@ -278,7 +282,8 @@ data Flags = Flags
     flagDebug :: !Bool,
     flagProfile :: !Bool,
     flagAiExecutor :: !(Maybe Bool),
-    flagOutputFormat :: !(Maybe OutputFormat)
+    flagOutputFormat :: !(Maybe OutputFormat),
+    flagMutation :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -451,6 +456,15 @@ instance HasParser Flags where
                 switch OutputFormatPretty,
                 long "pretty"
               ]
+          ]
+    flagMutation <-
+      optional $
+        setting
+          [ help "Path to mutation manifest; run in mutation testing mode",
+            reader str,
+            option,
+            long "mutation",
+            metavar "FILE"
           ]
     pure Flags {..}
 

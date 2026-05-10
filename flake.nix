@@ -18,6 +18,8 @@
     fast-myers-diff.flake = false;
     opt-env-conf.url = "github:NorfairKing/opt-env-conf";
     opt-env-conf.flake = false;
+    really-safe-money.url = "github:NorfairKing/really-safe-money";
+    really-safe-money.flake = false;
   };
 
   outputs =
@@ -30,6 +32,7 @@
     , safe-coloured-text
     , fast-myers-diff
     , opt-env-conf
+    , really-safe-money
     }:
     let
       system = "x86_64-linux";
@@ -40,6 +43,7 @@
         (pkgs.callPackage (safe-coloured-text + "/nix/overrides.nix") { })
         (pkgs.callPackage (validity + "/nix/overrides.nix") { })
         (pkgs.callPackage (opt-env-conf + "/nix/overrides.nix") { })
+        (pkgs.callPackage (really-safe-money + "/nix/overrides.nix") { })
         self.overrides.${system}
       ];
       horizonPkgs = horizon-advance.legacyPackages.${system}.extend allOverrides;
@@ -53,6 +57,29 @@
         forwardCompatibility = horizonPkgs.sydtestRelease;
         release = haskellPackages.sydtestRelease;
         mutation-release = haskellPackages.sydtestMutationRelease;
+        mutation-report-really-safe-money =
+          let
+            addManifest = haskellPackages.mutationNixPackages.addManifest { };
+            # Instrument really-safe-money and thread the instrumented version
+            # through so really-safe-money-gen picks it up as a dependency.
+            instrumentedHaskellPackages = haskellPackages.extend (_: super: {
+              really-safe-money = addManifest super.really-safe-money;
+            });
+            instrumentedLib = instrumentedHaskellPackages.really-safe-money;
+            # Enable tests on really-safe-money-gen so the test executable is built.
+            testPkg = pkgs.haskell.lib.doCheck instrumentedHaskellPackages.really-safe-money-gen;
+            compileMutationReport = haskellPackages.mutationNixPackages.compileMutationReport;
+            assertMutationScore = haskellPackages.mutationNixPackages.assertMutationScore;
+          in
+          assertMutationScore {
+            name = "mutation-report-really-safe-money-assert";
+            report = compileMutationReport {
+              name = "mutation-report-really-safe-money";
+              testExecutable = testPkg;
+              testExecutableName = "really-safe-money-test";
+              manifest = instrumentedLib.manifest;
+            };
+          };
         shell = self.devShells.${system}.default;
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;

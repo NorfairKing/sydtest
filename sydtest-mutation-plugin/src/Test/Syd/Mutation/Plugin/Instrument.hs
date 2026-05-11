@@ -58,12 +58,14 @@ data MutationOperator = MutationOperator
     -- | @Just action@ if this expression is a mutation candidate, @Nothing@ otherwise.
     -- The action runs in 'InstrM' so it can look up replacement operator ids via
     -- 'TcM' when needed (e.g. swapping @(+)@ for @(-)@).
-    -- The action returns a list of @(ty, mutated, originalStr, replacementStr)@ tuples,
-    -- one per distinct mutation to generate at this site.  Each gets its own 'MutationId'
-    -- and is wrapped independently as a nested 'ifMutation' call.
+    -- The action returns a list of @(ty, mutated, originalStr, replacementStr, srcTransform)@
+    -- tuples, one per distinct mutation to generate at this site.  Each gets its own
+    -- 'MutationId' and is wrapped independently as a nested 'ifMutation' call.
     -- 'tryMutateWith' will validate each alternative via desugaring and silently drop
     -- any that produce diagnostics (e.g. overflowed literals).
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [(Type, LHsExpr GhcTc, String, String)])
+    -- 'srcTransform' maps the original source span text to the replacement source text
+    -- for display in the diff; use @const (T.pack replStr)@ for simple token swaps.
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)])
   }
 
 -- ---------------------------------------------------------------------------
@@ -288,8 +290,8 @@ applyOperator expr op = case operatorMatch op expr of
         pure expr
       (x : xs) -> applyAlts (operatorName op) (x :| xs) expr
 
-validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String) -> IO Bool
-validateAlt hscEnv (_, mutated, _, _) = do
+validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String, T.Text -> T.Text) -> IO Bool
+validateAlt hscEnv (_, mutated, _, _, _) = do
   (msgs, mcore) <- deSugarExpr hscEnv mutated
   pure (isEmptyMessages msgs && isJust mcore)
 
@@ -300,9 +302,9 @@ locStr = \case
   UnhelpfulSpan _ -> ""
 
 -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
-applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-applyAlts opName ((ty, mutated, origStr, replStr) :| rest) original = do
-  mid <- recordMutation original opName origStr replStr
+applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String, T.Text -> T.Text) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+applyAlts opName ((ty, mutated, origStr, replStr, srcTransform) :| rest) original = do
+  mid <- recordMutation original opName origStr replStr srcTransform
   inner <- case rest of
     [] -> pure original
     (a : as) -> applyAlts opName (a :| as) original
@@ -314,31 +316,42 @@ recordMutation ::
   String ->
   String ->
   String ->
+  (T.Text -> T.Text) ->
   InstrM MutationId
-recordMutation le op origStr replStr = do
+recordMutation le op origStr replStr srcTransform = do
   InstrumentEnv {instrModule, instrSourceFile} <- ask
   let sp = getLocA le
   case sp of
     RealSrcSpan rss _ -> do
       let mn = moduleNameString (moduleName instrModule)
           lineNum = srcSpanStartLine rss
+          colStart = srcSpanStartCol rss
+          colEnd = srcSpanEndCol rss
           mid =
             MutationId
               [ mn,
                 op,
                 show lineNum,
-                show (srcSpanStartCol rss),
-                show (srcSpanEndCol rss)
+                show colStart,
+                show colEnd
               ]
-          (mSrcFile, srcLine, ctxBefore, ctxAfter) =
+          (mSrcFile, srcLine, mutatedLine, ctxBefore, ctxAfter) =
             case instrSourceFile of
-              Nothing -> (Nothing, Nothing, [], [])
+              Nothing -> (Nothing, Nothing, Nothing, [], [])
               Just (relFile, ls) ->
                 let idx = lineNum - 1
-                    line = if idx >= 0 && idx < length ls then Just (ls !! idx) else Nothing
+                    mLine = if idx >= 0 && idx < length ls then Just (ls !! idx) else Nothing
                     before = reverse $ take 3 $ reverse $ take idx ls
                     after = take 3 $ drop (idx + 1) ls
-                 in (Just relFile, line, before, after)
+                    mMutated =
+                      fmap
+                        ( \line ->
+                            let origSpan = T.take (colEnd - colStart) (T.drop (colStart - 1) line)
+                                replSource = srcTransform origSpan
+                             in T.take (colStart - 1) line <> replSource <> T.drop (colEnd - 1) line
+                        )
+                        mLine
+                 in (Just relFile, mLine, mMutated, before, after)
       tell
         [ MutationRecord
             { mutRecId = mid,
@@ -347,6 +360,7 @@ recordMutation le op origStr replStr = do
               mutRecReplacement = replStr,
               mutRecSourceFile = mSrcFile,
               mutRecSourceLine = srcLine,
+              mutRecMutatedLine = mutatedLine,
               mutRecContextBefore = ctxBefore,
               mutRecContextAfter = ctxAfter
             }

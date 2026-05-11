@@ -30,6 +30,7 @@ spec = do
               aRecord
                 { mutRecSourceFile = Nothing,
                   mutRecSourceLine = Nothing,
+                  mutRecMutatedLine = Nothing,
                   mutRecContextBefore = [],
                   mutRecContextAfter = []
                 }
@@ -54,6 +55,7 @@ spec = do
                       mutRecReplacement = "-",
                       mutRecSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
                       mutRecSourceLine = Just "  result = x + y",
+                      mutRecMutatedLine = Just "  result = x - y",
                       mutRecContextBefore =
                         [ "add :: Int -> Int -> Int",
                           "add x y ="
@@ -73,6 +75,7 @@ aRecord =
       mutRecReplacement = "(-)",
       mutRecSourceFile = Nothing,
       mutRecSourceLine = Nothing,
+      mutRecMutatedLine = Nothing,
       mutRecContextBefore = [],
       mutRecContextAfter = []
     }

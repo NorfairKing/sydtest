@@ -2,6 +2,7 @@
 
 module Test.Syd.Mutation.Plugin.Operator.BoolLit (theOperator) where
 
+import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy, falseDataCon, trueDataCon)
 import GHC.Types.Name (getOccString)
@@ -25,9 +26,9 @@ boolLits = ["True", "False"]
 
 action ::
   String ->
-  InstrM [(Type, LHsExpr GhcTc, String, String)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
 action origOcc =
   let repl = if origOcc == "True" then falseDataCon else trueDataCon
       replOcc = if origOcc == "True" then "False" else "True"
       replExpr = nlHsDataCon repl
-   in pure [(boolTy, replExpr, origOcc, replOcc)]
+   in pure [(boolTy, replExpr, origOcc, replOcc, const (T.pack replOcc))]

@@ -4,6 +4,7 @@
 module Test.Syd.Mutation.Plugin.Operator.LogicOp (theOperator) where
 
 import Control.Monad.Reader (ask)
+import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), liftTcM)
@@ -30,13 +31,13 @@ action ::
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   String ->
-  InstrM [(Type, LHsExpr GhcTc, String, String)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
 action l op r origOcc = do
   InstrumentEnv {instrRdrEnv} <- ask
   let replacements = filter (/= origOcc) logicOps
   mapM
     ( \replOcc -> do
         repl <- liftTcM $ mkOpReplacement instrRdrEnv l op r replOcc
-        pure (boolTy, repl, origOcc, replOcc)
+        pure (boolTy, repl, origOcc, replOcc, const (T.pack replOcc))
     )
     replacements

@@ -4,6 +4,7 @@ module Test.Syd.MutationMode (runMutationMode, formatMutationLog) where
 
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Path
 import System.IO (hPutStrLn, stderr)
@@ -52,7 +53,7 @@ formatMutationLog :: MutationId -> Maybe MutationRecord -> String
 formatMutationLog (MutationId parts) mRec =
   case (parts, mRec) of
     ( [modName, op, lineStr, colStartStr, colEndStr],
-      Just MutationRecord {mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter}
+      Just MutationRecord {mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter}
       ) ->
         let filePath = case mutRecSourceFile of
               Just p -> fromRelFile p
@@ -67,9 +68,6 @@ formatMutationLog (MutationId parts) mRec =
                   ]
               Just srcLine ->
                 let lineNum = read lineStr :: Int
-                    colStart = read colStartStr :: Int
-                    colEnd = read colEndStr :: Int
-                    mutatedLine = spliceLine colStart colEnd (T.pack mutRecReplacement) srcLine
                     nBefore = length mutRecContextBefore
                     hunkHeader =
                       "@@ -"
@@ -81,6 +79,7 @@ formatMutationLog (MutationId parts) mRec =
                         ++ ","
                         ++ show (nBefore + 1 + length mutRecContextAfter)
                         ++ " @@"
+                    mutatedLine = fromMaybe srcLine mutRecMutatedLine
                  in T.unpack $
                       T.unlines $
                         map T.pack [header, hunkHeader]
@@ -91,11 +90,3 @@ formatMutationLog (MutationId parts) mRec =
       "Testing mutation " ++ intercalate "/" parts
   where
     moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"
-
--- | Replace the substring at columns [colStart, colEnd) (1-based, half-open)
--- with 'replacement' in 'srcLine'.
-spliceLine :: Int -> Int -> T.Text -> T.Text -> T.Text
-spliceLine colStart colEnd replacement srcLine =
-  let (prefix, rest) = T.splitAt (colStart - 1) srcLine
-      suffix = T.drop (colEnd - colStart) rest
-   in prefix <> replacement <> suffix

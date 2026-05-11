@@ -28,6 +28,8 @@ data MutationRecord = MutationRecord
     mutRecSourceFile :: Maybe (Path Rel File),
     -- | Verbatim source line containing the mutated expression.
     mutRecSourceLine :: Maybe Text,
+    -- | The source line with the mutation applied (replacement source spliced in).
+    mutRecMutatedLine :: Maybe Text,
     -- | Up to 3 source lines immediately before the mutated line.
     mutRecContextBefore :: [Text],
     -- | Up to 3 source lines immediately after the mutated line.
@@ -36,7 +38,7 @@ data MutationRecord = MutationRecord
   deriving (Show)
 
 instance ToJSON MutationRecord where
-  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter} =
+  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter} =
     object
       [ "id" .= parts,
         "operator" .= mutRecOperator,
@@ -44,6 +46,7 @@ instance ToJSON MutationRecord where
         "replacement" .= mutRecReplacement,
         "source_file" .= fmap fromRelFile mutRecSourceFile,
         "source_line" .= mutRecSourceLine,
+        "mutated_line" .= mutRecMutatedLine,
         "context_before" .= mutRecContextBefore,
         "context_after" .= mutRecContextAfter
       ]
@@ -61,6 +64,7 @@ instance FromJSON MutationRecord where
         Nothing -> pure Nothing
         Just p -> pure (Just p)
     srcLine <- o .:? "source_line"
+    mutatedLine <- o .:? "mutated_line"
     ctxBefore <- o .:? "context_before" .!= []
     ctxAfter <- o .:? "context_after" .!= []
     pure
@@ -71,6 +75,7 @@ instance FromJSON MutationRecord where
           mutRecReplacement = repl,
           mutRecSourceFile = srcFile,
           mutRecSourceLine = srcLine,
+          mutRecMutatedLine = mutatedLine,
           mutRecContextBefore = ctxBefore,
           mutRecContextAfter = ctxAfter
         }

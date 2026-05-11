@@ -2,6 +2,7 @@
 
 module Test.Syd.Mutation.Plugin.Operator.CondFlip (theOperator) where
 
+import qualified Data.Text as T
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
@@ -24,7 +25,7 @@ action ::
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   Type ->
-  InstrM [(Type, LHsExpr GhcTc, String, String)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
 action ann x c t e ty =
   let flipped = L ann (HsIf x c e t)
-   in pure [(ty, flipped, "if c then t else e", "if c then e else t")]
+   in pure [(ty, flipped, "if c then t else e", "if c then e else t", id)]

@@ -1,5 +1,6 @@
 module Test.Syd.Mutation.Plugin.Operator.RemoveGuard (theOperator) where
 
+import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy, trueDataCon)
 import GHC.Hs.Syn.Type (lhsExprType)
@@ -24,6 +25,6 @@ theOperator =
 
 action ::
   LHsExpr GhcTc ->
-  InstrM [(Type, LHsExpr GhcTc, String, String)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
 action _ =
-  pure [(boolTy, nlHsDataCon trueDataCon, "e", "True")]
+  pure [(boolTy, nlHsDataCon trueDataCon, "e", "True", const (T.pack "True"))]

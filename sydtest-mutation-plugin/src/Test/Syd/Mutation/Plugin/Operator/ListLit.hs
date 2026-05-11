@@ -2,6 +2,7 @@
 
 module Test.Syd.Mutation.Plugin.Operator.ListLit (theOperator) where
 
+import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (mkListTy)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
@@ -22,11 +23,11 @@ action ::
   SrcSpanAnnA ->
   Type ->
   [LHsExpr GhcTc] ->
-  InstrM [(Type, LHsExpr GhcTc, String, String)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
 action ann elTy es =
   let listTy = mkListTy elTy
       n = length es
-      mkList xs = (listTy, L ann (ExplicitList elTy xs), show n ++ " elements", show (length xs) ++ " elements")
+      mkList xs = (listTy, L ann (ExplicitList elTy xs), show n ++ " elements", show (length xs) ++ " elements", id)
       -- Always produce: empty list, drop-head.
       -- Only add drop-last if it gives a different length than drop-head
       -- (i.e. n > 2; when n == 2 both give one element).

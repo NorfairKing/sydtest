@@ -16,6 +16,7 @@ import qualified Test.Syd.Mutation.Plugin.Operator.Arith
 import qualified Test.Syd.Mutation.Plugin.Operator.BoolLit
 import qualified Test.Syd.Mutation.Plugin.Operator.Cmp
 import qualified Test.Syd.Mutation.Plugin.Operator.IntLit
+import qualified Test.Syd.Mutation.Plugin.Operator.LogicOp
 import Test.Syd.Mutation.Plugin.Operators.TH (collectOperators)
 
 allOperators :: [MutationOperator]

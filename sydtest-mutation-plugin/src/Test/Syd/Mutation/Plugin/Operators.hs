@@ -13,7 +13,6 @@ module Test.Syd.Mutation.Plugin.Operators (allOperators) where
 
 import Test.Syd.Mutation.Plugin.Instrument (MutationOperator)
 import qualified Test.Syd.Mutation.Plugin.Operator.Arith
-import qualified Test.Syd.Mutation.Plugin.Operator.BoolLit
 import qualified Test.Syd.Mutation.Plugin.Operator.Cmp
 import qualified Test.Syd.Mutation.Plugin.Operator.CondFlip
 import qualified Test.Syd.Mutation.Plugin.Operator.ConstBool

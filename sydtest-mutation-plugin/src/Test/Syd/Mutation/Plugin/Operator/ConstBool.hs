@@ -16,17 +16,21 @@ theOperator =
       operatorMatch = \le ->
         case le of
           L _ (HsVar _ (L _ v))
-            | getOccString v `elem` ["True", "False"] -> Nothing
+            | occ <- getOccString v,
+              occ `elem` ["True", "False"] ->
+                Just (action (Just occ))
           _
-            | tcEqType (lhsExprType le) boolTy -> Just (action le)
+            | tcEqType (lhsExprType le) boolTy -> Just (action Nothing)
             | otherwise -> Nothing
     }
 
 action ::
-  LHsExpr GhcTc ->
+  -- | The literal value of the expression, if it is a Bool literal.
+  Maybe String ->
   InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
-action _ =
-  pure
-    [ (boolTy, nlHsDataCon trueDataCon, "e", "True", const (T.pack "True")),
-      (boolTy, nlHsDataCon falseDataCon, "e", "False", const (T.pack "False"))
-    ]
+action mLit =
+  let alts =
+        [ (boolTy, nlHsDataCon trueDataCon, "e", "True", const (T.pack "True")),
+          (boolTy, nlHsDataCon falseDataCon, "e", "False", const (T.pack "False"))
+        ]
+   in pure $ filter (\(_, _, _, repl, _) -> Just repl /= mLit) alts

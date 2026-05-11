@@ -1,8 +1,8 @@
-module Test.Syd.Mutation.Plugin.Operator.RemoveGuard (theOperator) where
+module Test.Syd.Mutation.Plugin.Operator.ConstBool (theOperator) where
 
 import qualified Data.Text as T
 import GHC
-import GHC.Builtin.Types (boolTy, trueDataCon)
+import GHC.Builtin.Types (boolTy, falseDataCon, trueDataCon)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Tc.Utils.TcType (tcEqType)
 import GHC.Types.Name (getOccString)
@@ -11,13 +11,12 @@ import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
-    { operatorName = "RemoveGuard",
-      operatorDescription = "Replace a Bool-typed expression with True",
+    { operatorName = "ConstBool",
+      operatorDescription = "Replace a Bool-typed expression with True or False",
       operatorMatch = \le ->
         case le of
-          -- Don't replace True with True — that's a no-op.
           L _ (HsVar _ (L _ v))
-            | getOccString v == "True" -> Nothing
+            | getOccString v `elem` ["True", "False"] -> Nothing
           _
             | tcEqType (lhsExprType le) boolTy -> Just (action le)
             | otherwise -> Nothing
@@ -27,4 +26,7 @@ action ::
   LHsExpr GhcTc ->
   InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
 action _ =
-  pure [(boolTy, nlHsDataCon trueDataCon, "e", "True", const (T.pack "True"))]
+  pure
+    [ (boolTy, nlHsDataCon trueDataCon, "e", "True", const (T.pack "True")),
+      (boolTy, nlHsDataCon falseDataCon, "e", "False", const (T.pack "False"))
+    ]

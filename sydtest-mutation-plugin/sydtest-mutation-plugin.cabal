@@ -26,12 +26,12 @@ library
       Test.Syd.Mutation.Plugin.Operator.BoolLit
       Test.Syd.Mutation.Plugin.Operator.Cmp
       Test.Syd.Mutation.Plugin.Operator.CondFlip
+      Test.Syd.Mutation.Plugin.Operator.ConstBool
       Test.Syd.Mutation.Plugin.Operator.IntLit
       Test.Syd.Mutation.Plugin.Operator.ListLit
       Test.Syd.Mutation.Plugin.Operator.LogicOp
       Test.Syd.Mutation.Plugin.Operator.MaybeOp
       Test.Syd.Mutation.Plugin.Operator.Negate
-      Test.Syd.Mutation.Plugin.Operator.RemoveGuard
       Test.Syd.Mutation.Plugin.Operator.Util
       Test.Syd.Mutation.Plugin.Operators
       Test.Syd.Mutation.Plugin.Operators.TH

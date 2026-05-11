@@ -51,7 +51,7 @@ data MutationOperator = MutationOperator
     -- The action returns a list of @(ty, mutated, originalStr, replacementStr)@ tuples,
     -- one per distinct mutation to generate at this site.  Each gets its own 'MutationId'
     -- and is wrapped independently as a nested 'ifMutation' call.
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String)))
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (Maybe (NonEmpty (Type, LHsExpr GhcTc, String, String))))
   }
 
 -- ---------------------------------------------------------------------------
@@ -245,8 +245,10 @@ tryMutateWith operators le =
     applyOperator expr op = case operatorMatch op expr of
       Nothing -> pure expr
       Just action -> do
-        alts <- action
-        applyAlts (operatorName op) alts expr
+        malts <- action
+        case malts of
+          Nothing -> pure expr
+          Just alts -> applyAlts (operatorName op) alts expr
 
     -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
     applyAlts opName ((ty, mutated, origStr, replStr) :| rest) original = do

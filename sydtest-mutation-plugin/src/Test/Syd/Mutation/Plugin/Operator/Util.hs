@@ -9,10 +9,13 @@ module Test.Syd.Mutation.Plugin.Operator.Util
 where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Maybe (isJust)
 import GHC
-import GHC.Core.Type (splitTyConApp_maybe)
+import GHC.HsToCore (deSugarExpr)
 import GHC.Tc.Types (TcM)
 import GHC.Tc.Utils.Env (tcLookupId)
+import GHC.Tc.Utils.Monad (getTopEnv)
+import GHC.Types.Error (isEmptyMessages)
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
@@ -63,16 +66,18 @@ mkOpReplacement rdrEnv l origOp r replOccStr = do
     substOpInOpApp l' op' r' (L ann (OpApp x _ _ _)) = L ann (OpApp x l' op' r')
     substOpInOpApp _ _ _ orig = orig
 
--- | Build a replacement integer literal, returning 'Nothing' if @n@ does not
--- fit in the boxed type of the literal (e.g. -1 for a Word8 literal).
-mkIntLitReplacement :: Integer -> OverLitTc -> Maybe (LHsExpr GhcTc)
-mkIntLitReplacement n oltc
-  | integerFitsInBoxedTy (ol_type oltc) n =
-      let iln = mkIntegralLit n
-          witnessN = substIntegerInWitness n (ol_witness oltc)
-          oltcN = oltc {ol_witness = witnessN}
-       in Just (noLocA (HsOverLit NoExtField (OverLit oltcN (HsIntegral iln))))
-  | otherwise = Nothing
+-- | Build a replacement integer literal, returning 'Nothing' if desugaring
+-- the expression produces any diagnostics (e.g. -Woverflowed-literals for a
+-- value outside the target type's range).
+mkIntLitReplacement :: Integer -> OverLitTc -> TcM (Maybe (LHsExpr GhcTc))
+mkIntLitReplacement n oltc = do
+  let iln = mkIntegralLit n
+      witnessN = substIntegerInWitness n (ol_witness oltc)
+      oltcN = oltc {ol_witness = witnessN}
+      expr = noLocA (HsOverLit NoExtField (OverLit oltcN (HsIntegral iln)))
+  hscEnv <- getTopEnv
+  (msgs, mcore) <- liftIO $ deSugarExpr hscEnv expr
+  pure $ if isEmptyMessages msgs && isJust mcore then Just expr else Nothing
 
 -- | Substitute the integer value in a @fromInteger dict (HsInteger _ n _)@ witness.
 substIntegerInWitness :: Integer -> HsExpr GhcTc -> HsExpr GhcTc
@@ -81,25 +86,6 @@ substIntegerInWitness n = \case
   HsLit x (HsInteger src _ ty) -> HsLit x (HsInteger src n ty)
   XExpr (WrapExpr (HsWrap w e)) -> XExpr (WrapExpr (HsWrap w (substIntegerInWitness n e)))
   e -> e
-
--- | True if @n@ fits in the value range of the given boxed integer type.
--- Identified by TyCon name; returns True for unrecognised types (conservative).
-integerFitsInBoxedTy :: Type -> Integer -> Bool
-integerFitsInBoxedTy ty n = case splitTyConApp_maybe ty of
-  Just (tc, []) -> case getOccString tc of
-    "Int" -> n >= toInteger (minBound :: Int) && n <= toInteger (maxBound :: Int)
-    "Word" -> n >= 0 && n <= toInteger (maxBound :: Word)
-    "Int8" -> n >= -128 && n <= 127
-    "Word8" -> n >= 0 && n <= 255
-    "Int16" -> n >= -32768 && n <= 32767
-    "Word16" -> n >= 0 && n <= 65535
-    "Int32" -> n >= -2147483648 && n <= 2147483647
-    "Word32" -> n >= 0 && n <= 4294967295
-    "Int64" -> n >= -9223372036854775808 && n <= 9223372036854775807
-    "Word64" -> n >= 0 && n <= 18446744073709551615
-    "Natural" -> n >= 0
-    _ -> True
-  _ -> True
 
 -- | Extract the result 'Type' of a type-checked expression.
 -- Works for overloaded literals and wrapped expressions.

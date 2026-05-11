@@ -362,7 +362,8 @@ recordMutation le op origStr replStr srcTransform = do
               mutRecSourceLine = srcLine,
               mutRecMutatedLine = mutatedLine,
               mutRecContextBefore = ctxBefore,
-              mutRecContextAfter = ctxAfter
+              mutRecContextAfter = ctxAfter,
+              mutRecCoveringTests = Nothing
             }
         ]
       pure mid

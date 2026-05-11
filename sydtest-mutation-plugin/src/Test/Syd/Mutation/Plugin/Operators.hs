@@ -17,6 +17,7 @@ import qualified Test.Syd.Mutation.Plugin.Operator.BoolLit
 import qualified Test.Syd.Mutation.Plugin.Operator.Cmp
 import qualified Test.Syd.Mutation.Plugin.Operator.CondFlip
 import qualified Test.Syd.Mutation.Plugin.Operator.IntLit
+import qualified Test.Syd.Mutation.Plugin.Operator.ListLit
 import qualified Test.Syd.Mutation.Plugin.Operator.LogicOp
 import qualified Test.Syd.Mutation.Plugin.Operator.Negate
 import qualified Test.Syd.Mutation.Plugin.Operator.RemoveGuard

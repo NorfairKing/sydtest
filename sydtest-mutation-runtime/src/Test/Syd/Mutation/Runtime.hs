@@ -5,10 +5,15 @@ module Test.Syd.Mutation.Runtime
     parseMutationId,
     renderMutationId,
     ifMutation,
+    coverageSlot,
+    withCoverageSlot,
   )
 where
 
+import Control.Exception (finally)
 import Data.IORef
+import Data.Set (Set)
+import qualified Data.Set as Set
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -55,7 +60,8 @@ setActiveMutation = writeIORef activeMutation
 -- | Emitted at every mutation site by the plugin.
 --
 -- When @mid@ is the active mutation, evaluates to @mutated@; otherwise to
--- @original@.
+-- @original@.  When no mutation is active but a coverage slot is installed,
+-- records @mid@ as covered.
 --
 -- 'NOINLINE' prevents GHC from floating the 'readIORef' out of the call site
 -- or caching a stale result across mutation runs.
@@ -64,4 +70,28 @@ ifMutation :: MutationId -> a -> a -> a
 ifMutation mid mutated original =
   unsafePerformIO $ do
     active <- readIORef activeMutation
-    pure $ if active == Just mid then mutated else original
+    case active of
+      Just aid -> pure $ if aid == mid then mutated else original
+      Nothing -> do
+        mSlot <- readIORef coverageSlot
+        case mSlot of
+          Nothing -> pure ()
+          Just ref -> modifyIORef' ref (Set.insert mid)
+        pure original
+
+-- | Process-global slot for per-test coverage collection.
+--
+-- When 'Just ref' is installed, every 'ifMutation' call (with no active
+-- mutation) inserts its 'MutationId' into @ref@.  Install and remove via
+-- 'withCoverageSlot'.
+{-# NOINLINE coverageSlot #-}
+coverageSlot :: IORef (Maybe (IORef (Set MutationId)))
+coverageSlot = unsafePerformIO (newIORef Nothing)
+
+-- | Run @action@ with @ref@ installed as the coverage accumulator.
+-- The slot is cleared (set back to 'Nothing') when the action finishes,
+-- even if it throws.
+withCoverageSlot :: IORef (Set MutationId) -> IO a -> IO a
+withCoverageSlot ref action = do
+  writeIORef coverageSlot (Just ref)
+  action `finally` writeIORef coverageSlot Nothing

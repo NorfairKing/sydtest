@@ -81,7 +81,10 @@ data Settings = Settings
     -- | Output format
     settingOutputFormat :: !OutputFormat,
     -- | Paths to mutation manifest directories; when non-empty, run in mutation testing mode
-    settingMutation :: ![Path Abs Dir]
+    settingMutation :: ![Path Abs Dir],
+    -- | Paths to mutation manifest directories for coverage collection;
+    -- when non-empty, run coverage collection and write @.coverage.json@ files
+    settingMutationCoverage :: ![Path Abs Dir]
   }
   deriving (Show, Eq, Generic)
 
@@ -206,7 +209,8 @@ instance HasParser Settings where
                         Just True -> OutputFormatTerse
                     )
                     flagOutputFormat,
-                settingMutation = flagMutation
+                settingMutation = flagMutation,
+                settingMutationCoverage = flagMutationCoverage
               }
 
 defaultSettings :: Settings
@@ -234,7 +238,8 @@ defaultSettings =
           settingReportFile = Nothing,
           settingProfile = False,
           settingOutputFormat = OutputFormatPretty,
-          settingMutation = []
+          settingMutation = [],
+          settingMutationCoverage = []
         }
 
 -- 60 seconds
@@ -283,7 +288,8 @@ data Flags = Flags
     flagProfile :: !Bool,
     flagAiExecutor :: !(Maybe Bool),
     flagOutputFormat :: !(Maybe OutputFormat),
-    flagMutation :: ![Path Abs Dir]
+    flagMutation :: ![Path Abs Dir],
+    flagMutationCoverage :: ![Path Abs Dir]
   }
   deriving (Show, Eq, Generic)
 
@@ -463,6 +469,13 @@ instance HasParser Flags where
           [ help "Path to mutation manifest directory; run in mutation testing mode",
             option,
             long "mutation"
+          ]
+    flagMutationCoverage <-
+      many $
+        directoryPathSetting
+          [ help "Path to mutation manifest directory; collect per-test coverage and write .coverage.json files",
+            option,
+            long "mutation-coverage"
           ]
     pure Flags {..}
 

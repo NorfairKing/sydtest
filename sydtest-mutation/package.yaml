@@ -12,9 +12,8 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - containers
   - sydtest
-  - text
+  - sydtest-mutation-runtime
 
 tests:
   sydtest-mutation-test:

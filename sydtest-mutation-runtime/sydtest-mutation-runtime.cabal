@@ -22,6 +22,7 @@ library
   exposed-modules:
       Test.Syd.Mutation.Manifest
       Test.Syd.Mutation.Runtime
+      Test.Syd.Mutation.TestId
   other-modules:
       Paths_sydtest_mutation_runtime
   hs-source-dirs:
@@ -30,6 +31,7 @@ library
       aeson
     , base >=4.7 && <5
     , bytestring
+    , containers
     , path
     , path-io
     , text

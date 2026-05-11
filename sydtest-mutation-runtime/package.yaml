@@ -14,6 +14,7 @@ library:
   dependencies:
   - aeson
   - bytestring
+  - containers
   - path
   - path-io
   - text

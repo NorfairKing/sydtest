@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.Mutation.Manifest
   ( MutationRecord (..),
@@ -7,16 +8,20 @@ module Test.Syd.Mutation.Manifest
     readManifestFile,
     readManifestDir,
     writeManifestFile,
+    readCoverageDir,
+    writeCoverageFile,
   )
 where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), decode, encode, object, withArray, withObject, (.!=), (.:), (.:?), (.=))
 import qualified Data.ByteString.Lazy as LB
+import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import Path
 import Path.IO (ensureDir, listDirRel)
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Mutation.Runtime (MutationId (..))
+import Test.Syd.Mutation.TestId (TestId (..), parseTestIdFilterArg, renderTestId)
 
 -- | One discovered mutation site, as recorded by the plugin.
 data MutationRecord = MutationRecord
@@ -33,12 +38,15 @@ data MutationRecord = MutationRecord
     -- | Up to 3 source lines immediately before the mutated line.
     mutRecContextBefore :: [Text],
     -- | Up to 3 source lines immediately after the mutated line.
-    mutRecContextAfter :: [Text]
+    mutRecContextAfter :: [Text],
+    -- | Tests whose execution reaches this mutation site.
+    -- 'Nothing' means coverage has not been collected yet.
+    mutRecCoveringTests :: Maybe [TestId]
   }
   deriving (Show)
 
 instance ToJSON MutationRecord where
-  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter} =
+  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
     object
       [ "id" .= parts,
         "operator" .= mutRecOperator,
@@ -48,7 +56,8 @@ instance ToJSON MutationRecord where
         "source_line" .= mutRecSourceLine,
         "mutated_line" .= mutRecMutatedLine,
         "context_before" .= mutRecContextBefore,
-        "context_after" .= mutRecContextAfter
+        "context_after" .= mutRecContextAfter,
+        "covering_tests" .= fmap (map renderTestId) mutRecCoveringTests
       ]
 
 instance FromJSON MutationRecord where
@@ -67,6 +76,8 @@ instance FromJSON MutationRecord where
     mutatedLine <- o .:? "mutated_line"
     ctxBefore <- o .:? "context_before" .!= []
     ctxAfter <- o .:? "context_after" .!= []
+    mCoveringRaw <- o .:? "covering_tests"
+    let coveringTests = fmap (mapMaybe parseTestIdFilterArg) (mCoveringRaw :: Maybe [Text])
     pure
       MutationRecord
         { mutRecId = mid,
@@ -77,7 +88,8 @@ instance FromJSON MutationRecord where
           mutRecSourceLine = srcLine,
           mutRecMutatedLine = mutatedLine,
           mutRecContextBefore = ctxBefore,
-          mutRecContextAfter = ctxAfter
+          mutRecContextAfter = ctxAfter,
+          mutRecCoveringTests = coveringTests
         }
 
 -- | All mutation sites discovered in one or more modules by the plugin.
@@ -110,16 +122,50 @@ readManifestFile path = decode <$> LB.readFile (fromAbsFile path)
 
 -- | Read and concatenate all per-module manifests from a directory.
 -- Files that fail to parse are skipped with a warning to stderr.
+-- Coverage files (@*.coverage.json@) are excluded; use 'readCoverageDir' for those.
 readManifestDir :: Path Abs Dir -> IO MutationManifest
 readManifestDir dir = do
   (_, files) <- listDirRel dir
-  let jsonFiles = filter (\f -> fileExtension f == Just ".json") files
-  mconcat <$> mapM readOne jsonFiles
+  let jsonFiles = filter isManifestFile files
+  mconcat <$> mapM (readOneWith "mutation manifest") jsonFiles
+  where
+    isManifestFile f =
+      fileExtension f == Just ".json"
+        && not (isCoverageFile f)
+    readOneWith label relFile = do
+      result <- readManifestFile (dir </> relFile)
+      case result of
+        Nothing -> do
+          hPutStrLn stderr $ "mutation: failed to decode " ++ label ++ " " ++ fromRelFile relFile
+          pure mempty
+        Just m -> pure m
+
+-- | Write a coverage manifest to @<dir>/<moduleName>.coverage.json@.
+writeCoverageFile :: Path Abs Dir -> String -> MutationManifest -> IO ()
+writeCoverageFile dir moduleName manifest = do
+  ensureDir dir
+  fileName <- parseRelFile (moduleName ++ ".coverage.json")
+  LB.writeFile (fromAbsFile (dir </> fileName)) (encode manifest)
+
+-- | Read and concatenate all per-module coverage files (@*.coverage.json@) from a directory.
+-- Plain manifest files (@*.json@) are excluded.
+readCoverageDir :: Path Abs Dir -> IO MutationManifest
+readCoverageDir dir = do
+  (_, files) <- listDirRel dir
+  let coverageFiles = filter isCoverageFile files
+  mconcat <$> mapM readOne coverageFiles
   where
     readOne relFile = do
       result <- readManifestFile (dir </> relFile)
       case result of
         Nothing -> do
-          hPutStrLn stderr $ "mutation: failed to decode " ++ fromRelFile relFile
+          hPutStrLn stderr $ "mutation: failed to decode coverage file " ++ fromRelFile relFile
           pure mempty
         Just m -> pure m
+
+isCoverageFile :: Path Rel File -> Bool
+isCoverageFile f = case splitExtension f of
+  Just (base, ".json") -> case splitExtension base of
+    Just (_, ".coverage") -> True
+    _ -> False
+  _ -> False

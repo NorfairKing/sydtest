@@ -10,8 +10,7 @@ where
 
 import Control.Monad.IO.Class (liftIO)
 import GHC
-import GHC.Builtin.Types.Prim
-import GHC.Core.TyCo.Compare (tcEqType)
+import GHC.Core.Type (splitTyConApp_maybe)
 import GHC.Tc.Types (TcM)
 import GHC.Tc.Utils.Env (tcLookupId)
 import GHC.Types.Name (getOccString)
@@ -65,46 +64,42 @@ mkOpReplacement rdrEnv l origOp r replOccStr = do
     substOpInOpApp _ _ _ orig = orig
 
 -- | Build a replacement integer literal, returning 'Nothing' if @n@ does not
--- fit in the primitive type of the witness (e.g. -1 in a Word8 witness).
+-- fit in the boxed type of the literal (e.g. -1 for a Word8 literal).
 mkIntLitReplacement :: Integer -> OverLitTc -> Maybe (LHsExpr GhcTc)
-mkIntLitReplacement n oltc =
-  case substIntegerInWitness n (ol_witness oltc) of
-    Nothing -> Nothing
-    Just witnessN ->
+mkIntLitReplacement n oltc
+  | integerFitsInBoxedTy (ol_type oltc) n =
       let iln = mkIntegralLit n
+          witnessN = substIntegerInWitness n (ol_witness oltc)
           oltcN = oltc {ol_witness = witnessN}
        in Just (noLocA (HsOverLit NoExtField (OverLit oltcN (HsIntegral iln))))
+  | otherwise = Nothing
 
--- | Substitute the integer value in a @fromInteger dict (HsInteger _ n _)@
--- witness, returning 'Nothing' if @n@ is out of range for the primitive type.
-substIntegerInWitness :: Integer -> HsExpr GhcTc -> Maybe (HsExpr GhcTc)
+-- | Substitute the integer value in a @fromInteger dict (HsInteger _ n _)@ witness.
+substIntegerInWitness :: Integer -> HsExpr GhcTc -> HsExpr GhcTc
 substIntegerInWitness n = \case
-  HsApp x f arg ->
-    HsApp x f <$> traverse (substIntegerInWitness n) arg
-  HsLit x (HsInteger src _ primTy)
-    | integerFitsInPrimTy primTy n -> Just (HsLit x (HsInteger src n primTy))
-    | otherwise -> Nothing
-  XExpr (WrapExpr (HsWrap w e)) ->
-    XExpr . WrapExpr . HsWrap w <$> substIntegerInWitness n e
-  e -> Just e
+  HsApp x f arg -> HsApp x f (fmap (substIntegerInWitness n) arg)
+  HsLit x (HsInteger src _ ty) -> HsLit x (HsInteger src n ty)
+  XExpr (WrapExpr (HsWrap w e)) -> XExpr (WrapExpr (HsWrap w (substIntegerInWitness n e)))
+  e -> e
 
--- | True if @n@ is in the valid range for the given GHC primitive integer type.
--- Returns True for any unrecognised type (conservative: allow the mutation).
-integerFitsInPrimTy :: Type -> Integer -> Bool
-integerFitsInPrimTy primTy n
-  | eq intPrimTy = n >= toInteger (minBound :: Int) && n <= toInteger (maxBound :: Int)
-  | eq wordPrimTy = n >= 0 && n <= toInteger (maxBound :: Word)
-  | eq int8PrimTy = n >= -128 && n <= 127
-  | eq word8PrimTy = n >= 0 && n <= 255
-  | eq int16PrimTy = n >= -32768 && n <= 32767
-  | eq word16PrimTy = n >= 0 && n <= 65535
-  | eq int32PrimTy = n >= -2147483648 && n <= 2147483647
-  | eq word32PrimTy = n >= 0 && n <= 4294967295
-  | eq int64PrimTy = n >= -9223372036854775808 && n <= 9223372036854775807
-  | eq word64PrimTy = n >= 0 && n <= 18446744073709551615
-  | otherwise = True
-  where
-    eq = tcEqType primTy
+-- | True if @n@ fits in the value range of the given boxed integer type.
+-- Identified by TyCon name; returns True for unrecognised types (conservative).
+integerFitsInBoxedTy :: Type -> Integer -> Bool
+integerFitsInBoxedTy ty n = case splitTyConApp_maybe ty of
+  Just (tc, []) -> case getOccString tc of
+    "Int" -> n >= toInteger (minBound :: Int) && n <= toInteger (maxBound :: Int)
+    "Word" -> n >= 0 && n <= toInteger (maxBound :: Word)
+    "Int8" -> n >= -128 && n <= 127
+    "Word8" -> n >= 0 && n <= 255
+    "Int16" -> n >= -32768 && n <= 32767
+    "Word16" -> n >= 0 && n <= 65535
+    "Int32" -> n >= -2147483648 && n <= 2147483647
+    "Word32" -> n >= 0 && n <= 4294967295
+    "Int64" -> n >= -9223372036854775808 && n <= 9223372036854775807
+    "Word64" -> n >= 0 && n <= 18446744073709551615
+    "Natural" -> n >= 0
+    _ -> True
+  _ -> True
 
 -- | Extract the result 'Type' of a type-checked expression.
 -- Works for overloaded literals and wrapped expressions.

@@ -29,7 +29,11 @@ plugin =
       parsedResultAction = mutationAddRuntimeImport,
       -- Suppress -Wunused-imports for the injected import of Test.Syd.Mutation.Plugin.Runtime.
       driverPlugin = \_ hscEnv ->
-        pure hscEnv {hsc_dflags = wopt_unset (hsc_dflags hscEnv) Opt_WarnUnusedImports},
+        pure
+          hscEnv
+            { hsc_dflags =
+                wopt_unset (wopt_unset (hsc_dflags hscEnv) Opt_WarnUnusedImports) Opt_WarnIncompletePatterns
+            },
       pluginRecompile = impurePlugin
     }
 

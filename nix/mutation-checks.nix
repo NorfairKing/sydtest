@@ -42,7 +42,8 @@ let
           manifest_copy=$(mktemp -d)
           cp -r "${m}/." "$manifest_copy/"
           chmod -R u+w "$manifest_copy"
-          writable_manifests+=("$manifest_copy")
+          coverage_flags+=("--mutation-coverage" "$manifest_copy")
+          mutation_flags+=("--mutation" "$manifest_copy")
         '')
         manifests;
       # Run the test suite in mutation mode inside the Cabal build's checkPhase,
@@ -55,15 +56,14 @@ let
           checkPhase = ''
             exe=$(find dist -name "${testExecutableName}" -type f | head -1)
             # Copy manifest dirs to writable locations for coverage output.
-            writable_manifests=()
+            coverage_flags=()
+            mutation_flags=()
             ${copyManifests}
-            coverage_flags=$(printf -- '--mutation-coverage "%s" ' "''${writable_manifests[@]}")
-            mutation_flags=$(printf -- '--mutation "%s" ' "''${writable_manifests[@]}")
             echo "mutation-nix: collecting per-test coverage"
-            "$exe" $coverage_flags
+            "$exe" "''${coverage_flags[@]}"
             echo "mutation-nix: running mutations"
             mkdir -p $report
-            "$exe" $mutation_flags | tee $report/report.txt
+            "$exe" "''${mutation_flags[@]}" | tee $report/report.txt
           '';
           postCheck = "";
         })).overrideAttrs (old: {

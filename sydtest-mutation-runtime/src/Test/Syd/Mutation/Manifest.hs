@@ -12,6 +12,7 @@ where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), decode, encode, object, withArray, withObject, (.!=), (.:), (.:?), (.=))
 import qualified Data.ByteString.Lazy as LB
+import Data.Text (Text)
 import Path
 import Path.IO (ensureDir, listDirRel)
 import System.IO (hPutStrLn, stderr)
@@ -24,11 +25,11 @@ data MutationRecord = MutationRecord
     mutRecOriginal :: String,
     mutRecReplacement :: String,
     -- | Verbatim source line containing the mutated expression.
-    mutRecSourceLine :: Maybe String,
+    mutRecSourceLine :: Maybe Text,
     -- | Up to 3 source lines immediately before the mutated line.
-    mutRecContextBefore :: [String],
+    mutRecContextBefore :: [Text],
     -- | Up to 3 source lines immediately after the mutated line.
-    mutRecContextAfter :: [String]
+    mutRecContextAfter :: [Text]
   }
   deriving (Show)
 

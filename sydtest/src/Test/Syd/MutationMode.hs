@@ -4,6 +4,7 @@ module Test.Syd.MutationMode (runMutationMode, formatMutationLog) where
 
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
 import Path
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Def
@@ -66,7 +67,7 @@ formatMutationLog (MutationId parts) mRec =
                 let lineNum = read lineStr :: Int
                     colStart = read colStartStr :: Int
                     colEnd = read colEndStr :: Int
-                    mutatedLine = spliceLine colStart colEnd mutRecReplacement srcLine
+                    mutatedLine = spliceLine colStart colEnd (T.pack mutRecReplacement) srcLine
                     nBefore = length mutRecContextBefore
                     hunkHeader =
                       "@@ -"
@@ -78,11 +79,12 @@ formatMutationLog (MutationId parts) mRec =
                         ++ ","
                         ++ show (nBefore + 1 + length mutRecContextAfter)
                         ++ " @@"
-                 in unlines $
-                      [header, hunkHeader]
-                        ++ map (" " ++) mutRecContextBefore
-                        ++ ["-" ++ srcLine, "+" ++ mutatedLine]
-                        ++ map (" " ++) mutRecContextAfter
+                 in T.unpack $
+                      T.unlines $
+                        map T.pack [header, hunkHeader]
+                          ++ map (T.cons ' ') mutRecContextBefore
+                          ++ [T.cons '-' srcLine, T.cons '+' mutatedLine]
+                          ++ map (T.cons ' ') mutRecContextAfter
     _ ->
       "Testing mutation " ++ intercalate "/" parts
   where
@@ -90,8 +92,8 @@ formatMutationLog (MutationId parts) mRec =
 
 -- | Replace the substring at columns [colStart, colEnd) (1-based, half-open)
 -- with 'replacement' in 'srcLine'.
-spliceLine :: Int -> Int -> String -> String -> String
+spliceLine :: Int -> Int -> T.Text -> T.Text -> T.Text
 spliceLine colStart colEnd replacement srcLine =
-  let (prefix, rest) = splitAt (colStart - 1) srcLine
-      suffix = drop (colEnd - colStart) rest
-   in prefix ++ replacement ++ suffix
+  let (prefix, rest) = T.splitAt (colStart - 1) srcLine
+      suffix = T.drop (colEnd - colStart) rest
+   in prefix <> replacement <> suffix

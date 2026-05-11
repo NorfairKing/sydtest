@@ -17,8 +17,11 @@ import Control.Exception (IOException, catch)
 import Control.Monad (filterM, foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
+import qualified Data.ByteString as SB
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe (isJust)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
@@ -31,6 +34,8 @@ import GHC.Types.Error (isEmptyMessages)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
+import Path
+import Path.IO (resolveFile')
 import Test.Syd.Mutation.Manifest (MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
@@ -313,8 +318,9 @@ recordMutation le op origStr replStr = do
               ]
       (srcLine, ctxBefore, ctxAfter) <-
         liftTcM $
-          liftIO $
-            readSourceContext (unpackFS (srcSpanFile rss)) lineNum
+          liftIO $ do
+            absFile <- resolveFile' (unpackFS (srcSpanFile rss))
+            readSourceContext absFile lineNum
       tell
         [ MutationRecord
             { mutRecId = mid,
@@ -332,20 +338,20 @@ recordMutation le op origStr replStr = do
 -- | Read the source line at 'lineNum' (1-based) and up to 3 lines of context
 -- on each side. Returns 'Nothing' for the source line if the file cannot be
 -- read or the line number is out of range.
-readSourceContext :: FilePath -> Int -> IO (Maybe String, [String], [String])
+readSourceContext :: Path Abs File -> Int -> IO (Maybe T.Text, [T.Text], [T.Text])
 readSourceContext path lineNum = do
-  mContents <- (Just <$> readFile path) `catch` ioErr
+  mContents <- (Just <$> SB.readFile (fromAbsFile path)) `catch` ioErr
   case mContents of
     Nothing -> pure (Nothing, [], [])
-    Just contents ->
-      let ls = lines contents
+    Just bs ->
+      let ls = T.lines (TE.decodeUtf8Lenient bs)
           idx = lineNum - 1
           srcLine = if idx >= 0 && idx < length ls then Just (ls !! idx) else Nothing
           ctxBefore = reverse $ take 3 $ reverse $ take idx ls
           ctxAfter = take 3 $ drop (idx + 1) ls
        in pure (srcLine, ctxBefore, ctxAfter)
   where
-    ioErr :: IOException -> IO (Maybe String)
+    ioErr :: IOException -> IO (Maybe SB.ByteString)
     ioErr _ = pure Nothing
 
 -- ---------------------------------------------------------------------------

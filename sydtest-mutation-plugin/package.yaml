@@ -12,6 +12,7 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - bytestring
   - directory
   - filepath
   - ghc
@@ -20,3 +21,4 @@ library:
   - path-io
   - sydtest-mutation-runtime
   - template-haskell
+  - text

@@ -16,3 +16,4 @@ library:
   - bytestring
   - path
   - path-io
+  - text

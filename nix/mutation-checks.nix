@@ -34,7 +34,23 @@ let
           })
           libraryPackages));
       manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
-      mutationFlags = pkgs.lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests;
+      # The manifest dirs live in the Nix store (read-only). We copy each one to
+      # a writable temp dir so the coverage phase can write .coverage.json files
+      # next to the manifest files, and the mutation phase can read them back.
+      # Each manifest dir gets its own copy so the paths stay stable.
+      setupWritableManifests = pkgs.lib.concatImapStrings
+        (i: m: ''
+          manifest_dir_${toString i}=$(mktemp -d)
+          cp -r ${m}/. "$manifest_dir_${toString i}/"
+          chmod -R u+w "$manifest_dir_${toString i}"
+        '')
+        manifests;
+      coverageFlags = pkgs.lib.concatImapStringsSep " "
+        (i: _m: "--mutation-coverage \"$manifest_dir_${toString i}\"")
+        manifests;
+      mutationFlags = pkgs.lib.concatImapStringsSep " "
+        (i: _m: "--mutation \"$manifest_dir_${toString i}\"")
+        manifests;
       # Run the test suite in mutation mode inside the Cabal build's checkPhase,
       # where the working directory contains test_resources/ and other data files.
       # The report is written to the 'report' output so assertMutationScore can read it.
@@ -44,7 +60,10 @@ let
         (_old: {
           checkPhase = ''
             exe=$(find dist -name "${testExecutableName}" -type f | head -1)
-            echo "mutation-nix: running mutations from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"
+            ${setupWritableManifests}
+            echo "mutation-nix: collecting per-test coverage"
+            "$exe" ${coverageFlags}
+            echo "mutation-nix: running mutations"
             mkdir -p $report
             "$exe" ${mutationFlags} | tee $report/report.txt
           '';

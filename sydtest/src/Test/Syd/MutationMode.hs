@@ -33,7 +33,13 @@ import Test.Syd.SpecDef
 -- Returns a map from each 'TestId' to the set of 'MutationId's it covers.
 collectCoverage :: Settings -> TestForest '[] () -> IO (Map.Map TestId (Set.Set MutationId))
 collectCoverage settings forest = do
-  let coverageSettings = settings {settingThreads = Synchronous}
+  let coverageSettings =
+        settings
+          { settingThreads = Synchronous,
+            -- One iteration is enough to discover which mutation sites a test
+            -- reaches; running the full QuickCheck suite would be wasteful.
+            settingMaxSuccess = 1
+          }
       leafIds = map fst (flattenTestForestWithIds forest)
   Map.fromList <$> mapM (collectOne coverageSettings forest) leafIds
   where

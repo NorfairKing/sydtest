@@ -19,11 +19,23 @@ stdenv.mkDerivation {
   buildInputs = [ testExecutable ];
 
   buildPhase = ''
-    echo "mutation-nix: running mutations from ${lib.concatStringsSep ", " (map toString manifests)}"
+    # Copy manifest dirs to writable locations for the coverage phase.
+    ${lib.concatImapStrings (i: m: ''
+      manifest_dir_${toString i}=$(mktemp -d)
+      cp -r ${m}/. "$manifest_dir_${toString i}/"
+      chmod -R u+w "$manifest_dir_${toString i}"
+    '') manifests}
+    echo "mutation-nix: collecting per-test coverage"
     (
       ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
       ${lib.getExe' testExecutable testExecutableName} \
-        ${lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests}
+        ${lib.concatImapStringsSep " " (i: _m: "--mutation-coverage \"$manifest_dir_${toString i}\"") manifests}
+    )
+    echo "mutation-nix: running mutations"
+    (
+      ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
+      ${lib.getExe' testExecutable testExecutableName} \
+        ${lib.concatImapStringsSep " " (i: _m: "--mutation \"$manifest_dir_${toString i}\"") manifests}
     ) | tee report.txt
   '';
 

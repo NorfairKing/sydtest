@@ -84,7 +84,15 @@ data Settings = Settings
     settingMutation :: ![Path Abs Dir],
     -- | Paths to mutation manifest directories for coverage collection;
     -- when non-empty, run coverage collection and write @.coverage.json@ files
-    settingMutationCoverage :: ![Path Abs Dir]
+    settingMutationCoverage :: ![Path Abs Dir],
+    -- | Directory where @manifest-augmented.json@ is written (coverage mode)
+    -- or read from (mutation mode). 'Nothing' means the current working directory.
+    settingMutationAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
+    -- | When set, run only this single mutation (used by child processes).
+    settingMutationOne :: !(Maybe String),
+    -- | RTS heap limit to pass to each mutation child process (e.g. @"4g"@).
+    -- 'Nothing' means no limit is passed.
+    settingMutationChildMemLimit :: !(Maybe String)
   }
   deriving (Show, Eq, Generic)
 
@@ -160,7 +168,7 @@ instance HasParser Settings where
             if threads /= Synchronous
               then pure $ Left "Reporting progress in asynchronous runners is not supported. You can use --synchronous or --debug to use a synchronous runner."
               else pure $ Right ReportProgress
-        forM errOrProgress $ \progress -> do
+        forM errOrProgress $ \progress ->
           pure $
             Settings
               { settingSeed = flagSeed,
@@ -210,7 +218,10 @@ instance HasParser Settings where
                     )
                     flagOutputFormat,
                 settingMutation = flagMutation,
-                settingMutationCoverage = flagMutationCoverage
+                settingMutationCoverage = flagMutationCoverage,
+                settingMutationAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                settingMutationOne = flagMutationOne,
+                settingMutationChildMemLimit = flagMutationChildMemLimit
               }
 
 defaultSettings :: Settings
@@ -239,7 +250,10 @@ defaultSettings =
           settingProfile = False,
           settingOutputFormat = OutputFormatPretty,
           settingMutation = [],
-          settingMutationCoverage = []
+          settingMutationCoverage = [],
+          settingMutationAugmentedManifestDir = Nothing,
+          settingMutationOne = Nothing,
+          settingMutationChildMemLimit = Nothing
         }
 
 -- 60 seconds
@@ -289,7 +303,10 @@ data Flags = Flags
     flagAiExecutor :: !(Maybe Bool),
     flagOutputFormat :: !(Maybe OutputFormat),
     flagMutation :: ![Path Abs Dir],
-    flagMutationCoverage :: ![Path Abs Dir]
+    flagMutationCoverage :: ![Path Abs Dir],
+    flagMutationAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
+    flagMutationOne :: !(Maybe String),
+    flagMutationChildMemLimit :: !(Maybe String)
   }
   deriving (Show, Eq, Generic)
 
@@ -476,6 +493,32 @@ instance HasParser Flags where
           [ help "Path to mutation manifest directory; collect per-test coverage and write .coverage.json files",
             option,
             long "mutation-coverage"
+          ]
+    flagMutationAugmentedManifestDir <-
+      optional $
+        directoryPathSetting
+          [ help "Directory for manifest-augmented.json; defaults to current working directory",
+            option,
+            long "mutation-augmented-manifest-dir"
+          ]
+    flagMutationOne <-
+      optional $
+        setting
+          [ help "Run only this single mutation id (used internally by child processes)",
+            reader str,
+            option,
+            long "mutation-one",
+            metavar "MUTATION_ID",
+            hidden
+          ]
+    flagMutationChildMemLimit <-
+      optional $
+        setting
+          [ help "RTS heap limit for each mutation child process, e.g. 4g (passed as +RTS -M<limit> -RTS)",
+            reader str,
+            option,
+            long "mutation-child-mem-limit",
+            metavar "SIZE"
           ]
     pure Flags {..}
 

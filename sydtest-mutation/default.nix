@@ -1,6 +1,6 @@
-{ mkDerivation, base, genvalidity, genvalidity-sydtest, lib
-, QuickCheck, sydtest, sydtest-discover, sydtest-mutation-runtime
-, text, validity-text
+{ mkDerivation, base, genvalidity, genvalidity-sydtest
+, genvalidity-sydtest-aeson, lib, QuickCheck, sydtest
+, sydtest-discover, sydtest-mutation-runtime, text, validity-text
 }:
 mkDerivation {
   pname = "sydtest-mutation";
@@ -8,8 +8,8 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [ base sydtest sydtest-mutation-runtime ];
   testHaskellDepends = [
-    base genvalidity genvalidity-sydtest QuickCheck sydtest text
-    validity-text
+    base genvalidity genvalidity-sydtest genvalidity-sydtest-aeson
+    QuickCheck sydtest sydtest-mutation-runtime text validity-text
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

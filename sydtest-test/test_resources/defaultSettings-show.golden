@@ -22,4 +22,7 @@ Settings
   , settingOutputFormat = OutputFormatPretty
   , settingMutation = []
   , settingMutationCoverage = []
+  , settingMutationAugmentedManifestDir = Nothing
+  , settingMutationOne = Nothing
+  , settingMutationChildMemLimit = Nothing
   }

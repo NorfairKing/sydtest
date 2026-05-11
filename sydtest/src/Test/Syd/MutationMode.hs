@@ -1,9 +1,40 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Test.Syd.MutationMode (runMutationMode, runCoverageMode, formatMutationLog) where
+-- | This module provides three entry points for mutation testing:
+--
+-- * 'runCoverageMode': collect per-test coverage and write @manifest-augmented.json@.
+-- * 'runMutationMode': parent process — read the augmented manifest and spawn
+--   one child process per mutation.
+-- * 'runSingleMutationMode': child process — run only the tests that cover a
+--   single mutation and exit with success/failure.
+--
+-- Running each mutation in a subprocess is necessary for three reasons:
+--
+-- 1. __Memory limit__: a mutation can cause unbounded allocation (e.g. turning
+--    a termination condition into a no-op).  The RTS @-M@ flag terminates the
+--    process when the heap cap is hit — this is not a catchable exception.  In
+--    a subprocess only the child dies; the parent records it as killed and
+--    moves on.
+--
+-- 2. __Laziness \/ memoisation__: the spec forest is built once and reused
+--    across mutations.  Values computed via 'runIO' during spec construction
+--    are memoised in the parent\'s heap and will not reflect the active
+--    mutation.  Subprocesses get a fresh heap each time, so there is no risk
+--    of a memoised value masking a mutation.
+--
+-- 3. __Parallelism__: because 'activeMutation' is a process-global 'IORef',
+--    mutations must run serially within a single process.  Subprocesses are
+--    independent and can be run in parallel (disjoint mutation sets) in a
+--    future extension without any changes to the child or the manifest format.
+module Test.Syd.MutationMode
+  ( runMutationMode,
+    runSingleMutationMode,
+    runCoverageMode,
+    formatMutationLog,
+  )
+where
 
-import Control.Exception (Handler (..), SomeAsyncException, SomeException, bracket_, catches, throwIO)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -11,18 +42,27 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Path
+import Path.IO (getCurrentDir)
+import System.Environment (getExecutablePath)
+import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import System.IO (hPutStrLn, stderr)
-import System.Mem (performGC)
+import System.Process.Typed (proc, runProcess)
 import Test.Syd.Def
+import Test.Syd.Mutation.AugmentedManifest
+  ( AugmentedManifest (..),
+    AugmentedMutationRecord (..),
+    fromMutationRecord,
+    lookupAugmentedMutationRecord,
+    readAugmentedManifestFile,
+    writeAugmentedManifestFile,
+  )
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, flattenTestForestWithIds, testIdTrieFromList)
 import Test.Syd.Mutation.Manifest
   ( MutationManifest (..),
     MutationRecord (..),
-    readCoverageDir,
     readManifestDir,
-    writeCoverageFile,
   )
-import Test.Syd.Mutation.Runtime (MutationId (..), setActiveMutation, withCoverageSlot)
+import Test.Syd.Mutation.Runtime (MutationId (..), parseMutationId, renderMutationId, setActiveMutation, withCoverageSlot)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.OptParse
 import Test.Syd.Run
@@ -56,12 +96,12 @@ collectCoverage settings forest = do
       pure (tid, covered)
 
 -- | Collect per-test coverage for the mutations in @manifestDirs@ and write
--- @.coverage.json@ files alongside the existing manifest files.
+-- @manifest-augmented.json@ to @settingMutationAugmentedManifestDir@.
 --
 -- For each manifest directory, reads the plugin-written @*.json@ files,
 -- runs every test once (no mutation active) to record which 'MutationId's
--- each test reaches, then writes @<module>.coverage.json@ with
--- 'mutRecCoveringTests' filled in.
+-- each test reaches, then writes the augmented manifest with
+-- 'augmentedMutationRecordCoveringTests' filled in.
 runCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runCoverageMode settings manifestDirs spec = do
   specForest <- execTestDefM settings spec
@@ -77,102 +117,118 @@ runCoverageMode settings manifestDirs spec = do
           )
           Map.empty
           coverageMap
-  mapM_ (writeCoverageForDir mutationCoverage) manifestDirs
+  allRecords <- mconcat <$> mapM readManifestDir manifestDirs
+  let augmented = buildAugmentedManifest mutationCoverage allRecords
+  augDir <- resolveAugmentedManifestDir settings
+  writeAugmentedManifestFile augDir augmented
   where
-    writeCoverageForDir mutationCoverage manifestDir = do
-      MutationManifest records <- readManifestDir manifestDir
-      -- Group records by module name (first component of MutationId).
-      let byModule = Map.fromListWith (++) [(moduleName r, [r]) | r <- records]
-      mapM_ (writeModuleCoverage mutationCoverage manifestDir) (Map.toList byModule)
+    buildAugmentedManifest mutationCoverage (MutationManifest records) =
+      AugmentedManifest $
+        concatMap (annotateRecord mutationCoverage) records
 
-    moduleName MutationRecord {mutRecId = MutationId parts} = case parts of
-      (mn : _) -> mn
-      [] -> "Unknown"
+    annotateRecord mutationCoverage rec =
+      let annotated =
+            rec
+              { mutRecCoveringTests =
+                  Just $
+                    Set.toList $
+                      Map.findWithDefault Set.empty (mutRecId rec) mutationCoverage
+              }
+       in case fromMutationRecord annotated of
+            Nothing -> []
+            Just r -> [r]
 
-    writeModuleCoverage mutationCoverage manifestDir (mn, records) = do
-      let annotated = map (annotateCoverage mutationCoverage) records
-      writeCoverageFile manifestDir mn (MutationManifest annotated)
+-- | Resolve the augmented manifest directory from settings,
+-- falling back to the current working directory.
+resolveAugmentedManifestDir :: Settings -> IO (Path Abs Dir)
+resolveAugmentedManifestDir settings =
+  maybe getCurrentDir pure (settingMutationAugmentedManifestDir settings)
 
-    annotateCoverage mutationCoverage rec =
-      rec
-        { mutRecCoveringTests =
-            Just $
-              Set.toList $
-                Map.findWithDefault Set.empty (mutRecId rec) mutationCoverage
-        }
-
--- | Run the spec once per mutation in the manifest directories, in-process.
+-- | Parent process: read @manifest-augmented.json@ and spawn one child
+-- subprocess per mutation.
 --
--- For each mutation, if coverage data is available (via @.coverage.json@ files),
--- only the covering tests are run.  Otherwise the full suite is run.
+-- The child receives @--mutation <dir> --mutation-one <id>
+-- --mutation-augmented-manifest-dir <dir>@ and exits 0 (survived) or
+-- non-zero (killed).
 --
 -- Prints @Killed: N@, @Survived: M@, and @Uncovered: K@ so the Nix report
 -- derivation can parse them.
 runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
-runMutationMode settings manifestDirs spec = do
-  MutationManifest records <- mconcat <$> mapM readManifestDir manifestDirs
-  MutationManifest coverageRecords <- mconcat <$> mapM readCoverageDir manifestDirs
-  let recordMap = Map.fromList [(mutRecId r, r) | r <- records]
-      -- Coverage records override the base records' coveringTests field.
-      coverageMap = Map.fromList [(mutRecId r, mutRecCoveringTests r) | r <- coverageRecords]
-      mutations = map mutRecId records
-  -- [check] The forest is built once and reused across mutations. Test bodies
-  -- (IO actions) are re-executed each run, so ifMutation's NOINLINE protects
-  -- them. However, any values computed via runIO during spec construction are
-  -- memoized and will not reflect the active mutation. If that causes incorrect
-  -- results, move execTestDefM inside runOne so the spec is re-evaluated per mutation.
-  specForest <- execTestDefM settings spec
+runMutationMode settings _manifestDirs _spec = do
+  augDir <- resolveAugmentedManifestDir settings
+  AugmentedManifest records <- readAugmentedManifestFile augDir
+  exe <- getExecutablePath
   (killed, survived, uncovered) <-
-    foldl (runOne recordMap coverageMap specForest) (pure (0 :: Int, 0 :: Int, 0 :: Int)) mutations
+    foldl (runOne exe augDir) (pure (0 :: Int, 0 :: Int, 0 :: Int)) records
   putStrLn $ "Killed: " ++ show killed
   putStrLn $ "Survived: " ++ show survived
   putStrLn $ "Uncovered: " ++ show uncovered
   where
-    mutationSettings = settings {settingThreads = Synchronous}
-
-    -- Run @forest@ with @mid@ active. Returns True if the mutation was killed
-    -- (test failure or exception), False if it survived.
-    -- Async exceptions are re-thrown; all synchronous exceptions count as kills.
-    -- A major GC is performed after each run to reclaim memory between mutations.
-    runMutation forest mid = do
-      killed' <-
-        bracket_ (setActiveMutation (Just mid)) (setActiveMutation Nothing) $
-          catches
-            ( do
-                timedResult <- runSpecForestSynchronously mutationSettings forest
-                pure (shouldExitFail mutationSettings (timedValue timedResult))
-            )
-            [ Handler (\e -> throwIO (e :: SomeAsyncException)),
-              Handler
-                ( \e -> do
-                    hPutStrLn stderr $ "mutation: exception during test run: " ++ show (e :: SomeException)
-                    pure True
-                )
-            ]
-      performGC
-      pure killed'
-
-    runOne recordMap coverageMap specForest accIO mid = do
+    runOne exe augDir accIO record = do
       (killed, survived, uncovered) <- accIO
-      hPutStrLn stderr $ formatMutationLog mid (Map.lookup mid recordMap)
-      case Map.lookup mid coverageMap of
-        -- No coverage data: run the full suite.
-        Nothing -> do
-          killed' <- runMutation specForest mid
-          if killed' then pure (killed + 1, survived, uncovered) else pure (killed, survived + 1, uncovered)
-        -- Coverage data present but empty: mutation is uncovered.
-        Just (Just []) ->
-          pure (killed, survived, uncovered + 1)
-        -- Coverage data with tests: run only the covering tests.
-        Just (Just coveringTests) -> do
-          let trie = testIdTrieFromList coveringTests
-              filtered = filterTestForestByTrie trie specForest
-          killed' <- runMutation filtered mid
-          if killed' then pure (killed + 1, survived, uncovered) else pure (killed, survived + 1, uncovered)
-        -- Coverage field is Nothing (not yet collected): run the full suite.
-        Just Nothing -> do
-          killed' <- runMutation specForest mid
-          if killed' then pure (killed + 1, survived, uncovered) else pure (killed, survived + 1, uncovered)
+      let mid = augmentedMutationRecordId record
+      hPutStrLn stderr $ formatMutationLog mid (Just (toMutationRecord record))
+      case augmentedMutationRecordCoveringTests record of
+        [] -> pure (killed, survived, uncovered + 1)
+        _ -> do
+          let rtsArgs = case settingMutationChildMemLimit settings of
+                Nothing -> []
+                Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
+              args =
+                [ "--mutation",
+                  fromAbsDir augDir,
+                  "--mutation-one",
+                  renderMutationId mid,
+                  "--mutation-augmented-manifest-dir",
+                  fromAbsDir augDir
+                ]
+                  ++ rtsArgs
+          exitCode <- runProcess (proc exe args)
+          case exitCode of
+            ExitSuccess -> pure (killed, survived + 1, uncovered)
+            ExitFailure _ -> pure (killed + 1, survived, uncovered)
+
+-- | Convert an 'AugmentedMutationRecord' back to a 'MutationRecord' for
+-- display purposes.
+toMutationRecord :: AugmentedMutationRecord -> MutationRecord
+toMutationRecord AugmentedMutationRecord {augmentedMutationRecordId, augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter, augmentedMutationRecordCoveringTests} =
+  MutationRecord
+    { mutRecId = augmentedMutationRecordId,
+      mutRecOperator = augmentedMutationRecordOperator,
+      mutRecOriginal = augmentedMutationRecordOriginal,
+      mutRecReplacement = augmentedMutationRecordReplacement,
+      mutRecSourceFile = augmentedMutationRecordSourceFile,
+      mutRecSourceLine = augmentedMutationRecordSourceLine,
+      mutRecMutatedLine = augmentedMutationRecordMutatedLine,
+      mutRecContextBefore = augmentedMutationRecordContextBefore,
+      mutRecContextAfter = augmentedMutationRecordContextAfter,
+      mutRecCoveringTests = Just augmentedMutationRecordCoveringTests
+    }
+
+-- | Child process: run only the tests covering a single mutation and exit
+-- with the appropriate exit code.
+runSingleMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
+runSingleMutationMode settings _manifestDirs spec = do
+  mid <- case settingMutationOne settings >>= parseMutationId of
+    Nothing -> fail "runSingleMutationMode: no valid --mutation-one id"
+    Just m -> pure m
+  augDir <- resolveAugmentedManifestDir settings
+  augmented <- readAugmentedManifestFile augDir
+  specForest <- execTestDefM settings spec
+  let coveringTests =
+        maybe
+          []
+          augmentedMutationRecordCoveringTests
+          (lookupAugmentedMutationRecord mid augmented)
+      forest = case coveringTests of
+        [] -> specForest
+        ts -> filterTestForestByTrie (testIdTrieFromList ts) specForest
+  setActiveMutation (Just mid)
+  timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous}) forest
+  setActiveMutation Nothing
+  if shouldExitFail settings (timedValue timedResult)
+    then exitWith (ExitFailure 1)
+    else exitSuccess
 
 formatMutationLog :: MutationId -> Maybe MutationRecord -> String
 formatMutationLog (MutationId parts) mRec =

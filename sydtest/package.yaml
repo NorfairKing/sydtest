@@ -46,6 +46,7 @@ library:
     - svg-builder
     - sydtest-mutation-runtime
     - text
+    - typed-process
     - vector
   when:
     - condition: 'os(windows)'

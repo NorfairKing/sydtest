@@ -20,6 +20,7 @@ source-repository head
 
 library
   exposed-modules:
+      Test.Syd.Mutation.AugmentedManifest
       Test.Syd.Mutation.Manifest
       Test.Syd.Mutation.Runtime
       Test.Syd.Mutation.TestId

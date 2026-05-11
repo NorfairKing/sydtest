@@ -65,7 +65,7 @@ let
             "$exe" +RTS -M4g -RTS ${coverageFlags}
             echo "mutation-nix: running mutations"
             mkdir -p $report
-            "$exe" +RTS -M4g -RTS ${mutationFlags} | tee $report/report.txt
+            "$exe" ${mutationFlags} --mutation-child-mem-limit 4g | tee $report/report.txt
           '';
           postCheck = "";
         })).overrideAttrs (old: {

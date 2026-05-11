@@ -28,7 +28,9 @@ tests:
     - QuickCheck
     - genvalidity
     - genvalidity-sydtest
+    - genvalidity-sydtest-aeson
     - sydtest
     - sydtest-mutation
+    - sydtest-mutation-runtime
     - text
     - validity-text

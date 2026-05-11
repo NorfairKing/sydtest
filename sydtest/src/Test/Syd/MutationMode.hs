@@ -3,6 +3,7 @@
 
 module Test.Syd.MutationMode (runMutationMode, runCoverageMode, formatMutationLog) where
 
+import Control.Exception (Handler (..), SomeAsyncException, SomeException, bracket_, catches, throwIO)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -128,18 +129,32 @@ runMutationMode settings manifestDirs spec = do
   where
     mutationSettings = settings {settingThreads = Synchronous}
 
+    -- Run @forest@ with @mid@ active. Returns True if the mutation was killed
+    -- (test failure or exception), False if it survived.
+    -- Async exceptions are re-thrown; all synchronous exceptions count as kills.
+    runMutation forest mid =
+      bracket_ (setActiveMutation (Just mid)) (setActiveMutation Nothing) $
+        catches
+          ( do
+              timedResult <- runSpecForestSynchronously mutationSettings forest
+              pure (shouldExitFail mutationSettings (timedValue timedResult))
+          )
+          [ Handler (\e -> throwIO (e :: SomeAsyncException)),
+            Handler
+              ( \e -> do
+                  hPutStrLn stderr $ "mutation: exception during test run: " ++ show (e :: SomeException)
+                  pure True
+              )
+          ]
+
     runOne recordMap coverageMap specForest accIO mid = do
       (killed, survived, uncovered) <- accIO
       hPutStrLn stderr $ formatMutationLog mid (Map.lookup mid recordMap)
       case Map.lookup mid coverageMap of
         -- No coverage data: run the full suite.
         Nothing -> do
-          setActiveMutation (Just mid)
-          timedResult <- runSpecForestSynchronously mutationSettings specForest
-          setActiveMutation Nothing
-          if shouldExitFail mutationSettings (timedValue timedResult)
-            then pure (killed + 1, survived, uncovered)
-            else pure (killed, survived + 1, uncovered)
+          killed' <- runMutation specForest mid
+          if killed' then pure (killed + 1, survived, uncovered) else pure (killed, survived + 1, uncovered)
         -- Coverage data present but empty: mutation is uncovered.
         Just (Just []) ->
           pure (killed, survived, uncovered + 1)
@@ -147,20 +162,12 @@ runMutationMode settings manifestDirs spec = do
         Just (Just coveringTests) -> do
           let trie = testIdTrieFromList coveringTests
               filtered = filterTestForestByTrie trie specForest
-          setActiveMutation (Just mid)
-          timedResult <- runSpecForestSynchronously mutationSettings filtered
-          setActiveMutation Nothing
-          if shouldExitFail mutationSettings (timedValue timedResult)
-            then pure (killed + 1, survived, uncovered)
-            else pure (killed, survived + 1, uncovered)
+          killed' <- runMutation filtered mid
+          if killed' then pure (killed + 1, survived, uncovered) else pure (killed, survived + 1, uncovered)
         -- Coverage field is Nothing (not yet collected): run the full suite.
         Just Nothing -> do
-          setActiveMutation (Just mid)
-          timedResult <- runSpecForestSynchronously mutationSettings specForest
-          setActiveMutation Nothing
-          if shouldExitFail mutationSettings (timedValue timedResult)
-            then pure (killed + 1, survived, uncovered)
-            else pure (killed, survived + 1, uncovered)
+          killed' <- runMutation specForest mid
+          if killed' then pure (killed + 1, survived, uncovered) else pure (killed, survived + 1, uncovered)
 
 formatMutationLog :: MutationId -> Maybe MutationRecord -> String
 formatMutationLog (MutationId parts) mRec =

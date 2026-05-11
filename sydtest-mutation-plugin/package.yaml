@@ -15,12 +15,7 @@ library:
   - Test.Syd.Mutation.Plugin
   - Test.Syd.Mutation.Plugin.Instrument
   - Test.Syd.Mutation.Plugin.Operator.AddToSub
-  - Test.Syd.Mutation.Plugin.Operator.CmpEqToNeq
-  - Test.Syd.Mutation.Plugin.Operator.CmpGtToGte
-  - Test.Syd.Mutation.Plugin.Operator.CmpGteToGt
-  - Test.Syd.Mutation.Plugin.Operator.CmpLtToLte
-  - Test.Syd.Mutation.Plugin.Operator.CmpLteToLt
-  - Test.Syd.Mutation.Plugin.Operator.CmpNeqToEq
+  - Test.Syd.Mutation.Plugin.Operator.Cmp
   - Test.Syd.Mutation.Plugin.Operator.DivToMul
   - Test.Syd.Mutation.Plugin.Operator.IntLit1To0
   - Test.Syd.Mutation.Plugin.Operator.IntLitNTo0

@@ -4,6 +4,7 @@
 module Test.Syd.Mutation.Plugin.Operator.AddToSub (theOperator) where
 
 import Control.Monad.Reader (ask)
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe (fromMaybe)
 import GHC
 import GHC.Utils.Panic (panic)
@@ -26,9 +27,9 @@ action ::
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
-  InstrM (Type, LHsExpr GhcTc, String, String)
+  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
 action l op r = do
   InstrumentEnv {instrRdrEnv} <- ask
   repl <- liftTcM $ mkOpReplacement instrRdrEnv l op r "-"
   let ty = fromMaybe (panic "AddToSub: no type on left operand") (lhsExprType l)
-  pure (ty, repl, "+", "-")
+  pure ((ty, repl, "+", "-") :| [])

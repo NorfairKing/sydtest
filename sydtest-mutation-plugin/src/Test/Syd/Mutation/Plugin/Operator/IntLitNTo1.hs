@@ -2,6 +2,7 @@
 
 module Test.Syd.Mutation.Plugin.Operator.IntLitNTo1 (theOperator) where
 
+import Data.List.NonEmpty (NonEmpty (..))
 import GHC
 import GHC.Types.SourceText (il_value)
 import Test.Syd.Mutation.Plugin.Instrument (MutationOperator (..))
@@ -15,6 +16,6 @@ theOperator =
       operatorMatch = \case
         (L _ (HsOverLit _ (OverLit oltc@(OverLitTc {ol_type = ty}) (HsIntegral il))))
           | il_value il /= 1 ->
-              Just (pure (ty, mkIntLitReplacement 1 oltc, show (il_value il), "1"))
+              Just (pure ((ty, mkIntLitReplacement 1 oltc, show (il_value il), "1") :| []))
         _ -> Nothing
     }

@@ -13,12 +13,7 @@ module Test.Syd.Mutation.Plugin.Operators (allOperators) where
 
 import Test.Syd.Mutation.Plugin.Instrument (MutationOperator)
 import qualified Test.Syd.Mutation.Plugin.Operator.AddToSub
-import qualified Test.Syd.Mutation.Plugin.Operator.CmpEqToNeq
-import qualified Test.Syd.Mutation.Plugin.Operator.CmpGtToGte
-import qualified Test.Syd.Mutation.Plugin.Operator.CmpGteToGt
-import qualified Test.Syd.Mutation.Plugin.Operator.CmpLtToLte
-import qualified Test.Syd.Mutation.Plugin.Operator.CmpLteToLt
-import qualified Test.Syd.Mutation.Plugin.Operator.CmpNeqToEq
+import qualified Test.Syd.Mutation.Plugin.Operator.Cmp
 import qualified Test.Syd.Mutation.Plugin.Operator.DivToMul
 import qualified Test.Syd.Mutation.Plugin.Operator.IntLit1To0
 import qualified Test.Syd.Mutation.Plugin.Operator.IntLitNTo0

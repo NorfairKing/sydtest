@@ -16,6 +16,7 @@ where
 import Control.Monad (foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
+import Data.List.NonEmpty (NonEmpty (..))
 import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
@@ -47,8 +48,10 @@ data MutationOperator = MutationOperator
     -- | @Just action@ if this expression is a mutation candidate, @Nothing@ otherwise.
     -- The action runs in 'InstrM' so it can look up replacement operator ids via
     -- 'TcM' when needed (e.g. swapping @(+)@ for @(-)@).
-    -- The action returns @(ty, mutated, originalStr, replacementStr)@.
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (Type, LHsExpr GhcTc, String, String))
+    -- The action returns a list of @(ty, mutated, originalStr, replacementStr)@ tuples,
+    -- one per distinct mutation to generate at this site.  Each gets its own 'MutationId'
+    -- and is wrapped independently as a nested 'ifMutation' call.
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String)))
   }
 
 -- ---------------------------------------------------------------------------
@@ -242,9 +245,16 @@ tryMutateWith operators le =
     applyOperator expr op = case operatorMatch op expr of
       Nothing -> pure expr
       Just action -> do
-        (ty, mutated, origStr, replStr) <- action
-        mid <- recordMutation expr (operatorName op) origStr replStr
-        wrapWithIfMutation ty mid mutated expr
+        alts <- action
+        applyAlts (operatorName op) alts expr
+
+    -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
+    applyAlts opName ((ty, mutated, origStr, replStr) :| rest) original = do
+      mid <- recordMutation original opName origStr replStr
+      inner <- case rest of
+        [] -> pure original
+        (a : as) -> applyAlts opName (a :| as) original
+      wrapWithIfMutation ty mid mutated inner
 
 -- | Record one mutation site and return its 'MutationId'.
 recordMutation ::

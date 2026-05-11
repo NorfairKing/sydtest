@@ -2,6 +2,7 @@
 
 module Test.Syd.Mutation.Plugin.Operator.IntLitNegate (theOperator) where
 
+import Data.List.NonEmpty (NonEmpty (..))
 import GHC
 import GHC.Types.SourceText (il_value)
 import Test.Syd.Mutation.Plugin.Instrument (MutationOperator (..))
@@ -17,6 +18,6 @@ theOperator =
           | il_value il /= 0 ->
               let n = il_value il
                   neg = negate n
-               in Just (pure (ty, mkIntLitReplacement neg oltc, show n, show neg))
+               in Just (pure ((ty, mkIntLitReplacement neg oltc, show n, show neg) :| []))
         _ -> Nothing
     }

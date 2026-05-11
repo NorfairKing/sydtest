@@ -3,7 +3,7 @@
 
 module Test.Syd.MutationMode (runMutationMode, runCoverageMode, formatMutationLog) where
 
-import Control.Exception (AsyncException (..), Handler (..), SomeAsyncException, SomeException, bracket_, catches, throwIO)
+import Control.Exception (Handler (..), SomeAsyncException, SomeException, bracket_, catches, throwIO)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -142,14 +142,7 @@ runMutationMode settings manifestDirs spec = do
                 timedResult <- runSpecForestSynchronously mutationSettings forest
                 pure (shouldExitFail mutationSettings (timedValue timedResult))
             )
-            [ -- HeapOverflow means the mutation caused runaway allocation; count as killed.
-              Handler
-                ( \e -> case (e :: AsyncException) of
-                    HeapOverflow -> do hPutStrLn stderr "mutation: heap overflow"; pure True
-                    _ -> throwIO e
-                ),
-              -- Re-throw all other async exceptions (ThreadKilled, UserInterrupt, etc.).
-              Handler (\e -> throwIO (e :: SomeAsyncException)),
+            [ Handler (\e -> throwIO (e :: SomeAsyncException)),
               Handler
                 ( \e -> do
                     hPutStrLn stderr $ "mutation: exception during test run: " ++ show (e :: SomeException)

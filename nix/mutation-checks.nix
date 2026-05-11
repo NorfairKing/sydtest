@@ -35,6 +35,7 @@ let
           libraryPackages));
       manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
       mutationFlags = pkgs.lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests;
+      coverageFlags = pkgs.lib.concatMapStringsSep " " (m: "--mutation-coverage \"${m}\"") manifests;
       # Run the test suite in mutation mode inside the Cabal build's checkPhase,
       # where the working directory contains test_resources/ and other data files.
       # The report is written to the 'report' output so assertMutationScore can read it.
@@ -43,8 +44,10 @@ let
           (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${testPackage}))
         (_old: {
           checkPhase = ''
-            echo "mutation-nix: running mutations from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"
             exe=$(find dist -name "${testExecutableName}" -type f | head -1)
+            echo "mutation-nix: collecting per-test coverage from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"
+            "$exe" ${coverageFlags}
+            echo "mutation-nix: running mutations from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"
             mkdir -p $report
             "$exe" ${mutationFlags} | tee $report/report.txt
           '';

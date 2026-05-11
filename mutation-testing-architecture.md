@@ -9,6 +9,12 @@ The implementation uses a **GHC plugin** to compile all mutations into the
 binary at once and **sydtest** as the test runner. Everything runs **inside the
 sydtest process** — there are no separate runner or coverage processes.
 
+The runner operates in two phases:
+1. **Coverage phase** (`--mutation-coverage <dir>`): runs each test in isolation
+   to record which mutation sites it reaches; writes `<Module>.coverage.json`.
+2. **Mutation phase** (`--mutation <dir>`): for each mutation, runs only the
+   covering tests (or the full suite if no coverage data is available).
+
 ---
 
 ## Core Concepts
@@ -72,10 +78,12 @@ sydtest-mutation-plugin (compile time)
 ## Packages
 
 ```
-sydtest-mutation-runtime/   — MutationId, activeMutation IORef, ifMutation
+sydtest-mutation-runtime/   — MutationId, activeMutation IORef, ifMutation, coverageSlot
+                              TestId, renderTestId, parseTestIdFilterArg
 sydtest-mutation-plugin/    — GHC plugin that instruments source, emits manifest
-sydtest-mutation/           — TestId, trie-based filtering, getTestIds, runFilteredForest
-sydtest/                    — runMutationMode (wired into sydTest via --mutation flag)
+sydtest-mutation/           — trie-based filtering, getTestIds, runFilteredForest
+sydtest/                    — runCoverageMode, runMutationMode (--mutation-coverage / --mutation)
+                              TestIdTrie, flattenTestForestWithIds, filterTestForestByTrie
 sydtest-mutation-example/   — example package demonstrating the plugin and runner
 ```
 
@@ -94,26 +102,37 @@ The user's test suite is compiled with:
 
 Output: compiled test binary + manifest file.
 
-### Step 2 — Mutation testing
-
-The user runs:
+### Step 2 — Coverage phase (optional but recommended)
 
 ```
-./test-binary --mutation /path/to/manifest
+./test-binary --mutation-coverage /path/to/manifest-dir
 ```
 
-`sydTest` detects `settingMutation = Just manifestPath` and calls
-`runMutationMode` instead of the normal test runner.
+`runCoverageMode`:
+1. Builds the `TestForest` once.
+2. For each test (identified by `TestId`), filters the forest to that test and
+   runs it with `coverageSlot` installed so `ifMutation` records which
+   `MutationId`s are reached.
+3. Inverts the `Map TestId (Set MutationId)` to `Map MutationId (Set TestId)`.
+4. Groups records by module, writes `<Module>.coverage.json` alongside the
+   existing manifest files.
+
+### Step 3 — Mutation testing
+
+```
+./test-binary --mutation /path/to/manifest-dir
+```
+
+`sydTest` detects non-empty `settingMutation` and calls `runMutationMode`.
 
 `runMutationMode`:
-1. Reads the manifest (one `MutationId` per line, tab-separated fields).
-2. Builds the `TestForest` once from the spec (via `execTestDefM`).
-3. For each `MutationId` in the manifest:
-   a. Calls `setActiveMutation (Just mid)`.
-   b. Runs the full suite synchronously with `runSpecForestSynchronously`.
-   c. Calls `setActiveMutation Nothing`.
-   d. Records killed (any test failed) or survived (all passed).
-4. Prints `Killed: N` and `Survived: M` to stdout.
+1. Reads all `*.json` manifests and `*.coverage.json` coverage files from each dir.
+2. Builds the `TestForest` once.
+3. For each `MutationId`:
+   - **No coverage data**: runs the full suite.
+   - **`covering_tests: []`**: mutation is uncovered; counts as `Uncovered`.
+   - **`covering_tests: [t1, t2, ...]`**: runs only those tests, filtered via `TestIdTrie`.
+4. Prints `Killed: N`, `Survived: M`, and `Uncovered: K` to stdout.
 
 The Nix check derivation fails if `Survived > 0`.
 
@@ -152,25 +171,41 @@ renderMutationId :: MutationId  -> String
 setActiveMutation :: Maybe MutationId -> IO ()
 setActiveMutation = writeIORef activeMutation
 
+-- Process-global slot for per-test coverage collection.
+{-# NOINLINE coverageSlot #-}
+coverageSlot :: IORef (Maybe (IORef (Set MutationId)))
+
+withCoverageSlot :: IORef (Set MutationId) -> IO a -> IO a
+
 -- Emitted at every mutation site by the plugin.
 {-# NOINLINE ifMutation #-}
 ifMutation :: MutationId -> a -> a -> a
 ifMutation mid mutated original =
   unsafePerformIO $ do
     active <- readIORef activeMutation
-    pure $ if active == Just mid then mutated else original
+    case active of
+      Just aid -> pure $ if aid == mid then mutated else original
+      Nothing -> do
+        mSlot <- readIORef coverageSlot
+        forM_ mSlot $ \ref -> modifyIORef' ref (Set.insert mid)
+        pure original
 ```
 
 `unsafePerformIO` in `ifMutation` is safe because:
-- `activeMutation` is written by the runner before each test run, and the suite
-  runs to completion before it is written again.
-- `NOINLINE` prevents GHC from floating the read out of the call site or
-  caching a stale result.
+- `activeMutation` and `coverageSlot` are written by the runner; the suite runs
+  to completion (synchronously) before either is written again.
+- `NOINLINE` prevents GHC from floating the reads out of the call site.
 
-The `MutationId` string format is slash-separated for the env-var path and
-tab-separated in the manifest file. `parseMutationId` accepts the
-slash-separated form (used after converting tabs to slashes in
-`runMutationMode`).
+### `Test.Syd.Mutation.TestId`
+
+```haskell
+-- A stable identifier for a single test.
+-- Each step is (description text, per-description sibling index).
+newtype TestId = TestId [(Text, Int)]
+
+renderTestId         :: TestId -> Text
+parseTestIdFilterArg :: Text   -> Maybe TestId
+```
 
 ---
 
@@ -213,16 +248,13 @@ Contains the AST walking and mutation-site instrumentation logic used by
 Library providing test-id utilities and filtered-forest running. These are used
 by the mutation runner and can also be used for other selective-execution needs.
 
-### `Test.Syd.Mutation`
+### `Test.Syd.Mutation.Forest` (in `sydtest`)
+
+Lives in `sydtest` (not `sydtest-mutation`) so it can directly reference
+`SpecDefForest`/`SpecDefTree` without a dependency cycle.
+Re-exported from `Test.Syd.Mutation`.
 
 ```haskell
--- A stable identifier for a single test.
--- Each step is (description text, per-description sibling index).
-newtype TestId = TestId [(Text, Int)]
-
-renderTestId       :: TestId -> Text
-parseTestIdFilterArg :: Text -> Maybe TestId
-
 -- Trie over TestId paths, used for efficient filtering.
 data TestIdTrie = TrieLeaf | TrieNode (Map (Text, Int) TestIdTrie)
 
@@ -231,7 +263,11 @@ testIdTrieFromList :: [TestId]   -> TestIdTrie
 
 flattenTestForestWithIds :: SpecDefForest '[] () result -> [(TestId, result)]
 filterTestForestByTrie   :: TestIdTrie -> TestForest '[] () -> TestForest '[] ()
+```
 
+### `Test.Syd.Mutation`
+
+```haskell
 -- Build forest + full trie in one pass.
 execTestDefM' :: Settings -> Spec -> IO (TestForest '[] (), TestIdTrie)
 
@@ -246,30 +282,42 @@ runFilteredForest :: Settings -> TestForest '[] () -> TestIdTrie -> IO Bool
 
 ## Sydtest integration
 
-### `--mutation` flag
+### CLI flags
 
 `Settings` in `Test.Syd.OptParse` gains:
 
 ```haskell
-settingMutation :: Maybe FilePath
+settingMutation         :: ![Path Abs Dir]   -- --mutation <dir>
+settingMutationCoverage :: ![Path Abs Dir]   -- --mutation-coverage <dir>
 ```
 
-When set, `sydTest` calls `runMutationMode` instead of the normal runner.
+When `settingMutationCoverage` is non-empty, `sydTest` calls `runCoverageMode`.
+When `settingMutation` is non-empty (and coverage is empty), it calls `runMutationMode`.
 
-### `runMutationMode` (`Test.Syd.MutationMode`)
+### `runCoverageMode` / `runMutationMode` (`Test.Syd.MutationMode`)
 
 ```haskell
-runMutationMode :: Settings -> FilePath -> Spec -> IO ()
+runCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
+runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 ```
 
-Reads the manifest, builds the spec forest once, iterates over mutations
-in-process. The forest is built once and the same `TestForest` value is reused
-across all mutations. Test bodies (`IO` actions) are re-executed each run, so
-`ifMutation`'s `NOINLINE` protects them. Values computed via `runIO` during
-spec construction are memoised and will not reflect the active mutation.
+Both build the spec forest once. All runs use `settingThreads = Synchronous`
+because `activeMutation` and `coverageSlot` are process-global IORefs.
 
-All mutation runs use `settingThreads = Synchronous` regardless of the global
-thread setting, because `activeMutation` is a process-global IORef.
+`runMutationMode` reads both `*.json` and `*.coverage.json` files. It outputs
+three lines: `Killed: N`, `Survived: M`, `Uncovered: K`.
+
+### Manifest files
+
+The plugin writes `<Module>.json` to the manifest directory. Each file is a
+JSON array of `MutationRecord` objects.
+
+The coverage phase writes `<Module>.coverage.json` alongside, with the same
+structure but the `covering_tests` field populated (a JSON array of
+`renderTestId`-encoded `TestId`s).
+
+`readManifestDir` reads only `*.json` (excluding `*.coverage.json`).
+`readCoverageDir` reads only `*.coverage.json`.
 
 ---
 
@@ -299,7 +347,8 @@ sydtest-mutation-runtime/
   package.yaml
   src/
     Test/Syd/Mutation/
-      Runtime.hs
+      Runtime.hs    — MutationId, activeMutation, ifMutation, coverageSlot
+      TestId.hs     — TestId, renderTestId, parseTestIdFilterArg
 sydtest-mutation-plugin/
   package.yaml
   src/
@@ -312,12 +361,14 @@ sydtest-mutation/
   package.yaml
   src/
     Test/Syd/
-      Mutation.hs
+      Mutation.hs   — re-exports Forest + TestId; execTestDefM', getTestIds, runFilteredForest
 sydtest/
   src/
     Test/Syd/
-      MutationMode.hs   — runMutationMode
-      OptParse.hs       — settingMutation, --mutation flag
+      Mutation/
+        Forest.hs     — TestIdTrie, flattenTestForestWithIds, filterTestForestByTrie
+      MutationMode.hs — runCoverageMode, runMutationMode
+      OptParse.hs     — settingMutation, settingMutationCoverage, --mutation, --mutation-coverage
 sydtest-mutation-example/
   src/
     Example/
@@ -341,11 +392,6 @@ stack.yaml
 ---
 
 ## Open Questions / Future Work
-
-- **Per-test coverage:** the current runner activates each mutation and runs
-  the full suite. A coverage phase (running each test in isolation to record
-  which mutation sites it reaches) would allow only the covering tests to be
-  run per mutation, dramatically reducing runtime for large suites.
 
 - **Parallelism:** because `activeMutation` is a process-global IORef, tests
   must run serially within a single process. Parallelism could be achieved by

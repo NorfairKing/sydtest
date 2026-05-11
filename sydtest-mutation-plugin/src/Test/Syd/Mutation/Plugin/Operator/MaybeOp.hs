@@ -2,7 +2,6 @@
 
 module Test.Syd.Mutation.Plugin.Operator.MaybeOp (theOperator) where
 
-import Data.List.NonEmpty (NonEmpty (..))
 import GHC
 import GHC.Builtin.Types (nothingDataCon)
 import GHC.Hs.Syn.Type (lhsExprType)
@@ -32,11 +31,11 @@ funOccName = \case
 
 action ::
   LHsExpr GhcTc ->
-  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
+  InstrM [(Type, LHsExpr GhcTc, String, String)]
 action le =
   -- lhsExprType gives Maybe a, which is the type for the ifMutation wrapper.
   -- nlHsDataCon for nothingDataCon produces Nothing; the desugarer handles
   -- the polymorphic type instantiation via the surrounding type context.
   let mayTy = lhsExprType le
       nothingExpr = nlHsDataCon nothingDataCon
-   in pure ((mayTy, nothingExpr, "Just e", "Nothing") :| [])
+   in pure [(mayTy, nothingExpr, "Just e", "Nothing")]

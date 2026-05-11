@@ -4,7 +4,6 @@ module Test.Syd.Mutation.Plugin.Operator.Negate (theOperator) where
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
-import Data.List.NonEmpty (NonEmpty (..))
 import GHC
 import GHC.Builtin.Types (boolTy)
 import GHC.Hs.Syn.Type (lhsExprType)
@@ -34,7 +33,7 @@ theOperator =
 
 action ::
   LHsExpr GhcTc ->
-  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
+  InstrM [(Type, LHsExpr GhcTc, String, String)]
 action le = do
   InstrumentEnv {instrRdrEnv} <- ask
   notId <- liftTcM $ case lookupOccEnv instrRdrEnv (mkVarOcc "not") of
@@ -42,4 +41,4 @@ action le = do
     _ -> liftIO $ ioError $ userError "mutation/Negate: 'not' not in scope"
   let notVar = noLocA (HsVar NoExtField (noLocA notId))
       negated = mkHsApp notVar le
-  pure ((boolTy, negated, "e", "not e") :| [])
+  pure [(boolTy, negated, "e", "not e")]

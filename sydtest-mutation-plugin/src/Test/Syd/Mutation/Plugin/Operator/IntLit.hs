@@ -2,8 +2,6 @@
 
 module Test.Syd.Mutation.Plugin.Operator.IntLit (theOperator) where
 
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE
 import GHC
 import GHC.Types.SourceText (il_value)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
@@ -24,8 +22,7 @@ action ::
   Type ->
   OverLitTc ->
   Integer ->
-  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
+  InstrM [(Type, LHsExpr GhcTc, String, String)]
 action ty oltc n =
   let candidates = filter (/= n) [0, 1, negate n]
-      repls = map (\r -> (ty, mkIntLitExpr r oltc, show n, show r)) candidates
-   in pure $ NE.fromList repls
+   in pure $ map (\r -> (ty, mkIntLitExpr r oltc, show n, show r)) candidates

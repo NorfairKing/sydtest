@@ -4,8 +4,6 @@
 module Test.Syd.Mutation.Plugin.Operator.Cmp (theOperator) where
 
 import Control.Monad.Reader (ask)
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE
 import GHC
 import GHC.Builtin.Types (boolTy)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), liftTcM)
@@ -32,15 +30,13 @@ action ::
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   String ->
-  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
+  InstrM [(Type, LHsExpr GhcTc, String, String)]
 action l op r origOcc = do
   InstrumentEnv {instrRdrEnv} <- ask
   let replacements = filter (/= origOcc) cmpOps
-  repls <-
-    mapM
-      ( \replOcc -> do
-          repl <- liftTcM $ mkOpReplacement instrRdrEnv l op r replOcc
-          pure (boolTy, repl, origOcc, replOcc)
-      )
-      replacements
-  pure $ NE.fromList repls
+  mapM
+    ( \replOcc -> do
+        repl <- liftTcM $ mkOpReplacement instrRdrEnv l op r replOcc
+        pure (boolTy, repl, origOcc, replOcc)
+    )
+    replacements

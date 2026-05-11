@@ -2,7 +2,6 @@
 
 module Test.Syd.Mutation.Plugin.Operator.ListLit (theOperator) where
 
-import Data.List.NonEmpty (NonEmpty (..))
 import GHC
 import GHC.Builtin.Types (mkListTy)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
@@ -23,7 +22,7 @@ action ::
   SrcSpanAnnA ->
   Type ->
   [LHsExpr GhcTc] ->
-  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
+  InstrM [(Type, LHsExpr GhcTc, String, String)]
 action ann elTy es =
   let listTy = mkListTy elTy
       n = length es
@@ -35,6 +34,4 @@ action ann elTy es =
         mkList []
           : mkList (drop 1 es)
           : [mkList (take (n - 1) es) | n > 2]
-   in pure $ case repls of
-        (x : xs) -> x :| xs
-        [] -> error "ListLit: no candidates"
+   in pure repls

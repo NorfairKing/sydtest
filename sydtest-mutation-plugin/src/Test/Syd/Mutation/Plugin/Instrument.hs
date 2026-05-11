@@ -16,7 +16,7 @@ where
 import Control.Monad (filterM, foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
-import Data.List.NonEmpty (NonEmpty (..), toList)
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe (isJust)
 import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
@@ -57,7 +57,7 @@ data MutationOperator = MutationOperator
     -- and is wrapped independently as a nested 'ifMutation' call.
     -- 'tryMutateWith' will validate each alternative via desugaring and silently drop
     -- any that produce diagnostics (e.g. overflowed literals).
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String)))
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [(Type, LHsExpr GhcTc, String, String)])
   }
 
 -- ---------------------------------------------------------------------------
@@ -256,7 +256,7 @@ applyOperator expr op = case operatorMatch op expr of
   Just action -> do
     alts <- action
     hscEnv <- liftTcM getTopEnv
-    validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) (toList alts)
+    validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) alts
     case validated of
       [] -> do
         liftTcM $

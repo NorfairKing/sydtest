@@ -32,7 +32,16 @@ plugin =
         pure
           hscEnv
             { hsc_dflags =
-                wopt_unset (wopt_unset (hsc_dflags hscEnv) Opt_WarnUnusedImports) Opt_WarnIncompletePatterns
+                foldl
+                  wopt_unset
+                  (hsc_dflags hscEnv)
+                  [ Opt_WarnUnusedImports,
+                    -- Guard instrumentation wraps conditions in ifMutation, making the
+                    -- exhaustiveness checker conservatively warn about patterns it can
+                    -- no longer prove complete.
+                    Opt_WarnIncompletePatterns,
+                    Opt_WarnIncompleteUniPatterns
+                  ]
             },
       pluginRecompile = impurePlugin
     }

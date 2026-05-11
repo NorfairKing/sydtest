@@ -62,10 +62,10 @@ let
             exe=$(find dist -name "${testExecutableName}" -type f | head -1)
             ${setupWritableManifests}
             echo "mutation-nix: collecting per-test coverage"
-            "$exe" ${coverageFlags}
+            "$exe" +RTS -M4g -RTS ${coverageFlags}
             echo "mutation-nix: running mutations"
             mkdir -p $report
-            "$exe" ${mutationFlags} | tee $report/report.txt
+            "$exe" +RTS -M4g -RTS ${mutationFlags} | tee $report/report.txt
           '';
           postCheck = "";
         })).overrideAttrs (old: {

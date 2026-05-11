@@ -28,13 +28,13 @@ stdenv.mkDerivation {
     echo "mutation-nix: collecting per-test coverage"
     (
       ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
-      ${lib.getExe' testExecutable testExecutableName} \
+      ${lib.getExe' testExecutable testExecutableName} +RTS -M4g -RTS \
         ${lib.concatImapStringsSep " " (i: _m: "--mutation-coverage \"$manifest_dir_${toString i}\"") manifests}
     )
     echo "mutation-nix: running mutations"
     (
       ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
-      ${lib.getExe' testExecutable testExecutableName} \
+      ${lib.getExe' testExecutable testExecutableName} +RTS -M4g -RTS \
         ${lib.concatImapStringsSep " " (i: _m: "--mutation \"$manifest_dir_${toString i}\"") manifests}
     ) | tee report.txt
   '';

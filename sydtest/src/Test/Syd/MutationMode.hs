@@ -12,6 +12,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import Path
 import System.IO (hPutStrLn, stderr)
+import System.Mem (performGC)
 import Test.Syd.Def
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, flattenTestForestWithIds, testIdTrieFromList)
 import Test.Syd.Mutation.Manifest
@@ -132,20 +133,24 @@ runMutationMode settings manifestDirs spec = do
     -- Run @forest@ with @mid@ active. Returns True if the mutation was killed
     -- (test failure or exception), False if it survived.
     -- Async exceptions are re-thrown; all synchronous exceptions count as kills.
-    runMutation forest mid =
-      bracket_ (setActiveMutation (Just mid)) (setActiveMutation Nothing) $
-        catches
-          ( do
-              timedResult <- runSpecForestSynchronously mutationSettings forest
-              pure (shouldExitFail mutationSettings (timedValue timedResult))
-          )
-          [ Handler (\e -> throwIO (e :: SomeAsyncException)),
-            Handler
-              ( \e -> do
-                  hPutStrLn stderr $ "mutation: exception during test run: " ++ show (e :: SomeException)
-                  pure True
-              )
-          ]
+    -- A major GC is performed after each run to reclaim memory between mutations.
+    runMutation forest mid = do
+      killed' <-
+        bracket_ (setActiveMutation (Just mid)) (setActiveMutation Nothing) $
+          catches
+            ( do
+                timedResult <- runSpecForestSynchronously mutationSettings forest
+                pure (shouldExitFail mutationSettings (timedValue timedResult))
+            )
+            [ Handler (\e -> throwIO (e :: SomeAsyncException)),
+              Handler
+                ( \e -> do
+                    hPutStrLn stderr $ "mutation: exception during test run: " ++ show (e :: SomeException)
+                    pure True
+                )
+            ]
+      performGC
+      pure killed'
 
     runOne recordMap coverageMap specForest accIO mid = do
       (killed, survived, uncovered) <- accIO

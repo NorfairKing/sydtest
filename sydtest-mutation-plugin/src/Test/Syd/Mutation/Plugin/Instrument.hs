@@ -25,7 +25,7 @@ import qualified Data.Text.Encoding as TE
 import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
-import GHC.Data.FastString (mkFastString, unpackFS)
+import GHC.Data.FastString (mkFastString)
 import GHC.HsToCore (deSugarExpr)
 import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
@@ -78,7 +78,9 @@ data InstrumentEnv = InstrumentEnv
     -- | DataCon for Test.Syd.Mutation.Runtime.MutationId, looked up once per module.
     instrMutationIdCon :: DataCon,
     -- | Operators to try at each expression site.
-    instrOperators :: [MutationOperator]
+    instrOperators :: [MutationOperator],
+    -- | Source file (relative path) and pre-read lines, read once per module.
+    instrSourceFile :: Maybe (Path Rel File, [T.Text])
   }
 
 type InstrM = WriterT [MutationRecord] (ReaderT InstrumentEnv TcM)
@@ -95,13 +97,21 @@ liftTcM = lift . lift
 runInstrument ::
   TcGblEnv ->
   [MutationOperator] ->
+  -- | Source file path for this module (used to read context lines once).
+  Maybe FilePath ->
   InstrM a ->
   TcM (a, [MutationRecord])
-runInstrument tcGblEnv operators action = do
+runInstrument tcGblEnv operators mSrcPath action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
   mutIdCon <- lookupRdrEnvDataCon rdrEnv "MutationId"
+  mSrcFile <- liftIO $ case mSrcPath >>= parseRelFile of
+    Nothing -> pure Nothing
+    Just relFile -> do
+      absFile <- resolveFile' (fromRelFile relFile)
+      mbs <- (Just <$> SB.readFile (fromAbsFile absFile)) `catch` ioErr
+      pure $ fmap (\bs -> (relFile, T.lines (TE.decodeUtf8Lenient bs))) mbs
   runReaderT
     (runWriterT action)
     InstrumentEnv
@@ -109,8 +119,12 @@ runInstrument tcGblEnv operators action = do
         instrRdrEnv = rdrEnv,
         instrIfMutationId = ifMutId,
         instrMutationIdCon = mutIdCon,
-        instrOperators = operators
+        instrOperators = operators,
+        instrSourceFile = mSrcFile
       }
+  where
+    ioErr :: IOException -> IO (Maybe SB.ByteString)
+    ioErr _ = pure Nothing
 
 -- | Look up a value Id from the module's GlobalRdrEnv by OccName.
 -- The name must be in scope via the injected import of Test.Syd.Mutation.Plugin.Runtime.
@@ -302,7 +316,7 @@ recordMutation ::
   String ->
   InstrM MutationId
 recordMutation le op origStr replStr = do
-  InstrumentEnv {instrModule} <- ask
+  InstrumentEnv {instrModule, instrSourceFile} <- ask
   let sp = getLocA le
   case sp of
     RealSrcSpan rss _ -> do
@@ -316,17 +330,22 @@ recordMutation le op origStr replStr = do
                 show (srcSpanStartCol rss),
                 show (srcSpanEndCol rss)
               ]
-      (srcLine, ctxBefore, ctxAfter) <-
-        liftTcM $
-          liftIO $ do
-            absFile <- resolveFile' (unpackFS (srcSpanFile rss))
-            readSourceContext absFile lineNum
+          (mSrcFile, srcLine, ctxBefore, ctxAfter) =
+            case instrSourceFile of
+              Nothing -> (Nothing, Nothing, [], [])
+              Just (relFile, ls) ->
+                let idx = lineNum - 1
+                    line = if idx >= 0 && idx < length ls then Just (ls !! idx) else Nothing
+                    before = reverse $ take 3 $ reverse $ take idx ls
+                    after = take 3 $ drop (idx + 1) ls
+                 in (Just relFile, line, before, after)
       tell
         [ MutationRecord
             { mutRecId = mid,
               mutRecOperator = op,
               mutRecOriginal = origStr,
               mutRecReplacement = replStr,
+              mutRecSourceFile = mSrcFile,
               mutRecSourceLine = srcLine,
               mutRecContextBefore = ctxBefore,
               mutRecContextAfter = ctxAfter
@@ -334,25 +353,6 @@ recordMutation le op origStr replStr = do
         ]
       pure mid
     UnhelpfulSpan _ -> pure (MutationId [])
-
--- | Read the source line at 'lineNum' (1-based) and up to 3 lines of context
--- on each side. Returns 'Nothing' for the source line if the file cannot be
--- read or the line number is out of range.
-readSourceContext :: Path Abs File -> Int -> IO (Maybe T.Text, [T.Text], [T.Text])
-readSourceContext path lineNum = do
-  mContents <- (Just <$> SB.readFile (fromAbsFile path)) `catch` ioErr
-  case mContents of
-    Nothing -> pure (Nothing, [], [])
-    Just bs ->
-      let ls = T.lines (TE.decodeUtf8Lenient bs)
-          idx = lineNum - 1
-          srcLine = if idx >= 0 && idx < length ls then Just (ls !! idx) else Nothing
-          ctxBefore = reverse $ take 3 $ reverse $ take idx ls
-          ctxAfter = take 3 $ drop (idx + 1) ls
-       in pure (srcLine, ctxBefore, ctxAfter)
-  where
-    ioErr :: IOException -> IO (Maybe SB.ByteString)
-    ioErr _ = pure Nothing
 
 -- ---------------------------------------------------------------------------
 -- Building the ifMutation call

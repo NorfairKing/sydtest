@@ -71,7 +71,7 @@ mutationTypeCheckAction ::
   ModSummary ->
   TcGblEnv ->
   TcM TcGblEnv
-mutationTypeCheckAction opts _ms tcGblEnv = do
+mutationTypeCheckAction opts ms tcGblEnv = do
   let mn = moduleNameString (moduleName (tcg_mod tcGblEnv))
   let exceptions = mapMaybe (stripPrefix "--exception=") opts
   let manifestDirOpt = mapMaybe (stripPrefix "--manifest=") opts
@@ -79,8 +79,9 @@ mutationTypeCheckAction opts _ms tcGblEnv = do
     then pure tcGblEnv
     else do
       liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
+      let mSrcPath = ml_hs_file (ms_location ms)
       (binds', mutations) <-
-        runInstrument tcGblEnv allOperators $
+        runInstrument tcGblEnv allOperators mSrcPath $
           instrumentModule (tcg_binds tcGblEnv)
       -- The manifest dir comes from --manifest= plugin opt, or from the
       -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path

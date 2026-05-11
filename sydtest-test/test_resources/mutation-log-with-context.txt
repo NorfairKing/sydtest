@@ -1,4 +1,4 @@
-Testing mutation ArithOp at Foo/Bar.hs:5:14-15:
+Testing mutation ArithOp at src/Foo/Bar.hs:5:14-15:
 @@ -3,4 +3,4 @@
  add :: Int -> Int -> Int
  add x y =

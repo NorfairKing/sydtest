@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Test.Syd.MutationModeSpec (spec) where
 
+import Path
 import Test.Syd
 import Test.Syd.Mutation.Manifest (MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
@@ -21,12 +23,13 @@ spec = do
           `shouldBe` "Testing mutation only-two/parts"
 
     describe "with record but no source context" $
-      it "shows expression-level diff" $
+      it "falls back to reconstructed path and expression-level diff" $
         formatMutationLog
           (MutationId ["Foo.Bar", "ArithOp", "42", "10", "12"])
           ( Just
               aRecord
-                { mutRecSourceLine = Nothing,
+                { mutRecSourceFile = Nothing,
+                  mutRecSourceLine = Nothing,
                   mutRecContextBefore = [],
                   mutRecContextAfter = []
                 }
@@ -38,7 +41,7 @@ spec = do
             ]
 
     describe "with full source context" $
-      it "produces git-diff style output" $
+      it "produces git-diff style output with real source path" $
         goldenStringFile "test_resources/mutation-log-with-context.txt" $
           pure $
             formatMutationLog
@@ -49,6 +52,7 @@ spec = do
                       mutRecOperator = "ArithOp",
                       mutRecOriginal = "+",
                       mutRecReplacement = "-",
+                      mutRecSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
                       mutRecSourceLine = Just "  result = x + y",
                       mutRecContextBefore =
                         [ "add :: Int -> Int -> Int",
@@ -67,6 +71,7 @@ aRecord =
       mutRecOperator = "ArithOp",
       mutRecOriginal = "(+)",
       mutRecReplacement = "(-)",
+      mutRecSourceFile = Nothing,
       mutRecSourceLine = Nothing,
       mutRecContextBefore = [],
       mutRecContextAfter = []

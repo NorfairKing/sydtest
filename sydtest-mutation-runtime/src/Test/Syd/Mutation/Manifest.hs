@@ -24,6 +24,8 @@ data MutationRecord = MutationRecord
     mutRecOperator :: String,
     mutRecOriginal :: String,
     mutRecReplacement :: String,
+    -- | Source file path relative to the project root, as reported by GHC.
+    mutRecSourceFile :: Maybe (Path Rel File),
     -- | Verbatim source line containing the mutated expression.
     mutRecSourceLine :: Maybe Text,
     -- | Up to 3 source lines immediately before the mutated line.
@@ -34,12 +36,13 @@ data MutationRecord = MutationRecord
   deriving (Show)
 
 instance ToJSON MutationRecord where
-  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter} =
+  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter} =
     object
       [ "id" .= parts,
         "operator" .= mutRecOperator,
         "original" .= mutRecOriginal,
         "replacement" .= mutRecReplacement,
+        "source_file" .= fmap fromRelFile mutRecSourceFile,
         "source_line" .= mutRecSourceLine,
         "context_before" .= mutRecContextBefore,
         "context_after" .= mutRecContextAfter
@@ -51,6 +54,12 @@ instance FromJSON MutationRecord where
     op <- o .: "operator"
     orig <- o .: "original"
     repl <- o .: "replacement"
+    mSrcFileStr <- o .:? "source_file"
+    srcFile <- case mSrcFileStr of
+      Nothing -> pure Nothing
+      Just s -> case parseRelFile s of
+        Nothing -> pure Nothing
+        Just p -> pure (Just p)
     srcLine <- o .:? "source_line"
     ctxBefore <- o .:? "context_before" .!= []
     ctxAfter <- o .:? "context_after" .!= []
@@ -60,6 +69,7 @@ instance FromJSON MutationRecord where
           mutRecOperator = op,
           mutRecOriginal = orig,
           mutRecReplacement = repl,
+          mutRecSourceFile = srcFile,
           mutRecSourceLine = srcLine,
           mutRecContextBefore = ctxBefore,
           mutRecContextAfter = ctxAfter

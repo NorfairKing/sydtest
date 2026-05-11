@@ -52,9 +52,11 @@ formatMutationLog :: MutationId -> Maybe MutationRecord -> String
 formatMutationLog (MutationId parts) mRec =
   case (parts, mRec) of
     ( [modName, op, lineStr, colStartStr, colEndStr],
-      Just MutationRecord {mutRecOriginal, mutRecReplacement, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter}
+      Just MutationRecord {mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter}
       ) ->
-        let filePath = moduleToFilePath modName
+        let filePath = case mutRecSourceFile of
+              Just p -> fromRelFile p
+              Nothing -> moduleToFilePath modName
             header = "Testing mutation " ++ op ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ ":"
          in case mutRecSourceLine of
               Nothing ->

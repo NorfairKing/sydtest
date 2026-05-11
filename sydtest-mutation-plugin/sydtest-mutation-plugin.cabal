@@ -25,6 +25,7 @@ library
       Test.Syd.Mutation.Plugin.Operator.Arith
       Test.Syd.Mutation.Plugin.Operator.BoolLit
       Test.Syd.Mutation.Plugin.Operator.Cmp
+      Test.Syd.Mutation.Plugin.Operator.CondFlip
       Test.Syd.Mutation.Plugin.Operator.IntLit
       Test.Syd.Mutation.Plugin.Operator.LogicOp
       Test.Syd.Mutation.Plugin.Operator.Negate

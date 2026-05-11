@@ -15,6 +15,7 @@ import Test.Syd.Mutation.Plugin.Instrument (MutationOperator)
 import qualified Test.Syd.Mutation.Plugin.Operator.Arith
 import qualified Test.Syd.Mutation.Plugin.Operator.BoolLit
 import qualified Test.Syd.Mutation.Plugin.Operator.Cmp
+import qualified Test.Syd.Mutation.Plugin.Operator.CondFlip
 import qualified Test.Syd.Mutation.Plugin.Operator.IntLit
 import qualified Test.Syd.Mutation.Plugin.Operator.LogicOp
 import qualified Test.Syd.Mutation.Plugin.Operator.Negate

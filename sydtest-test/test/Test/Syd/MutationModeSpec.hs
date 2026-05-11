@@ -62,7 +62,8 @@ spec = do
                         ],
                       mutRecContextAfter =
                         [ "  in result"
-                        ]
+                        ],
+                      mutRecCoveringTests = Nothing
                     }
               )
 
@@ -77,5 +78,6 @@ aRecord =
       mutRecSourceLine = Nothing,
       mutRecMutatedLine = Nothing,
       mutRecContextBefore = [],
-      mutRecContextAfter = []
+      mutRecContextAfter = [],
+      mutRecCoveringTests = Nothing
     }

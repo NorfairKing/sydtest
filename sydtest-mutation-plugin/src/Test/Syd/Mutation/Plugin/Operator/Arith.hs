@@ -6,9 +6,7 @@ module Test.Syd.Mutation.Plugin.Operator.Arith (theOperator) where
 import Control.Monad.Reader (ask)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe (fromMaybe)
 import GHC
-import GHC.Utils.Panic (panic)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), liftTcM)
 import Test.Syd.Mutation.Plugin.Operator.Util (lhsExprType, mkOpReplacement, opOccName)
 
@@ -20,8 +18,9 @@ theOperator =
       operatorMatch = \case
         (L _ (OpApp _ l op r))
           | Just occ <- opOccName op,
-            occ `elem` arithOps ->
-              Just (action l op r occ)
+            occ `elem` arithOps,
+            Just ty <- lhsExprType l ->
+              Just (action ty l op r occ)
         _ -> Nothing
     }
 
@@ -29,15 +28,15 @@ arithOps :: [String]
 arithOps = ["+", "-", "*", "/"]
 
 action ::
+  Type ->
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   String ->
   InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
-action l op r origOcc = do
+action ty l op r origOcc = do
   InstrumentEnv {instrRdrEnv} <- ask
-  let ty = fromMaybe (panic "Arith: no type on left operand") (lhsExprType l)
-      replacements = filter (/= origOcc) arithOps
+  let replacements = filter (/= origOcc) arithOps
   repls <-
     mapM
       ( \replOcc -> do

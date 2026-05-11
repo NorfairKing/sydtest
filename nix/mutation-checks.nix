@@ -39,7 +39,8 @@ let
       # where the working directory contains test_resources/ and other data files.
       # The report is written to the 'report' output so assertMutationScore can read it.
       report = ((pkgs.haskell.lib.overrideCabal
-        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${testPackage})
+        (pkgs.haskell.lib.dontBenchmark
+          (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${testPackage}))
         (_old: {
           checkPhase = ''
             echo "mutation-nix: running mutations from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"

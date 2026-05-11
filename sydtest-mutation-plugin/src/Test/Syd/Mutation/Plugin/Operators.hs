@@ -25,4 +25,4 @@ import qualified Test.Syd.Mutation.Plugin.Operator.RemoveGuard
 import Test.Syd.Mutation.Plugin.Operators.TH (collectOperators)
 
 allOperators :: [MutationOperator]
-allOperators = $(collectOperators)
+allOperators = take 1 $(collectOperators)

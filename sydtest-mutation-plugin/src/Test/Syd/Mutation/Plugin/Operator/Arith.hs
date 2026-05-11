@@ -32,7 +32,7 @@ action ::
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   String ->
-  InstrM (Maybe (NonEmpty (Type, LHsExpr GhcTc, String, String)))
+  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
 action l op r origOcc = do
   InstrumentEnv {instrRdrEnv} <- ask
   let ty = fromMaybe (panic "Arith: no type on left operand") (lhsExprType l)
@@ -45,5 +45,5 @@ action l op r origOcc = do
       )
       replacements
   pure $ case repls of
-    (x : xs) -> Just (x :| xs)
-    [] -> Nothing
+    (x : xs) -> x :| xs
+    [] -> panic "Arith: no replacements"

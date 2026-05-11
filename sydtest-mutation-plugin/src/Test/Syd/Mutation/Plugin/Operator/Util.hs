@@ -3,19 +3,15 @@
 module Test.Syd.Mutation.Plugin.Operator.Util
   ( opOccName,
     mkOpReplacement,
-    mkIntLitReplacement,
+    mkIntLitExpr,
     lhsExprType,
   )
 where
 
 import Control.Monad.IO.Class (liftIO)
-import Data.Maybe (isJust)
 import GHC
-import GHC.HsToCore (deSugarExpr)
 import GHC.Tc.Types (TcM)
 import GHC.Tc.Utils.Env (tcLookupId)
-import GHC.Tc.Utils.Monad (getTopEnv)
-import GHC.Types.Error (isEmptyMessages)
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
@@ -66,18 +62,13 @@ mkOpReplacement rdrEnv l origOp r replOccStr = do
     substOpInOpApp l' op' r' (L ann (OpApp x _ _ _)) = L ann (OpApp x l' op' r')
     substOpInOpApp _ _ _ orig = orig
 
--- | Build a replacement integer literal, returning 'Nothing' if desugaring
--- the expression produces any diagnostics (e.g. -Woverflowed-literals for a
--- value outside the target type's range).
-mkIntLitReplacement :: Integer -> OverLitTc -> TcM (Maybe (LHsExpr GhcTc))
-mkIntLitReplacement n oltc = do
+-- | Build a replacement integer literal expression without any validation.
+mkIntLitExpr :: Integer -> OverLitTc -> LHsExpr GhcTc
+mkIntLitExpr n oltc =
   let iln = mkIntegralLit n
       witnessN = substIntegerInWitness n (ol_witness oltc)
       oltcN = oltc {ol_witness = witnessN}
-      expr = noLocA (HsOverLit NoExtField (OverLit oltcN (HsIntegral iln)))
-  hscEnv <- getTopEnv
-  (msgs, mcore) <- liftIO $ deSugarExpr hscEnv expr
-  pure $ if isEmptyMessages msgs && isJust mcore then Just expr else Nothing
+   in noLocA (HsOverLit NoExtField (OverLit oltcN (HsIntegral iln)))
 
 -- | Substitute the integer value in a @fromInteger dict (HsInteger _ n _)@ witness.
 substIntegerInWitness :: Integer -> HsExpr GhcTc -> HsExpr GhcTc

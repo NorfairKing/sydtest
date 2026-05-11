@@ -7,6 +7,7 @@ import Control.Monad.Reader (ask)
 import Data.List.NonEmpty (NonEmpty (..))
 import GHC
 import GHC.Builtin.Types (boolTy)
+import GHC.Utils.Panic (panic)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), liftTcM)
 import Test.Syd.Mutation.Plugin.Operator.Util (mkOpReplacement, opOccName)
 
@@ -31,7 +32,7 @@ action ::
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   String ->
-  InstrM (Maybe (NonEmpty (Type, LHsExpr GhcTc, String, String)))
+  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
 action l op r origOcc = do
   InstrumentEnv {instrRdrEnv} <- ask
   let replacements = filter (/= origOcc) cmpOps
@@ -43,5 +44,5 @@ action l op r origOcc = do
       )
       replacements
   pure $ case repls of
-    (x : xs) -> Just (x :| xs)
-    [] -> Nothing
+    (x : xs) -> x :| xs
+    [] -> panic "Cmp: no replacements"

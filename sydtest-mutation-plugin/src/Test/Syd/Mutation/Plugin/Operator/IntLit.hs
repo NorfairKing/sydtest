@@ -1,14 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TupleSections #-}
 
 module Test.Syd.Mutation.Plugin.Operator.IntLit (theOperator) where
 
 import Data.List.NonEmpty (NonEmpty (..))
-import Data.Maybe (catMaybes)
 import GHC
 import GHC.Types.SourceText (il_value)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..), liftTcM)
-import Test.Syd.Mutation.Plugin.Operator.Util (mkIntLitReplacement)
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
+import Test.Syd.Mutation.Plugin.Operator.Util (mkIntLitExpr)
 
 theOperator :: MutationOperator
 theOperator =
@@ -25,10 +23,10 @@ action ::
   Type ->
   OverLitTc ->
   Integer ->
-  InstrM (Maybe (NonEmpty (Type, LHsExpr GhcTc, String, String)))
-action ty oltc n = do
+  InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String))
+action ty oltc n =
   let candidates = filter (/= n) [0, 1, negate n]
-  mrepls <- mapM (\r -> fmap (fmap (ty,,show n,show r)) (liftTcM (mkIntLitReplacement r oltc))) candidates
-  pure $ case catMaybes mrepls of
-    (x : xs) -> Just (x :| xs)
-    [] -> Nothing
+      repls = map (\r -> (ty, mkIntLitExpr r oltc, show n, show r)) candidates
+   in pure $ case repls of
+        (x : xs) -> x :| xs
+        [] -> error "IntLit: no candidates (n is 0, 1, and -n simultaneously)"

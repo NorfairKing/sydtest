@@ -12,15 +12,9 @@
 module Test.Syd.Mutation.Plugin.Operators (allOperators) where
 
 import Test.Syd.Mutation.Plugin.Instrument (MutationOperator)
-import qualified Test.Syd.Mutation.Plugin.Operator.AddToSub
+import qualified Test.Syd.Mutation.Plugin.Operator.Arith
 import qualified Test.Syd.Mutation.Plugin.Operator.Cmp
-import qualified Test.Syd.Mutation.Plugin.Operator.DivToMul
-import qualified Test.Syd.Mutation.Plugin.Operator.IntLit1To0
-import qualified Test.Syd.Mutation.Plugin.Operator.IntLitNTo0
-import qualified Test.Syd.Mutation.Plugin.Operator.IntLitNTo1
-import qualified Test.Syd.Mutation.Plugin.Operator.IntLitNegate
-import qualified Test.Syd.Mutation.Plugin.Operator.MulToDiv
-import qualified Test.Syd.Mutation.Plugin.Operator.SubToAdd
+import qualified Test.Syd.Mutation.Plugin.Operator.IntLit
 import Test.Syd.Mutation.Plugin.Operators.TH (collectOperators)
 
 allOperators :: [MutationOperator]

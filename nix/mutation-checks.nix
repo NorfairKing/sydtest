@@ -34,8 +34,17 @@ let
           })
           libraryPackages));
       manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
-      mutationFlags = pkgs.lib.concatMapStringsSep " " (m: "--mutation \"${m}\"") manifests;
-      coverageFlags = pkgs.lib.concatMapStringsSep " " (m: "--mutation-coverage \"${m}\"") manifests;
+      # Manifest dirs are in the Nix store (read-only).  Copy them to writable
+      # temp dirs so the coverage phase can write .coverage.json files alongside
+      # the existing manifest files, and the mutation phase can read them back.
+      copyManifests = pkgs.lib.concatMapStrings
+        (m: ''
+          manifest_copy=$(mktemp -d)
+          cp -r "${m}/." "$manifest_copy/"
+          chmod -R u+w "$manifest_copy"
+          writable_manifests+=("$manifest_copy")
+        '')
+        manifests;
       # Run the test suite in mutation mode inside the Cabal build's checkPhase,
       # where the working directory contains test_resources/ and other data files.
       # The report is written to the 'report' output so assertMutationScore can read it.
@@ -45,11 +54,16 @@ let
         (_old: {
           checkPhase = ''
             exe=$(find dist -name "${testExecutableName}" -type f | head -1)
-            echo "mutation-nix: collecting per-test coverage from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"
-            "$exe" ${coverageFlags}
-            echo "mutation-nix: running mutations from ${pkgs.lib.concatStringsSep ", " (map toString manifests)}"
+            # Copy manifest dirs to writable locations for coverage output.
+            writable_manifests=()
+            ${copyManifests}
+            coverage_flags=$(printf -- '--mutation-coverage "%s" ' "''${writable_manifests[@]}")
+            mutation_flags=$(printf -- '--mutation "%s" ' "''${writable_manifests[@]}")
+            echo "mutation-nix: collecting per-test coverage"
+            "$exe" $coverage_flags
+            echo "mutation-nix: running mutations"
             mkdir -p $report
-            "$exe" ${mutationFlags} | tee $report/report.txt
+            "$exe" $mutation_flags | tee $report/report.txt
           '';
           postCheck = "";
         })).overrideAttrs (old: {

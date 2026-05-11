@@ -4,10 +4,10 @@
 module Test.Syd.Mutation.Plugin.Operator.Cmp (theOperator) where
 
 import Control.Monad.Reader (ask)
-import Data.List.NonEmpty (NonEmpty (..))
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NE
 import GHC
 import GHC.Builtin.Types (boolTy)
-import GHC.Utils.Panic (panic)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), liftTcM)
 import Test.Syd.Mutation.Plugin.Operator.Util (mkOpReplacement, opOccName)
 
@@ -43,6 +43,4 @@ action l op r origOcc = do
           pure (boolTy, repl, origOcc, replOcc)
       )
       replacements
-  pure $ case repls of
-    (x : xs) -> x :| xs
-    [] -> panic "Cmp: no replacements"
+  pure $ NE.fromList repls

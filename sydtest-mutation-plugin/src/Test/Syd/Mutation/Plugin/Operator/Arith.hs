@@ -4,7 +4,8 @@
 module Test.Syd.Mutation.Plugin.Operator.Arith (theOperator) where
 
 import Control.Monad.Reader (ask)
-import Data.List.NonEmpty (NonEmpty (..))
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromMaybe)
 import GHC
 import GHC.Utils.Panic (panic)
@@ -44,6 +45,4 @@ action l op r origOcc = do
           pure (ty, repl, origOcc, replOcc)
       )
       replacements
-  pure $ case repls of
-    (x : xs) -> x :| xs
-    [] -> panic "Arith: no replacements"
+  pure $ NE.fromList repls

@@ -13,16 +13,20 @@ module Test.Syd.Mutation.Plugin.Instrument
   )
 where
 
-import Control.Monad (foldM)
+import Control.Monad (filterM, foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
-import Data.List.NonEmpty (NonEmpty (..))
+import Data.List.NonEmpty (NonEmpty (..), toList)
+import Data.Maybe (isJust)
 import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
+import GHC.HsToCore (deSugarExpr)
 import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
+import GHC.Tc.Utils.Monad (getTopEnv)
+import GHC.Types.Error (isEmptyMessages)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
@@ -51,7 +55,9 @@ data MutationOperator = MutationOperator
     -- The action returns a list of @(ty, mutated, originalStr, replacementStr)@ tuples,
     -- one per distinct mutation to generate at this site.  Each gets its own 'MutationId'
     -- and is wrapped independently as a nested 'ifMutation' call.
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (Maybe (NonEmpty (Type, LHsExpr GhcTc, String, String))))
+    -- 'tryMutateWith' will validate each alternative via desugaring and silently drop
+    -- any that produce diagnostics (e.g. overflowed literals).
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM (NonEmpty (Type, LHsExpr GhcTc, String, String)))
   }
 
 -- ---------------------------------------------------------------------------
@@ -166,7 +172,10 @@ instrumentGRHS ::
   GRHS GhcTc (LHsExpr GhcTc) ->
   InstrM (GRHS GhcTc (LHsExpr GhcTc))
 instrumentGRHS = \case
-  GRHS x guards body -> GRHS x guards <$> instrumentLExpr body
+  GRHS x guards body ->
+    GRHS x
+      <$> mapM instrumentStmt guards
+      <*> instrumentLExpr body
 
 instrumentLocalBinds :: HsLocalBinds GhcTc -> InstrM (HsLocalBinds GhcTc)
 instrumentLocalBinds = \case
@@ -239,24 +248,45 @@ instrumentRecordBinds = \case
 -- Defined as a parameter here so that 'Instrument.hs' stays operator-agnostic.
 -- 'instrumentModule' is called with the concrete list from 'Plugin.hs'.
 tryMutateWith :: [MutationOperator] -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-tryMutateWith operators le =
-  foldM applyOperator le operators
-  where
-    applyOperator expr op = case operatorMatch op expr of
-      Nothing -> pure expr
-      Just action -> do
-        malts <- action
-        case malts of
-          Nothing -> pure expr
-          Just alts -> applyAlts (operatorName op) alts expr
+tryMutateWith operators le = foldM applyOperator le operators
 
-    -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
-    applyAlts opName ((ty, mutated, origStr, replStr) :| rest) original = do
-      mid <- recordMutation original opName origStr replStr
-      inner <- case rest of
-        [] -> pure original
-        (a : as) -> applyAlts opName (a :| as) original
-      wrapWithIfMutation ty mid mutated inner
+applyOperator :: LHsExpr GhcTc -> MutationOperator -> InstrM (LHsExpr GhcTc)
+applyOperator expr op = case operatorMatch op expr of
+  Nothing -> pure expr
+  Just action -> do
+    alts <- action
+    hscEnv <- liftTcM getTopEnv
+    validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) (toList alts)
+    case validated of
+      [] -> do
+        liftTcM $
+          liftIO $
+            putStrLn $
+              "mutation: WARNING all replacements dropped for operator "
+                ++ operatorName op
+                ++ locStr (getLocA expr)
+        pure expr
+      (x : xs) -> applyAlts (operatorName op) (x :| xs) expr
+
+validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String) -> IO Bool
+validateAlt hscEnv (_, mutated, _, _) = do
+  (msgs, mcore) <- deSugarExpr hscEnv mutated
+  pure (isEmptyMessages msgs && isJust mcore)
+
+locStr :: SrcSpan -> String
+locStr = \case
+  RealSrcSpan rss _ ->
+    " at " ++ show (srcSpanStartLine rss) ++ ":" ++ show (srcSpanStartCol rss)
+  UnhelpfulSpan _ -> ""
+
+-- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
+applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+applyAlts opName ((ty, mutated, origStr, replStr) :| rest) original = do
+  mid <- recordMutation original opName origStr replStr
+  inner <- case rest of
+    [] -> pure original
+    (a : as) -> applyAlts opName (a :| as) original
+  wrapWithIfMutation ty mid mutated inner
 
 -- | Record one mutation site and return its 'MutationId'.
 recordMutation ::

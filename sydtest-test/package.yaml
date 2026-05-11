@@ -35,6 +35,7 @@ tests:
     - path-io
     - stm
     - sydtest >=0.17
+    - sydtest-mutation-runtime
     - text
     - time
     - vector

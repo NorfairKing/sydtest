@@ -10,7 +10,7 @@ module Test.Syd.Mutation.Manifest
   )
 where
 
-import Data.Aeson (FromJSON (..), ToJSON (..), decode, encode, object, withArray, withObject, (.:), (.=))
+import Data.Aeson (FromJSON (..), ToJSON (..), decode, encode, object, withArray, withObject, (.!=), (.:), (.:?), (.=))
 import qualified Data.ByteString.Lazy as LB
 import Path
 import Path.IO (ensureDir, listDirRel)
@@ -22,26 +22,47 @@ data MutationRecord = MutationRecord
   { mutRecId :: MutationId,
     mutRecOperator :: String,
     mutRecOriginal :: String,
-    mutRecReplacement :: String
+    mutRecReplacement :: String,
+    -- | Verbatim source line containing the mutated expression.
+    mutRecSourceLine :: Maybe String,
+    -- | Up to 3 source lines immediately before the mutated line.
+    mutRecContextBefore :: [String],
+    -- | Up to 3 source lines immediately after the mutated line.
+    mutRecContextAfter :: [String]
   }
   deriving (Show)
 
 instance ToJSON MutationRecord where
-  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement} =
+  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter} =
     object
       [ "id" .= parts,
         "operator" .= mutRecOperator,
         "original" .= mutRecOriginal,
-        "replacement" .= mutRecReplacement
+        "replacement" .= mutRecReplacement,
+        "source_line" .= mutRecSourceLine,
+        "context_before" .= mutRecContextBefore,
+        "context_after" .= mutRecContextAfter
       ]
 
 instance FromJSON MutationRecord where
-  parseJSON = withObject "MutationRecord" $ \o ->
-    MutationRecord . MutationId
-      <$> o .: "id"
-      <*> o .: "operator"
-      <*> o .: "original"
-      <*> o .: "replacement"
+  parseJSON = withObject "MutationRecord" $ \o -> do
+    mid <- MutationId <$> o .: "id"
+    op <- o .: "operator"
+    orig <- o .: "original"
+    repl <- o .: "replacement"
+    srcLine <- o .:? "source_line"
+    ctxBefore <- o .:? "context_before" .!= []
+    ctxAfter <- o .:? "context_after" .!= []
+    pure
+      MutationRecord
+        { mutRecId = mid,
+          mutRecOperator = op,
+          mutRecOriginal = orig,
+          mutRecReplacement = repl,
+          mutRecSourceLine = srcLine,
+          mutRecContextBefore = ctxBefore,
+          mutRecContextAfter = ctxAfter
+        }
 
 -- | All mutation sites discovered in one or more modules by the plugin.
 newtype MutationManifest = MutationManifest [MutationRecord]

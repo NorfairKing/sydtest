@@ -19,6 +19,7 @@ extra-source-files:
     test_resources/even/2
     test_resources/even/4
     test_resources/even/odd/3
+    test_resources/mutation-log-with-context.txt
     test_resources/odd/3
     test_resources/odd/deep/5
     test_resources/output-test-terse.txt
@@ -93,6 +94,7 @@ test-suite sydtest-test
       Test.Syd.ExpectationSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
+      Test.Syd.MutationModeSpec
       Test.Syd.OptParseSpec
       Test.Syd.PathSpec
       Test.Syd.RunnerSpec
@@ -120,6 +122,7 @@ test-suite sydtest-test
     , path-io
     , stm
     , sydtest >=0.17
+    , sydtest-mutation-runtime
     , text
     , time
     , vector

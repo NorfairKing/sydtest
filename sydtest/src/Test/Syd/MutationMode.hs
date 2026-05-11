@@ -1,6 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Test.Syd.MutationMode (runMutationMode) where
+module Test.Syd.MutationMode (runMutationMode, formatMutationLog) where
 
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -50,13 +50,48 @@ runMutationMode settings manifestDirs spec = do
 formatMutationLog :: MutationId -> Maybe MutationRecord -> String
 formatMutationLog (MutationId parts) mRec =
   case (parts, mRec) of
-    ([modName, op, line, colStart, colEnd], Just MutationRecord {mutRecOriginal, mutRecReplacement}) ->
-      unlines
-        [ "Testing mutation " ++ op ++ " at " ++ moduleToFilePath modName ++ ":" ++ line ++ ":" ++ colStart ++ "-" ++ colEnd ++ ":",
-          "    - " ++ mutRecOriginal,
-          "    + " ++ mutRecReplacement
-        ]
+    ( [modName, op, lineStr, colStartStr, colEndStr],
+      Just MutationRecord {mutRecOriginal, mutRecReplacement, mutRecSourceLine, mutRecContextBefore, mutRecContextAfter}
+      ) ->
+        let filePath = moduleToFilePath modName
+            header = "Testing mutation " ++ op ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ ":"
+         in case mutRecSourceLine of
+              Nothing ->
+                unlines
+                  [ header,
+                    "    - " ++ mutRecOriginal,
+                    "    + " ++ mutRecReplacement
+                  ]
+              Just srcLine ->
+                let lineNum = read lineStr :: Int
+                    colStart = read colStartStr :: Int
+                    colEnd = read colEndStr :: Int
+                    mutatedLine = spliceLine colStart colEnd mutRecReplacement srcLine
+                    nBefore = length mutRecContextBefore
+                    hunkHeader =
+                      "@@ -"
+                        ++ show (lineNum - nBefore)
+                        ++ ","
+                        ++ show (nBefore + 1 + length mutRecContextAfter)
+                        ++ " +"
+                        ++ show (lineNum - nBefore)
+                        ++ ","
+                        ++ show (nBefore + 1 + length mutRecContextAfter)
+                        ++ " @@"
+                 in unlines $
+                      [header, hunkHeader]
+                        ++ map (" " ++) mutRecContextBefore
+                        ++ ["-" ++ srcLine, "+" ++ mutatedLine]
+                        ++ map (" " ++) mutRecContextAfter
     _ ->
       "Testing mutation " ++ intercalate "/" parts
   where
-    moduleToFilePath = map (\c -> if c == '.' then '/' else c)
+    moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"
+
+-- | Replace the substring at columns [colStart, colEnd) (1-based, half-open)
+-- with 'replacement' in 'srcLine'.
+spliceLine :: Int -> Int -> String -> String -> String
+spliceLine colStart colEnd replacement srcLine =
+  let (prefix, rest) = splitAt (colStart - 1) srcLine
+      suffix = drop (colEnd - colStart) rest
+   in prefix ++ replacement ++ suffix

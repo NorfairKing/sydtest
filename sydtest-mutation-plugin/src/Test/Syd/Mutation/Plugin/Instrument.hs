@@ -13,6 +13,7 @@ module Test.Syd.Mutation.Plugin.Instrument
   )
 where
 
+import Control.Exception (IOException, catch)
 import Control.Monad (filterM, foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
@@ -21,7 +22,7 @@ import Data.Maybe (isJust)
 import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
-import GHC.Data.FastString (mkFastString)
+import GHC.Data.FastString (mkFastString, unpackFS)
 import GHC.HsToCore (deSugarExpr)
 import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
@@ -301,24 +302,51 @@ recordMutation le op origStr replStr = do
   case sp of
     RealSrcSpan rss _ -> do
       let mn = moduleNameString (moduleName instrModule)
+          lineNum = srcSpanStartLine rss
           mid =
             MutationId
               [ mn,
                 op,
-                show (srcSpanStartLine rss),
+                show lineNum,
                 show (srcSpanStartCol rss),
                 show (srcSpanEndCol rss)
               ]
+      (srcLine, ctxBefore, ctxAfter) <-
+        liftTcM $
+          liftIO $
+            readSourceContext (unpackFS (srcSpanFile rss)) lineNum
       tell
         [ MutationRecord
             { mutRecId = mid,
               mutRecOperator = op,
               mutRecOriginal = origStr,
-              mutRecReplacement = replStr
+              mutRecReplacement = replStr,
+              mutRecSourceLine = srcLine,
+              mutRecContextBefore = ctxBefore,
+              mutRecContextAfter = ctxAfter
             }
         ]
       pure mid
     UnhelpfulSpan _ -> pure (MutationId [])
+
+-- | Read the source line at 'lineNum' (1-based) and up to 3 lines of context
+-- on each side. Returns 'Nothing' for the source line if the file cannot be
+-- read or the line number is out of range.
+readSourceContext :: FilePath -> Int -> IO (Maybe String, [String], [String])
+readSourceContext path lineNum = do
+  mContents <- (Just <$> readFile path) `catch` ioErr
+  case mContents of
+    Nothing -> pure (Nothing, [], [])
+    Just contents ->
+      let ls = lines contents
+          idx = lineNum - 1
+          srcLine = if idx >= 0 && idx < length ls then Just (ls !! idx) else Nothing
+          ctxBefore = reverse $ take 3 $ reverse $ take idx ls
+          ctxAfter = take 3 $ drop (idx + 1) ls
+       in pure (srcLine, ctxBefore, ctxAfter)
+  where
+    ioErr :: IOException -> IO (Maybe String)
+    ioErr _ = pure Nothing
 
 -- ---------------------------------------------------------------------------
 -- Building the ifMutation call

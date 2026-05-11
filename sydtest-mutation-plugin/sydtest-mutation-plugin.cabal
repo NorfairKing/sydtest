@@ -29,6 +29,7 @@ library
       Test.Syd.Mutation.Plugin.Operator.IntLit
       Test.Syd.Mutation.Plugin.Operator.ListLit
       Test.Syd.Mutation.Plugin.Operator.LogicOp
+      Test.Syd.Mutation.Plugin.Operator.MaybeOp
       Test.Syd.Mutation.Plugin.Operator.Negate
       Test.Syd.Mutation.Plugin.Operator.RemoveGuard
       Test.Syd.Mutation.Plugin.Operator.Util

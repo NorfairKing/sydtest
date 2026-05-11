@@ -21,4 +21,5 @@ Settings
   , settingProfile = False
   , settingOutputFormat = OutputFormatPretty
   , settingMutation = []
+  , settingMutationCoverage = []
   }

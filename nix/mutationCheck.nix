@@ -3,17 +3,20 @@
 # Build one mutation check.
 #
 # - name: derivation name prefix
-# - libraryPackages: list of attr names in haskellPackages for the libraries to instrument
-# - testSuites: list of { package, executableName } attrsets for the test suites to run
-# - exceptions: list of module names to skip during instrumentation (applies to all libraries)
+# - packages: list of attr names in haskellPackages for packages that have both
+#             a library to instrument and a test suite to run
+# - libraries: list of attr names to instrument but not run test suites for
+# - tests: list of attr names to run test suites for but not instrument
+# - exceptions: list of module names to skip during instrumentation
 #
-# The mutations are run inside the Cabal build's checkPhase, so test resources
-# (golden files, data files) are available at the expected relative paths.
-# All test suite executables beyond the first are referenced as Nix store paths.
+# The mutations are run inside the Cabal build's checkPhase of the first test
+# package, so test resources (golden files, data files) are available at
+# relative paths. All other test suite executables are Nix store paths.
 
 { name
-, libraryPackages
-, testSuites
+, packages ? [ ]
+, libraries ? [ ]
+, tests ? [ ]
 , exceptions ? [ ]
 , debug ? false
 , ghcMemLimit ? "16g"
@@ -21,6 +24,10 @@
 
 let
   inherit (haskellPackages.sydtest) addManifest;
+
+  libraryPackages = packages ++ libraries;
+  testPackages = packages ++ tests;
+
   instrumentedHaskellPackages = haskellPackages.extend (_: super:
     builtins.listToAttrs (map
       (pkg: {
@@ -28,6 +35,14 @@ let
         value = addManifest { inherit exceptions debug ghcMemLimit; } super.${pkg};
       })
       libraryPackages));
+
+  # Build test packages (instrumented) with doCheck=true, checkPhase="" so the
+  # test executable ends up in bin/ without running the tests during the Nix build.
+  builtTestPkg = pkg:
+    pkgs.haskell.lib.overrideCabal
+      (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkg})
+      (_: { checkPhase = ""; });
+
   manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
   coverageFlags = pkgs.lib.concatMapStringsSep " "
     (m: "--mutation-coverage ${m}")
@@ -36,44 +51,43 @@ let
     (m: "--mutation ${m}")
     manifests;
 
-  # The first test suite drives the parent mutation process (in-tree via find dist).
-  firstSuite = builtins.head testSuites;
-  extraSuites = builtins.tail testSuites;
+  # The first test package drives the parent mutation process (in-tree via find dist).
+  firstTestPkg = builtins.head testPackages;
+  extraTestPkgs = builtins.tail testPackages;
 
-  # Extra suites use Nix store paths; the first suite's path is resolved at runtime.
+  # For extra suites, the exe is found at runtime in the store bin/.
+  storeBinOf = pkg: "${builtTestPkg pkg}/bin";
+
   extraSuiteExeFlags = pkgs.lib.concatMapStringsSep " "
-    (s: "--mutation-suite-exe ${s.executableName}=${pkgs.lib.getExe' instrumentedHaskellPackages.${s.package} s.executableName}")
-    extraSuites;
+    (pkg: "--mutation-suite-exe ${pkg}=$(find ${storeBinOf pkg} -maxdepth 1 -type f | head -1)")
+    extraTestPkgs;
 
-  firstSuiteExeFlag = "--mutation-suite-exe ${firstSuite.executableName}=$(realpath \"$exe\")";
+  firstSuiteExeFlag = "--mutation-suite-exe ${firstTestPkg}=$(realpath \"$exe\")";
 
   allSuiteExeFlags = "${firstSuiteExeFlag} ${extraSuiteExeFlags}";
 
-  # Coverage for extra suites uses Nix store paths.
   extraCoverageScript = pkgs.lib.concatMapStringsSep "\n"
-    (s:
-      let storeExe = pkgs.lib.getExe' instrumentedHaskellPackages.${s.package} s.executableName;
-      in ''
-        echo "mutation-nix: collecting coverage for suite ${s.executableName}"
-        "${storeExe}" +RTS -M4g -RTS ${coverageFlags} \
-          --mutation-suite-name ${s.executableName} \
-          --mutation-augmented-manifest-dir augmented
-      '')
-    extraSuites;
+    (pkg: ''
+      echo "mutation-nix: collecting coverage for suite ${pkg}"
+      storeExe=$(find ${storeBinOf pkg} -maxdepth 1 -type f | head -1)
+      "$storeExe" +RTS -M4g -RTS ${coverageFlags} \
+        --mutation-suite-name ${pkg} \
+        --mutation-augmented-manifest-dir augmented
+    '')
+    extraTestPkgs;
 
-  extraInputs = map (s: instrumentedHaskellPackages.${s.package}) extraSuites;
+  extraInputs = map builtTestPkg extraTestPkgs;
 in
-(pkgs.haskell.lib.overrideCabal
+((pkgs.haskell.lib.overrideCabal
   (pkgs.haskell.lib.dontBenchmark
-    (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${firstSuite.package}))
+    (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${firstTestPkg}))
   (_old: {
-    buildInputs = extraInputs;
     checkPhase = ''
-      exe=$(find dist -name "${firstSuite.executableName}" -type f | head -1)
+      exe=$(find dist -type f -executable | grep -v '\.so' | head -1)
       mkdir -p augmented
-      echo "mutation-nix: collecting coverage for suite ${firstSuite.executableName}"
+      echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
       "$exe" +RTS -M4g -RTS ${coverageFlags} \
-        --mutation-suite-name ${firstSuite.executableName} \
+        --mutation-suite-name ${firstTestPkg} \
         --mutation-augmented-manifest-dir augmented
       ${extraCoverageScript}
       echo "mutation-nix: running mutations"
@@ -86,5 +100,6 @@ in
     '';
     postCheck = "";
   })).overrideAttrs (old: {
+  buildInputs = (old.buildInputs or [ ]) ++ extraInputs;
   outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
-})
+}))

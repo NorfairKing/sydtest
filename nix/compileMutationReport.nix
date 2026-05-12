@@ -1,45 +1,45 @@
 { stdenv, lib }:
 
-# Run one or more test suites in mutation mode against one or more manifest
-# directories and produce a report.
+# Run one or more test suite packages in mutation mode against one or more
+# manifest directories and produce a report.
 # Always succeeds — use assertMutationScore to fail on surviving mutations.
 
 { name # name for the derivation
 , manifests # list of 'manifest' outputs from addManifest-wrapped packages
-, testSuites # list of { executable, executableName }
+, testPackages # list of instrumented Haskell package derivations with test suite executables in bin/
 , testResourcesDir ? null # optional directory to cd into before running (for golden test resources)
 }:
 
 let
-  firstSuite = builtins.head testSuites;
-
   coverageFlags = lib.concatMapStringsSep " " (m: "--mutation-coverage ${m}") manifests;
   mutationFlags = lib.concatMapStringsSep " " (m: "--mutation ${m}") manifests;
 
   suiteExeFlags = lib.concatMapStringsSep " "
-    (s: "--mutation-suite-exe ${s.executableName}=${lib.getExe' s.executable s.executableName}")
-    testSuites;
+    (pkg: "--mutation-suite-exe ${pkg.pname}=$(find ${pkg}/bin -maxdepth 1 -type f | head -1)")
+    testPackages;
 
   coveragePhaseScript = lib.concatMapStringsSep "\n"
-    (s: ''
-      echo "mutation-nix: collecting coverage for suite ${s.executableName}"
+    (pkg: ''
+      echo "mutation-nix: collecting coverage for suite ${pkg.pname}"
       (
         ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
-        ${lib.getExe' s.executable s.executableName} +RTS -M4g -RTS \
+        exe=$(find ${pkg}/bin -maxdepth 1 -type f | head -1)
+        "$exe" +RTS -M4g -RTS \
           ${coverageFlags} \
-          --mutation-suite-name ${s.executableName} \
+          --mutation-suite-name ${pkg.pname} \
           --mutation-augmented-manifest-dir augmented
       )
     '')
-    testSuites;
+    testPackages;
 
+  firstPkg = builtins.head testPackages;
 in
 stdenv.mkDerivation {
   name = "${name}-mutation-report";
 
   dontUnpack = true;
 
-  buildInputs = map (s: s.executable) testSuites;
+  buildInputs = testPackages;
 
   buildPhase = ''
     mkdir -p augmented
@@ -47,7 +47,8 @@ stdenv.mkDerivation {
     echo "mutation-nix: running mutations"
     (
       ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
-      ${lib.getExe' firstSuite.executable firstSuite.executableName} +RTS -M4g -RTS \
+      firstExe=$(find ${firstPkg}/bin -maxdepth 1 -type f | head -1)
+      "$firstExe" +RTS -M4g -RTS \
         ${mutationFlags} \
         --mutation-augmented-manifest-dir augmented \
         ${suiteExeFlags} \

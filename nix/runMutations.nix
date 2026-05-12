@@ -1,16 +1,16 @@
 { stdenv, lib, compileMutationReport, assertMutationScore }:
 
-# Run one or more test suites in mutation mode and fail if any mutation survives.
+# Run one or more test suite packages in mutation mode and fail if any mutation survives.
 # Composition of compileMutationReport and assertMutationScore.
 
 { name # name for the derivation
 , manifests # list of 'manifest' outputs from addManifest-wrapped packages
-, testSuites # list of { executable, executableName }
+, testPackages # list of instrumented Haskell package derivations with test suite executables
 }:
 
 let
   report = compileMutationReport {
-    inherit name manifests testSuites;
+    inherit name manifests testPackages;
   };
 in
 assertMutationScore {

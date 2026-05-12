@@ -14,7 +14,6 @@
 { name ? "mutation-report" # name for the report derivation
 , package # name of the package under test (string)
 , testPackage ? "${package}-gen" # name of the package whose test suite to run
-, testExecutableName ? "${testPackage}-test" # name of the test executable
 , exceptions ? [ ] # list of module names to exclude from instrumentation
 , mustKillAll ? true # if true (default), fail if any mutations survive
 }:
@@ -32,7 +31,7 @@ let
 
   report = compileMutationReport {
     inherit name;
-    testSuites = [{ executable = testPkg; executableName = testExecutableName; }];
+    testPackages = [ testPkg ];
     manifests = [ instrumentedPkg.manifest ];
   };
 in

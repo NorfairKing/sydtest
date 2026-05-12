@@ -42,7 +42,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Path
-import Path.IO (copyFile, getCurrentDir, withSystemTempFile)
+import Path.IO (copyFile, getCurrentDir, getTempDir, openTempFile, removeFile)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import System.IO (IOMode (..), hClose, hPutStrLn, openFile, stderr)
@@ -196,9 +196,10 @@ runMutationMode settings _manifestDirs _spec = do
                   fromAbsDir augDir
                 ]
                   ++ rtsArgs
-          (exitCode, mLogFile) <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
-            -- Close the handle from withSystemTempFile so we can open two
-            -- fresh handles (stdout + stderr) without file-locking conflicts.
+          (exitCode, mLogFile) <- do
+            tmpDir <- getTempDir
+            (logPath, logHandle) <- openTempFile tmpDir "mutation-child.log"
+            -- Close immediately so the child can open it without locking conflicts.
             hClose logHandle
             stdoutHandle <- openFile (fromAbsFile logPath) WriteMode
             stderrHandle <- openFile (fromAbsFile logPath) AppendMode
@@ -207,22 +208,30 @@ runMutationMode settings _manifestDirs _spec = do
                     setStderr (useHandleClose stderrHandle) $
                       proc exe args
             ec <- runProcess childProc
-            case ec of
-              ExitFailure _ -> pure (ec, Nothing)
+            result <- case ec of
+              ExitFailure _ -> do
+                removeFile logPath
+                pure (ec, Nothing)
               ExitSuccess -> do
                 output <- readFile (fromAbsFile logPath)
                 putStr $ formatMutationLog mid (Just (toMutationRecord record))
                 putStr output
                 mRelFile <- case settingMutationReportDir settings of
-                  Nothing -> pure Nothing
+                  Nothing -> do
+                    removeFile logPath
+                    pure Nothing
                   Just reportDir -> do
                     let logName = "survivor-" ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid) ++ ".log"
                     case parseRelFile logName of
-                      Nothing -> pure Nothing
+                      Nothing -> do
+                        removeFile logPath
+                        pure Nothing
                       Just relFile -> do
                         copyFile logPath (reportDir </> relFile)
+                        removeFile logPath
                         pure (Just relFile)
                 pure (ec, mRelFile)
+            pure result
           case exitCode of
             ExitSuccess ->
               case mLogFile of

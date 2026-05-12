@@ -26,6 +26,7 @@ packages:
 - sydtest-mutation-plugin
 - sydtest-mutation
 - sydtest-mutation-example
+- sydtest-mutation-example-gen
 
 ghc-options:
   "$locals": -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wpartial-fields -Widentities -Wredundant-constraints -Wcpp-undef -Wunused-packages -O0

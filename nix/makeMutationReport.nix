@@ -22,7 +22,6 @@
 let
   addManifest = addManifest' { inherit exceptions; };
 
-  # Override the package in the package set so instrumented version is used.
   addManifestOverride = _: super: {
     ${package} = addManifest super.${package};
   };
@@ -32,8 +31,8 @@ let
   testPkg = newHaskellPackages.${testPackage};
 
   report = compileMutationReport {
-    inherit name testExecutableName;
-    testExecutable = testPkg;
+    inherit name;
+    testSuites = [{ executable = testPkg; executableName = testExecutableName; }];
     manifests = [ instrumentedPkg.manifest ];
   };
 in

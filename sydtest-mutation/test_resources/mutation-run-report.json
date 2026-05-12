@@ -14,10 +14,12 @@
                     "add :: Int -> Int -> Int",
                     "add x y ="
                 ],
-                "covering_tests": [
-                    "add.adds two numbers",
-                    "add.commutativity:1"
-                ],
+                "covering_tests": {
+                    "": [
+                        "add.adds two numbers",
+                        "add.commutativity:1"
+                    ]
+                },
                 "id": [
                     "Foo.Bar",
                     "ArithOp",

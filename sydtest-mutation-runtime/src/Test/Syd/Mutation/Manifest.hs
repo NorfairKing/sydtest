@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -59,22 +58,9 @@ data MutationRecord = MutationRecord
   deriving stock (Show)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationRecord)
 
--- | Codec for 'Map Text [TestId]' that also accepts the legacy flat array
--- format (decoded as @Map "" [...]@).
+-- | Codec for 'Map Text [TestId]': a JSON object keyed by suite name.
 coveringTestsMapCodec :: JSONCodec (Map.Map Text [TestId])
-coveringTestsMapCodec =
-  dimapCodec decode encode $
-    eitherCodec
-      codec -- new: JSON object { suiteName: [testId, ...] }
-      codec -- legacy: JSON array [testId, ...]
-  where
-    decode = \case
-      Left m -> m
-      Right ts -> Map.singleton "" ts
-    encode m =
-      case Map.toList m of
-        [("", ts)] -> Right ts
-        _ -> Left m
+coveringTestsMapCodec = codec
 
 instance HasCodec MutationRecord where
   codec =

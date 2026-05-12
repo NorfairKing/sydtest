@@ -122,6 +122,7 @@ let
     "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
     "sydtest-mutation" = sydtestPkg "sydtest-mutation";
     "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
+    "sydtest-mutation-example-gen" = sydtestPkg "sydtest-mutation-example-gen";
   };
 
 in

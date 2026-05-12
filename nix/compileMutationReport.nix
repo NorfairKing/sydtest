@@ -6,31 +6,20 @@
 
 { name # name for the derivation
 , manifests # list of 'manifest' outputs from addManifest-wrapped packages
-, testSuites ? null # list of { executable, executableName } for multi-suite runs
-, testExecutable ? null # (backward compat) single test suite derivation
-, testExecutableName ? null # (backward compat) executable name within testExecutable
-, testResourcesDir ? null # optional directory to cd into before running the test (for golden test resources)
+, testSuites # list of { executable, executableName }
+, testResourcesDir ? null # optional directory to cd into before running (for golden test resources)
 }:
 
 let
-  # Normalise to a list of { executable, executableName }.
-  resolvedTestSuites =
-    if testSuites != null
-    then testSuites
-    else if testExecutable != null && testExecutableName != null
-    then [{ executable = testExecutable; executableName = testExecutableName; }]
-    else throw "compileMutationReport: supply either testSuites or both testExecutable and testExecutableName";
-
-  firstSuite = builtins.head resolvedTestSuites;
+  firstSuite = builtins.head testSuites;
 
   coverageFlags = lib.concatMapStringsSep " " (m: "--mutation-coverage ${m}") manifests;
   mutationFlags = lib.concatMapStringsSep " " (m: "--mutation ${m}") manifests;
 
   suiteExeFlags = lib.concatMapStringsSep " "
     (s: "--mutation-suite-exe ${s.executableName}=${lib.getExe' s.executable s.executableName}")
-    resolvedTestSuites;
+    testSuites;
 
-  # Coverage phase: each suite runs sequentially, merging into augmented/.
   coveragePhaseScript = lib.concatMapStringsSep "\n"
     (s: ''
       echo "mutation-nix: collecting coverage for suite ${s.executableName}"
@@ -42,7 +31,7 @@ let
           --mutation-augmented-manifest-dir augmented
       )
     '')
-    resolvedTestSuites;
+    testSuites;
 
 in
 stdenv.mkDerivation {
@@ -50,7 +39,7 @@ stdenv.mkDerivation {
 
   dontUnpack = true;
 
-  buildInputs = map (s: s.executable) resolvedTestSuites;
+  buildInputs = map (s: s.executable) testSuites;
 
   buildPhase = ''
     mkdir -p augmented

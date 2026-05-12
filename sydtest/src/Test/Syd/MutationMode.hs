@@ -42,11 +42,11 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Path
-import Path.IO (copyFile, getCurrentDir, getTempDir, openTempFile, removeFile)
+import Path.IO (copyFile, getCurrentDir, withSystemTempFile)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import System.IO (IOMode (..), hClose, hPutStrLn, openFile, stderr)
-import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleClose)
+import System.IO (hPutStrLn, stderr)
+import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleOpen)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -196,42 +196,30 @@ runMutationMode settings _manifestDirs _spec = do
                   fromAbsDir augDir
                 ]
                   ++ rtsArgs
-          (exitCode, mLogFile) <- do
-            tmpDir <- getTempDir
-            (logPath, logHandle) <- openTempFile tmpDir "mutation-child.log"
-            -- Close immediately so the child can open it without locking conflicts.
-            hClose logHandle
-            stdoutHandle <- openFile (fromAbsFile logPath) WriteMode
-            stderrHandle <- openFile (fromAbsFile logPath) AppendMode
+          (exitCode, mLogFile) <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
+            -- useHandleOpen shares the handle with the child without closing it,
+            -- so we can read the file after runProcess while still in the bracket.
             let childProc =
-                  setStdout (useHandleClose stdoutHandle) $
-                    setStderr (useHandleClose stderrHandle) $
+                  setStdout (useHandleOpen logHandle) $
+                    setStderr (useHandleOpen logHandle) $
                       proc exe args
             ec <- runProcess childProc
-            result <- case ec of
-              ExitFailure _ -> do
-                removeFile logPath
-                pure (ec, Nothing)
+            case ec of
+              ExitFailure _ -> pure (ec, Nothing)
               ExitSuccess -> do
                 output <- readFile (fromAbsFile logPath)
                 putStr $ formatMutationLog mid (Just (toMutationRecord record))
                 putStr output
                 mRelFile <- case settingMutationReportDir settings of
-                  Nothing -> do
-                    removeFile logPath
-                    pure Nothing
+                  Nothing -> pure Nothing
                   Just reportDir -> do
                     let logName = "survivor-" ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid) ++ ".log"
                     case parseRelFile logName of
-                      Nothing -> do
-                        removeFile logPath
-                        pure Nothing
+                      Nothing -> pure Nothing
                       Just relFile -> do
                         copyFile logPath (reportDir </> relFile)
-                        removeFile logPath
                         pure (Just relFile)
                 pure (ec, mRelFile)
-            pure result
           case exitCode of
             ExitSuccess ->
               case mLogFile of

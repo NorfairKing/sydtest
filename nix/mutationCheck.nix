@@ -36,12 +36,22 @@ let
       })
       libraryPackages));
 
-  # Build test packages (instrumented) with doCheck=true, checkPhase="" so the
-  # test executable ends up in bin/ without running the tests during the Nix build.
+  # Build test packages (instrumented) with doCheck=true so the test executable
+  # is compiled, then copy it to $out/bin/ in postInstall (cabal copy doesn't
+  # install test executables automatically).
   builtTestPkg = pkg:
     pkgs.haskell.lib.overrideCabal
       (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkg})
-      (_: { checkPhase = ""; });
+      (_: {
+        checkPhase = "";
+        postInstall = ''
+          for exe in dist/build/*/*; do
+            [ -f "$exe" ] && [ -x "$exe" ] || continue
+            mkdir -p $out/test
+            cp "$exe" $out/test/
+          done
+        '';
+      });
 
   manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
   coverageFlags = pkgs.lib.concatMapStringsSep " "
@@ -56,10 +66,10 @@ let
   extraTestPkgs = builtins.tail testPackages;
 
   # For extra suites, the exe is found at runtime in the store bin/.
-  storeBinOf = pkg: "${builtTestPkg pkg}/bin";
+  storeTestDirOf = pkg: "${builtTestPkg pkg}/test";
 
   extraSuiteExeFlags = pkgs.lib.concatMapStringsSep " "
-    (pkg: "--mutation-suite-exe ${pkg}=$(find ${storeBinOf pkg} -maxdepth 1 -type f | head -1)")
+    (pkg: "--mutation-suite-exe ${pkg}=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)")
     extraTestPkgs;
 
   firstSuiteExeFlag = "--mutation-suite-exe ${firstTestPkg}=$(realpath \"$exe\")";
@@ -69,7 +79,7 @@ let
   extraCoverageScript = pkgs.lib.concatMapStringsSep "\n"
     (pkg: ''
       echo "mutation-nix: collecting coverage for suite ${pkg}"
-      storeExe=$(find ${storeBinOf pkg} -maxdepth 1 -type f | head -1)
+      storeExe=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)
       "$storeExe" +RTS -M4g -RTS ${coverageFlags} \
         --mutation-suite-name ${pkg} \
         --mutation-augmented-manifest-dir augmented

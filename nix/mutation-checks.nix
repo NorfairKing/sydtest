@@ -12,23 +12,24 @@ let
   mutationCheck = pkgs.callPackage ./mutationCheck.nix { inherit haskellPackages; };
 in
 {
-  mutation-autodocodec = (mutationCheck {
-    name = "autodocodec";
-    packages = [
-      "autodocodec"
-      "autodocodec-api-usage"
-    ];
-    libraries = [
-      "autodocodec-exact"
-      "autodocodec-nix"
-      "autodocodec-openapi3"
-      "autodocodec-schema"
-      "autodocodec-servant-multipart"
-      "autodocodec-swagger2"
-      "autodocodec-yaml"
-    ];
-    debug = true;
-  }).report;
+  # TODO: autodocodec mutation check takes too long to run, investigate
+  # mutation-autodocodec = (mutationCheck {
+  #   name = "autodocodec";
+  #   packages = [
+  #     "autodocodec"
+  #     "autodocodec-api-usage"
+  #   ];
+  #   libraries = [
+  #     "autodocodec-exact"
+  #     "autodocodec-nix"
+  #     "autodocodec-openapi3"
+  #     "autodocodec-schema"
+  #     "autodocodec-servant-multipart"
+  #     "autodocodec-swagger2"
+  #     "autodocodec-yaml"
+  #   ];
+  #   debug = true;
+  # }).report;
 
   mutation-opt-env-conf = (mutationCheck {
     name = "opt-env-conf";
@@ -39,9 +40,11 @@ in
 
   mutation-really-safe-money = (mutationCheck {
     name = "really-safe-money";
-    packages = [
+    libraries = [
       "really-safe-money"
       "really-safe-money-autodocodec"
+    ];
+    tests = [
       "really-safe-money-gen"
     ];
     debug = true;

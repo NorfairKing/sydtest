@@ -15,7 +15,7 @@ let
   mutationFlags = lib.concatMapStringsSep " " (m: "--mutation ${m}") manifests;
 
   suiteExeFlags = lib.concatMapStringsSep " "
-    (pkg: "--mutation-suite-exe ${pkg.pname}=$(find ${pkg}/bin -maxdepth 1 -type f | head -1)")
+    (pkg: "--mutation-suite-exe ${pkg.pname}=$(find ${pkg}/test -maxdepth 1 -type f | head -1)")
     testPackages;
 
   coveragePhaseScript = lib.concatMapStringsSep "\n"
@@ -23,7 +23,7 @@ let
       echo "mutation-nix: collecting coverage for suite ${pkg.pname}"
       (
         ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
-        exe=$(find ${pkg}/bin -maxdepth 1 -type f | head -1)
+        exe=$(find ${pkg}/test -maxdepth 1 -type f | head -1)
         "$exe" +RTS -M4g -RTS \
           ${coverageFlags} \
           --mutation-suite-name ${pkg.pname} \

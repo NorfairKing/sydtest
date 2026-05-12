@@ -27,11 +27,24 @@ let
 
   newHaskellPackages = haskell.packages.ghc910.extend addManifestOverride;
   instrumentedPkg = newHaskellPackages.${package};
-  testPkg = newHaskellPackages.${testPackage};
+
+  builtTestPkg =
+    haskell.lib.overrideCabal
+      (haskell.lib.doCheck newHaskellPackages.${testPackage})
+      (_: {
+        checkPhase = "";
+        postInstall = ''
+          for exe in dist/build/*/*; do
+            [ -f "$exe" ] && [ -x "$exe" ] || continue
+            mkdir -p $out/test
+            cp "$exe" $out/test/
+          done
+        '';
+      });
 
   report = compileMutationReport {
     inherit name;
-    testPackages = [ testPkg ];
+    testPackages = [ builtTestPkg ];
     manifests = [ instrumentedPkg.manifest ];
   };
 in

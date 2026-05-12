@@ -21,7 +21,7 @@
 
 { exceptions ? [ ] # list of module names to skip during instrumentation
 , debug ? false # print each mutation site as it is recorded (for debugging the plugin)
-, ghcMemLimit ? "8g" # RTS heap limit for GHC during instrumented compilation (e.g. "4g", "8g")
+, ghcMemLimit ? "16g" # RTS heap limit for GHC during instrumented compilation (e.g. "8g", "16g")
 }:
 pkg: # the Haskell package derivation to wrap
 
@@ -36,8 +36,9 @@ in
   # the per-component plugin options, causing exception modules to be
   # instrumented despite being listed in 'exceptions'.
   doHaddock = false;
-  # Prevents ld.gold "requires unsupported dynamic reloc 11" errors that arise
-  # when -package=sydtest-mutation-plugin is passed to GHC. See dekking's addCoverables.nix.
+  # Skip optimization: the instrumented code only needs to run correctly,
+  # not efficiently. -O causes GHC to spend superlinear time/memory
+  # simplifying the nested ifMutation case expressions.
   enableStaticLibraries = false;
   buildDepends = (old.buildDepends or [ ]) ++ [ mutationPlugin ];
   buildFlags = (old.buildFlags or [ ]) ++ [
@@ -46,13 +47,20 @@ in
     # The parsedResultAction injects 'import Test.Syd.Mutation.Plugin.Runtime ()'; expose
     # the package so GHC can resolve that module in the compiled modules.
     "--ghc-option=-package=sydtest-mutation-plugin"
-    # Hard limit on GHC's heap during instrumented compilation. Without this,
-    # a pathological module can cause GHC to consume hundreds of GB.
+  ];
+  configureFlags = (old.configureFlags or [ ]) ++ exceptionConfigureFlags
+    # Disable optimization so GHC doesn't spend superlinear time/memory
+    # simplifying the nested ifMutation case expressions the plugin generates.
+    ++ [ "--disable-optimization" ]
+    # Override the default -j16 -A64M that Nix injects: use single-threaded
+    # compilation with a small allocation area, and cap the heap.
+    ++ [
+    "--ghc-option=-j1"
     "--ghc-option=+RTS"
+    "--ghc-option=-A32M"
     "--ghc-option=-M${ghcMemLimit}"
     "--ghc-option=-RTS"
   ];
-  configureFlags = (old.configureFlags or [ ]) ++ exceptionConfigureFlags;
   preBuild = (old.preBuild or "") + ''
     echo "mutation-nix: setting MUTATION_MANIFEST_DIR=$manifest"
     mkdir -p "$manifest"

@@ -48,7 +48,7 @@ test-suite sydtest-mutation-test
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      aeson
+      aeson-pretty
     , base >=4.7 && <5
     , genvalidity-sydtest
     , genvalidity-sydtest-aeson

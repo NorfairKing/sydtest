@@ -5,7 +5,7 @@
 
 module Test.Syd.AugmentedManifestSpec (spec) where
 
-import Data.Aeson (encode)
+import Data.Aeson.Encode.Pretty (encodePretty)
 import Path
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest
@@ -24,17 +24,17 @@ spec = do
   describe "MutationManifest" $
     it "golden JSON" $
       pureGoldenLazyByteStringFile "test_resources/mutation-manifest.json" $
-        encode exampleMutationManifest
+        encodePretty exampleMutationManifest
 
   describe "AugmentedManifest" $
     it "golden JSON" $
       pureGoldenLazyByteStringFile "test_resources/augmented-manifest.json" $
-        encode exampleAugmentedManifest
+        encodePretty exampleAugmentedManifest
 
   describe "MutationRunReport" $
     it "golden JSON" $
       pureGoldenLazyByteStringFile "test_resources/mutation-run-report.json" $
-        encode exampleMutationRunReport
+        encodePretty exampleMutationRunReport
 
 exampleMutationManifest :: MutationManifest
 exampleMutationManifest =

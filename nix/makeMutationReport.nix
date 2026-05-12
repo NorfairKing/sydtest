@@ -1,22 +1,30 @@
 { haskell
 , callPackage
+  # addManifest' is the partially-applied addManifest function exported from
+  # nix/addManifest.nix; the prime suffix signals that it still needs an
+  # options attrset before it can be applied to a package.
 , addManifest'
 , compileMutationReport
 , assertMutationScore
 }:
 
-# High-level helper: instrument a package with the mutation plugin and run its
-# test suite with --mutation against the resulting manifest.
+# High-level helper: instrument a single library package with the mutation
+# plugin and run its companion test suite with --mutation against the manifest.
 #
-# Returns a report derivation. Pass it to assertMutationScore to fail if any
-# mutations survived, or inspect it directly.
+# Intended for external callers (e.g. other flakes that depend on sydtest).
+# For in-tree checks, prefer mutationCheck.nix which integrates more tightly
+# with the Cabal build and supports multiple packages in one run.
+#
+# Returns a report derivation (or an assertMutationScore derivation when
+# mustKillAll = true). Pass the report to assertMutationScore separately if you
+# want to decouple building from checking.
 
 { name ? "mutation-report" # name for the report derivation
-, package # name of the package under test (string)
-, testPackage ? "${package}-gen" # name of the package whose test suite to run
+, package # attr name of the library to instrument (string, must exist in haskellPackages)
+, testPackage ? "${package}-gen" # attr name of the package whose test suite to run; defaults to <package>-gen
 , exceptions ? [ ] # list of module names to exclude from instrumentation
 , disabledMutations ? [ ] # list of mutation type names to disable globally
-, mustKillAll ? true # if true (default), fail if any mutations survive
+, mustKillAll ? true # if true (default), wrap result in assertMutationScore and fail if any mutations survive
 }:
 
 let
@@ -26,6 +34,10 @@ let
     ${package} = addManifest super.${package};
   };
 
+  # ghc910 is the GHC version sydtest-mutation-plugin is compiled against.
+  # Using haskell.packages.ghc910 directly (rather than the top-level
+  # haskellPackages alias) pins the compiler version explicitly so external
+  # callers always get a compatible plugin, regardless of the nixpkgs default.
   newHaskellPackages = haskell.packages.ghc910.extend addManifestOverride;
   instrumentedPkg = newHaskellPackages.${package};
 

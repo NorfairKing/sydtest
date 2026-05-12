@@ -3,14 +3,18 @@
 # Wrap a Haskell package so that the mutation plugin runs during compilation
 # and writes the mutation manifest to a separate 'manifest' output.
 #
-# The plugin flag and sydtest-mutation-plugin dependency are injected automatically via
-# GHC flags and Nix buildDepends, so the wrapped package does not need to
-# declare them in its cabal file.
+# This function is curried: first call it with options, then with the package.
+# Example:
+#   addManifest { exceptions = [ "Foo.Internal" ]; } haskellPackages.mylib
+#
+# The plugin flag and sydtest-mutation-plugin dependency are injected
+# automatically via GHC flags and Nix buildDepends, so the wrapped package does
+# not need to declare them in its cabal file.
 #
 # The manifest output path is communicated to the plugin via the
-# MUTATION_MANIFEST_DIR environment variable (set in preBuild), because Nix output
-# store paths are not available as Nix strings at evaluation time and cannot be
-# interpolated into configureFlags or buildFlags.
+# MUTATION_MANIFEST_DIR environment variable (set in preBuild), because Nix
+# output store paths are not available as Nix strings at evaluation time and
+# cannot be interpolated into configureFlags or buildFlags.
 
 { exceptions ? [ ] # list of module names to skip during instrumentation
 , disabledMutations ? [ ] # list of mutation type names to disable globally (e.g. [ "Arith" "BoolLit" ])
@@ -31,16 +35,20 @@ in
   # the per-component plugin options, causing exception modules to be
   # instrumented despite being listed in 'exceptions'.
   doHaddock = false;
-  # Skip optimization: the instrumented code only needs to run correctly,
-  # not efficiently. -O causes GHC to spend superlinear time/memory
-  # simplifying the nested ifMutation case expressions.
+  # Disable static libraries: building .a archives is unnecessary for
+  # mutation testing and slows the build without benefit.
   enableStaticLibraries = false;
   buildDepends = (old.buildDepends or [ ]) ++ [ mutationPlugin ];
   buildFlags = (old.buildFlags or [ ]) ++ [
+    # Activate the plugin for every compiled module.
     "--ghc-option=-fplugin=Test.Syd.Mutation.Plugin"
+    # Tell GHC where to find the plugin itself (the package that defines
+    # Test.Syd.Mutation.Plugin).
     "--ghc-option=-plugin-package=sydtest-mutation-plugin"
-    # The parsedResultAction injects 'import Test.Syd.Mutation.Plugin.Runtime ()'; expose
-    # the package so GHC can resolve that module in the compiled modules.
+    # The parsedResultAction injects 'import Test.Syd.Mutation.Plugin.Runtime ()';
+    # expose the package so GHC can resolve that module in compiled modules.
+    # Distinct from -plugin-package: -plugin-package is for the plugin module
+    # used at compile time; -package makes the runtime module visible at build time.
     "--ghc-option=-package=sydtest-mutation-plugin"
   ];
   configureFlags = (old.configureFlags or [ ]) ++ exceptionConfigureFlags

@@ -1,12 +1,20 @@
 { haskellPackages, pkgs }:
 
-# End-to-end mutation testing checks.
+# End-to-end mutation testing checks for packages that sydtest itself depends on.
 #
-# Each check instruments library packages with the mutation plugin, builds
+# Each check instruments the library packages with the mutation plugin, builds
 # the corresponding test executables against the instrumented libraries, runs
 # the suites in mutation mode, and writes report.txt and report.json to the
-# 'report' output. The checks succeed as long as the test suites run without
-# crashing; inspect the report outputs to see which mutations survived.
+# 'report' output.
+#
+# The checks do NOT fail on surviving mutations; they only fail if a test suite
+# crashes or the derivation build fails. Inspect the 'report' output to see
+# which mutations survived. This makes CI green even when mutation scores are
+# not perfect, while still surfacing the data.
+#
+# Each entry uses `.report` to select the 'report' multi-output from the
+# derivation returned by mutationCheck, so `nix build .#checks.x86_64-linux.mutation-X`
+# builds only the report output and not the full test package.
 
 let
   mutationCheck = pkgs.callPackage ./mutationCheck.nix { inherit haskellPackages; };

@@ -11,6 +11,8 @@
 stdenv.mkDerivation {
   inherit name;
   nativeBuildInputs = [ jq ];
+  # srcs = [] suppresses stdenv's default unpack phase without disabling the
+  # rest of the generic build, so buildCommand runs in a clean empty sandbox.
   srcs = [ ];
   buildCommand = ''
     survived=$(jq '.survived' ${report}/report.json)

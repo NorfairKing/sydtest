@@ -45,8 +45,8 @@ import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import System.IO (IOMode (..), hPutStrLn, openFile, stderr)
-import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleClose)
+import System.IO (IOMode (..), hClose, hPutStrLn, openFile, stderr)
+import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleOpen)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -200,13 +200,13 @@ runMutationMode settings _manifestDirs _spec = do
             logPath <- case parseRelFile "child.log" of
               Just f -> pure (tmpDir </> f)
               Nothing -> fail "mutation: could not parse child.log as relative file"
-            stdoutHandle <- openFile (fromAbsFile logPath) WriteMode
-            stderrHandle <- openFile (fromAbsFile logPath) AppendMode
+            logHandle <- openFile (fromAbsFile logPath) WriteMode
             let childProc =
-                  setStdout (useHandleClose stdoutHandle) $
-                    setStderr (useHandleClose stderrHandle) $
+                  setStdout (useHandleOpen logHandle) $
+                    setStderr (useHandleOpen logHandle) $
                       proc exe args
             ec <- runProcess childProc
+            hClose logHandle
             case ec of
               ExitFailure _ -> pure (ec, Nothing)
               ExitSuccess -> do

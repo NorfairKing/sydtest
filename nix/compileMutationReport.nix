@@ -19,28 +19,27 @@ stdenv.mkDerivation {
   buildInputs = [ testExecutable ];
 
   buildPhase = ''
-    # Copy manifest dirs to writable locations for the coverage phase.
-    ${lib.concatImapStrings (i: m: ''
-      manifest_dir_${toString i}=$(mktemp -d)
-      cp -r ${m}/. "$manifest_dir_${toString i}/"
-      chmod -R u+w "$manifest_dir_${toString i}"
-    '') manifests}
+    mkdir -p augmented
     echo "mutation-nix: collecting per-test coverage"
     (
       ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
       ${lib.getExe' testExecutable testExecutableName} +RTS -M4g -RTS \
-        ${lib.concatImapStringsSep " " (i: _m: "--mutation-coverage \"$manifest_dir_${toString i}\"") manifests}
+        ${lib.concatMapStringsSep " " (m: "--mutation-coverage ${m}") manifests} \
+        --mutation-augmented-manifest-dir augmented
     )
     echo "mutation-nix: running mutations"
     (
       ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
       ${lib.getExe' testExecutable testExecutableName} +RTS -M4g -RTS \
-        ${lib.concatImapStringsSep " " (i: _m: "--mutation \"$manifest_dir_${toString i}\"") manifests}
+        ${lib.concatMapStringsSep " " (m: "--mutation ${m}") manifests} \
+        --mutation-augmented-manifest-dir augmented \
+        --mutation-report-dir augmented
     ) | tee report.txt
   '';
 
   installPhase = ''
     mkdir -p $out
     cp report.txt $out/report.txt
+    cp augmented/report.json $out/report.json
   '';
 }

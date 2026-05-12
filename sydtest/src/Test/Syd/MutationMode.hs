@@ -42,11 +42,11 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Path
-import Path.IO (copyFile, getCurrentDir, withSystemTempFile)
+import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import System.IO (hPutStrLn, stderr)
-import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleOpen)
+import System.IO (IOMode (..), hPutStrLn, openFile, stderr)
+import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleClose)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -196,12 +196,15 @@ runMutationMode settings _manifestDirs _spec = do
                   fromAbsDir augDir
                 ]
                   ++ rtsArgs
-          (exitCode, mLogFile) <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
-            -- useHandleOpen shares the handle with the child without closing it,
-            -- so we can read the file after runProcess while still in the bracket.
+          (exitCode, mLogFile) <- withSystemTempDir "mutation-child" $ \tmpDir -> do
+            logPath <- case parseRelFile "child.log" of
+              Just f -> pure (tmpDir </> f)
+              Nothing -> fail "mutation: could not parse child.log as relative file"
+            stdoutHandle <- openFile (fromAbsFile logPath) WriteMode
+            stderrHandle <- openFile (fromAbsFile logPath) AppendMode
             let childProc =
-                  setStdout (useHandleOpen logHandle) $
-                    setStderr (useHandleOpen logHandle) $
+                  setStdout (useHandleClose stdoutHandle) $
+                    setStderr (useHandleClose stderrHandle) $
                       proc exe args
             ec <- runProcess childProc
             case ec of

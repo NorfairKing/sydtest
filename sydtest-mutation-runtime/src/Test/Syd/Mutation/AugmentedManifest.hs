@@ -139,19 +139,19 @@ lookupAugmentedMutationRecord mid (AugmentedManifest records) =
     (r : _) -> Just r
     [] -> Nothing
 
--- | A survived mutation with the test output captured from the child process.
+-- | A survived mutation with a pointer to the raw child output file.
 data SurvivedMutation = SurvivedMutation
   { survivedMutationRecord :: AugmentedMutationRecord,
-    -- | Combined stdout+stderr from the child process that ran the covering tests.
-    survivedMutationTestOutput :: String
+    -- | Path to the raw child output file, relative to the report directory.
+    survivedMutationLogFile :: Path Rel File
   }
   deriving (Show, Eq)
 
 instance ToJSON SurvivedMutation where
-  toJSON SurvivedMutation {survivedMutationRecord, survivedMutationTestOutput} =
+  toJSON SurvivedMutation {survivedMutationRecord, survivedMutationLogFile} =
     object
       [ "mutation" .= survivedMutationRecord,
-        "test_output" .= survivedMutationTestOutput
+        "log_file" .= fromRelFile survivedMutationLogFile
       ]
 
 -- | Full JSON report written by the parent mutation process.

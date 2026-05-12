@@ -42,7 +42,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Path
-import Path.IO (getCurrentDir, withSystemTempFile)
+import Path.IO (copyFile, getCurrentDir, withSystemTempFile)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import System.IO (IOMode (..), hPutStrLn, openFile, stderr)
@@ -196,7 +196,7 @@ runMutationMode settings _manifestDirs _spec = do
                   fromAbsDir augDir
                 ]
                   ++ rtsArgs
-          (exitCode, output) <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
+          (exitCode, mLogFile) <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
             -- Open a second handle to the same file for stderr; both share the file.
             errHandle <- openFile (fromAbsFile logPath) AppendMode
             let childProc =
@@ -204,14 +204,29 @@ runMutationMode settings _manifestDirs _spec = do
                     setStderr (useHandleClose errHandle) $
                       proc exe args
             ec <- runProcess childProc
-            out <- readFile (fromAbsFile logPath)
-            pure (ec, out)
+            case ec of
+              ExitFailure _ -> pure (ec, Nothing)
+              ExitSuccess -> do
+                output <- readFile (fromAbsFile logPath)
+                putStr $ formatMutationLog mid (Just (toMutationRecord record))
+                putStr output
+                mRelFile <- case settingMutationReportDir settings of
+                  Nothing -> pure Nothing
+                  Just reportDir -> do
+                    let logName = "survivor-" ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid) ++ ".log"
+                    case parseRelFile logName of
+                      Nothing -> pure Nothing
+                      Just relFile -> do
+                        copyFile logPath (reportDir </> relFile)
+                        pure (Just relFile)
+                pure (ec, mRelFile)
           case exitCode of
-            ExitSuccess -> do
-              putStr $ formatMutationLog mid (Just (toMutationRecord record))
-              putStr output
-              let survivor = SurvivedMutation {survivedMutationRecord = record, survivedMutationTestOutput = output}
-              pure (killed, survived + 1, uncovered, survivor : survivors)
+            ExitSuccess ->
+              case mLogFile of
+                Nothing -> pure (killed, survived + 1, uncovered, survivors)
+                Just relFile ->
+                  let survivor = SurvivedMutation {survivedMutationRecord = record, survivedMutationLogFile = relFile}
+                   in pure (killed, survived + 1, uncovered, survivor : survivors)
             ExitFailure _ -> pure (killed + 1, survived, uncovered, survivors)
 
 -- | Convert an 'AugmentedMutationRecord' back to a 'MutationRecord' for

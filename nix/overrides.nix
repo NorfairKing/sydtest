@@ -59,8 +59,25 @@ let
       passthru = (old.passthru or { }) // { inherit webdriverDeps; };
     });
 
+  mutationNixFunctions =
+    let
+      addManifest = callPackage ./addManifest.nix {
+        mutationPlugin = self.sydtest-mutation-plugin;
+      };
+      compileMutationReport = callPackage ./compileMutationReport.nix { };
+      assertMutationScore = callPackage ./assertMutationScore.nix { };
+      runMutations = callPackage ./runMutations.nix { inherit compileMutationReport assertMutationScore; };
+      makeMutationReport = callPackage ./makeMutationReport.nix {
+        addManifest' = addManifest;
+        inherit compileMutationReport assertMutationScore;
+      };
+    in
+    { inherit addManifest compileMutationReport assertMutationScore runMutations makeMutationReport; };
+
   sydtestPackages = {
-    "sydtest" = sydtestPkg "sydtest";
+    "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old: {
+      passthru = (old.passthru or { }) // mutationNixFunctions;
+    });
     "sydtest-aeson" = sydtestPkg "sydtest-aeson";
     "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
     "sydtest-discover" = sydtestPkg "sydtest-discover";
@@ -107,21 +124,10 @@ let
     "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
   };
 
-  mutationNixPackages = {
-    addManifest = callPackage ./addManifest.nix {
-      mutationPlugin = self.sydtest-mutation-plugin;
-    };
-    compileMutationReport = callPackage ./compileMutationReport.nix { };
-    assertMutationScore = callPackage ./assertMutationScore.nix { };
-    runMutations = callPackage ./runMutations.nix { };
-    makeMutationReport = callPackage ./makeMutationReport.nix { };
-  };
-
 in
 {
   inherit sydtestPackages;
   inherit sydtestMutationPackages;
-  inherit mutationNixPackages;
 
   sydtestRelease = symlinkJoin {
     name = "sydtest-release";

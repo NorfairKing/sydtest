@@ -8,6 +8,9 @@ module Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
     lookupAugmentedMutationRecord,
     fromMutationRecord,
+    SurvivedMutation (..),
+    MutationRunReport (..),
+    writeMutationRunReport,
   )
 where
 
@@ -135,6 +138,54 @@ lookupAugmentedMutationRecord mid (AugmentedManifest records) =
   case filter (\r -> augmentedMutationRecordId r == mid) records of
     (r : _) -> Just r
     [] -> Nothing
+
+-- | A survived mutation with the test output captured from the child process.
+data SurvivedMutation = SurvivedMutation
+  { survivedMutationRecord :: AugmentedMutationRecord,
+    -- | Combined stdout+stderr from the child process that ran the covering tests.
+    survivedMutationTestOutput :: String
+  }
+  deriving (Show, Eq)
+
+instance ToJSON SurvivedMutation where
+  toJSON SurvivedMutation {survivedMutationRecord, survivedMutationTestOutput} =
+    object
+      [ "mutation" .= survivedMutationRecord,
+        "test_output" .= survivedMutationTestOutput
+      ]
+
+-- | Full JSON report written by the parent mutation process.
+data MutationRunReport = MutationRunReport
+  { mutationRunReportKilled :: Int,
+    mutationRunReportSurvived :: Int,
+    mutationRunReportUncovered :: Int,
+    mutationRunReportSurvivors :: [SurvivedMutation]
+  }
+  deriving (Show, Eq)
+
+instance ToJSON MutationRunReport where
+  toJSON MutationRunReport {mutationRunReportKilled, mutationRunReportSurvived, mutationRunReportUncovered, mutationRunReportSurvivors} =
+    object
+      [ "killed" .= mutationRunReportKilled,
+        "survived" .= mutationRunReportSurvived,
+        "uncovered" .= mutationRunReportUncovered,
+        "survivors" .= mutationRunReportSurvivors
+      ]
+
+mutationRunReportFileName :: String
+mutationRunReportFileName = "report.json"
+
+mutationRunReportRelFile :: Path Rel File
+mutationRunReportRelFile =
+  case parseRelFile mutationRunReportFileName of
+    Just p -> p
+    Nothing -> error "mutationRunReportFileName: invalid filename"
+
+-- | Write @report.json@ to the given directory.
+writeMutationRunReport :: Path Abs Dir -> MutationRunReport -> IO ()
+writeMutationRunReport dir report = do
+  ensureDir dir
+  LB.writeFile (fromAbsFile (dir </> mutationRunReportRelFile)) (encode report)
 
 -- | Convert a 'MutationRecord' with coverage data to an 'AugmentedMutationRecord'.
 -- Records with 'mutRecCoveringTests' = 'Nothing' are dropped.

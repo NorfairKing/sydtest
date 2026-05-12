@@ -51,10 +51,13 @@ import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationRecord (..),
+    MutationRunReport (..),
+    SurvivedMutation (..),
     fromMutationRecord,
     lookupAugmentedMutationRecord,
     readAugmentedManifestFile,
     writeAugmentedManifestFile,
+    writeMutationRunReport,
   )
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, flattenTestForestWithIds, testIdTrieFromList)
 import Test.Syd.Mutation.Manifest
@@ -153,24 +156,33 @@ resolveAugmentedManifestDir settings =
 -- non-zero (killed).
 --
 -- Prints @Killed: N@, @Survived: M@, and @Uncovered: K@ so the Nix report
--- derivation can parse them.
+-- derivation can parse them.  Also writes @report.json@ to
+-- 'settingMutationReportDir' when set.
 runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runMutationMode settings _manifestDirs _spec = do
   augDir <- resolveAugmentedManifestDir settings
   AugmentedManifest records <- readAugmentedManifestFile augDir
   exe <- getExecutablePath
-  (killed, survived, uncovered) <-
-    foldl (runOne exe augDir) (pure (0 :: Int, 0 :: Int, 0 :: Int)) records
+  (killed, survived, uncovered, survivors) <-
+    foldl (runOne exe augDir) (pure (0 :: Int, 0 :: Int, 0 :: Int, [])) records
+  let jsonReport =
+        MutationRunReport
+          { mutationRunReportKilled = killed,
+            mutationRunReportSurvived = survived,
+            mutationRunReportUncovered = uncovered,
+            mutationRunReportSurvivors = reverse survivors
+          }
+  mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
   putStrLn $ "Killed: " ++ show killed
   putStrLn $ "Survived: " ++ show survived
   putStrLn $ "Uncovered: " ++ show uncovered
   where
     runOne exe augDir accIO record = do
-      (killed, survived, uncovered) <- accIO
+      (killed, survived, uncovered, survivors) <- accIO
       let mid = augmentedMutationRecordId record
       hPutStrLn stderr $ formatMutationLog mid (Just (toMutationRecord record))
       case augmentedMutationRecordCoveringTests record of
-        [] -> pure (killed, survived, uncovered + 1)
+        [] -> pure (killed, survived, uncovered + 1, survivors)
         _ -> do
           let rtsArgs = case settingMutationChildMemLimit settings of
                 Nothing -> []
@@ -184,7 +196,7 @@ runMutationMode settings _manifestDirs _spec = do
                   fromAbsDir augDir
                 ]
                   ++ rtsArgs
-          exitCode <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
+          (exitCode, output) <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
             -- Open a second handle to the same file for stderr; both share the file.
             errHandle <- openFile (fromAbsFile logPath) AppendMode
             let childProc =
@@ -192,16 +204,15 @@ runMutationMode settings _manifestDirs _spec = do
                     setStderr (useHandleClose errHandle) $
                       proc exe args
             ec <- runProcess childProc
-            case ec of
-              ExitSuccess -> do
-                output <- readFile (fromAbsFile logPath)
-                putStr $ formatMutationLog mid (Just (toMutationRecord record))
-                putStr output
-              ExitFailure _ -> pure ()
-            pure ec
+            out <- readFile (fromAbsFile logPath)
+            pure (ec, out)
           case exitCode of
-            ExitSuccess -> pure (killed, survived + 1, uncovered)
-            ExitFailure _ -> pure (killed + 1, survived, uncovered)
+            ExitSuccess -> do
+              putStr $ formatMutationLog mid (Just (toMutationRecord record))
+              putStr output
+              let survivor = SurvivedMutation {survivedMutationRecord = record, survivedMutationTestOutput = output}
+              pure (killed, survived + 1, uncovered, survivor : survivors)
+            ExitFailure _ -> pure (killed + 1, survived, uncovered, survivors)
 
 -- | Convert an 'AugmentedMutationRecord' back to a 'MutationRecord' for
 -- display purposes.

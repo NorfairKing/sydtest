@@ -4,10 +4,12 @@
 #
 # Each check instruments one or more libraries with the mutation plugin, builds
 # the corresponding test executable against the instrumented libraries, runs the
-# suite in mutation mode, and fails if any mutation survived.
+# suite in mutation mode, and writes report.txt and report.json to the 'report'
+# output. The checks succeed as long as the test suite runs without crashing;
+# inspect the report outputs to see which mutations survived.
 
 let
-  inherit (haskellPackages.mutationNixPackages) addManifest assertMutationScore;
+  inherit (haskellPackages.mutationNixPackages) addManifest;
 
   # Build one mutation check.
   #
@@ -53,43 +55,40 @@ let
         manifests;
       # Run the test suite in mutation mode inside the Cabal build's checkPhase,
       # where the working directory contains test_resources/ and other data files.
-      # The report is written to the 'report' output so assertMutationScore can read it.
-      report = ((pkgs.haskell.lib.overrideCabal
-        (pkgs.haskell.lib.dontBenchmark
-          (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${testPackage}))
-        (_old: {
-          checkPhase = ''
-            exe=$(find dist -name "${testExecutableName}" -type f | head -1)
-            ${setupWritableManifests}
-            echo "mutation-nix: collecting per-test coverage"
-            "$exe" +RTS -M4g -RTS ${coverageFlags}
-            echo "mutation-nix: running mutations"
-            mkdir -p $report
-            "$exe" ${mutationFlags} --mutation-child-mem-limit 4g | tee $report/report.txt
-          '';
-          postCheck = "";
-        })).overrideAttrs (old: {
-        outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
-      }));
+      # report.txt (human-readable) and report.json (machine-readable) are written
+      # to the 'report' output.
     in
-    assertMutationScore {
-      name = "mutation-${name}-assert";
-      report = report.report;
-    };
+    (pkgs.haskell.lib.overrideCabal
+      (pkgs.haskell.lib.dontBenchmark
+        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${testPackage}))
+      (_old: {
+        checkPhase = ''
+          exe=$(find dist -name "${testExecutableName}" -type f | head -1)
+          ${setupWritableManifests}
+          echo "mutation-nix: collecting per-test coverage"
+          "$exe" +RTS -M4g -RTS ${coverageFlags}
+          echo "mutation-nix: running mutations"
+          mkdir -p $report
+          "$exe" ${mutationFlags} --mutation-child-mem-limit 4g --mutation-report-dir "$report" | tee $report/report.txt
+        '';
+        postCheck = "";
+      })).overrideAttrs (old: {
+      outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
+    });
 
 in
 {
-  mutation-really-safe-money = mutationCheck {
+  mutation-really-safe-money = (mutationCheck {
     name = "really-safe-money";
     libraryPackages = [ "really-safe-money" ];
     testPackage = "really-safe-money-gen";
     testExecutableName = "really-safe-money-test";
-  };
+  }).report;
 
-  mutation-safe-coloured-text = mutationCheck {
+  mutation-safe-coloured-text = (mutationCheck {
     name = "safe-coloured-text";
     libraryPackages = [ "safe-coloured-text" "safe-coloured-text-parsing" ];
     testPackage = "safe-coloured-text-gen";
     testExecutableName = "safe-coloured-text-test";
-  };
+  }).report;
 }

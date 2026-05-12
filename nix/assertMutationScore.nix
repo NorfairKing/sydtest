@@ -24,12 +24,18 @@ stdenv.mkDerivation {
 
     mkdir -p $out
     cp ${report}/report.txt $out/report.txt
+    if [ -f ${report}/report.json ]; then
+      cp ${report}/report.json $out/report.json
+    fi
 
     if [ "$survived" != "0" ]; then
       echo ""
       echo "FAIL: $survived mutation(s) survived — not all mutations were killed."
       echo "Add or strengthen tests to kill the surviving mutations."
       echo "Full report: $out/report.txt"
+      if [ -f $out/report.json ]; then
+        echo "Machine-readable report: $out/report.json"
+      fi
       exit 1
     fi
 

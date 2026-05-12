@@ -92,7 +92,10 @@ data Settings = Settings
     settingMutationOne :: !(Maybe String),
     -- | RTS heap limit to pass to each mutation child process (e.g. @"4g"@).
     -- 'Nothing' means no limit is passed.
-    settingMutationChildMemLimit :: !(Maybe String)
+    settingMutationChildMemLimit :: !(Maybe String),
+    -- | Directory where @report.json@ is written by the parent mutation process.
+    -- 'Nothing' means no JSON report is written.
+    settingMutationReportDir :: !(Maybe (Path Abs Dir))
   }
   deriving (Show, Eq, Generic)
 
@@ -221,7 +224,8 @@ instance HasParser Settings where
                 settingMutationCoverage = flagMutationCoverage,
                 settingMutationAugmentedManifestDir = flagMutationAugmentedManifestDir,
                 settingMutationOne = flagMutationOne,
-                settingMutationChildMemLimit = flagMutationChildMemLimit
+                settingMutationChildMemLimit = flagMutationChildMemLimit,
+                settingMutationReportDir = flagMutationReportDir
               }
 
 defaultSettings :: Settings
@@ -253,7 +257,8 @@ defaultSettings =
           settingMutationCoverage = [],
           settingMutationAugmentedManifestDir = Nothing,
           settingMutationOne = Nothing,
-          settingMutationChildMemLimit = Nothing
+          settingMutationChildMemLimit = Nothing,
+          settingMutationReportDir = Nothing
         }
 
 -- 60 seconds
@@ -306,7 +311,8 @@ data Flags = Flags
     flagMutationCoverage :: ![Path Abs Dir],
     flagMutationAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
     flagMutationOne :: !(Maybe String),
-    flagMutationChildMemLimit :: !(Maybe String)
+    flagMutationChildMemLimit :: !(Maybe String),
+    flagMutationReportDir :: !(Maybe (Path Abs Dir))
   }
   deriving (Show, Eq, Generic)
 
@@ -519,6 +525,14 @@ instance HasParser Flags where
             option,
             long "mutation-child-mem-limit",
             metavar "SIZE"
+          ]
+    flagMutationReportDir <-
+      optional $
+        directoryPathSetting
+          [ help "Directory where report.json is written by the parent mutation process",
+            option,
+            long "mutation-report-dir",
+            hidden
           ]
     pure Flags {..}
 

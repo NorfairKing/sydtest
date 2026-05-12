@@ -25,4 +25,5 @@ Settings
   , settingMutationAugmentedManifestDir = Nothing
   , settingMutationOne = Nothing
   , settingMutationChildMemLimit = Nothing
+  , settingMutationReportDir = Nothing
   }

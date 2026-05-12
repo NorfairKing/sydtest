@@ -44,7 +44,7 @@
                 "col_start": 8,
                 "context_after": [],
                 "context_before": [],
-                "covering_tests": [],
+                "covering_tests": {},
                 "id": [
                     "Foo.Bar",
                     "BoolOp",

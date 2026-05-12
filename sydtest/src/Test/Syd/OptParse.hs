@@ -15,8 +15,10 @@ import Control.Concurrent (getNumCapabilities)
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import OptEnvConf
@@ -95,7 +97,14 @@ data Settings = Settings
     settingMutationChildMemLimit :: !(Maybe String),
     -- | Directory where @report.json@ is written by the parent mutation process.
     -- 'Nothing' means no JSON report is written.
-    settingMutationReportDir :: !(Maybe (Path Abs Dir))
+    settingMutationReportDir :: !(Maybe (Path Abs Dir)),
+    -- | Name of the current test suite executable.  Used in coverage mode to
+    -- tag covered tests, and in child mode to select the right covering tests.
+    -- 'Nothing' means anonymous\/single-suite (backward-compatible).
+    settingMutationSuiteName :: !(Maybe Text),
+    -- | Map from suite name to executable path, used by the parent mutation
+    -- process to spawn the right binary for each suite.
+    settingMutationSuiteExes :: !(Map.Map Text FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -225,7 +234,9 @@ instance HasParser Settings where
                 settingMutationAugmentedManifestDir = flagMutationAugmentedManifestDir,
                 settingMutationOne = flagMutationOne,
                 settingMutationChildMemLimit = flagMutationChildMemLimit,
-                settingMutationReportDir = flagMutationReportDir
+                settingMutationReportDir = flagMutationReportDir,
+                settingMutationSuiteName = flagMutationSuiteName,
+                settingMutationSuiteExes = flagMutationSuiteExes
               }
 
 defaultSettings :: Settings
@@ -258,7 +269,9 @@ defaultSettings =
           settingMutationAugmentedManifestDir = Nothing,
           settingMutationOne = Nothing,
           settingMutationChildMemLimit = Nothing,
-          settingMutationReportDir = Nothing
+          settingMutationReportDir = Nothing,
+          settingMutationSuiteName = Nothing,
+          settingMutationSuiteExes = Map.empty
         }
 
 -- 60 seconds
@@ -312,7 +325,9 @@ data Flags = Flags
     flagMutationAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
     flagMutationOne :: !(Maybe String),
     flagMutationChildMemLimit :: !(Maybe String),
-    flagMutationReportDir :: !(Maybe (Path Abs Dir))
+    flagMutationReportDir :: !(Maybe (Path Abs Dir)),
+    flagMutationSuiteName :: !(Maybe Text),
+    flagMutationSuiteExes :: !(Map.Map Text FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -534,7 +549,35 @@ instance HasParser Flags where
             long "mutation-report-dir",
             hidden
           ]
+    flagMutationSuiteName <-
+      optional $
+        setting
+          [ help "Name of this test suite executable (used in multi-suite mutation testing)",
+            reader str,
+            option,
+            long "mutation-suite-name",
+            metavar "NAME",
+            hidden
+          ]
+    flagMutationSuiteExes <-
+      fmap (Map.fromList . map parseSuiteExe) $
+        many $
+          setting
+            [ help "Suite name and executable path for multi-suite mutation testing, as name=path",
+              reader str,
+              option,
+              long "mutation-suite-exe",
+              metavar "NAME=PATH",
+              hidden
+            ]
     pure Flags {..}
+
+-- | Parse a @name=path@ string from @--mutation-suite-exe@.
+parseSuiteExe :: String -> (Text, FilePath)
+parseSuiteExe s =
+  case break (== '=') s of
+    (suiteName, '=' : exePath) -> (T.pack suiteName, exePath)
+    _ -> (T.pack s, s)
 
 data Timeout
   = DoNotTimeout

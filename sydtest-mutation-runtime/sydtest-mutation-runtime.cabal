@@ -36,6 +36,7 @@ library
     , bytestring
     , containers
     , genvalidity
+    , genvalidity-containers
     , genvalidity-path
     , genvalidity-text
     , path

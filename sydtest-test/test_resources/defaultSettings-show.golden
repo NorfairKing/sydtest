@@ -26,4 +26,6 @@ Settings
   , settingMutationOne = Nothing
   , settingMutationChildMemLimit = Nothing
   , settingMutationReportDir = Nothing
+  , settingMutationSuiteName = Nothing
+  , settingMutationSuiteExes = fromList []
   }

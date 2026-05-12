@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -17,6 +18,7 @@ where
 import Autodocodec
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LB
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import Path
@@ -49,12 +51,30 @@ data MutationRecord = MutationRecord
     mutRecContextBefore :: [Text],
     -- | Up to 3 source lines immediately after the mutated line.
     mutRecContextAfter :: [Text],
-    -- | Tests whose execution reaches this mutation site.
+    -- | Tests whose execution reaches this mutation site, keyed by test suite
+    -- name.  The empty string @""@ is used for anonymous\/single-suite setups.
     -- 'Nothing' means coverage has not been collected yet.
-    mutRecCoveringTests :: Maybe [TestId]
+    mutRecCoveringTests :: Maybe (Map.Map Text [TestId])
   }
   deriving stock (Show)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationRecord)
+
+-- | Codec for 'Map Text [TestId]' that also accepts the legacy flat array
+-- format (decoded as @Map "" [...]@).
+coveringTestsMapCodec :: JSONCodec (Map.Map Text [TestId])
+coveringTestsMapCodec =
+  dimapCodec decode encode $
+    eitherCodec
+      codec -- new: JSON object { suiteName: [testId, ...] }
+      codec -- legacy: JSON array [testId, ...]
+  where
+    decode = \case
+      Left m -> m
+      Right ts -> Map.singleton "" ts
+    encode m =
+      case Map.toList m of
+        [("", ts)] -> Right ts
+        _ -> Left m
 
 instance HasCodec MutationRecord where
   codec =
@@ -73,7 +93,7 @@ instance HasCodec MutationRecord where
         <*> optionalField' "mutated_line" .= mutRecMutatedLine
         <*> optionalFieldWithDefault' "context_before" [] .= mutRecContextBefore
         <*> optionalFieldWithDefault' "context_after" [] .= mutRecContextAfter
-        <*> optionalField' "covering_tests" .= mutRecCoveringTests
+        <*> optionalFieldWith' "covering_tests" coveringTestsMapCodec .= mutRecCoveringTests
 
 -- | Codec for 'Path Rel File' as a JSON string.
 relFileCodec :: JSONCodec (Path Rel File)

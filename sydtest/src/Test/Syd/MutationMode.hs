@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | This module provides three entry points for mutation testing:
 --
@@ -41,7 +42,7 @@ import Control.Exception (bracket_)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import GHC.Conc (getNumCapabilities)
@@ -60,7 +61,9 @@ import Test.Syd.Mutation.AugmentedManifest
     UncoveredMutation (..),
     fromMutationRecord,
     lookupAugmentedMutationRecord,
+    mergeAugmentedManifests,
     readAugmentedManifestFile,
+    readAugmentedManifestFileIfExists,
     writeAugmentedManifestFile,
     writeMutationRunReport,
   )
@@ -107,12 +110,17 @@ collectCoverage settings forest = do
       pure (tid, covered)
 
 -- | Collect per-test coverage for the mutations in @manifestDirs@ and write
--- @manifest-augmented.json@ to @settingMutationAugmentedManifestDir@.
+-- (or merge into) @manifest-augmented.json@ in @settingMutationAugmentedManifestDir@.
 --
 -- For each manifest directory, reads the plugin-written @*.json@ files,
 -- runs every test once (no mutation active) to record which 'MutationId's
 -- each test reaches, then writes the augmented manifest with
 -- 'augmentedMutationRecordCoveringTests' filled in.
+--
+-- When @settingMutationSuiteName@ is set, covering tests are recorded under
+-- that suite name key.  If @manifest-augmented.json@ already exists (from a
+-- prior suite's coverage pass), this run's results are merged in so that
+-- multiple suites can be run sequentially.
 runCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runCoverageMode settings manifestDirs spec = do
   specForest <- execTestDefM settings spec
@@ -128,22 +136,29 @@ runCoverageMode settings manifestDirs spec = do
           )
           Map.empty
           coverageMap
+      suiteName = fromMaybe "" (settingMutationSuiteName settings)
   allRecords <- mconcat <$> mapM readManifestDir manifestDirs
-  let augmented = buildAugmentedManifest mutationCoverage allRecords
+  let newAugmented = buildAugmentedManifest suiteName mutationCoverage allRecords
   augDir <- resolveAugmentedManifestDir settings
+  -- Merge with any existing augmented manifest (from a prior suite's pass).
+  existing <- readAugmentedManifestFileIfExists augDir
+  let augmented = case existing of
+        Nothing -> newAugmented
+        Just prev -> mergeAugmentedManifests prev newAugmented
   writeAugmentedManifestFile augDir augmented
   where
-    buildAugmentedManifest mutationCoverage (MutationManifest records) =
+    buildAugmentedManifest suiteName mutationCoverage (MutationManifest records) =
       AugmentedManifest $
-        concatMap (annotateRecord mutationCoverage) records
+        concatMap (annotateRecord suiteName mutationCoverage) records
 
-    annotateRecord mutationCoverage rec =
-      let annotated =
+    annotateRecord suiteName mutationCoverage rec =
+      let coveringTests =
+            Set.toList $
+              Map.findWithDefault Set.empty (mutRecId rec) mutationCoverage
+          annotated =
             rec
               { mutRecCoveringTests =
-                  Just $
-                    Set.toList $
-                      Map.findWithDefault Set.empty (mutRecId rec) mutationCoverage
+                  Just $ Map.singleton suiteName coveringTests
               }
        in case fromMutationRecord annotated of
             Nothing -> []
@@ -161,11 +176,14 @@ data MutationResult
   | MutationSurvived (Maybe SurvivedMutation)
 
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
--- subprocess per mutation.
+-- subprocess per mutation per suite that covers it.
 --
--- The child receives @--mutation <dir> --mutation-one <id>
--- --mutation-augmented-manifest-dir <dir>@ and exits 0 (survived) or
--- non-zero (killed).
+-- Each child receives @--mutation <dir> --mutation-one <id>
+-- --mutation-suite-name <suite> --mutation-augmented-manifest-dir <dir>@
+-- and exits 0 (survived) or non-zero (killed).
+--
+-- Suites with no covering tests for a given mutation are skipped — running a
+-- suite with an empty filter would cause sydtest to run all tests.
 --
 -- Prints @Killed: N@, @Survived: M@, and @Uncovered: K@ so the Nix report
 -- derivation can parse them.  Also writes @report.json@ to
@@ -174,10 +192,10 @@ runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runMutationMode settings _manifestDirs _spec = do
   augDir <- resolveAugmentedManifestDir settings
   AugmentedManifest records <- readAugmentedManifestFile augDir
-  exe <- getExecutablePath
+  defaultExe <- getExecutablePath
   n <- getNumCapabilities
   sem <- newQSem n
-  results <- mapConcurrently (runOne exe augDir sem) records
+  results <- mapConcurrently (runOne defaultExe augDir sem) records
   let (killed, survived, survivors, uncoveredMutations) = foldr tally (0, 0, [], []) results
       uncovered = length uncoveredMutations
       jsonReport =
@@ -198,57 +216,80 @@ runMutationMode settings _manifestDirs _spec = do
     tally (MutationSurvived Nothing) (k, s, ss, us) = (k, s + 1, ss, us)
     tally (MutationSurvived (Just survivor)) (k, s, ss, us) = (k, s + 1, ss ++ [survivor], us)
 
-    runOne exe augDir sem record =
+    runOne defaultExe augDir sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
         hPutStr stderr $ formatMutationLog mid (Just (toMutationRecord record))
-        case augmentedMutationRecordCoveringTests record of
-          [] -> pure (MutationUncovered (UncoveredMutation record))
-          _ -> do
-            let rtsArgs = case settingMutationChildMemLimit settings of
-                  Nothing -> []
-                  Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
-                args =
-                  [ "--mutation",
-                    fromAbsDir augDir,
-                    "--mutation-one",
-                    renderMutationId mid,
-                    "--mutation-augmented-manifest-dir",
-                    fromAbsDir augDir
-                  ]
-                    ++ rtsArgs
-            (exitCode, mLogFile) <- withSystemTempDir "mutation-child" $ \tmpDir -> do
-              logPath <- case parseRelFile "child.log" of
-                Just f -> pure (tmpDir </> f)
-                Nothing -> fail "mutation: could not parse child.log as relative file"
-              logHandle <- openFile (fromAbsFile logPath) WriteMode
-              let childProc =
-                    setStdout (useHandleOpen logHandle) $
-                      setStderr (useHandleOpen logHandle) $
-                        proc exe args
-              ec <- runProcess childProc
-              hClose logHandle
-              case ec of
-                ExitFailure _ -> pure (ec, Nothing)
-                ExitSuccess -> do
-                  output <- readFile (fromAbsFile logPath)
-                  putStr $ formatMutationLog mid (Just (toMutationRecord record))
-                  putStr output
-                  mRelFile <- case settingMutationReportDir settings of
-                    Nothing -> pure Nothing
-                    Just reportDir -> do
-                      let logName = "survivor-" ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid) ++ ".log"
-                      case parseRelFile logName of
-                        Nothing -> pure Nothing
-                        Just relFile -> do
-                          copyFile logPath (reportDir </> relFile)
-                          pure (Just relFile)
-                  pure (ec, mRelFile)
-            pure $ case exitCode of
-              ExitSuccess ->
+        -- Only run suites that have at least one covering test for this mutation.
+        let coveringBySuite =
+              Map.filter (not . null) (augmentedMutationRecordCoveringTests record)
+        if Map.null coveringBySuite
+          then pure (MutationUncovered (UncoveredMutation record))
+          else do
+            -- Run one child per covering suite; mutation is killed if any child fails.
+            outcomes <- mapM (runOneSuite defaultExe augDir mid record) (Map.keys coveringBySuite)
+            pure $ case [() | Left () <- outcomes] of
+              (_ : _) -> MutationKilled
+              [] ->
                 MutationSurvived $
-                  fmap (\relFile -> SurvivedMutation {survivedMutationRecord = record, survivedMutationLogFile = relFile}) mLogFile
-              ExitFailure _ -> MutationKilled
+                  let mRelFile = listToMaybe [rf | Right (Just rf) <- outcomes]
+                   in fmap (\relFile -> SurvivedMutation {survivedMutationRecord = record, survivedMutationLogFile = relFile}) mRelFile
+
+    -- Returns Left () when the mutation was killed (child exited non-zero),
+    -- Right (Just relFile) when survived and a log file was saved,
+    -- Right Nothing when survived but no log file was saved.
+    runOneSuite defaultExe augDir mid record suiteName = do
+      let suiteExes = settingMutationSuiteExes settings
+          exe = fromMaybe defaultExe (Map.lookup suiteName suiteExes)
+          rtsArgs = case settingMutationChildMemLimit settings of
+            Nothing -> []
+            Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
+          suiteNameStr = T.unpack suiteName
+          args =
+            [ "--mutation",
+              fromAbsDir augDir,
+              "--mutation-one",
+              renderMutationId mid,
+              "--mutation-augmented-manifest-dir",
+              fromAbsDir augDir,
+              "--mutation-suite-name",
+              suiteNameStr
+            ]
+              ++ rtsArgs
+      withSystemTempDir "mutation-child" $ \tmpDir -> do
+        logPath <- case parseRelFile "child.log" of
+          Just f -> pure (tmpDir </> f)
+          Nothing -> fail "mutation: could not parse child.log as relative file"
+        logHandle <- openFile (fromAbsFile logPath) WriteMode
+        let childProc =
+              setStdout (useHandleOpen logHandle) $
+                setStderr (useHandleOpen logHandle) $
+                  proc exe args
+        ec <- runProcess childProc
+        hClose logHandle
+        case ec of
+          ExitFailure _ -> pure (Left ())
+          ExitSuccess -> do
+            output <- readFile (fromAbsFile logPath)
+            putStr $ formatMutationLog mid (Just (toMutationRecord record))
+            putStr output
+            mRelFile <- case settingMutationReportDir settings of
+              Nothing -> pure Nothing
+              Just reportDir -> do
+                let logName =
+                      "survivor-"
+                        ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid)
+                        ++ ( if T.null suiteName
+                               then ""
+                               else "-" ++ suiteNameStr
+                           )
+                        ++ ".log"
+                case parseRelFile logName of
+                  Nothing -> pure Nothing
+                  Just relFile -> do
+                    copyFile logPath (reportDir </> relFile)
+                    pure (Just relFile)
+            pure (Right mRelFile)
 
 -- | Convert an 'AugmentedMutationRecord' back to a 'MutationRecord' for
 -- display purposes.
@@ -273,6 +314,10 @@ toMutationRecord AugmentedMutationRecord {augmentedMutationRecordId, augmentedMu
 
 -- | Child process: run only the tests covering a single mutation and exit
 -- with the appropriate exit code.
+--
+-- When @settingMutationSuiteName@ is set, only the covering tests for that
+-- suite are run.  Otherwise the union of all suites' covering tests is used
+-- (single-suite / backward-compatible behaviour).
 runSingleMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runSingleMutationMode settings _manifestDirs spec = do
   mid <- case settingMutationOne settings >>= parseMutationId of
@@ -281,11 +326,18 @@ runSingleMutationMode settings _manifestDirs spec = do
   augDir <- resolveAugmentedManifestDir settings
   augmented <- readAugmentedManifestFile augDir
   specForest <- execTestDefM settings spec
-  let coveringTests =
+  let coveringTestsMap =
         maybe
-          []
+          Map.empty
           augmentedMutationRecordCoveringTests
           (lookupAugmentedMutationRecord mid augmented)
+      coveringTests :: [TestId]
+      coveringTests = case settingMutationSuiteName settings of
+        Just suiteName ->
+          fromMaybe [] (Map.lookup suiteName coveringTestsMap)
+        Nothing ->
+          -- single-suite / backward-compat: union of all suites
+          concatMap snd (Map.toList coveringTestsMap)
       forest = case coveringTests of
         [] -> specForest
         ts -> filterTestForestByTrie (testIdTrieFromList ts) specForest

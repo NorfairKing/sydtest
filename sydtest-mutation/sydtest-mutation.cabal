@@ -50,6 +50,7 @@ test-suite sydtest-mutation-test
   build-depends:
       aeson-pretty
     , base >=4.7 && <5
+    , containers
     , genvalidity-sydtest
     , genvalidity-sydtest-aeson
     , path

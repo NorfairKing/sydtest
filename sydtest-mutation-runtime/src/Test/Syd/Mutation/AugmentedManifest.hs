@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -7,8 +8,10 @@
 module Test.Syd.Mutation.AugmentedManifest
   ( AugmentedMutationRecord (..),
     AugmentedManifest (..),
+    mergeAugmentedManifests,
     writeAugmentedManifestFile,
     readAugmentedManifestFile,
+    readAugmentedManifestFileIfExists,
     lookupAugmentedMutationRecord,
     fromMutationRecord,
     SurvivedMutation (..),
@@ -22,12 +25,14 @@ import Autodocodec
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
+import Data.GenValidity.Map ()
 import Data.GenValidity.Path ()
 import Data.GenValidity.Text ()
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Path
-import Path.IO (ensureDir)
+import Path.IO (doesFileExist, ensureDir)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Mutation.Manifest (MutationRecord (..), relFileCodec)
@@ -50,12 +55,33 @@ data AugmentedMutationRecord = AugmentedMutationRecord
     augmentedMutationRecordMutatedLine :: Maybe Text,
     augmentedMutationRecordContextBefore :: [Text],
     augmentedMutationRecordContextAfter :: [Text],
-    -- | Tests whose execution reaches this mutation site.
+    -- | Tests whose execution reaches this mutation site, keyed by test suite
+    -- name.  The empty string @""@ is used for anonymous\/single-suite setups
+    -- (backward-compatible with the old flat list format).
     -- Always present (coverage was collected before writing this file).
-    augmentedMutationRecordCoveringTests :: [TestId]
+    augmentedMutationRecordCoveringTests :: Map.Map Text [TestId]
   }
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec AugmentedMutationRecord)
+
+-- | Codec for 'Map Text [TestId]' that also accepts the legacy flat array
+-- format (decoded as @Map "" [...]@).
+coveringTestsCodec :: JSONCodec (Map.Map Text [TestId])
+coveringTestsCodec =
+  dimapCodec decode encode $
+    eitherCodec
+      codec -- new: JSON object { suiteName: [testId, ...] }
+      codec -- legacy: JSON array [testId, ...]
+  where
+    decode = \case
+      Left m -> m
+      Right ts -> Map.singleton "" ts
+    encode m =
+      -- Write as object unless it is exactly the singleton "" key, in which
+      -- case keep backward-compatible array output.
+      case Map.toList m of
+        [("", ts)] -> Right ts
+        _ -> Left m
 
 instance HasCodec AugmentedMutationRecord where
   codec =
@@ -74,7 +100,7 @@ instance HasCodec AugmentedMutationRecord where
         <*> optionalField' "mutated_line" .= augmentedMutationRecordMutatedLine
         <*> optionalFieldWithDefault' "context_before" [] .= augmentedMutationRecordContextBefore
         <*> optionalFieldWithDefault' "context_after" [] .= augmentedMutationRecordContextAfter
-        <*> optionalFieldWithDefault' "covering_tests" [] .= augmentedMutationRecordCoveringTests
+        <*> optionalFieldWithDefaultWith' "covering_tests" coveringTestsCodec Map.empty .= augmentedMutationRecordCoveringTests
 
 instance Validity AugmentedMutationRecord where
   validate = trivialValidation
@@ -115,6 +141,37 @@ readAugmentedManifestFile dir = do
       hPutStrLn stderr $ "mutation: failed to decode augmented manifest " ++ fromAbsFile path
       exitFailure
     Just m -> pure m
+
+-- | Read from @<dir>/manifest-augmented.json@, returning 'Nothing' if the file
+-- does not exist.
+readAugmentedManifestFileIfExists :: Path Abs Dir -> IO (Maybe AugmentedManifest)
+readAugmentedManifestFileIfExists dir = do
+  let path = dir </> augmentedManifestRelFile
+  exists <- doesFileExist path
+  if exists
+    then Just <$> readAugmentedManifestFile dir
+    else pure Nothing
+
+-- | Merge two 'AugmentedManifest's, combining 'covering_tests' maps by
+-- mutation id.  Records present only in one manifest are kept as-is.
+mergeAugmentedManifests :: AugmentedManifest -> AugmentedManifest -> AugmentedManifest
+mergeAugmentedManifests (AugmentedManifest base) (AugmentedManifest new) =
+  AugmentedManifest (map mergeRecord base ++ newOnly)
+  where
+    newById = Map.fromList [(augmentedMutationRecordId r, r) | r <- new]
+    baseIds = Map.fromList [(augmentedMutationRecordId r, ()) | r <- base]
+    newOnly = filter (\r -> Map.notMember (augmentedMutationRecordId r) baseIds) new
+    mergeRecord r =
+      case Map.lookup (augmentedMutationRecordId r) newById of
+        Nothing -> r
+        Just r' ->
+          r
+            { augmentedMutationRecordCoveringTests =
+                Map.unionWith
+                  (++)
+                  (augmentedMutationRecordCoveringTests r)
+                  (augmentedMutationRecordCoveringTests r')
+            }
 
 -- | O(n) lookup by 'MutationId'.
 lookupAugmentedMutationRecord :: MutationId -> AugmentedManifest -> Maybe AugmentedMutationRecord

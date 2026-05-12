@@ -7,6 +7,7 @@ module Test.Syd.AugmentedManifestSpec (spec) where
 
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.Map.Strict as Map
 import Path
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest
@@ -55,10 +56,12 @@ exampleMutationManifest =
           mutRecContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
           mutRecContextAfter = ["  in result"],
           mutRecCoveringTests =
-            Just
-              [ TestId (("add", 0) :| [("adds two numbers", 0)]),
-                TestId (("add", 0) :| [("commutativity", 1)])
-              ]
+            Just $
+              Map.singleton
+                ""
+                [ TestId (("add", 0) :| [("adds two numbers", 0)]),
+                  TestId (("add", 0) :| [("commutativity", 1)])
+                ]
         },
       MutationRecord
         { mutRecId = MutationId ["Foo.Bar", "BoolOp", "12", "8", "10"],
@@ -95,9 +98,11 @@ exampleAugmentedRecord =
       augmentedMutationRecordContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
       augmentedMutationRecordContextAfter = ["  in result"],
       augmentedMutationRecordCoveringTests =
-        [ TestId (("add", 0) :| [("adds two numbers", 0)]),
-          TestId (("add", 0) :| [("commutativity", 1)])
-        ]
+        Map.singleton
+          ""
+          [ TestId (("add", 0) :| [("adds two numbers", 0)]),
+            TestId (("add", 0) :| [("commutativity", 1)])
+          ]
     }
 
 exampleAugmentedManifest :: AugmentedManifest
@@ -132,7 +137,7 @@ exampleMutationRunReport =
                     augmentedMutationRecordMutatedLine = Nothing,
                     augmentedMutationRecordContextBefore = [],
                     augmentedMutationRecordContextAfter = [],
-                    augmentedMutationRecordCoveringTests = []
+                    augmentedMutationRecordCoveringTests = Map.empty
                   }
             }
         ]

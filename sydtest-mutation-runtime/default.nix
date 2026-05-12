@@ -1,6 +1,6 @@
 { mkDerivation, aeson, autodocodec, base, bytestring, containers
-, genvalidity, genvalidity-path, genvalidity-text, lib, path
-, path-io, QuickCheck, text
+, genvalidity, genvalidity-containers, genvalidity-path
+, genvalidity-text, lib, path, path-io, QuickCheck, text
 }:
 mkDerivation {
   pname = "sydtest-mutation-runtime";
@@ -8,7 +8,8 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [
     aeson autodocodec base bytestring containers genvalidity
-    genvalidity-path genvalidity-text path path-io QuickCheck text
+    genvalidity-containers genvalidity-path genvalidity-text path
+    path-io QuickCheck text
   ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   license = lib.licenses.mit;

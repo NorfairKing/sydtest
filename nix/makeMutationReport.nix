@@ -34,7 +34,7 @@ let
   report = compileMutationReport {
     inherit name testExecutableName;
     testExecutable = testPkg;
-    inherit (instrumentedPkg) manifest;
+    manifests = [ instrumentedPkg.manifest ];
   };
 in
 if mustKillAll

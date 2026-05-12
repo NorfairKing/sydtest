@@ -4,14 +4,14 @@
 # Composition of compileMutationReport and assertMutationScore.
 
 { name # name for the derivation
-, manifest # the 'manifest' output of an addManifest-wrapped package
+, manifests # list of 'manifest' outputs from addManifest-wrapped packages
 , testExecutable # derivation containing the test executable
 , testExecutableName # name of the executable within testExecutable to invoke
 }:
 
 let
   report = compileMutationReport {
-    inherit name manifest testExecutable testExecutableName;
+    inherit name manifests testExecutable testExecutableName;
   };
 in
 assertMutationScore {

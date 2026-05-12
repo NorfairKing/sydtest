@@ -26,13 +26,15 @@ let
     , testPackage
     , testExecutableName
     , exceptions ? [ ]
+    , debug ? false
+    , ghcMemLimit ? "8g"
     }:
     let
       instrumentedHaskellPackages = haskellPackages.extend (_: super:
         builtins.listToAttrs (map
           (pkg: {
             name = pkg;
-            value = addManifest { inherit exceptions; } super.${pkg};
+            value = addManifest { inherit exceptions debug ghcMemLimit; } super.${pkg};
           })
           libraryPackages));
       manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
@@ -83,6 +85,7 @@ in
     libraryPackages = [ "really-safe-money" ];
     testPackage = "really-safe-money-gen";
     testExecutableName = "really-safe-money-test";
+    debug = true;
   }).report;
 
   mutation-safe-coloured-text = (mutationCheck {
@@ -90,5 +93,6 @@ in
     libraryPackages = [ "safe-coloured-text" "safe-coloured-text-parsing" ];
     testPackage = "safe-coloured-text-gen";
     testExecutableName = "safe-coloured-text-test";
+    debug = true;
   }).report;
 }

@@ -78,10 +78,11 @@ mutationTypeCheckAction opts ms tcGblEnv = do
   if "Paths_" `isPrefixOf` mn || mn `elem` exceptions
     then pure tcGblEnv
     else do
+      let debug = "--debug" `elem` opts
       liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
       let mSrcPath = ml_hs_file (ms_location ms)
       (binds', mutations) <-
-        runInstrument tcGblEnv allOperators mSrcPath $
+        runInstrument tcGblEnv allOperators mSrcPath debug $
           instrumentModule (tcg_binds tcGblEnv)
       -- The manifest dir comes from --manifest= plugin opt, or from the
       -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path

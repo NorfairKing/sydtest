@@ -82,7 +82,9 @@ data InstrumentEnv = InstrumentEnv
     -- | Operators to try at each expression site.
     instrOperators :: [MutationOperator],
     -- | Source file (relative path) and pre-read lines, read once per module.
-    instrSourceFile :: Maybe (Path Rel File, [T.Text])
+    instrSourceFile :: Maybe (Path Rel File, [T.Text]),
+    -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
+    instrDebug :: Bool
   }
 
 type InstrM = WriterT [MutationRecord] (ReaderT InstrumentEnv TcM)
@@ -101,9 +103,11 @@ runInstrument ::
   [MutationOperator] ->
   -- | Source file path for this module (used to read context lines once).
   Maybe FilePath ->
+  -- | Print each mutation site as it is recorded.
+  Bool ->
   InstrM a ->
   TcM (a, [MutationRecord])
-runInstrument tcGblEnv operators mSrcPath action = do
+runInstrument tcGblEnv operators mSrcPath debug action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -122,7 +126,8 @@ runInstrument tcGblEnv operators mSrcPath action = do
         instrIfMutationId = ifMutId,
         instrMutationIdCon = mutIdCon,
         instrOperators = operators,
-        instrSourceFile = mSrcFile
+        instrSourceFile = mSrcFile,
+        instrDebug = debug
       }
   where
     ioErr :: IOException -> IO (Maybe SB.ByteString)
@@ -319,7 +324,7 @@ recordMutation ::
   (T.Text -> T.Text) ->
   InstrM MutationId
 recordMutation le op origStr replStr srcTransform = do
-  InstrumentEnv {instrModule, instrSourceFile} <- ask
+  InstrumentEnv {instrModule, instrSourceFile, instrDebug} <- ask
   let sp = getLocA le
   case sp of
     RealSrcSpan rss _ -> do
@@ -352,6 +357,11 @@ recordMutation le op origStr replStr srcTransform = do
                         )
                         mLine
                  in (Just relFile, mLine, mMutated, before, after)
+      liftTcM $
+        liftIO $
+          if instrDebug
+            then putStrLn $ "mutation: recording " ++ mn ++ "/" ++ op ++ " at " ++ show lineNum ++ ":" ++ show colStart ++ "-" ++ show colEnd
+            else pure ()
       tell
         [ MutationRecord
             { mutRecId = mid,

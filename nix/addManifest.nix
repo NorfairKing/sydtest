@@ -20,11 +20,14 @@
 # interpolated into configureFlags or buildFlags.
 
 { exceptions ? [ ] # list of module names to skip during instrumentation
+, debug ? false # print each mutation site as it is recorded (for debugging the plugin)
+, ghcMemLimit ? "8g" # RTS heap limit for GHC during instrumented compilation (e.g. "4g", "8g")
 }:
 pkg: # the Haskell package derivation to wrap
 
 let
-  pluginOpts = builtins.map (e: "--exception=" + e) exceptions;
+  pluginOpts = builtins.map (e: "--exception=" + e) exceptions
+    ++ (if debug then [ "--debug" ] else [ ]);
   stringOpt = arg: "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:${arg}";
   exceptionConfigureFlags = builtins.map stringOpt pluginOpts;
 in
@@ -43,6 +46,11 @@ in
     # The parsedResultAction injects 'import Test.Syd.Mutation.Plugin.Runtime ()'; expose
     # the package so GHC can resolve that module in the compiled modules.
     "--ghc-option=-package=sydtest-mutation-plugin"
+    # Hard limit on GHC's heap during instrumented compilation. Without this,
+    # a pathological module can cause GHC to consume hundreds of GB.
+    "--ghc-option=+RTS"
+    "--ghc-option=-M${ghcMemLimit}"
+    "--ghc-option=-RTS"
   ];
   configureFlags = (old.configureFlags or [ ]) ++ exceptionConfigureFlags;
   preBuild = (old.preBuild or "") + ''

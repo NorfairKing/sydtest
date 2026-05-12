@@ -23,6 +23,8 @@ library
       Example.Lib
       Example.LibSpec
       Example.UntestedLib
+      Example.ExceptionLib
+      Example.FunctionExceptionLib
   other-modules:
       Paths_sydtest_mutation_example
   hs-source-dirs:

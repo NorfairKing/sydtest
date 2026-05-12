@@ -18,6 +18,7 @@
 , libraries ? [ ]
 , tests ? [ ]
 , exceptions ? [ ]
+, disabledMutations ? [ ]
 , debug ? false
 , ghcMemLimit ? "16g"
 }:
@@ -32,7 +33,7 @@ let
     builtins.listToAttrs (map
       (pkg: {
         name = pkg;
-        value = addManifest { inherit exceptions debug ghcMemLimit; } super.${pkg};
+        value = addManifest { inherit exceptions disabledMutations debug ghcMemLimit; } super.${pkg};
       })
       libraryPackages));
 

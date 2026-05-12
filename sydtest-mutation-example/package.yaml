@@ -11,6 +11,12 @@ dependencies:
 
 library:
   source-dirs: src
+  exposed-modules:
+  - Example.Lib
+  - Example.LibSpec
+  - Example.UntestedLib
+  - Example.ExceptionLib
+  - Example.FunctionExceptionLib
   dependencies:
   - sydtest
   ghc-options:

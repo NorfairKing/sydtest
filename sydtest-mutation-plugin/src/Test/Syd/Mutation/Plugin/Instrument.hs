@@ -18,6 +18,7 @@ import Control.Monad (filterM, foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
 import qualified Data.ByteString as SB
+import Data.List (stripPrefix)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe (isJust)
 import qualified Data.Text as T
@@ -27,10 +28,13 @@ import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
 import GHC.HsToCore (deSugarExpr)
+import GHC.Serialized (deserializeWithData)
 import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
 import GHC.Tc.Utils.Monad (getTopEnv)
+import GHC.Types.Annotations (AnnEnv, AnnTarget (..), findAnns)
 import GHC.Types.Error (isEmptyMessages)
+import GHC.Types.Id (idName)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
@@ -81,6 +85,10 @@ data InstrumentEnv = InstrumentEnv
     instrMutationIdCon :: DataCon,
     -- | Operators to try at each expression site.
     instrOperators :: [MutationOperator],
+    -- | Annotation environment for reading {-# ANN #-} annotations.
+    instrAnnEnv :: AnnEnv,
+    -- | Mutation type names disabled at module or global scope.
+    instrDisabledMutations :: [String],
     -- | Source file (relative path) and pre-read lines, read once per module.
     instrSourceFile :: Maybe (Path Rel File, [T.Text]),
     -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
@@ -101,13 +109,17 @@ liftTcM = lift . lift
 runInstrument ::
   TcGblEnv ->
   [MutationOperator] ->
+  -- | Annotation environment for reading {-# ANN #-} annotations.
+  AnnEnv ->
+  -- | Mutation type names disabled globally or at module scope.
+  [String] ->
   -- | Source file path for this module (used to read context lines once).
   Maybe FilePath ->
   -- | Print each mutation site as it is recorded.
   Bool ->
   InstrM a ->
   TcM (a, [MutationRecord])
-runInstrument tcGblEnv operators mSrcPath debug action = do
+runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -118,6 +130,7 @@ runInstrument tcGblEnv operators mSrcPath debug action = do
       absFile <- resolveFile' (fromRelFile relFile)
       mbs <- (Just <$> SB.readFile (fromAbsFile absFile)) `catch` ioErr
       pure $ fmap (\bs -> (relFile, T.lines (TE.decodeUtf8Lenient bs))) mbs
+  let activeOperators = filter (\op -> operatorName op `notElem` disabledMutations) operators
   runReaderT
     (runWriterT action)
     InstrumentEnv
@@ -125,7 +138,9 @@ runInstrument tcGblEnv operators mSrcPath debug action = do
         instrRdrEnv = rdrEnv,
         instrIfMutationId = ifMutId,
         instrMutationIdCon = mutIdCon,
-        instrOperators = operators,
+        instrOperators = activeOperators,
+        instrAnnEnv = annEnv,
+        instrDisabledMutations = disabledMutations,
         instrSourceFile = mSrcFile,
         instrDebug = debug
       }
@@ -167,7 +182,9 @@ instrumentBinds = mapBagM (traverse instrumentBind)
 
 instrumentBind :: HsBind GhcTc -> InstrM (HsBind GhcTc)
 instrumentBind = \case
-  FunBind x name mg -> FunBind x name <$> instrumentMatchGroup mg
+  FunBind x name mg -> do
+    mg' <- withFunBindEnv (idName (unLoc name)) (instrumentMatchGroup mg)
+    pure (FunBind x name mg')
   PatBind x pat mult rhs -> PatBind x pat mult <$> instrumentGRHSs rhs
   VarBind x var rhs -> VarBind x var <$> instrumentLExpr rhs
   PatSynBind x psb -> pure (PatSynBind x psb)
@@ -175,6 +192,43 @@ instrumentBind = \case
   XHsBindsLR ab@AbsBinds {abs_binds} -> do
     binds' <- mapBagM (traverse instrumentBind) abs_binds
     pure (XHsBindsLR ab {abs_binds = binds'})
+
+-- | Run an instrumentation action with the operator list filtered by any
+-- {-# ANN funName ("disable-mutation:..." :: String) #-} annotations on the
+-- given top-level name.
+withFunBindEnv :: Name -> InstrM a -> InstrM a
+withFunBindEnv funName action = do
+  InstrumentEnv {instrAnnEnv, instrOperators} <- ask
+  let funAnns = findAnns deserializeWithData instrAnnEnv (NamedTarget funName) :: [String]
+  case parseFunMutationAnns funAnns of
+    Just [] -> action -- no annotation affecting this function
+    Just disabled ->
+      local (\env -> env {instrOperators = filter (\op -> operatorName op `notElem` disabled) instrOperators}) action
+    Nothing -> local (\env -> env {instrOperators = []}) action -- disable all
+  where
+    -- Returns Nothing for "disable all", Just names for specific disables,
+    -- Just [] when no relevant annotation is present.
+    parseFunMutationAnns :: [String] -> Maybe [String]
+    parseFunMutationAnns anns =
+      let parsed = concatMap parseOne anns
+       in if any isDisableAll parsed
+            then Nothing
+            else Just (concatMap getNames parsed)
+    parseOne s
+      | s == "DisableMutations" = [Left ()]
+      | Just rest <- stripPrefix "DisableMutations:" s = [Right (map trim (splitOnComma rest))]
+      | Just rest <- stripPrefix "DisableMutation:" s = [Right [trim rest]]
+      | otherwise = []
+    trim = dropWhile (== ' ')
+    isDisableAll (Left ()) = True
+    isDisableAll _ = False
+    getNames (Right ns) = ns
+    getNames _ = []
+
+splitOnComma :: String -> [String]
+splitOnComma s = case break (== ',') s of
+  (w, []) -> [w]
+  (w, _ : rest) -> w : splitOnComma rest
 
 instrumentMatchGroup ::
   MatchGroup GhcTc (LHsExpr GhcTc) ->

@@ -46,6 +46,7 @@ library
     , directory
     , filepath
     , ghc
+    , ghc-boot
     , mtl
     , path
     , path-io

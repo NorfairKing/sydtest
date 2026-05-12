@@ -15,11 +15,12 @@
 , package # name of the package under test (string)
 , testPackage ? "${package}-gen" # name of the package whose test suite to run
 , exceptions ? [ ] # list of module names to exclude from instrumentation
+, disabledMutations ? [ ] # list of mutation type names to disable globally
 , mustKillAll ? true # if true (default), fail if any mutations survive
 }:
 
 let
-  addManifest = addManifest' { inherit exceptions; };
+  addManifest = addManifest' { inherit exceptions disabledMutations; };
 
   addManifestOverride = _: super: {
     ${package} = addManifest super.${package};

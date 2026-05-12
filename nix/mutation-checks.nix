@@ -26,8 +26,5 @@ in
     testPackage = "safe-coloured-text-gen";
     testExecutableName = "safe-coloured-text-test";
     debug = true;
-    # Text.Colour.Chunk has 189 mutations; GHC needs >16g to compile the
-    # instrumented code even at -O0. Skip it until the plugin is made cheaper.
-    exceptions = [ "Text.Colour.Chunk" ];
   }).report;
 }

@@ -222,9 +222,47 @@ instrumentValBinds = \case
 
 instrumentLExpr :: LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
 instrumentLExpr le = do
+  -- ORDERING INVARIANT: instrument children before applying operators, but
+  -- pass the ORIGINAL (pre-child-instrumentation) expression to the operators
+  -- for matching and mutant construction.
+  --
+  -- Why this ordering matters
+  -- -------------------------
+  -- Each operator produces one or more mutant alternatives.  Those mutants
+  -- are embedded as the "mutated" branch of an ifMutation call:
+  --
+  --   ifMutation id <mutant> <fallthrough>
+  --
+  -- If mutant alternatives were built from already-instrumented children, any
+  -- child that appears in multiple mutant alternatives would be DUPLICATED in
+  -- the AST.  The ListLit operator is the worst case: given a 6-element list
+  --
+  --   [e1, e2, e3, e4, e5, e6]
+  --
+  -- it generates three mutants (empty, drop-first, drop-last), so the final
+  -- expression contains the list four times total.  If the elements are
+  -- already instrumented, each ei' is itself a nested ifMutation tree, and
+  -- elements e2..e5 each appear in three of the four copies.  With N elements
+  -- each carrying K layers of ifMutation wrapping, the AST grows as O(N * K).
+  --
+  -- This blowup compounds across operators: ConstBool fires on every
+  -- Bool-typed expression, wrapping even individual list elements in two more
+  -- ifMutation layers before ListLit sees them.  For Text.Colour.Chunk, which
+  -- has `and [isNothing f1, ..., isNothing f6]` and
+  -- `catMaybes [e1, ..., e5]`, the duplicate-subtree explosion previously
+  -- caused GHC to exceed 16 GB of heap even at -O0.
+  --
+  -- The fix: operators receive the original `le` (children not yet
+  -- instrumented) and produce mutants whose sub-expressions are plain,
+  -- undecorated AST nodes.  The fallthrough branch — the "run normally" path
+  -- through all ifMutation guards — is `le'` (children fully instrumented),
+  -- so every nested mutation site is still reachable when that specific
+  -- mutation is not active.  This is semantically correct: a mutation is a
+  -- change at one specific site; when that mutation is active we execute the
+  -- mutant directly without needing to recurse into it for other mutations.
   le' <- traverse (instrumentExpr (getLocA le)) le
   InstrumentEnv {instrOperators} <- ask
-  tryMutateWith instrOperators le'
+  tryMutateWith instrOperators le le'
 
 instrumentExpr :: SrcSpan -> HsExpr GhcTc -> InstrM (HsExpr GhcTc)
 instrumentExpr _sp = \case
@@ -271,15 +309,24 @@ instrumentRecordBinds = \case
 -- ---------------------------------------------------------------------------
 -- Mutation candidates
 
--- | The list of operators to try.  Imported from 'Test.Syd.Mutation.Plugin.Operators'.
--- Defined as a parameter here so that 'Instrument.hs' stays operator-agnostic.
--- 'instrumentModule' is called with the concrete list from 'Plugin.hs'.
-tryMutateWith :: [MutationOperator] -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-tryMutateWith operators le = foldM applyOperator le operators
+-- | Try every operator in turn, accumulating ifMutation wrappers.
+--
+-- @origExpr@ has uninstrumented children; operators match against it and
+-- build their mutant alternatives from it, so mutants stay cheap (see the
+-- ordering-invariant note on 'instrumentLExpr').  @fallthroughExpr@ has fully
+-- instrumented children and becomes the innermost "original" branch of the
+-- ifMutation nesting.
+tryMutateWith :: [MutationOperator] -> LHsExpr GhcTc -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+tryMutateWith operators origExpr fallthroughExpr =
+  foldM (\ft op -> applyOperator origExpr ft op) fallthroughExpr operators
 
-applyOperator :: LHsExpr GhcTc -> MutationOperator -> InstrM (LHsExpr GhcTc)
-applyOperator expr op = case operatorMatch op expr of
-  Nothing -> pure expr
+-- | Try one operator.  @origExpr@ is matched and used for mutant construction
+-- (uninstrumented children); @fallthrough@ is used as the "original" branch
+-- (instrumented children).  See the ordering-invariant note on
+-- 'instrumentLExpr' for why this split is necessary.
+applyOperator :: LHsExpr GhcTc -> LHsExpr GhcTc -> MutationOperator -> InstrM (LHsExpr GhcTc)
+applyOperator origExpr fallthrough op = case operatorMatch op origExpr of
+  Nothing -> pure fallthrough
   Just action -> do
     alts <- action
     hscEnv <- liftTcM getTopEnv
@@ -291,9 +338,9 @@ applyOperator expr op = case operatorMatch op expr of
             putStrLn $
               "mutation: WARNING all replacements dropped for operator "
                 ++ operatorName op
-                ++ locStr (getLocA expr)
-        pure expr
-      (x : xs) -> applyAlts (operatorName op) (x :| xs) expr
+                ++ locStr (getLocA origExpr)
+        pure fallthrough
+      (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
 
 validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String, T.Text -> T.Text) -> IO Bool
 validateAlt hscEnv (_, mutated, _, _, _) = do

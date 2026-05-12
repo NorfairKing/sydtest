@@ -12,10 +12,38 @@ let
   mutationCheck = pkgs.callPackage ./mutationCheck.nix { inherit haskellPackages; };
 in
 {
+  mutation-autodocodec = (mutationCheck {
+    name = "autodocodec";
+    packages = [
+      "autodocodec"
+      "autodocodec-api-usage"
+    ];
+    libraries = [
+      "autodocodec-exact"
+      "autodocodec-nix"
+      "autodocodec-openapi3"
+      "autodocodec-schema"
+      "autodocodec-servant-multipart"
+      "autodocodec-swagger2"
+      "autodocodec-yaml"
+    ];
+    debug = true;
+  }).report;
+
+  mutation-opt-env-conf = (mutationCheck {
+    name = "opt-env-conf";
+    packages = [ "opt-env-conf-test" ];
+    libraries = [ "opt-env-conf" ];
+    debug = true;
+  }).report;
+
   mutation-really-safe-money = (mutationCheck {
     name = "really-safe-money";
-    libraries = [ "really-safe-money" ];
-    tests = [ "really-safe-money-gen" ];
+    packages = [
+      "really-safe-money"
+      "really-safe-money-autodocodec"
+      "really-safe-money-gen"
+    ];
     debug = true;
   }).report;
 

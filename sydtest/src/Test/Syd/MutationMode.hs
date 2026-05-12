@@ -45,7 +45,7 @@ import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempFile)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import System.IO (IOMode (..), hPutStrLn, openFile, stderr)
+import System.IO (IOMode (..), hClose, hPutStrLn, openFile, stderr)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleClose)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -197,11 +197,14 @@ runMutationMode settings _manifestDirs _spec = do
                 ]
                   ++ rtsArgs
           (exitCode, mLogFile) <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
-            -- Open a second handle to the same file for stderr; both share the file.
-            errHandle <- openFile (fromAbsFile logPath) AppendMode
+            -- Close the handle from withSystemTempFile so we can open two
+            -- fresh handles (stdout + stderr) without file-locking conflicts.
+            hClose logHandle
+            stdoutHandle <- openFile (fromAbsFile logPath) WriteMode
+            stderrHandle <- openFile (fromAbsFile logPath) AppendMode
             let childProc =
-                  setStdout (useHandleClose logHandle) $
-                    setStderr (useHandleClose errHandle) $
+                  setStdout (useHandleClose stdoutHandle) $
+                    setStderr (useHandleClose stderrHandle) $
                       proc exe args
             ec <- runProcess childProc
             case ec of

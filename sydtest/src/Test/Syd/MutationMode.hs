@@ -42,11 +42,11 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Path
-import Path.IO (getCurrentDir)
+import Path.IO (getCurrentDir, withSystemTempFile)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import System.IO (hPutStrLn, stderr)
-import System.Process.Typed (proc, runProcess)
+import System.IO (IOMode (..), hPutStrLn, openFile, stderr)
+import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleClose)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -65,6 +65,7 @@ import Test.Syd.Mutation.Manifest
 import Test.Syd.Mutation.Runtime (MutationId (..), parseMutationId, renderMutationId, setActiveMutation, withCoverageSlot)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.OptParse
+import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
@@ -183,7 +184,21 @@ runMutationMode settings _manifestDirs _spec = do
                   fromAbsDir augDir
                 ]
                   ++ rtsArgs
-          exitCode <- runProcess (proc exe args)
+          exitCode <- withSystemTempFile "mutation-child.log" $ \logPath logHandle -> do
+            -- Open a second handle to the same file for stderr; both share the file.
+            errHandle <- openFile (fromAbsFile logPath) AppendMode
+            let childProc =
+                  setStdout (useHandleClose logHandle) $
+                    setStderr (useHandleClose errHandle) $
+                      proc exe args
+            ec <- runProcess childProc
+            case ec of
+              ExitSuccess -> do
+                output <- readFile (fromAbsFile logPath)
+                putStr $ formatMutationLog mid (Just (toMutationRecord record))
+                putStr output
+              ExitFailure _ -> pure ()
+            pure ec
           case exitCode of
             ExitSuccess -> pure (killed, survived + 1, uncovered)
             ExitFailure _ -> pure (killed + 1, survived, uncovered)
@@ -226,6 +241,7 @@ runSingleMutationMode settings _manifestDirs spec = do
   setActiveMutation (Just mid)
   timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous}) forest
   setActiveMutation Nothing
+  printOutputSpecForest settings timedResult
   if shouldExitFail settings (timedValue timedResult)
     then exitWith (ExitFailure 1)
     else exitSuccess

@@ -17,6 +17,7 @@ library:
   - bytestring
   - containers
   - genvalidity
+  - genvalidity-path
   - genvalidity-text
   - path
   - path-io

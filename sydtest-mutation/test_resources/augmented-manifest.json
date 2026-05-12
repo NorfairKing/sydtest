@@ -1,5 +1,7 @@
 [
     {
+        "col_end": 15,
+        "col_start": 14,
         "context_after": [
             "  in result"
         ],
@@ -18,6 +20,8 @@
             "14",
             "15"
         ],
+        "line": 5,
+        "module": "Foo.Bar",
         "mutated_line": "  result = x - y",
         "operator": "ArithOp",
         "original": "+",

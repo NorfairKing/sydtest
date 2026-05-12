@@ -26,9 +26,17 @@ import Test.Syd.Mutation.TestId (TestId (..), parseTestIdFilterArg, renderTestId
 -- | One discovered mutation site, as recorded by the plugin.
 data MutationRecord = MutationRecord
   { mutRecId :: MutationId,
-    mutRecOperator :: String,
-    mutRecOriginal :: String,
-    mutRecReplacement :: String,
+    mutRecOperator :: Text,
+    mutRecOriginal :: Text,
+    mutRecReplacement :: Text,
+    -- | Haskell module name containing the mutation site (e.g. @"Foo.Bar"@).
+    mutRecModule :: Text,
+    -- | 1-based source line number of the mutated expression.
+    mutRecLine :: Word,
+    -- | 1-based start column of the mutated expression.
+    mutRecColStart :: Word,
+    -- | 1-based end column of the mutated expression.
+    mutRecColEnd :: Word,
     -- | Source file path relative to the project root, as reported by GHC.
     mutRecSourceFile :: Maybe (Path Rel File),
     -- | Verbatim source line containing the mutated expression.
@@ -46,12 +54,16 @@ data MutationRecord = MutationRecord
   deriving (Show)
 
 instance ToJSON MutationRecord where
-  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
+  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
     object
       [ "id" .= parts,
         "operator" .= mutRecOperator,
         "original" .= mutRecOriginal,
         "replacement" .= mutRecReplacement,
+        "module" .= mutRecModule,
+        "line" .= mutRecLine,
+        "col_start" .= mutRecColStart,
+        "col_end" .= mutRecColEnd,
         "source_file" .= fmap fromRelFile mutRecSourceFile,
         "source_line" .= mutRecSourceLine,
         "mutated_line" .= mutRecMutatedLine,
@@ -66,6 +78,10 @@ instance FromJSON MutationRecord where
     op <- o .: "operator"
     orig <- o .: "original"
     repl <- o .: "replacement"
+    modName <- o .: "module"
+    line <- o .: "line"
+    colStart <- o .: "col_start"
+    colEnd <- o .: "col_end"
     mSrcFileStr <- o .:? "source_file"
     srcFile <- case mSrcFileStr of
       Nothing -> pure Nothing
@@ -84,6 +100,10 @@ instance FromJSON MutationRecord where
           mutRecOperator = op,
           mutRecOriginal = orig,
           mutRecReplacement = repl,
+          mutRecModule = modName,
+          mutRecLine = line,
+          mutRecColStart = colStart,
+          mutRecColEnd = colEnd,
           mutRecSourceFile = srcFile,
           mutRecSourceLine = srcLine,
           mutRecMutatedLine = mutatedLine,

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -10,6 +11,7 @@ module Test.Syd.Mutation.AugmentedManifest
     lookupAugmentedMutationRecord,
     fromMutationRecord,
     SurvivedMutation (..),
+    UncoveredMutation (..),
     MutationRunReport (..),
     writeMutationRunReport,
   )
@@ -18,14 +20,15 @@ where
 import Data.Aeson (FromJSON (..), ToJSON (..), decode, encode, object, withArray, withObject, (.!=), (.:), (.:?), (.=))
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
+import Data.GenValidity.Path ()
 import Data.GenValidity.Text ()
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
+import GHC.Generics (Generic)
 import Path
 import Path.IO (ensureDir)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
-import Test.QuickCheck (arbitraryPrintableChar, listOf)
 import Test.Syd.Mutation.Manifest (MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
@@ -34,9 +37,13 @@ import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
 -- Unlike 'MutationRecord', covering tests are always present (never Nothing).
 data AugmentedMutationRecord = AugmentedMutationRecord
   { augmentedMutationRecordId :: MutationId,
-    augmentedMutationRecordOperator :: String,
-    augmentedMutationRecordOriginal :: String,
-    augmentedMutationRecordReplacement :: String,
+    augmentedMutationRecordOperator :: Text,
+    augmentedMutationRecordOriginal :: Text,
+    augmentedMutationRecordReplacement :: Text,
+    augmentedMutationRecordModule :: Text,
+    augmentedMutationRecordLine :: Word,
+    augmentedMutationRecordColStart :: Word,
+    augmentedMutationRecordColEnd :: Word,
     augmentedMutationRecordSourceFile :: Maybe (Path Rel File),
     augmentedMutationRecordSourceLine :: Maybe Text,
     augmentedMutationRecordMutatedLine :: Maybe Text,
@@ -46,15 +53,19 @@ data AugmentedMutationRecord = AugmentedMutationRecord
     -- Always present (coverage was collected before writing this file).
     augmentedMutationRecordCoveringTests :: [TestId]
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
 instance ToJSON AugmentedMutationRecord where
-  toJSON AugmentedMutationRecord {augmentedMutationRecordId = MutationId parts, augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter, augmentedMutationRecordCoveringTests} =
+  toJSON AugmentedMutationRecord {augmentedMutationRecordId = MutationId parts, augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordModule, augmentedMutationRecordLine, augmentedMutationRecordColStart, augmentedMutationRecordColEnd, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter, augmentedMutationRecordCoveringTests} =
     object
       [ "id" .= parts,
         "operator" .= augmentedMutationRecordOperator,
         "original" .= augmentedMutationRecordOriginal,
         "replacement" .= augmentedMutationRecordReplacement,
+        "module" .= augmentedMutationRecordModule,
+        "line" .= augmentedMutationRecordLine,
+        "col_start" .= augmentedMutationRecordColStart,
+        "col_end" .= augmentedMutationRecordColEnd,
         "source_file" .= fmap fromRelFile augmentedMutationRecordSourceFile,
         "source_line" .= augmentedMutationRecordSourceLine,
         "mutated_line" .= augmentedMutationRecordMutatedLine,
@@ -69,6 +80,10 @@ instance FromJSON AugmentedMutationRecord where
     op <- o .: "operator"
     orig <- o .: "original"
     repl <- o .: "replacement"
+    modName <- o .: "module"
+    line <- o .: "line"
+    colStart <- o .: "col_start"
+    colEnd <- o .: "col_end"
     mSrcFileStr <- o .:? "source_file"
     srcFile <- case mSrcFileStr of
       Nothing -> pure Nothing
@@ -87,6 +102,10 @@ instance FromJSON AugmentedMutationRecord where
           augmentedMutationRecordOperator = op,
           augmentedMutationRecordOriginal = orig,
           augmentedMutationRecordReplacement = repl,
+          augmentedMutationRecordModule = modName,
+          augmentedMutationRecordLine = line,
+          augmentedMutationRecordColStart = colStart,
+          augmentedMutationRecordColEnd = colEnd,
           augmentedMutationRecordSourceFile = srcFile,
           augmentedMutationRecordSourceLine = srcLine,
           augmentedMutationRecordMutatedLine = mutatedLine,
@@ -98,23 +117,9 @@ instance FromJSON AugmentedMutationRecord where
 instance Validity AugmentedMutationRecord where
   validate = trivialValidation
 
--- | operator, original, and replacement use printable ASCII since they are
--- String fields serialised via Text (surrogates in String do not roundtrip
--- through JSON).  All other fields are structurally generated.
 instance GenValid AugmentedMutationRecord where
-  genValid =
-    AugmentedMutationRecord
-      <$> genValid
-      <*> listOf arbitraryPrintableChar
-      <*> listOf arbitraryPrintableChar
-      <*> listOf arbitraryPrintableChar
-      <*> pure Nothing
-      <*> genValid
-      <*> genValid
-      <*> genValid
-      <*> genValid
-      <*> genValid
-  shrinkValid _ = []
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
 
 newtype AugmentedManifest = AugmentedManifest [AugmentedMutationRecord]
   deriving (Show, Eq)
@@ -174,22 +179,36 @@ instance ToJSON SurvivedMutation where
         "log_file" .= fromRelFile survivedMutationLogFile
       ]
 
+-- | A mutation that was not covered by any test (never executed).
+newtype UncoveredMutation = UncoveredMutation
+  { uncoveredMutationRecord :: AugmentedMutationRecord
+  }
+  deriving (Show, Eq)
+
+instance ToJSON UncoveredMutation where
+  toJSON UncoveredMutation {uncoveredMutationRecord} =
+    object
+      [ "mutation" .= uncoveredMutationRecord
+      ]
+
 -- | Full JSON report written by the parent mutation process.
 data MutationRunReport = MutationRunReport
   { mutationRunReportKilled :: Int,
     mutationRunReportSurvived :: Int,
     mutationRunReportUncovered :: Int,
-    mutationRunReportSurvivors :: [SurvivedMutation]
+    mutationRunReportSurvivors :: [SurvivedMutation],
+    mutationRunReportUncoveredMutations :: [UncoveredMutation]
   }
   deriving (Show, Eq)
 
 instance ToJSON MutationRunReport where
-  toJSON MutationRunReport {mutationRunReportKilled, mutationRunReportSurvived, mutationRunReportUncovered, mutationRunReportSurvivors} =
+  toJSON MutationRunReport {mutationRunReportKilled, mutationRunReportSurvived, mutationRunReportUncovered, mutationRunReportSurvivors, mutationRunReportUncoveredMutations} =
     object
       [ "killed" .= mutationRunReportKilled,
         "survived" .= mutationRunReportSurvived,
         "uncovered" .= mutationRunReportUncovered,
-        "survivors" .= mutationRunReportSurvivors
+        "survivors" .= mutationRunReportSurvivors,
+        "uncovered_mutations" .= mutationRunReportUncoveredMutations
       ]
 
 mutationRunReportRelFile :: Path Rel File
@@ -204,7 +223,7 @@ writeMutationRunReport dir report = do
 -- | Convert a 'MutationRecord' with coverage data to an 'AugmentedMutationRecord'.
 -- Records with 'mutRecCoveringTests' = 'Nothing' are dropped.
 fromMutationRecord :: MutationRecord -> Maybe AugmentedMutationRecord
-fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
+fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
   case mutRecCoveringTests of
     Nothing -> Nothing
     Just ts ->
@@ -214,6 +233,10 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             augmentedMutationRecordOperator = mutRecOperator,
             augmentedMutationRecordOriginal = mutRecOriginal,
             augmentedMutationRecordReplacement = mutRecReplacement,
+            augmentedMutationRecordModule = mutRecModule,
+            augmentedMutationRecordLine = mutRecLine,
+            augmentedMutationRecordColStart = mutRecColStart,
+            augmentedMutationRecordColEnd = mutRecColEnd,
             augmentedMutationRecordSourceFile = mutRecSourceFile,
             augmentedMutationRecordSourceLine = mutRecSourceLine,
             augmentedMutationRecordMutatedLine = mutRecMutatedLine,

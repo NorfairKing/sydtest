@@ -57,6 +57,7 @@ import Test.Syd.Mutation.AugmentedManifest
     AugmentedMutationRecord (..),
     MutationRunReport (..),
     SurvivedMutation (..),
+    UncoveredMutation (..),
     fromMutationRecord,
     lookupAugmentedMutationRecord,
     readAugmentedManifestFile,
@@ -155,7 +156,7 @@ resolveAugmentedManifestDir settings =
   maybe getCurrentDir pure (settingMutationAugmentedManifestDir settings)
 
 data MutationResult
-  = MutationUncovered
+  = MutationUncovered UncoveredMutation
   | MutationKilled
   | MutationSurvived (Maybe SurvivedMutation)
 
@@ -177,30 +178,32 @@ runMutationMode settings _manifestDirs _spec = do
   n <- getNumCapabilities
   sem <- newQSem n
   results <- mapConcurrently (runOne exe augDir sem) records
-  let (killed, survived, uncovered, survivors) = foldr tally (0, 0, 0, []) results
+  let (killed, survived, survivors, uncoveredMutations) = foldr tally (0, 0, [], []) results
+      uncovered = length uncoveredMutations
       jsonReport =
         MutationRunReport
           { mutationRunReportKilled = killed,
             mutationRunReportSurvived = survived,
             mutationRunReportUncovered = uncovered,
-            mutationRunReportSurvivors = survivors
+            mutationRunReportSurvivors = survivors,
+            mutationRunReportUncoveredMutations = uncoveredMutations
           }
   mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
   putStrLn $ "Killed: " ++ show killed
   putStrLn $ "Survived: " ++ show survived
   putStrLn $ "Uncovered: " ++ show uncovered
   where
-    tally MutationUncovered (k, s, u, ss) = (k, s, u + 1, ss)
-    tally MutationKilled (k, s, u, ss) = (k + 1, s, u, ss)
-    tally (MutationSurvived Nothing) (k, s, u, ss) = (k, s + 1, u, ss)
-    tally (MutationSurvived (Just survivor)) (k, s, u, ss) = (k, s + 1, u, ss ++ [survivor])
+    tally (MutationUncovered um) (k, s, ss, us) = (k, s, ss, us ++ [um])
+    tally MutationKilled (k, s, ss, us) = (k + 1, s, ss, us)
+    tally (MutationSurvived Nothing) (k, s, ss, us) = (k, s + 1, ss, us)
+    tally (MutationSurvived (Just survivor)) (k, s, ss, us) = (k, s + 1, ss ++ [survivor], us)
 
     runOne exe augDir sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
         hPutStr stderr $ formatMutationLog mid (Just (toMutationRecord record))
         case augmentedMutationRecordCoveringTests record of
-          [] -> pure MutationUncovered
+          [] -> pure (MutationUncovered (UncoveredMutation record))
           _ -> do
             let rtsArgs = case settingMutationChildMemLimit settings of
                   Nothing -> []
@@ -250,12 +253,16 @@ runMutationMode settings _manifestDirs _spec = do
 -- | Convert an 'AugmentedMutationRecord' back to a 'MutationRecord' for
 -- display purposes.
 toMutationRecord :: AugmentedMutationRecord -> MutationRecord
-toMutationRecord AugmentedMutationRecord {augmentedMutationRecordId, augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter, augmentedMutationRecordCoveringTests} =
+toMutationRecord AugmentedMutationRecord {augmentedMutationRecordId, augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordModule, augmentedMutationRecordLine, augmentedMutationRecordColStart, augmentedMutationRecordColEnd, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter, augmentedMutationRecordCoveringTests} =
   MutationRecord
     { mutRecId = augmentedMutationRecordId,
       mutRecOperator = augmentedMutationRecordOperator,
       mutRecOriginal = augmentedMutationRecordOriginal,
       mutRecReplacement = augmentedMutationRecordReplacement,
+      mutRecModule = augmentedMutationRecordModule,
+      mutRecLine = augmentedMutationRecordLine,
+      mutRecColStart = augmentedMutationRecordColStart,
+      mutRecColEnd = augmentedMutationRecordColEnd,
       mutRecSourceFile = augmentedMutationRecordSourceFile,
       mutRecSourceLine = augmentedMutationRecordSourceLine,
       mutRecMutatedLine = augmentedMutationRecordMutatedLine,
@@ -304,8 +311,8 @@ formatMutationLog (MutationId parts) mRec =
               Nothing ->
                 unlines
                   [ header,
-                    "    - " ++ mutRecOriginal,
-                    "    + " ++ mutRecReplacement
+                    "    - " ++ T.unpack mutRecOriginal,
+                    "    + " ++ T.unpack mutRecReplacement
                   ]
               Just srcLine ->
                 let lineNum = read lineStr :: Int

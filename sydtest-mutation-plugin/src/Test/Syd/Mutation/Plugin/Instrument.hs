@@ -412,9 +412,13 @@ recordMutation le op origStr replStr srcTransform = do
       tell
         [ MutationRecord
             { mutRecId = mid,
-              mutRecOperator = op,
-              mutRecOriginal = origStr,
-              mutRecReplacement = replStr,
+              mutRecOperator = T.pack op,
+              mutRecOriginal = T.pack origStr,
+              mutRecReplacement = T.pack replStr,
+              mutRecModule = T.pack mn,
+              mutRecLine = fromIntegral lineNum,
+              mutRecColStart = fromIntegral colStart,
+              mutRecColEnd = fromIntegral colEnd,
               mutRecSourceFile = mSrcFile,
               mutRecSourceLine = srcLine,
               mutRecMutatedLine = mutatedLine,

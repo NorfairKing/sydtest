@@ -25,8 +25,8 @@
 --
 -- 3. __Parallelism__: because 'activeMutation' is a process-global 'IORef',
 --    mutations must run serially within a single process.  Subprocesses are
---    independent and can be run in parallel (disjoint mutation sets) in a
---    future extension without any changes to the child or the manifest format.
+--    independent, so the parent runs up to N children concurrently where
+--    N = 'getNumCapabilities'.
 module Test.Syd.MutationMode
   ( runMutationMode,
     runSingleMutationMode,
@@ -35,12 +35,16 @@ module Test.Syd.MutationMode
   )
 where
 
+import Control.Concurrent (newQSem, signalQSem, waitQSem)
+import Control.Concurrent.Async (mapConcurrently)
+import Control.Exception (bracket_)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
+import GHC.Conc (getNumCapabilities)
 import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
@@ -150,6 +154,11 @@ resolveAugmentedManifestDir :: Settings -> IO (Path Abs Dir)
 resolveAugmentedManifestDir settings =
   maybe getCurrentDir pure (settingMutationAugmentedManifestDir settings)
 
+data MutationResult
+  = MutationUncovered
+  | MutationKilled
+  | MutationSurvived (Maybe SurvivedMutation)
+
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation.
 --
@@ -165,76 +174,78 @@ runMutationMode settings _manifestDirs _spec = do
   augDir <- resolveAugmentedManifestDir settings
   AugmentedManifest records <- readAugmentedManifestFile augDir
   exe <- getExecutablePath
-  -- TODO: run mutations in parallel (N = getNumCapabilities) using a bounded
-  -- work queue; each child process is independent.
-  (killed, survived, uncovered, survivors) <-
-    foldl (runOne exe augDir) (pure (0 :: Int, 0 :: Int, 0 :: Int, [])) records
-  let jsonReport =
+  n <- getNumCapabilities
+  sem <- newQSem n
+  results <- mapConcurrently (runOne exe augDir sem) records
+  let (killed, survived, uncovered, survivors) = foldr tally (0, 0, 0, []) results
+      jsonReport =
         MutationRunReport
           { mutationRunReportKilled = killed,
             mutationRunReportSurvived = survived,
             mutationRunReportUncovered = uncovered,
-            mutationRunReportSurvivors = reverse survivors
+            mutationRunReportSurvivors = survivors
           }
   mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
   putStrLn $ "Killed: " ++ show killed
   putStrLn $ "Survived: " ++ show survived
   putStrLn $ "Uncovered: " ++ show uncovered
   where
-    runOne exe augDir accIO record = do
-      (killed, survived, uncovered, survivors) <- accIO
-      let mid = augmentedMutationRecordId record
-      hPutStr stderr $ formatMutationLog mid (Just (toMutationRecord record))
-      case augmentedMutationRecordCoveringTests record of
-        [] -> pure (killed, survived, uncovered + 1, survivors)
-        _ -> do
-          let rtsArgs = case settingMutationChildMemLimit settings of
-                Nothing -> []
-                Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
-              args =
-                [ "--mutation",
-                  fromAbsDir augDir,
-                  "--mutation-one",
-                  renderMutationId mid,
-                  "--mutation-augmented-manifest-dir",
-                  fromAbsDir augDir
-                ]
-                  ++ rtsArgs
-          (exitCode, mLogFile) <- withSystemTempDir "mutation-child" $ \tmpDir -> do
-            logPath <- case parseRelFile "child.log" of
-              Just f -> pure (tmpDir </> f)
-              Nothing -> fail "mutation: could not parse child.log as relative file"
-            logHandle <- openFile (fromAbsFile logPath) WriteMode
-            let childProc =
-                  setStdout (useHandleOpen logHandle) $
-                    setStderr (useHandleOpen logHandle) $
-                      proc exe args
-            ec <- runProcess childProc
-            hClose logHandle
-            case ec of
-              ExitFailure _ -> pure (ec, Nothing)
-              ExitSuccess -> do
-                output <- readFile (fromAbsFile logPath)
-                putStr $ formatMutationLog mid (Just (toMutationRecord record))
-                putStr output
-                mRelFile <- case settingMutationReportDir settings of
-                  Nothing -> pure Nothing
-                  Just reportDir -> do
-                    let logName = "survivor-" ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid) ++ ".log"
-                    case parseRelFile logName of
-                      Nothing -> pure Nothing
-                      Just relFile -> do
-                        copyFile logPath (reportDir </> relFile)
-                        pure (Just relFile)
-                pure (ec, mRelFile)
-          case exitCode of
-            ExitSuccess ->
-              case mLogFile of
-                Nothing -> pure (killed, survived + 1, uncovered, survivors)
-                Just relFile ->
-                  let survivor = SurvivedMutation {survivedMutationRecord = record, survivedMutationLogFile = relFile}
-                   in pure (killed, survived + 1, uncovered, survivor : survivors)
-            ExitFailure _ -> pure (killed + 1, survived, uncovered, survivors)
+    tally MutationUncovered (k, s, u, ss) = (k, s, u + 1, ss)
+    tally MutationKilled (k, s, u, ss) = (k + 1, s, u, ss)
+    tally (MutationSurvived Nothing) (k, s, u, ss) = (k, s + 1, u, ss)
+    tally (MutationSurvived (Just survivor)) (k, s, u, ss) = (k, s + 1, u, ss ++ [survivor])
+
+    runOne exe augDir sem record =
+      bracket_ (waitQSem sem) (signalQSem sem) $ do
+        let mid = augmentedMutationRecordId record
+        hPutStr stderr $ formatMutationLog mid (Just (toMutationRecord record))
+        case augmentedMutationRecordCoveringTests record of
+          [] -> pure MutationUncovered
+          _ -> do
+            let rtsArgs = case settingMutationChildMemLimit settings of
+                  Nothing -> []
+                  Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
+                args =
+                  [ "--mutation",
+                    fromAbsDir augDir,
+                    "--mutation-one",
+                    renderMutationId mid,
+                    "--mutation-augmented-manifest-dir",
+                    fromAbsDir augDir
+                  ]
+                    ++ rtsArgs
+            (exitCode, mLogFile) <- withSystemTempDir "mutation-child" $ \tmpDir -> do
+              logPath <- case parseRelFile "child.log" of
+                Just f -> pure (tmpDir </> f)
+                Nothing -> fail "mutation: could not parse child.log as relative file"
+              logHandle <- openFile (fromAbsFile logPath) WriteMode
+              let childProc =
+                    setStdout (useHandleOpen logHandle) $
+                      setStderr (useHandleOpen logHandle) $
+                        proc exe args
+              ec <- runProcess childProc
+              hClose logHandle
+              case ec of
+                ExitFailure _ -> pure (ec, Nothing)
+                ExitSuccess -> do
+                  output <- readFile (fromAbsFile logPath)
+                  putStr $ formatMutationLog mid (Just (toMutationRecord record))
+                  putStr output
+                  mRelFile <- case settingMutationReportDir settings of
+                    Nothing -> pure Nothing
+                    Just reportDir -> do
+                      let logName = "survivor-" ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid) ++ ".log"
+                      case parseRelFile logName of
+                        Nothing -> pure Nothing
+                        Just relFile -> do
+                          copyFile logPath (reportDir </> relFile)
+                          pure (Just relFile)
+                  pure (ec, mRelFile)
+            pure $ case exitCode of
+              ExitSuccess ->
+                MutationSurvived $
+                  fmap (\relFile -> SurvivedMutation {survivedMutationRecord = record, survivedMutationLogFile = relFile}) mLogFile
+              ExitFailure _ -> MutationKilled
 
 -- | Convert an 'AugmentedMutationRecord' back to a 'MutationRecord' for
 -- display purposes.

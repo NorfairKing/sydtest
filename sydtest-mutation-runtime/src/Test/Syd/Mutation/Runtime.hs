@@ -18,25 +18,27 @@ import Control.Exception (finally)
 import Data.GenValidity
 import Data.GenValidity.Text ()
 import Data.IORef
+import Data.List (intercalate)
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
+import Test.QuickCheck (listOf)
 
 -- | Identifies a single mutation site. The format of the strings is chosen by
 -- the plugin; the runtime treats this as an opaque key.
-newtype MutationId = MutationId [Text]
+newtype MutationId = MutationId [String]
   deriving (Eq, Ord, Show, Generic)
 
 instance Validity MutationId where
   validate = trivialValidation
 
 instance GenValid MutationId where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = MutationId <$> listOf (T.unpack <$> genValid)
+  shrinkValid (MutationId parts) =
+    map (MutationId . map T.unpack) (shrinkValid (map T.pack parts))
 
 instance HasCodec MutationId where
   codec = dimapCodec MutationId (\(MutationId parts) -> parts) codec
@@ -55,7 +57,7 @@ activeMutation = unsafePerformIO $ do
 parseMutationId :: String -> Maybe MutationId
 parseMutationId s
   | null s = Nothing
-  | otherwise = Just (MutationId (map T.pack (splitOn '/' s)))
+  | otherwise = Just (MutationId (splitOn '/' s))
   where
     splitOn _ [] = [""]
     splitOn sep (c : cs)
@@ -66,7 +68,7 @@ parseMutationId s
 
 -- | Render a 'MutationId' as the slash-separated string used in MUTATION_ACTIVE.
 renderMutationId :: MutationId -> String
-renderMutationId (MutationId parts) = T.unpack (T.intercalate "/" parts)
+renderMutationId (MutationId parts) = intercalate "/" parts
 
 -- | Set the active mutation. Call this from the runner before each test run.
 setActiveMutation :: Maybe MutationId -> IO ()

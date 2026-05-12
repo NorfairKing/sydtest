@@ -45,7 +45,7 @@ import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import System.IO (IOMode (..), hClose, hPutStrLn, openFile, stderr)
+import System.IO (IOMode (..), hClose, hPutStr, openFile, stderr)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleOpen)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -87,6 +87,8 @@ collectCoverage settings forest = do
             settingMaxSuccess = 1
           }
       leafIds = map fst (flattenTestForestWithIds forest)
+  -- Sequential: coverage collection is a one-pass read-only run per leaf test;
+  -- the overhead of parallelism would exceed the benefit here.
   Map.fromList <$> mapM (collectOne coverageSettings forest) leafIds
   where
     collectOne coverageSettings forest' tid = do
@@ -163,6 +165,8 @@ runMutationMode settings _manifestDirs _spec = do
   augDir <- resolveAugmentedManifestDir settings
   AugmentedManifest records <- readAugmentedManifestFile augDir
   exe <- getExecutablePath
+  -- TODO: run mutations in parallel (N = getNumCapabilities) using a bounded
+  -- work queue; each child process is independent.
   (killed, survived, uncovered, survivors) <-
     foldl (runOne exe augDir) (pure (0 :: Int, 0 :: Int, 0 :: Int, [])) records
   let jsonReport =
@@ -180,7 +184,7 @@ runMutationMode settings _manifestDirs _spec = do
     runOne exe augDir accIO record = do
       (killed, survived, uncovered, survivors) <- accIO
       let mid = augmentedMutationRecordId record
-      hPutStrLn stderr $ formatMutationLog mid (Just (toMutationRecord record))
+      hPutStr stderr $ formatMutationLog mid (Just (toMutationRecord record))
       case augmentedMutationRecordCoveringTests record of
         [] -> pure (killed, survived, uncovered + 1, survivors)
         _ -> do

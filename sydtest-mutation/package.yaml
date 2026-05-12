@@ -25,12 +25,8 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - QuickCheck
-    - genvalidity
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
     - sydtest
     - sydtest-mutation
     - sydtest-mutation-runtime
-    - text
-    - validity-text

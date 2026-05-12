@@ -12,9 +12,12 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - QuickCheck
   - aeson
   - bytestring
   - containers
+  - genvalidity
+  - genvalidity-text
   - path
   - path-io
   - text

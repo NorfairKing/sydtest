@@ -29,10 +29,13 @@ library
   hs-source-dirs:
       src
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , containers
+    , genvalidity
+    , genvalidity-text
     , path
     , path-io
     , text

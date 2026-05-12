@@ -11,16 +11,25 @@ module Test.Syd.Mutation.Runtime
 where
 
 import Control.Exception (finally)
+import Data.GenValidity
 import Data.IORef
 import Data.Set (Set)
 import qualified Data.Set as Set
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
+import Test.QuickCheck (arbitraryPrintableChar, listOf)
 
 -- | Identifies a single mutation site. The format of the strings is chosen by
 -- the plugin; the runtime treats this as an opaque key.
 newtype MutationId = MutationId [String]
   deriving (Eq, Ord, Show)
+
+instance Validity MutationId where
+  validate = trivialValidation
+
+instance GenValid MutationId where
+  genValid = MutationId <$> listOf (listOf arbitraryPrintableChar)
+  shrinkValid (MutationId parts) = MutationId <$> shrinkValid parts
 
 -- | Process-global IORef holding the currently active mutation, if any.
 --

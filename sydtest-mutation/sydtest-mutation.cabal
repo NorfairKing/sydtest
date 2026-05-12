@@ -44,14 +44,10 @@ test-suite sydtest-mutation-test
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      QuickCheck
-    , base >=4.7 && <5
-    , genvalidity
+      base >=4.7 && <5
     , genvalidity-sydtest
     , genvalidity-sydtest-aeson
     , sydtest
     , sydtest-mutation
     , sydtest-mutation-runtime
-    , text
-    , validity-text
   default-language: Haskell2010

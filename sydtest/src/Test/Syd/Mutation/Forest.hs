@@ -32,7 +32,7 @@ data TestIdTrie
   = -- | This path identifies a selected leaf test.
     TrieLeaf
   | -- | Intermediate node: descend into matching children.
-    TrieNode (Map (Text, Int) TestIdTrie)
+    TrieNode (Map (Text, Word) TestIdTrie)
   deriving (Eq, Show)
 
 instance Semigroup TestIdTrie where
@@ -72,14 +72,14 @@ testIdTrieFromList = foldr insertId (TrieNode Map.empty)
 flattenTestForestWithIds :: SpecDefForest '[] () result -> [(TestId, result)]
 flattenTestForestWithIds = goForest []
   where
-    goForest :: [(Text, Int)] -> SpecDefForest outers inner c -> [(TestId, c)]
+    goForest :: [(Text, Word)] -> SpecDefForest outers inner c -> [(TestId, c)]
     goForest path = snd . foldl (goTree path) (Map.empty, [])
 
     goTree ::
-      [(Text, Int)] ->
-      (Map Text Int, [(TestId, c)]) ->
+      [(Text, Word)] ->
+      (Map Text Word, [(TestId, c)]) ->
       SpecDefTree outers inner c ->
-      (Map Text Int, [(TestId, c)])
+      (Map Text Word, [(TestId, c)])
     goTree path (seen, acc) tree =
       let (mkey, seen') = nextKey seen tree
        in case tree of
@@ -106,7 +106,7 @@ flattenTestForestWithIds = goForest []
             DefFlakinessNode _ sub -> (seen', acc ++ goForest path sub)
             DefExpectationNode _ sub -> (seen', acc ++ goForest path sub)
 
-    nextKey :: Map Text Int -> SpecDefTree outers inner c -> (Maybe (Text, Int), Map Text Int)
+    nextKey :: Map Text Word -> SpecDefTree outers inner c -> (Maybe (Text, Word), Map Text Word)
     nextKey seen tree = case descriptionOf tree of
       Nothing -> (Nothing, seen)
       Just t ->
@@ -129,16 +129,16 @@ filterTestForestByTrie trie = snd . filterForest trie Map.empty
   where
     filterForest ::
       TestIdTrie ->
-      Map Text Int ->
+      Map Text Word ->
       SpecDefForest outers inner () ->
-      (Map Text Int, SpecDefForest outers inner ())
+      (Map Text Word, SpecDefForest outers inner ())
     filterForest t seen = foldl (filterTree t) (seen, [])
 
     filterTree ::
       TestIdTrie ->
-      (Map Text Int, SpecDefForest outers inner ()) ->
+      (Map Text Word, SpecDefForest outers inner ()) ->
       SpecDefTree outers inner () ->
-      (Map Text Int, SpecDefForest outers inner ())
+      (Map Text Word, SpecDefForest outers inner ())
     filterTree t (seen, acc) tree =
       let (mkey, seen') = nextKey seen tree
        in case tree of
@@ -172,26 +172,26 @@ filterTestForestByTrie trie = snd . filterForest trie Map.empty
             DefExpectationNode em sub -> keepWrapper seen' acc (DefExpectationNode em) (filterForest t Map.empty sub)
 
     keepWrapper ::
-      Map Text Int ->
+      Map Text Word ->
       SpecDefForest outers inner () ->
       (SpecDefForest outers2 inner2 () -> SpecDefTree outers inner ()) ->
-      (Map Text Int, SpecDefForest outers2 inner2 ()) ->
-      (Map Text Int, SpecDefForest outers inner ())
+      (Map Text Word, SpecDefForest outers2 inner2 ()) ->
+      (Map Text Word, SpecDefForest outers inner ())
     keepWrapper seen' acc wrap (_, sub')
       | null sub' = (seen', acc)
       | otherwise = (seen', acc ++ [wrap sub'])
 
-    matchLeaf :: TestIdTrie -> (Text, Int) -> Bool
+    matchLeaf :: TestIdTrie -> (Text, Word) -> Bool
     matchLeaf TrieLeaf _ = True
     matchLeaf (TrieNode m) key = case Map.lookup key m of
       Just TrieLeaf -> True
       _ -> False
 
-    stepTrie :: TestIdTrie -> (Text, Int) -> Maybe TestIdTrie
+    stepTrie :: TestIdTrie -> (Text, Word) -> Maybe TestIdTrie
     stepTrie TrieLeaf _ = Just TrieLeaf
     stepTrie (TrieNode m) key = Map.lookup key m
 
-    nextKey :: Map Text Int -> SpecDefTree outers inner c -> (Maybe (Text, Int), Map Text Int)
+    nextKey :: Map Text Word -> SpecDefTree outers inner c -> (Maybe (Text, Word), Map Text Word)
     nextKey seen tree = case descriptionOf tree of
       Nothing -> (Nothing, seen)
       Just t ->

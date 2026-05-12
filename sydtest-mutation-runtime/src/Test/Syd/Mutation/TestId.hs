@@ -8,8 +8,11 @@ module Test.Syd.Mutation.TestId
   )
 where
 
+import Data.GenValidity
+import Data.GenValidity.Text ()
 import Data.Text (Text)
 import qualified Data.Text as T
+import Test.QuickCheck (listOf1, suchThat)
 
 -- | An opaque identifier for a single test in a 'Spec'.
 --
@@ -17,7 +20,7 @@ import qualified Data.Text as T
 -- change.  When two tests share the same description at the same level, a
 -- zero-based per-description sibling index is used to distinguish them; the
 -- index is omitted when it is zero.
-newtype TestId = TestId [(Text, Int)]
+newtype TestId = TestId [(Text, Word)]
   deriving (Eq, Ord, Show)
 
 -- | Render a 'TestId' as a human-readable string that is also parseable by
@@ -30,7 +33,7 @@ renderTestId :: TestId -> Text
 renderTestId (TestId steps) = T.intercalate "." (map renderStep steps)
   where
     renderStep (t, 0) = escapeDesc t
-    renderStep (t, n) = escapeDesc t <> ":" <> T.pack (show n)
+    renderStep (t, n) = escapeDesc t <> ":" <> T.pack (show (n :: Word))
 
 escapeDesc :: Text -> Text
 escapeDesc = T.concatMap $ \case
@@ -54,7 +57,7 @@ parseTestIdFilterArg t
   | otherwise = TestId <$> parseSteps (T.unpack t)
 
 -- | Split on unescaped dots and parse each raw (still-escaped) step.
-parseSteps :: String -> Maybe [(Text, Int)]
+parseSteps :: String -> Maybe [(Text, Word)]
 parseSteps = fmap reverse . go [] []
   where
     go steps acc [] =
@@ -68,7 +71,7 @@ parseSteps = fmap reverse . go [] []
     go steps acc (c : rest) =
       go steps (c : acc) rest
 
-    finishStep :: String -> Maybe (Text, Int)
+    finishStep :: String -> Maybe (Text, Word)
     finishStep [] = Nothing
     finishStep s =
       case splitAtLastUnescapedColon s of
@@ -95,3 +98,10 @@ parseSteps = fmap reverse . go [] []
         go2 i False ('\\' : rest) = go2 (i + 1) True rest
         go2 i False (':' : rest) = i : go2 (i + 1) False rest
         go2 i False (_ : rest) = go2 (i + 1) False rest
+
+instance Validity TestId where
+  validate = trivialValidation
+
+instance GenValid TestId where
+  genValid = TestId <$> listOf1 ((,) <$> suchThat genValid (not . T.null) <*> genValid)
+  shrinkValid (TestId steps) = [TestId s | s <- shrinkValid steps, not (null s), not (any (T.null . fst) s)]

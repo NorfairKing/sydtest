@@ -1,41 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Test.Syd.MutationSpec (spec) where
 
-import Data.GenValidity
-import qualified Data.Text as T
-import Data.Validity.Text ()
-import Test.QuickCheck
 import Test.Syd
 import Test.Syd.Mutation
 import Test.Syd.Validity
-
-instance Validity TestId where
-  validate (TestId steps) =
-    mconcat
-      [ declare "steps is non-empty" (not (null steps)),
-        decorateList steps $ \(desc, idx) ->
-          mconcat
-            [ declare "description is non-empty" (not (T.null desc)),
-              declare "index is non-negative" (idx >= 0)
-            ]
-      ]
-
-instance GenValid TestId where
-  genValid = TestId <$> listOf1 genStep
-    where
-      genStep = (,) . T.pack <$> listOf1 arbitraryUnicodeChar <*> (getNonNegative <$> arbitrary)
-  shrinkValid (TestId steps) =
-    [ TestId steps'
-    | steps' <- shrinkList shrinkStep steps,
-      not (null steps')
-    ]
-    where
-      shrinkStep (desc, idx) =
-        [(desc', idx) | desc' <- filter (not . T.null) (map T.pack (shrink (T.unpack desc)))]
-          ++ [(desc, idx') | idx' <- filter (>= 0) (shrink idx)]
 
 spec :: Spec
 spec = do

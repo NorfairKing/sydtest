@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Test.Syd.Mutation.AugmentedManifest
   ( AugmentedMutationRecord (..),
@@ -16,11 +17,15 @@ where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), decode, encode, object, withArray, withObject, (.!=), (.:), (.:?), (.=))
 import qualified Data.ByteString.Lazy as LB
+import Data.GenValidity
+import Data.GenValidity.Text ()
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import Path
 import Path.IO (ensureDir)
+import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
+import Test.QuickCheck (arbitraryPrintableChar, listOf)
 import Test.Syd.Mutation.Manifest (MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
@@ -90,6 +95,27 @@ instance FromJSON AugmentedMutationRecord where
           augmentedMutationRecordCoveringTests = coveringTests
         }
 
+instance Validity AugmentedMutationRecord where
+  validate = trivialValidation
+
+-- | operator, original, and replacement use printable ASCII since they are
+-- String fields serialised via Text (surrogates in String do not roundtrip
+-- through JSON).  All other fields are structurally generated.
+instance GenValid AugmentedMutationRecord where
+  genValid =
+    AugmentedMutationRecord
+      <$> genValid
+      <*> listOf arbitraryPrintableChar
+      <*> listOf arbitraryPrintableChar
+      <*> listOf arbitraryPrintableChar
+      <*> pure Nothing
+      <*> genValid
+      <*> genValid
+      <*> genValid
+      <*> genValid
+      <*> genValid
+  shrinkValid _ = []
+
 newtype AugmentedManifest = AugmentedManifest [AugmentedMutationRecord]
   deriving (Show, Eq)
 
@@ -106,14 +132,8 @@ instance FromJSON AugmentedManifest where
   parseJSON = withArray "AugmentedManifest" $ \arr ->
     AugmentedManifest <$> mapM parseJSON (foldr (:) [] arr)
 
-augmentedManifestFileName :: String
-augmentedManifestFileName = "manifest-augmented.json"
-
 augmentedManifestRelFile :: Path Rel File
-augmentedManifestRelFile =
-  case parseRelFile augmentedManifestFileName of
-    Just p -> p
-    Nothing -> error "augmentedManifestFileName: invalid filename"
+augmentedManifestRelFile = [relfile|manifest-augmented.json|]
 
 -- | Write to @<dir>/manifest-augmented.json@.
 writeAugmentedManifestFile :: Path Abs Dir -> AugmentedManifest -> IO ()
@@ -129,7 +149,7 @@ readAugmentedManifestFile dir = do
   case result of
     Nothing -> do
       hPutStrLn stderr $ "mutation: failed to decode augmented manifest " ++ fromAbsFile path
-      pure mempty
+      exitFailure
     Just m -> pure m
 
 -- | O(n) lookup by 'MutationId'.
@@ -172,14 +192,8 @@ instance ToJSON MutationRunReport where
         "survivors" .= mutationRunReportSurvivors
       ]
 
-mutationRunReportFileName :: String
-mutationRunReportFileName = "report.json"
-
 mutationRunReportRelFile :: Path Rel File
-mutationRunReportRelFile =
-  case parseRelFile mutationRunReportFileName of
-    Just p -> p
-    Nothing -> error "mutationRunReportFileName: invalid filename"
+mutationRunReportRelFile = [relfile|report.json|]
 
 -- | Write @report.json@ to the given directory.
 writeMutationRunReport :: Path Abs Dir -> MutationRunReport -> IO ()

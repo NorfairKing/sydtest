@@ -1,0 +1,1 @@
+[{"context_after":["  in result"],"context_before":["add :: Int -> Int -> Int","add x y ="],"covering_tests":["add.adds two numbers","add.commutativity:1"],"id":["Foo.Bar","ArithOp","5","14","15"],"mutated_line":"  result = x - y","operator":"ArithOp","original":"+","replacement":"-","source_file":"src/Foo/Bar.hs","source_line":"  result = x + y"}]

@@ -6,6 +6,9 @@ author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 category: Testing
 
+extra-source-files:
+- test_resources/**/*
+
 dependencies:
 - base >= 4.7 && < 5
 
@@ -25,8 +28,10 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - aeson
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
+    - path
     - sydtest
     - sydtest-mutation
     - sydtest-mutation-runtime

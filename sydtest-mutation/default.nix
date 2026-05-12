@@ -1,5 +1,5 @@
-{ mkDerivation, base, genvalidity-sydtest
-, genvalidity-sydtest-aeson, lib, sydtest, sydtest-discover
+{ mkDerivation, aeson, base, genvalidity-sydtest
+, genvalidity-sydtest-aeson, lib, path, sydtest, sydtest-discover
 , sydtest-mutation-runtime
 }:
 mkDerivation {
@@ -8,8 +8,8 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [ base sydtest sydtest-mutation-runtime ];
   testHaskellDepends = [
-    base genvalidity-sydtest genvalidity-sydtest-aeson sydtest
-    sydtest-mutation-runtime
+    aeson base genvalidity-sydtest genvalidity-sydtest-aeson path
+    sydtest sydtest-mutation-runtime
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

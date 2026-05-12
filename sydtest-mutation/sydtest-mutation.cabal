@@ -13,6 +13,10 @@ author:         Tom Sydney Kerckhove
 maintainer:     syd@cs-syd.eu
 license:        MIT
 build-type:     Simple
+extra-source-files:
+    test_resources/augmented-manifest.json
+    test_resources/mutation-manifest.json
+    test_resources/mutation-run-report.json
 
 source-repository head
   type: git
@@ -44,9 +48,11 @@ test-suite sydtest-mutation-test
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , genvalidity-sydtest
     , genvalidity-sydtest-aeson
+    , path
     , sydtest
     , sydtest-mutation
     , sydtest-mutation-runtime

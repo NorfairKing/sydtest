@@ -265,7 +265,7 @@ runSingleMutationMode settings _manifestDirs spec = do
         [] -> specForest
         ts -> filterTestForestByTrie (testIdTrieFromList ts) specForest
   setActiveMutation (Just mid)
-  timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous}) forest
+  timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous, settingFailFast = True}) forest
   setActiveMutation Nothing
   printOutputSpecForest settings timedResult
   if shouldExitFail settings (timedValue timedResult)

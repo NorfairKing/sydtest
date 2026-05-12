@@ -3,13 +3,6 @@
 # Wrap a Haskell package so that the mutation plugin runs during compilation
 # and writes the mutation manifest to a separate 'manifest' output.
 #
-# The manifest is a directory of JSON files, one per module:
-#
-#   <manifest>/<ModuleName>.json
-#
-# Each JSON file is an array of objects with fields:
-#   id, operator, original, replacement
-#
 # The plugin flag and sydtest-mutation-plugin dependency are injected automatically via
 # GHC flags and Nix buildDepends, so the wrapped package does not need to
 # declare them in its cabal file.

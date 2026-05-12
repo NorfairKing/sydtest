@@ -14,6 +14,7 @@ library:
   dependencies:
   - QuickCheck
   - aeson
+  - autodocodec
   - bytestring
   - containers
   - genvalidity

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -8,11 +9,15 @@ module Test.Syd.Mutation.TestId
   )
 where
 
+import Autodocodec
 import Data.GenValidity
 import Data.GenValidity.Text ()
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as T
-import Test.QuickCheck (listOf1, suchThat)
+import GHC.Generics (Generic)
+import Test.QuickCheck (Gen, listOf, suchThat)
 
 -- | An opaque identifier for a single test in a 'Spec'.
 --
@@ -20,8 +25,8 @@ import Test.QuickCheck (listOf1, suchThat)
 -- change.  When two tests share the same description at the same level, a
 -- zero-based per-description sibling index is used to distinguish them; the
 -- index is omitted when it is zero.
-newtype TestId = TestId [(Text, Word)]
-  deriving (Eq, Ord, Show)
+newtype TestId = TestId (NonEmpty (Text, Word))
+  deriving (Eq, Ord, Show, Generic)
 
 -- | Render a 'TestId' as a human-readable string that is also parseable by
 -- 'parseTestIdFilterArg' and usable as the argument to @--filter-id@.
@@ -30,7 +35,7 @@ newtype TestId = TestId [(Text, Word)]
 -- appended after the description.  Literal @\\@, @.@, and @:@ in
 -- descriptions are escaped as @\\\\@, @\\.@, and @\\:@.
 renderTestId :: TestId -> Text
-renderTestId (TestId steps) = T.intercalate "." (map renderStep steps)
+renderTestId (TestId steps) = T.intercalate "." (map renderStep (NE.toList steps))
   where
     renderStep (t, 0) = escapeDesc t
     renderStep (t, n) = escapeDesc t <> ":" <> T.pack (show (n :: Word))
@@ -54,7 +59,7 @@ unescapeDesc t = T.pack (go (T.unpack t))
 parseTestIdFilterArg :: Text -> Maybe TestId
 parseTestIdFilterArg t
   | T.null t = Nothing
-  | otherwise = TestId <$> parseSteps (T.unpack t)
+  | otherwise = TestId . NE.fromList <$> parseSteps (T.unpack t)
 
 -- | Split on unescaped dots and parse each raw (still-escaped) step.
 parseSteps :: String -> Maybe [(Text, Word)]
@@ -99,9 +104,34 @@ parseSteps = fmap reverse . go [] []
         go2 i False (':' : rest) = i : go2 (i + 1) False rest
         go2 i False (_ : rest) = go2 (i + 1) False rest
 
+instance HasCodec TestId where
+  codec =
+    bimapCodec
+      (\t -> maybe (Left ("invalid TestId: " ++ T.unpack t)) Right (parseTestIdFilterArg t))
+      renderTestId
+      codec
+
 instance Validity TestId where
   validate = trivialValidation
 
 instance GenValid TestId where
-  genValid = TestId <$> listOf1 ((,) <$> suchThat genValid (not . T.null) <*> genValid)
-  shrinkValid (TestId steps) = [TestId s | s <- shrinkValid steps, not (null s), not (any (T.null . fst) s)]
+  genValid = TestId <$> ((:|) <$> genStep <*> genValidSteps)
+  shrinkValid (TestId (step :| rest)) =
+    [TestId (s :| rest) | s <- shrinkStep step]
+      ++ [TestId (step :| r) | r <- shrinkValidSteps rest]
+
+genStep :: Gen (Text, Word)
+genStep = (,) <$> suchThat genValid (not . T.null) <*> genValid
+
+shrinkStep :: (Text, Word) -> [(Text, Word)]
+shrinkStep (t, n) = [(t', n) | t' <- shrinkValid t, not (T.null t')] ++ [(t, n') | n' <- shrinkValid n]
+
+shrinkValidSteps :: [(Text, Word)] -> [[(Text, Word)]]
+shrinkValidSteps [] = [[]]
+shrinkValidSteps (s : ss) =
+  [ss]
+    ++ [s' : ss | s' <- shrinkStep s]
+    ++ [s : ss' | ss' <- shrinkValidSteps ss]
+
+genValidSteps :: Gen [(Text, Word)]
+genValidSteps = listOf genStep

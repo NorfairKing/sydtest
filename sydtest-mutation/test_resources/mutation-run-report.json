@@ -54,12 +54,9 @@
                 ],
                 "line": 12,
                 "module": "Foo.Bar",
-                "mutated_line": null,
                 "operator": "BoolOp",
                 "original": "&&",
-                "replacement": "||",
-                "source_file": null,
-                "source_line": null
+                "replacement": "||"
             }
         }
     ]

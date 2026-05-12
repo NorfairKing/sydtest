@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -10,18 +10,20 @@ module Test.Syd.Mutation.Manifest
     writeManifestFile,
     readCoverageDir,
     writeCoverageFile,
+    relFileCodec,
   )
 where
 
-import Data.Aeson (FromJSON (..), ToJSON (..), decode, encode, object, withArray, withObject, (.!=), (.:), (.:?), (.=))
+import Autodocodec
+import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LB
-import Data.Maybe (mapMaybe)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Path
 import Path.IO (ensureDir, listDirRel)
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Mutation.Runtime (MutationId (..))
-import Test.Syd.Mutation.TestId (TestId (..), parseTestIdFilterArg, renderTestId)
+import Test.Syd.Mutation.TestId (TestId (..))
 
 -- | One discovered mutation site, as recorded by the plugin.
 data MutationRecord = MutationRecord
@@ -51,70 +53,43 @@ data MutationRecord = MutationRecord
     -- 'Nothing' means coverage has not been collected yet.
     mutRecCoveringTests :: Maybe [TestId]
   }
-  deriving (Show)
+  deriving stock (Show)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationRecord)
 
-instance ToJSON MutationRecord where
-  toJSON MutationRecord {mutRecId = MutationId parts, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
-    object
-      [ "id" .= parts,
-        "operator" .= mutRecOperator,
-        "original" .= mutRecOriginal,
-        "replacement" .= mutRecReplacement,
-        "module" .= mutRecModule,
-        "line" .= mutRecLine,
-        "col_start" .= mutRecColStart,
-        "col_end" .= mutRecColEnd,
-        "source_file" .= fmap fromRelFile mutRecSourceFile,
-        "source_line" .= mutRecSourceLine,
-        "mutated_line" .= mutRecMutatedLine,
-        "context_before" .= mutRecContextBefore,
-        "context_after" .= mutRecContextAfter,
-        "covering_tests" .= fmap (map renderTestId) mutRecCoveringTests
-      ]
-
-instance FromJSON MutationRecord where
-  parseJSON = withObject "MutationRecord" $ \o -> do
-    mid <- MutationId <$> o .: "id"
-    op <- o .: "operator"
-    orig <- o .: "original"
-    repl <- o .: "replacement"
-    modName <- o .: "module"
-    line <- o .: "line"
-    colStart <- o .: "col_start"
-    colEnd <- o .: "col_end"
-    mSrcFileStr <- o .:? "source_file"
-    srcFile <- case mSrcFileStr of
-      Nothing -> pure Nothing
-      Just s -> case parseRelFile s of
-        Nothing -> pure Nothing
-        Just p -> pure (Just p)
-    srcLine <- o .:? "source_line"
-    mutatedLine <- o .:? "mutated_line"
-    ctxBefore <- o .:? "context_before" .!= []
-    ctxAfter <- o .:? "context_after" .!= []
-    mCoveringRaw <- o .:? "covering_tests"
-    let coveringTests = fmap (mapMaybe parseTestIdFilterArg) (mCoveringRaw :: Maybe [Text])
-    pure
+instance HasCodec MutationRecord where
+  codec =
+    object "MutationRecord" $
       MutationRecord
-        { mutRecId = mid,
-          mutRecOperator = op,
-          mutRecOriginal = orig,
-          mutRecReplacement = repl,
-          mutRecModule = modName,
-          mutRecLine = line,
-          mutRecColStart = colStart,
-          mutRecColEnd = colEnd,
-          mutRecSourceFile = srcFile,
-          mutRecSourceLine = srcLine,
-          mutRecMutatedLine = mutatedLine,
-          mutRecContextBefore = ctxBefore,
-          mutRecContextAfter = ctxAfter,
-          mutRecCoveringTests = coveringTests
-        }
+        <$> requiredField' "id" .= mutRecId
+        <*> requiredField' "operator" .= mutRecOperator
+        <*> requiredField' "original" .= mutRecOriginal
+        <*> requiredField' "replacement" .= mutRecReplacement
+        <*> requiredField' "module" .= mutRecModule
+        <*> requiredField' "line" .= mutRecLine
+        <*> requiredField' "col_start" .= mutRecColStart
+        <*> requiredField' "col_end" .= mutRecColEnd
+        <*> optionalFieldWith' "source_file" relFileCodec .= mutRecSourceFile
+        <*> optionalField' "source_line" .= mutRecSourceLine
+        <*> optionalField' "mutated_line" .= mutRecMutatedLine
+        <*> optionalFieldWithDefault' "context_before" [] .= mutRecContextBefore
+        <*> optionalFieldWithDefault' "context_after" [] .= mutRecContextAfter
+        <*> optionalField' "covering_tests" .= mutRecCoveringTests
+
+-- | Codec for 'Path Rel File' as a JSON string.
+relFileCodec :: JSONCodec (Path Rel File)
+relFileCodec =
+  bimapCodec
+    (\s -> maybe (Left ("invalid relative file path: " ++ T.unpack s)) Right (parseRelFile (T.unpack s)))
+    (T.pack . fromRelFile)
+    codec
 
 -- | All mutation sites discovered in one or more modules by the plugin.
 newtype MutationManifest = MutationManifest [MutationRecord]
-  deriving (Show)
+  deriving stock (Show)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationManifest)
+
+instance HasCodec MutationManifest where
+  codec = dimapCodec MutationManifest (\(MutationManifest rs) -> rs) codec
 
 instance Semigroup MutationManifest where
   MutationManifest a <> MutationManifest b = MutationManifest (a <> b)
@@ -122,23 +97,16 @@ instance Semigroup MutationManifest where
 instance Monoid MutationManifest where
   mempty = MutationManifest []
 
-instance ToJSON MutationManifest where
-  toJSON (MutationManifest records) = toJSON records
-
-instance FromJSON MutationManifest where
-  parseJSON = withArray "MutationManifest" $ \arr ->
-    MutationManifest <$> mapM parseJSON (foldr (:) [] arr)
-
 -- | Write a 'MutationManifest' to @<dir>/<moduleName>.json@.
 writeManifestFile :: Path Abs Dir -> String -> MutationManifest -> IO ()
 writeManifestFile dir moduleName manifest = do
   ensureDir dir
   fileName <- parseRelFile (moduleName ++ ".json")
-  LB.writeFile (fromAbsFile (dir </> fileName)) (encode manifest)
+  LB.writeFile (fromAbsFile (dir </> fileName)) (Aeson.encode manifest)
 
 -- | Read a 'MutationManifest' from a file, returning 'Nothing' on parse failure.
 readManifestFile :: Path Abs File -> IO (Maybe MutationManifest)
-readManifestFile path = decode <$> LB.readFile (fromAbsFile path)
+readManifestFile path = Aeson.decode <$> LB.readFile (fromAbsFile path)
 
 -- | Read and concatenate all per-module manifests from a directory.
 -- Files that fail to parse are skipped with a warning to stderr.
@@ -165,7 +133,7 @@ writeCoverageFile :: Path Abs Dir -> String -> MutationManifest -> IO ()
 writeCoverageFile dir moduleName manifest = do
   ensureDir dir
   fileName <- parseRelFile (moduleName ++ ".coverage.json")
-  LB.writeFile (fromAbsFile (dir </> fileName)) (encode manifest)
+  LB.writeFile (fromAbsFile (dir </> fileName)) (Aeson.encode manifest)
 
 -- | Read and concatenate all per-module coverage files (@*.coverage.json@) from a directory.
 -- Plain manifest files (@*.json@) are excluded.

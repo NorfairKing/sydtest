@@ -34,7 +34,6 @@
         "col_start": 8,
         "context_after": [],
         "context_before": [],
-        "covering_tests": null,
         "id": [
             "Foo.Bar",
             "BoolOp",
@@ -44,11 +43,8 @@
         ],
         "line": 12,
         "module": "Foo.Bar",
-        "mutated_line": null,
         "operator": "BoolOp",
         "original": "&&",
-        "replacement": "||",
-        "source_file": null,
-        "source_line": null
+        "replacement": "||"
     }
 ]

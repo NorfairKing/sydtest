@@ -17,6 +17,7 @@ module Test.Syd.Mutation.Forest
   )
 where
 
+import qualified Data.List.NonEmpty as NE
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
@@ -51,9 +52,11 @@ testIdTrieFromSet = testIdTrieFromList . Set.toList
 testIdTrieFromList :: [TestId] -> TestIdTrie
 testIdTrieFromList = foldr insertId (TrieNode Map.empty)
   where
-    insertId (TestId []) _ = TrieLeaf
-    insertId (TestId ((t, i) : rest)) trie =
-      let child = insertId (TestId rest) (childOf t i trie)
+    insertId (TestId steps) trie = insertSteps (NE.toList steps) trie
+
+    insertSteps [] _ = TrieLeaf
+    insertSteps ((t, i) : rest) trie =
+      let child = insertSteps rest (childOf t i trie)
        in case trie of
             TrieLeaf -> TrieLeaf
             TrieNode m -> TrieNode (Map.insert (t, i) child m)
@@ -86,7 +89,7 @@ flattenTestForestWithIds = goForest []
             DefSpecifyNode _ _ e ->
               case mkey of
                 Nothing -> (seen', acc)
-                Just key -> (seen', acc ++ [(TestId (reverse (key : path)), e)])
+                Just key -> (seen', acc ++ [(TestId (NE.fromList (reverse (key : path))), e)])
             DefPendingNode _ _ -> (seen', acc)
             DefDescribeNode _ sub ->
               case mkey of

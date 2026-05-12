@@ -23,7 +23,6 @@ import Data.Maybe (isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import GHC
-import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
 import GHC.HsToCore (deSugarExpr)
@@ -79,6 +78,8 @@ data InstrumentEnv = InstrumentEnv
     instrIfMutationId :: Id,
     -- | DataCon for Test.Syd.Mutation.Runtime.MutationId, looked up once per module.
     instrMutationIdCon :: DataCon,
+    -- | Id for mutationTextPack :: String -> Text, used to build MutationId parts.
+    instrTextPackId :: Id,
     -- | Operators to try at each expression site.
     instrOperators :: [MutationOperator],
     -- | Source file (relative path) and pre-read lines, read once per module.
@@ -112,6 +113,7 @@ runInstrument tcGblEnv operators mSrcPath debug action = do
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
   mutIdCon <- lookupRdrEnvDataCon rdrEnv "MutationId"
+  textPackId <- lookupRdrEnvId rdrEnv "mutationTextPack"
   mSrcFile <- liftIO $ case mSrcPath >>= parseRelFile of
     Nothing -> pure Nothing
     Just relFile -> do
@@ -125,6 +127,7 @@ runInstrument tcGblEnv operators mSrcPath debug action = do
         instrRdrEnv = rdrEnv,
         instrIfMutationId = ifMutId,
         instrMutationIdCon = mutIdCon,
+        instrTextPackId = textPackId,
         instrOperators = operators,
         instrSourceFile = mSrcFile,
         instrDebug = debug
@@ -381,11 +384,11 @@ recordMutation le op origStr replStr srcTransform = do
           colEnd = srcSpanEndCol rss
           mid =
             MutationId
-              [ mn,
-                op,
-                show lineNum,
-                show colStart,
-                show colEnd
+              [ T.pack mn,
+                T.pack op,
+                T.pack (show lineNum),
+                T.pack (show colStart),
+                T.pack (show colEnd)
               ]
           (mSrcFile, srcLine, mutatedLine, ctxBefore, ctxAfter) =
             case instrSourceFile of
@@ -443,19 +446,21 @@ wrapWithIfMutation ::
   LHsExpr GhcTc ->
   InstrM (LHsExpr GhcTc)
 wrapWithIfMutation ty mid mutatedExpr origExpr = do
-  InstrumentEnv {instrIfMutationId, instrMutationIdCon} <- ask
-  midExpr <- liftTcM $ buildMutationIdExpr instrMutationIdCon mid
+  InstrumentEnv {instrIfMutationId, instrMutationIdCon, instrTextPackId} <- ask
+  midExpr <- liftTcM $ buildMutationIdExpr instrMutationIdCon instrTextPackId mid
   let ifMutVar = nlHsTyApp instrIfMutationId [ty]
       call = mkHsApp (mkHsApp (mkHsApp ifMutVar midExpr) mutatedExpr) origExpr
   pure call
 
 -- | Build a 'MutationId' expression from a list of strings.
 --
--- > MutationId ["module", "op", "line", "colStart", "colEnd"]
-buildMutationIdExpr :: DataCon -> MutationId -> TcM (LHsExpr GhcTc)
-buildMutationIdExpr con (MutationId parts) = do
-  let strExprs = map mkHsStringExpr parts
-      listExpr = noLocA (ExplicitList (mkListTy charTy) strExprs)
+-- > MutationId [mutationTextPack "module", mutationTextPack "op", ...]
+buildMutationIdExpr :: DataCon -> Id -> MutationId -> TcM (LHsExpr GhcTc)
+buildMutationIdExpr con packId (MutationId parts) = do
+  let textTy = funResultTy (idType packId)
+      packVar = noLocA (HsVar NoExtField (noLocA packId))
+      textExprs = map (\p -> mkHsApp packVar (mkHsStringExpr (T.unpack p))) parts
+      listExpr = noLocA (ExplicitList textTy textExprs)
       -- MutationId is a newtype, so the constructor is just a coercion.
       -- nlHsDataCon gives us the constructor as an HsExpr GhcTc.
       conExpr = nlHsDataCon con

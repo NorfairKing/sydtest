@@ -6,6 +6,7 @@
 module Test.Syd.AugmentedManifestSpec (spec) where
 
 import Data.Aeson.Encode.Pretty (encodePretty)
+import Data.List.NonEmpty (NonEmpty (..))
 import Path
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest
@@ -55,8 +56,8 @@ exampleMutationManifest =
           mutRecContextAfter = ["  in result"],
           mutRecCoveringTests =
             Just
-              [ TestId [("add", 0), ("adds two numbers", 0)],
-                TestId [("add", 0), ("commutativity", 1)]
+              [ TestId (("add", 0) :| [("adds two numbers", 0)]),
+                TestId (("add", 0) :| [("commutativity", 1)])
               ]
         },
       MutationRecord
@@ -94,8 +95,8 @@ exampleAugmentedRecord =
       augmentedMutationRecordContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
       augmentedMutationRecordContextAfter = ["  in result"],
       augmentedMutationRecordCoveringTests =
-        [ TestId [("add", 0), ("adds two numbers", 0)],
-          TestId [("add", 0), ("commutativity", 1)]
+        [ TestId (("add", 0) :| [("adds two numbers", 0)]),
+          TestId (("add", 0) :| [("commutativity", 1)])
         ]
     }
 

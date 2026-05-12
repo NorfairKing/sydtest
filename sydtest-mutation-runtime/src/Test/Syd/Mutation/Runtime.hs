@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Test.Syd.Mutation.Runtime
   ( MutationId (..),
     activeMutation,
@@ -10,26 +13,33 @@ module Test.Syd.Mutation.Runtime
   )
 where
 
+import Autodocodec
 import Control.Exception (finally)
 import Data.GenValidity
+import Data.GenValidity.Text ()
 import Data.IORef
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Text (Text)
+import qualified Data.Text as T
+import GHC.Generics (Generic)
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
-import Test.QuickCheck (arbitraryPrintableChar, listOf)
 
 -- | Identifies a single mutation site. The format of the strings is chosen by
 -- the plugin; the runtime treats this as an opaque key.
-newtype MutationId = MutationId [String]
-  deriving (Eq, Ord, Show)
+newtype MutationId = MutationId [Text]
+  deriving (Eq, Ord, Show, Generic)
 
 instance Validity MutationId where
   validate = trivialValidation
 
 instance GenValid MutationId where
-  genValid = MutationId <$> listOf (listOf arbitraryPrintableChar)
-  shrinkValid (MutationId parts) = MutationId <$> shrinkValid parts
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+
+instance HasCodec MutationId where
+  codec = dimapCodec MutationId (\(MutationId parts) -> parts) codec
 
 -- | Process-global IORef holding the currently active mutation, if any.
 --
@@ -45,7 +55,7 @@ activeMutation = unsafePerformIO $ do
 parseMutationId :: String -> Maybe MutationId
 parseMutationId s
   | null s = Nothing
-  | otherwise = Just (MutationId (splitOn '/' s))
+  | otherwise = Just (MutationId (map T.pack (splitOn '/' s)))
   where
     splitOn _ [] = [""]
     splitOn sep (c : cs)
@@ -56,11 +66,7 @@ parseMutationId s
 
 -- | Render a 'MutationId' as the slash-separated string used in MUTATION_ACTIVE.
 renderMutationId :: MutationId -> String
-renderMutationId (MutationId parts) = intercalate "/" parts
-  where
-    intercalate _ [] = ""
-    intercalate _ [x] = x
-    intercalate sep (x : xs) = x ++ sep ++ intercalate sep xs
+renderMutationId (MutationId parts) = T.unpack (T.intercalate "/" parts)
 
 -- | Set the active mutation. Call this from the runner before each test run.
 setActiveMutation :: Maybe MutationId -> IO ()

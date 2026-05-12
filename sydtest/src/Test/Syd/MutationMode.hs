@@ -305,8 +305,8 @@ formatMutationLog (MutationId parts) mRec =
       ) ->
         let filePath = case mutRecSourceFile of
               Just p -> fromRelFile p
-              Nothing -> moduleToFilePath modName
-            header = "Testing mutation " ++ op ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ ":"
+              Nothing -> moduleToFilePath (T.unpack modName)
+            header = "Testing mutation " ++ T.unpack op ++ " at " ++ filePath ++ ":" ++ T.unpack lineStr ++ ":" ++ T.unpack colStartStr ++ "-" ++ T.unpack colEndStr ++ ":"
          in case mutRecSourceLine of
               Nothing ->
                 unlines
@@ -315,7 +315,7 @@ formatMutationLog (MutationId parts) mRec =
                     "    + " ++ T.unpack mutRecReplacement
                   ]
               Just srcLine ->
-                let lineNum = read lineStr :: Int
+                let lineNum = read (T.unpack lineStr) :: Int
                     nBefore = length mutRecContextBefore
                     hunkHeader =
                       "@@ -"
@@ -335,6 +335,6 @@ formatMutationLog (MutationId parts) mRec =
                           ++ [T.cons '-' srcLine, T.cons '+' mutatedLine]
                           ++ map (T.cons ' ') mutRecContextAfter
     _ ->
-      "Testing mutation " ++ intercalate "/" parts
+      "Testing mutation " ++ intercalate "/" (map T.unpack parts)
   where
     moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"

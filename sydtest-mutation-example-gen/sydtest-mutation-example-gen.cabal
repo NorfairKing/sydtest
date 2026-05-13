@@ -35,9 +35,12 @@ test-suite sydtest-mutation-example-gen-test
   main-is: Spec.hs
   other-modules:
       Example.BoolLibSpec
+      Example.CaseLibSpec
+      Example.DoLibSpec
       Example.ExceptionLibSpec
       Example.FunctionExceptionLibSpec
       Example.LibSpec
+      Example.OtherwiseLibSpec
       Paths_sydtest_mutation_example_gen
   hs-source-dirs:
       test

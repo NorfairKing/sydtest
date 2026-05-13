@@ -76,9 +76,7 @@ in
 
   mutation-sydtest-mutation-example = (mutationCheck {
     name = "sydtest-mutation-example";
-    packages = [
-      "sydtest-mutation-example"
-      "sydtest-mutation-example-gen"
-    ];
+    libraries = [ "sydtest-mutation-example" ];
+    tests = [ "sydtest-mutation-example-gen" ];
   }).check;
 }

@@ -1,11 +1,9 @@
-{ mkDerivation, base, lib, sydtest, sydtest-discover }:
+{ mkDerivation, base, lib, mtl }:
 mkDerivation {
   pname = "sydtest-mutation-example";
   version = "0.0.0.0";
   src = ./.;
-  libraryHaskellDepends = [ base ];
-  testHaskellDepends = [ base sydtest ];
-  testToolDepends = [ sydtest-discover ];
+  libraryHaskellDepends = [ base mtl ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   license = lib.licenses.mit;
 }

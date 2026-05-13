@@ -17,6 +17,7 @@
 # - exceptions: module names to skip during instrumentation
 # - disabledMutations: mutation type names to disable globally
 # - assertAllKilled: add a 'check' output that fails if any mutations survive (default: true)
+# - assertNoneUncovered: also fail the 'check' output if any mutations are uncovered (default: true)
 # - debug: print each mutation site as it is recorded (for debugging the plugin)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
 #
@@ -32,6 +33,7 @@
 , exceptions ? [ ]
 , disabledMutations ? [ ]
 , assertAllKilled ? true
+, assertNoneUncovered ? true
 , debug ? false
 , ghcMemLimit ? "16g"
 }:
@@ -152,6 +154,6 @@ in
 {
   report = drv.report;
 } // (if assertAllKilled then
-  { check = assertMutationScore { inherit name; report = drv.report; }; }
+  { check = assertMutationScore { inherit name assertNoneUncovered; report = drv.report; }; }
 else
   { })

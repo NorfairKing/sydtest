@@ -25,9 +25,10 @@ addOneArithAndIntLitDisabled n = n + 1
 addOneFunctionDisabled :: Int -> Int
 addOneFunctionDisabled n = n + 1
 
--- | ConstBool disabled on a polymorphic function (which GHC wraps in AbsBinds).
--- Without the fix, the ANN annotation on the poly Id is not propagated to the
--- inner mono binding, so ConstBool would still fire and produce a surviving mutant.
-{-# ANN constBoolDisabledPolymorphic ("DisableMutation: ConstBool" :: String) #-}
+-- | All mutations disabled on a polymorphic function (which GHC wraps in AbsBinds).
+-- Without the AbsBinds fix in the plugin, the ANN on the poly Id is not propagated
+-- to the inner mono binding, so mutations would still fire and be uncovered (no tests
+-- exist for this function by design), causing the mutation check to fail.
+{-# ANN constBoolDisabledPolymorphic ("DisableMutations" :: String) #-}
 constBoolDisabledPolymorphic :: (Ord a, Num a) => a -> Bool
 constBoolDisabledPolymorphic n = n > 0

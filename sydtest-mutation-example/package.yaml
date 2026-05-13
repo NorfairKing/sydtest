@@ -13,16 +13,6 @@ library:
   source-dirs: src
   ghc-options:
   - -fno-full-laziness
+  dependencies:
+  - mtl >= 2 && < 3
 
-tests:
-  sydtest-mutation-example-test:
-    main: Main.hs
-    source-dirs: test
-    build-tools: sydtest-discover
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - sydtest-mutation-example
-    - sydtest

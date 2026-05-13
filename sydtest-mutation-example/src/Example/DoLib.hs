@@ -1,12 +1,15 @@
 module Example.DoLib (greet) where
 
-import Control.Monad (when)
+import Control.Monad.Writer (Writer, execWriter, tell)
 
--- | Print a greeting, optionally with a trailing newline.
+-- | Build a greeting string, optionally with an exclamation mark.
 --
--- Mutation sites: RemoveAction removes one of the two BodyStmt actions.
-greet :: Bool -> IO ()
-greet loud = do
-  putStr "Hello"
-  when loud (putStr "!")
-  putStrLn ""
+-- Mutation sites: RemoveAction removes one of the three tell actions.
+greet :: Bool -> String
+greet loud = execWriter go
+  where
+    go :: Writer String ()
+    go = do
+      tell "Hello"
+      if loud then tell "!" else pure ()
+      tell "\n"

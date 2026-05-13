@@ -21,6 +21,7 @@ library:
   - mtl
   - path
   - path-io
+  - safe-coloured-text
   - sydtest-mutation-runtime
   - template-haskell
   - text

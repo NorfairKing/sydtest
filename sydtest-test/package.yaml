@@ -34,6 +34,7 @@ tests:
     - opt-env-conf-test
     - path
     - path-io
+    - safe-coloured-text
     - stm
     - sydtest >=0.17
     - sydtest-mutation-runtime

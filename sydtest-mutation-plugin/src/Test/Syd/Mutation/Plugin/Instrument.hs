@@ -44,6 +44,7 @@ import Path
 import Path.IO (resolveFile')
 import Test.Syd.Mutation.Manifest (MutationAddedEvent (..), MutationRecord (..), renderMutationAddedEvent)
 import Test.Syd.Mutation.Runtime (MutationId (..))
+import Text.Colour (TerminalCapabilities (..), renderChunksText)
 
 -- ---------------------------------------------------------------------------
 -- Source delta
@@ -498,7 +499,7 @@ recordMutation le op origStr replStr delta = do
               }
       liftTcM $
         liftIO $
-          putStr $
+          mapM_ (\line -> putStrLn (T.unpack (renderChunksText WithoutColours line))) $
             renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord = record}
       tell [record]
       pure mid

@@ -24,4 +24,5 @@ library:
   - genvalidity-text
   - path
   - path-io
+  - safe-coloured-text
   - text

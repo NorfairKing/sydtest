@@ -45,6 +45,7 @@ import System.IO (hPutStrLn, stderr)
 import Test.Syd.Mutation.Manifest (MutationRecord (..), relFileCodec)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId)
+import Text.Colour (Chunk, chunk, cyan, fore, green, red, yellow)
 
 -- | A mutation record augmented with coverage data.
 -- Unlike 'MutationRecord', covering tests are always present (never Nothing).
@@ -256,24 +257,23 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             augmentedMutationRecordCoveringTests = ts
           }
 
--- | Render a 'MutationRunReport' as a human-readable string.
-renderMutationRunReport :: MutationRunReport -> String
+-- | Render a 'MutationRunReport' as coloured lines.
+renderMutationRunReport :: MutationRunReport -> [[Chunk]]
 renderMutationRunReport MutationRunReport {mutationRunReportKilled, mutationRunReportSurvived, mutationRunReportUncovered, mutationRunReportSurvivors} =
-  unlines $
-    [ "Killed: " ++ show mutationRunReportKilled,
-      "Survived: " ++ show mutationRunReportSurvived,
-      "Uncovered: " ++ show mutationRunReportUncovered
-    ]
-      ++ if null mutationRunReportSurvivors
-        then []
-        else
-          ["", "Surviving mutations:"]
-            ++ concatMap renderSurvivor mutationRunReportSurvivors
+  [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationRunReportKilled)))],
+    [chunk "Survived: ", fore red (chunk (T.pack (show mutationRunReportSurvived)))],
+    [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationRunReportUncovered)))]
+  ]
+    ++ if null mutationRunReportSurvivors
+      then []
+      else
+        [[], [chunk "Surviving mutations:"]]
+          ++ concatMap renderSurvivor mutationRunReportSurvivors
   where
     renderSurvivor sm =
       let rec = survivedMutationRecord sm
           mid = augmentedMutationRecordId rec
-       in "" : lines (formatMutationLog mid rec)
+       in [] : formatMutationLog mid rec
 
 -- | A mutation that is about to be tested, used as the progress log event.
 newtype MutationProgressEvent = MutationProgressEvent
@@ -281,36 +281,39 @@ newtype MutationProgressEvent = MutationProgressEvent
   }
 
 -- | Render a progress event for stderr: @Testing mutation \<op\> at \<srcloc\>@ followed by the diff.
-renderMutationProgressEvent :: MutationProgressEvent -> String
+renderMutationProgressEvent :: MutationProgressEvent -> [[Chunk]]
 renderMutationProgressEvent (MutationProgressEvent rec) =
-  "Testing mutation " ++ formatMutationLog (augmentedMutationRecordId rec) rec
+  let logLines = formatMutationLog (augmentedMutationRecordId rec) rec
+   in case logLines of
+        [] -> [[chunk "Testing mutation"]]
+        (firstLine : rest) -> (chunk "Testing mutation " : firstLine) : rest
 
 -- | Format a survived mutation as @\<op\> at \<srcloc\>@ followed by the diff,
 -- for use in the survivors section of the final report.
-formatMutationLog :: MutationId -> AugmentedMutationRecord -> String
+formatMutationLog :: MutationId -> AugmentedMutationRecord -> [[Chunk]]
 formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceLines, augmentedMutationRecordMutatedLines, augmentedMutationRecordSourceFile, augmentedMutationRecordLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter} =
   case parts of
     (modName : _op : lineStr : colStartStr : colEndStr : _) ->
       let filePath = case augmentedMutationRecordSourceFile of
             Just p -> fromRelFile p
             Nothing -> moduleToFilePath modName
-          header = T.unpack augmentedMutationRecordOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+          headerText = T.pack $ T.unpack augmentedMutationRecordOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+          headerLine = [chunk headerText]
        in case augmentedMutationRecordSourceLines of
             [] ->
-              unlines
-                [ header,
-                  "    - " ++ T.unpack augmentedMutationRecordOriginal,
-                  "    + " ++ T.unpack augmentedMutationRecordReplacement
-                ]
+              [ headerLine,
+                [fore red (chunk ("    - " <> augmentedMutationRecordOriginal))],
+                [fore green (chunk ("    + " <> augmentedMutationRecordReplacement))]
+              ]
             _ ->
-              header ++ "\n" ++ renderUnifiedDiff (fromIntegral augmentedMutationRecordLine) augmentedMutationRecordContextBefore augmentedMutationRecordSourceLines augmentedMutationRecordMutatedLines augmentedMutationRecordContextAfter
+              headerLine : renderUnifiedDiff (fromIntegral augmentedMutationRecordLine) augmentedMutationRecordContextBefore augmentedMutationRecordSourceLines augmentedMutationRecordMutatedLines augmentedMutationRecordContextAfter
     _ ->
-      intercalate "/" parts ++ "\n"
+      [[chunk (T.pack $ intercalate "/" parts)]]
   where
     moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"
 
 -- | Render a unified diff of the source change.
-renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> String
+renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> [[Chunk]]
 renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
   let allBefore = ctxBefore ++ srcLines ++ ctxAfter
       allAfter = ctxBefore ++ mutLines ++ ctxAfter
@@ -319,19 +322,19 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
       origCount = length allBefore
       mutCount = length allAfter
       hunkHeader =
-        "@@ -"
-          ++ show hunkStart
-          ++ ","
-          ++ show origCount
-          ++ " +"
-          ++ show hunkStart
-          ++ ","
-          ++ show mutCount
-          ++ " @@"
-      body = concatMap renderGroup groups
-   in unlines (hunkHeader : body)
+        T.pack $
+          "@@ -"
+            ++ show hunkStart
+            ++ ","
+            ++ show origCount
+            ++ " +"
+            ++ show hunkStart
+            ++ ","
+            ++ show mutCount
+            ++ " @@"
+   in [fore cyan (chunk hunkHeader)] : concatMap renderGroup groups
   where
     renderGroup = \case
-      Both ls _ -> map (T.unpack . T.cons ' ') ls
-      First ls -> map (T.unpack . T.cons '-') ls
-      Second ls -> map (T.unpack . T.cons '+') ls
+      Both ls _ -> map (\l -> [chunk (T.cons ' ' l)]) ls
+      First ls -> map (\l -> [fore red (chunk (T.cons '-' l))]) ls
+      Second ls -> map (\l -> [fore green (chunk (T.cons '+' l))]) ls

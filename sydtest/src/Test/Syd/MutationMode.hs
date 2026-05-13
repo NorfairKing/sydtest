@@ -102,7 +102,6 @@ collectCoverage settings forest = do
   Map.fromList <$> zipWithM (collectOne coverageSettings forest total) [1 :: Int ..] leafIds
   where
     collectOne coverageSettings forest' total i tid = do
-      putStrLn $ "coverage (" ++ show i ++ "/" ++ show total ++ "): " ++ T.unpack (renderTestId tid)
       let trie = testIdTrieFromList [tid]
           filtered = filterTestForestByTrie trie forest'
       ref <- newIORef Set.empty
@@ -110,6 +109,16 @@ collectCoverage settings forest = do
         withCoverageSlot ref $
           runSpecForestSynchronously coverageSettings filtered
       covered <- readIORef ref
+      putStrLn $
+        "coverage ("
+          ++ show i
+          ++ "/"
+          ++ show total
+          ++ "): "
+          ++ T.unpack (renderTestId tid)
+          ++ " ("
+          ++ show (Set.size covered)
+          ++ " mutations)"
       pure (tid, covered)
 
 -- | Collect per-test coverage for the mutations in @manifestDirs@ and write

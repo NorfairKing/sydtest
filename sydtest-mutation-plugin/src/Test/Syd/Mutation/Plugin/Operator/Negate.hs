@@ -27,6 +27,8 @@ theOperator =
         case le of
           L _ (HsVar _ (L _ v))
             | getOccString v `elem` ["True", "False", "otherwise"] -> Nothing
+          L _ (XExpr (ConLikeTc con _ _))
+            | getOccString con `elem` ["True", "False"] -> Nothing
           _
             | tcEqType (lhsExprType le) boolTy -> Just (action le)
             | otherwise -> Nothing

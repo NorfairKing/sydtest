@@ -24,13 +24,12 @@ theOperator =
               else Nothing
     }
 
--- | Returns True if the expression is a boolean literal (True or False),
--- unwrapping HsWrap nodes that GHC inserts after type-checking.
 -- | Returns True for boolean literals and 'otherwise' (which equals True),
--- unwrapping HsWrap nodes that GHC inserts after type-checking.
+-- unwrapping HsWrap and ConLikeTc nodes that GHC inserts after type-checking.
 isBoolLit :: LHsExpr GhcTc -> Bool
 isBoolLit = \case
   L _ (HsVar _ (L _ v)) -> getOccString v `elem` ["True", "False", "otherwise"]
+  L _ (XExpr (ConLikeTc con _ _)) -> getOccString con `elem` ["True", "False"]
   L _ (XExpr (WrapExpr (HsWrap _ e))) -> isBoolLit (noLocA e)
   _ -> False
 

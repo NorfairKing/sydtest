@@ -16,11 +16,14 @@ theOperator =
       operatorMatch = fmap action . extractBoolLit
     }
 
--- | Extract the OccName of a boolean literal, unwrapping HsWrap nodes.
+-- | Extract the OccName of a boolean literal, unwrapping HsWrap and
+-- ConLikeTc nodes that GHC inserts after type-checking.
 extractBoolLit :: LHsExpr GhcTc -> Maybe String
 extractBoolLit = \case
   L _ (HsVar _ (L _ v))
     | occ <- getOccString v, occ `elem` boolLits -> Just occ
+  L _ (XExpr (ConLikeTc con _ _))
+    | occ <- getOccString con, occ `elem` boolLits -> Just occ
   L _ (XExpr (WrapExpr (HsWrap _ e))) -> extractBoolLit (noLocA e)
   _ -> Nothing
 

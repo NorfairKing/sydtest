@@ -21,19 +21,19 @@ stdenv.mkDerivation {
 
     echo "Results: $killed killed, $survived survived out of $total total"
 
-    mkdir -p $out
-    ln -s ${report}/report.txt $out/report.txt
-    ln -s ${report}/report.json $out/report.json
-
     if [ "$survived" != "0" ]; then
       echo ""
       echo "FAIL: $survived mutation(s) survived — not all mutations were killed."
       echo "Add or strengthen tests to kill the surviving mutations."
-      echo "Full report: $out/report.txt"
-      echo "Machine-readable report: $out/report.json"
+      echo ""
+      echo "Full report:"
+      cat ${report}/report.txt
       exit 1
     else
       echo "PASS: All $total mutation(s) were killed."
+      mkdir -p $out
+      cp ${report}/report.txt $out/report.txt
+      cp ${report}/report.json $out/report.json
     fi
   '';
 }

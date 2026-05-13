@@ -304,22 +304,26 @@ formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationR
             Just srcLine ->
               let lineNum = read lineStr :: Int
                   nBefore = length augmentedMutationRecordContextBefore
+                  srcLines = T.splitOn "\n" srcLine
+                  mutLines = T.splitOn "\n" (fromMaybe srcLine augmentedMutationRecordMutatedLine)
+                  nSrcLines = length srcLines
+                  nMutLines = length mutLines
                   hunkHeader =
                     "@@ -"
                       ++ show (lineNum - nBefore)
                       ++ ","
-                      ++ show (nBefore + 1 + length augmentedMutationRecordContextAfter)
+                      ++ show (nBefore + nSrcLines + length augmentedMutationRecordContextAfter)
                       ++ " +"
                       ++ show (lineNum - nBefore)
                       ++ ","
-                      ++ show (nBefore + 1 + length augmentedMutationRecordContextAfter)
+                      ++ show (nBefore + nMutLines + length augmentedMutationRecordContextAfter)
                       ++ " @@"
-                  mutatedLine = fromMaybe srcLine augmentedMutationRecordMutatedLine
                in T.unpack $
                     T.unlines $
                       map T.pack [header, hunkHeader]
                         ++ map (T.cons ' ') augmentedMutationRecordContextBefore
-                        ++ [T.cons '-' srcLine, T.cons '+' mutatedLine]
+                        ++ map (T.cons '-') srcLines
+                        ++ map (T.cons '+') mutLines
                         ++ map (T.cons ' ') augmentedMutationRecordContextAfter
     _ ->
       intercalate "/" parts ++ "\n"

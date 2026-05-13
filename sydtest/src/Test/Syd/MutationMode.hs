@@ -74,7 +74,7 @@ import Test.Syd.Mutation.Manifest
     readManifestDir,
   )
 import Test.Syd.Mutation.Runtime (MutationId (..), parseMutationId, renderMutationId, setActiveMutation, withCoverageSlot)
-import Test.Syd.Mutation.TestId (TestId)
+import Test.Syd.Mutation.TestId (TestId, renderTestId)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run
@@ -270,9 +270,11 @@ runMutationMode settings _manifestDirs _spec = do
         case ec of
           ExitFailure _ -> pure (Left ())
           ExitSuccess -> do
-            output <- readFile (fromAbsFile logPath)
             putStr $ formatMutationLog mid (Just (toMutationRecord record))
-            putStr output
+            let coveringTests = Map.findWithDefault [] suiteName (augmentedMutationRecordCoveringTests record)
+            putStrLn "Covering tests:"
+            mapM_ (\t -> putStrLn $ "  " ++ T.unpack (renderTestId t)) coveringTests
+            putStrLn ""
             mRelFile <- case settingMutationReportDir settings of
               Nothing -> pure Nothing
               Just reportDir -> do

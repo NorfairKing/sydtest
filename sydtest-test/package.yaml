@@ -28,6 +28,7 @@ tests:
     - QuickCheck
     - async
     - bytestring
+    - containers
     - fast-myers-diff
     - mtl
     - opt-env-conf-test

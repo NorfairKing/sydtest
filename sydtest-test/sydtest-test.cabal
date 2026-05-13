@@ -115,6 +115,7 @@ test-suite sydtest-test
     , async
     , base >=4.7 && <5
     , bytestring
+    , containers
     , fast-myers-diff
     , mtl
     , opt-env-conf-test

@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -11,13 +12,17 @@ module Test.Syd.Mutation.Manifest
     readCoverageDir,
     writeCoverageFile,
     relFileCodec,
+    MutationAddedEvent (..),
+    renderMutationAddedEvent,
   )
 where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LB
+import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Path
@@ -163,3 +168,58 @@ isCoverageFile f = case splitExtension f of
     Just (_, ".coverage") -> True
     _ -> False
   _ -> False
+
+-- | A mutation site that was just recorded by the plugin.
+newtype MutationAddedEvent = MutationAddedEvent
+  { mutationAddedRecord :: MutationRecord
+  }
+
+-- | Render a mutation-added event for plugin output:
+-- @added mutation \<op\> at \<srcloc\>@ followed by the diff.
+renderMutationAddedEvent :: MutationAddedEvent -> String
+renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
+  let MutationRecord
+        { mutRecId = MutationId parts,
+          mutRecOperator,
+          mutRecOriginal,
+          mutRecReplacement,
+          mutRecSourceFile,
+          mutRecSourceLine,
+          mutRecMutatedLine,
+          mutRecContextBefore,
+          mutRecContextAfter
+        } = mutationAddedRecord
+   in case parts of
+        (modName : _op : lineStr : colStartStr : colEndStr : _) ->
+          let filePath = case mutRecSourceFile of
+                Just p -> fromRelFile p
+                Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
+              header = "added mutation " ++ T.unpack mutRecOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+           in case mutRecSourceLine of
+                Nothing ->
+                  unlines
+                    [ header,
+                      "    - " ++ T.unpack mutRecOriginal,
+                      "    + " ++ T.unpack mutRecReplacement
+                    ]
+                Just srcLine ->
+                  let lineNum = read lineStr :: Int
+                      nBefore = length mutRecContextBefore
+                      hunkHeader =
+                        "@@ -"
+                          ++ show (lineNum - nBefore)
+                          ++ ","
+                          ++ show (nBefore + 1 + length mutRecContextAfter)
+                          ++ " +"
+                          ++ show (lineNum - nBefore)
+                          ++ ","
+                          ++ show (nBefore + 1 + length mutRecContextAfter)
+                          ++ " @@"
+                      mutatedLine = fromMaybe srcLine mutRecMutatedLine
+                   in T.unpack $
+                        T.unlines $
+                          map T.pack [header, hunkHeader]
+                            ++ map (T.cons ' ') mutRecContextBefore
+                            ++ [T.cons '-' srcLine, T.cons '+' mutatedLine]
+                            ++ map (T.cons ' ') mutRecContextAfter
+        _ -> "added mutation " ++ intercalate "/" parts ++ "\n"

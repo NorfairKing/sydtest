@@ -17,6 +17,10 @@ module Test.Syd.Mutation.AugmentedManifest
     UncoveredMutation (..),
     MutationRunReport (..),
     writeMutationRunReport,
+    renderMutationRunReport,
+    MutationProgressEvent (..),
+    renderMutationProgressEvent,
+    formatMutationLog,
   )
 where
 
@@ -27,8 +31,11 @@ import Data.GenValidity
 import Data.GenValidity.Map ()
 import Data.GenValidity.Path ()
 import Data.GenValidity.Text ()
+import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Path
 import Path.IO (doesFileExist, ensureDir)
@@ -247,3 +254,74 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             augmentedMutationRecordContextAfter = mutRecContextAfter,
             augmentedMutationRecordCoveringTests = ts
           }
+
+-- | Render a 'MutationRunReport' as a human-readable string.
+renderMutationRunReport :: MutationRunReport -> String
+renderMutationRunReport MutationRunReport {mutationRunReportKilled, mutationRunReportSurvived, mutationRunReportUncovered, mutationRunReportSurvivors} =
+  unlines $
+    [ "Killed: " ++ show mutationRunReportKilled,
+      "Survived: " ++ show mutationRunReportSurvived,
+      "Uncovered: " ++ show mutationRunReportUncovered
+    ]
+      ++ if null mutationRunReportSurvivors
+        then []
+        else
+          ["", "Surviving mutations:"]
+            ++ concatMap renderSurvivor mutationRunReportSurvivors
+  where
+    renderSurvivor sm =
+      let rec = survivedMutationRecord sm
+          mid = augmentedMutationRecordId rec
+       in "" : lines (formatMutationLog mid rec)
+
+-- | A mutation that is about to be tested, used as the progress log event.
+newtype MutationProgressEvent = MutationProgressEvent
+  { mutationProgressRecord :: AugmentedMutationRecord
+  }
+
+-- | Render a progress event for stderr: @Testing mutation \<op\> at \<srcloc\>@ followed by the diff.
+renderMutationProgressEvent :: MutationProgressEvent -> String
+renderMutationProgressEvent (MutationProgressEvent rec) =
+  "Testing mutation " ++ formatMutationLog (augmentedMutationRecordId rec) rec
+
+-- | Format a survived mutation as @\<op\> at \<srcloc\>@ followed by the diff,
+-- for use in the survivors section of the final report.
+formatMutationLog :: MutationId -> AugmentedMutationRecord -> String
+formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter} =
+  case parts of
+    (modName : _op : lineStr : colStartStr : colEndStr : _) ->
+      let filePath = case augmentedMutationRecordSourceFile of
+            Just p -> fromRelFile p
+            Nothing -> moduleToFilePath modName
+          header = T.unpack augmentedMutationRecordOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+       in case augmentedMutationRecordSourceLine of
+            Nothing ->
+              unlines
+                [ header,
+                  "    - " ++ T.unpack augmentedMutationRecordOriginal,
+                  "    + " ++ T.unpack augmentedMutationRecordReplacement
+                ]
+            Just srcLine ->
+              let lineNum = read lineStr :: Int
+                  nBefore = length augmentedMutationRecordContextBefore
+                  hunkHeader =
+                    "@@ -"
+                      ++ show (lineNum - nBefore)
+                      ++ ","
+                      ++ show (nBefore + 1 + length augmentedMutationRecordContextAfter)
+                      ++ " +"
+                      ++ show (lineNum - nBefore)
+                      ++ ","
+                      ++ show (nBefore + 1 + length augmentedMutationRecordContextAfter)
+                      ++ " @@"
+                  mutatedLine = fromMaybe srcLine augmentedMutationRecordMutatedLine
+               in T.unpack $
+                    T.unlines $
+                      map T.pack [header, hunkHeader]
+                        ++ map (T.cons ' ') augmentedMutationRecordContextBefore
+                        ++ [T.cons '-' srcLine, T.cons '+' mutatedLine]
+                        ++ map (T.cons ' ') augmentedMutationRecordContextAfter
+    _ ->
+      intercalate "/" parts ++ "\n"
+  where
+    moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"

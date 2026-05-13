@@ -40,7 +40,7 @@ import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
 import Path
 import Path.IO (resolveFile')
-import Test.Syd.Mutation.Manifest (MutationRecord (..))
+import Test.Syd.Mutation.Manifest (MutationAddedEvent (..), MutationRecord (..), renderMutationAddedEvent)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
 -- ---------------------------------------------------------------------------
@@ -434,7 +434,7 @@ recordMutation ::
   (T.Text -> T.Text) ->
   InstrM MutationId
 recordMutation le op origStr replStr srcTransform = do
-  InstrumentEnv {instrModule, instrSourceFile, instrDebug} <- ask
+  InstrumentEnv {instrModule, instrSourceFile} <- ask
   let sp = getLocA le
   case sp of
     RealSrcSpan rss _ -> do
@@ -468,30 +468,28 @@ recordMutation le op origStr replStr srcTransform = do
                         )
                         mLine
                  in (Just relFile, mLine, mMutated, before, after)
+      let record =
+            MutationRecord
+              { mutRecId = mid,
+                mutRecOperator = T.pack op,
+                mutRecOriginal = T.pack origStr,
+                mutRecReplacement = T.pack replStr,
+                mutRecModule = T.pack mn,
+                mutRecLine = fromIntegral lineNum,
+                mutRecColStart = fromIntegral colStart,
+                mutRecColEnd = fromIntegral colEnd,
+                mutRecSourceFile = mSrcFile,
+                mutRecSourceLine = srcLine,
+                mutRecMutatedLine = mutatedLine,
+                mutRecContextBefore = ctxBefore,
+                mutRecContextAfter = ctxAfter,
+                mutRecCoveringTests = Nothing
+              }
       liftTcM $
-        liftIO $ do
-          putStrLn $ "added mutation " ++ op ++ " at " ++ show lineNum ++ ":" ++ show colStart ++ "-" ++ show colEnd
-          if instrDebug
-            then putStrLn $ "mutation: recording " ++ mn ++ "/" ++ op ++ " at " ++ show lineNum ++ ":" ++ show colStart ++ "-" ++ show colEnd
-            else pure ()
-      tell
-        [ MutationRecord
-            { mutRecId = mid,
-              mutRecOperator = T.pack op,
-              mutRecOriginal = T.pack origStr,
-              mutRecReplacement = T.pack replStr,
-              mutRecModule = T.pack mn,
-              mutRecLine = fromIntegral lineNum,
-              mutRecColStart = fromIntegral colStart,
-              mutRecColEnd = fromIntegral colEnd,
-              mutRecSourceFile = mSrcFile,
-              mutRecSourceLine = srcLine,
-              mutRecMutatedLine = mutatedLine,
-              mutRecContextBefore = ctxBefore,
-              mutRecContextAfter = ctxAfter,
-              mutRecCoveringTests = Nothing
-            }
-        ]
+        liftIO $
+          putStr $
+            renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord = record}
+      tell [record]
       pure mid
     UnhelpfulSpan _ -> pure (MutationId [])
 

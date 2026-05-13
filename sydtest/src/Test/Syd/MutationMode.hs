@@ -39,7 +39,6 @@ module Test.Syd.MutationMode
     runSingleMutationMode,
     runCoverageMode,
     runSingleCoverageMode,
-    formatMutationLog,
   )
 where
 
@@ -47,7 +46,6 @@ import Control.Concurrent (newQSem, signalQSem, waitQSem)
 import Control.Concurrent.Async (mapConcurrently)
 import Control.Exception (bracket_)
 import Data.IORef
-import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Set as Set
@@ -63,6 +61,7 @@ import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationRecord (..),
+    MutationProgressEvent (..),
     MutationRunReport (..),
     SurvivedMutation (..),
     UncoveredMutation (..),
@@ -71,6 +70,8 @@ import Test.Syd.Mutation.AugmentedManifest
     mergeAugmentedManifests,
     readAugmentedManifestFile,
     readAugmentedManifestFileIfExists,
+    renderMutationProgressEvent,
+    renderMutationRunReport,
     writeAugmentedManifestFile,
     writeMutationRunReport,
   )
@@ -271,9 +272,7 @@ runMutationMode settings _manifestDirs _spec = do
             mutationRunReportUncoveredMutations = uncoveredMutations
           }
   mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
-  putStrLn $ "Killed: " ++ show killed
-  putStrLn $ "Survived: " ++ show survived
-  putStrLn $ "Uncovered: " ++ show uncovered
+  putStr $ renderMutationRunReport jsonReport
   where
     tally (MutationUncovered um) (k, s, ss, us) = (k, s, ss, us ++ [um])
     tally MutationKilled (k, s, ss, us) = (k + 1, s, ss, us)
@@ -283,7 +282,7 @@ runMutationMode settings _manifestDirs _spec = do
     runOne defaultExe augDir sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
-        hPutStr stderr $ formatMutationLog mid (Just (toMutationRecord record))
+        hPutStr stderr $ renderMutationProgressEvent (MutationProgressEvent record)
         -- Only run suites that have at least one covering test for this mutation.
         let coveringBySuite =
               Map.filter (not . null) (augmentedMutationRecordCoveringTests record)
@@ -291,7 +290,7 @@ runMutationMode settings _manifestDirs _spec = do
           then pure (MutationUncovered (UncoveredMutation record))
           else do
             -- Run one child per covering suite; mutation is killed if any child fails.
-            outcomes <- mapM (runOneSuite defaultExe augDir mid record) (Map.keys coveringBySuite)
+            outcomes <- mapM (runOneSuite defaultExe augDir mid) (Map.keys coveringBySuite)
             pure $ case [() | Left () <- outcomes] of
               (_ : _) -> MutationKilled
               [] ->
@@ -302,7 +301,7 @@ runMutationMode settings _manifestDirs _spec = do
     -- Returns Left () when the mutation was killed (child exited non-zero),
     -- Right (Just relFile) when survived and a log file was saved,
     -- Right Nothing when survived but no log file was saved.
-    runOneSuite defaultExe augDir mid record suiteName = do
+    runOneSuite defaultExe augDir mid suiteName = do
       let suiteExes = settingMutationSuiteExes settings
           exe = fromMaybe defaultExe (Map.lookup suiteName suiteExes)
           rtsArgs = case settingMutationChildMemLimit settings of
@@ -332,7 +331,6 @@ runMutationMode settings _manifestDirs _spec = do
         case ec of
           ExitFailure _ -> pure (Left ())
           ExitSuccess -> do
-            putStr $ formatMutationLog mid (Just (toMutationRecord record))
             mRelFile <- case settingMutationReportDir settings of
               Nothing -> pure Nothing
               Just reportDir -> do
@@ -350,27 +348,6 @@ runMutationMode settings _manifestDirs _spec = do
                     copyFile logPath (reportDir </> relFile)
                     pure (Just relFile)
             pure (Right mRelFile)
-
--- | Convert an 'AugmentedMutationRecord' back to a 'MutationRecord' for
--- display purposes.
-toMutationRecord :: AugmentedMutationRecord -> MutationRecord
-toMutationRecord AugmentedMutationRecord {augmentedMutationRecordId, augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordModule, augmentedMutationRecordLine, augmentedMutationRecordColStart, augmentedMutationRecordColEnd, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter, augmentedMutationRecordCoveringTests} =
-  MutationRecord
-    { mutRecId = augmentedMutationRecordId,
-      mutRecOperator = augmentedMutationRecordOperator,
-      mutRecOriginal = augmentedMutationRecordOriginal,
-      mutRecReplacement = augmentedMutationRecordReplacement,
-      mutRecModule = augmentedMutationRecordModule,
-      mutRecLine = augmentedMutationRecordLine,
-      mutRecColStart = augmentedMutationRecordColStart,
-      mutRecColEnd = augmentedMutationRecordColEnd,
-      mutRecSourceFile = augmentedMutationRecordSourceFile,
-      mutRecSourceLine = augmentedMutationRecordSourceLine,
-      mutRecMutatedLine = augmentedMutationRecordMutatedLine,
-      mutRecContextBefore = augmentedMutationRecordContextBefore,
-      mutRecContextAfter = augmentedMutationRecordContextAfter,
-      mutRecCoveringTests = Just augmentedMutationRecordCoveringTests
-    }
 
 -- | Child process: run only the tests covering a single mutation and exit
 -- with the appropriate exit code.
@@ -408,45 +385,3 @@ runSingleMutationMode settings _manifestDirs spec = do
   if shouldExitFail settings (timedValue timedResult)
     then exitWith (ExitFailure 1)
     else exitSuccess
-
-formatMutationLog :: MutationId -> Maybe MutationRecord -> String
-formatMutationLog (MutationId parts) mRec =
-  case (parts, mRec) of
-    ( [modName, op, lineStr, colStartStr, colEndStr],
-      Just MutationRecord {mutRecOriginal, mutRecReplacement, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter}
-      ) ->
-        let filePath = case mutRecSourceFile of
-              Just p -> fromRelFile p
-              Nothing -> moduleToFilePath modName
-            header = "Testing mutation " ++ op ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ ":"
-         in case mutRecSourceLine of
-              Nothing ->
-                unlines
-                  [ header,
-                    "    - " ++ T.unpack mutRecOriginal,
-                    "    + " ++ T.unpack mutRecReplacement
-                  ]
-              Just srcLine ->
-                let lineNum = read lineStr :: Int
-                    nBefore = length mutRecContextBefore
-                    hunkHeader =
-                      "@@ -"
-                        ++ show (lineNum - nBefore)
-                        ++ ","
-                        ++ show (nBefore + 1 + length mutRecContextAfter)
-                        ++ " +"
-                        ++ show (lineNum - nBefore)
-                        ++ ","
-                        ++ show (nBefore + 1 + length mutRecContextAfter)
-                        ++ " @@"
-                    mutatedLine = fromMaybe srcLine mutRecMutatedLine
-                 in T.unpack $
-                      T.unlines $
-                        map T.pack [header, hunkHeader]
-                          ++ map (T.cons ' ') mutRecContextBefore
-                          ++ [T.cons '-' srcLine, T.cons '+' mutatedLine]
-                          ++ map (T.cons ' ') mutRecContextAfter
-    _ ->
-      "Testing mutation " ++ intercalate "/" parts
-  where
-    moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"

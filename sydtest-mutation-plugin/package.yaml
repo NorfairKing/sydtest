@@ -13,6 +13,7 @@ library:
   source-dirs: src
   dependencies:
   - bytestring
+  - containers
   - directory
   - filepath
   - ghc

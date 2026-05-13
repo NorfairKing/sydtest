@@ -36,6 +36,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , fast-myers-diff
     , genvalidity
     , genvalidity-containers
     , genvalidity-path

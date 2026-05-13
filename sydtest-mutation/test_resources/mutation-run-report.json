@@ -29,12 +29,16 @@
                 ],
                 "line": 5,
                 "module": "Foo.Bar",
-                "mutated_line": "  result = x - y",
+                "mutated_lines": [
+                    "  result = x - y"
+                ],
                 "operator": "ArithOp",
                 "original": "+",
                 "replacement": "-",
                 "source_file": "src/Foo/Bar.hs",
-                "source_line": "  result = x + y"
+                "source_lines": [
+                    "  result = x + y"
+                ]
             }
         }
     ],
@@ -56,9 +60,11 @@
                 ],
                 "line": 12,
                 "module": "Foo.Bar",
+                "mutated_lines": [],
                 "operator": "BoolOp",
                 "original": "&&",
-                "replacement": "||"
+                "replacement": "||",
+                "source_lines": []
             }
         }
     ]

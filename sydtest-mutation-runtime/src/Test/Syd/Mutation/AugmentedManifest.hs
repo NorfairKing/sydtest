@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -33,10 +34,10 @@ import Data.GenValidity.Path ()
 import Data.GenValidity.Text ()
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
+import Myers.Diff (PolyDiff (..), getGroupedDiff)
 import Path
 import Path.IO (doesFileExist, ensureDir)
 import System.Exit (exitFailure)
@@ -57,8 +58,8 @@ data AugmentedMutationRecord = AugmentedMutationRecord
     augmentedMutationRecordColStart :: Word,
     augmentedMutationRecordColEnd :: Word,
     augmentedMutationRecordSourceFile :: Maybe (Path Rel File),
-    augmentedMutationRecordSourceLine :: Maybe Text,
-    augmentedMutationRecordMutatedLine :: Maybe Text,
+    augmentedMutationRecordSourceLines :: [Text],
+    augmentedMutationRecordMutatedLines :: [Text],
     augmentedMutationRecordContextBefore :: [Text],
     augmentedMutationRecordContextAfter :: [Text],
     -- | Tests whose execution reaches this mutation site, keyed by test suite
@@ -87,8 +88,8 @@ instance HasCodec AugmentedMutationRecord where
         <*> requiredField' "col_start" .= augmentedMutationRecordColStart
         <*> requiredField' "col_end" .= augmentedMutationRecordColEnd
         <*> optionalFieldWith' "source_file" relFileCodec .= augmentedMutationRecordSourceFile
-        <*> optionalField' "source_line" .= augmentedMutationRecordSourceLine
-        <*> optionalField' "mutated_line" .= augmentedMutationRecordMutatedLine
+        <*> optionalFieldWithDefault' "source_lines" [] .= augmentedMutationRecordSourceLines
+        <*> optionalFieldWithDefault' "mutated_lines" [] .= augmentedMutationRecordMutatedLines
         <*> optionalFieldWithDefault' "context_before" [] .= augmentedMutationRecordContextBefore
         <*> optionalFieldWithDefault' "context_after" [] .= augmentedMutationRecordContextAfter
         <*> optionalFieldWithDefaultWith' "covering_tests" coveringTestsCodec Map.empty .= augmentedMutationRecordCoveringTests
@@ -233,7 +234,7 @@ writeMutationRunReport dir report = do
 -- | Convert a 'MutationRecord' with coverage data to an 'AugmentedMutationRecord'.
 -- Records with 'mutRecCoveringTests' = 'Nothing' are dropped.
 fromMutationRecord :: MutationRecord -> Maybe AugmentedMutationRecord
-fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLine, mutRecMutatedLine, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
+fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLines, mutRecMutatedLines, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
   case mutRecCoveringTests of
     Nothing -> Nothing
     Just ts ->
@@ -248,8 +249,8 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             augmentedMutationRecordColStart = mutRecColStart,
             augmentedMutationRecordColEnd = mutRecColEnd,
             augmentedMutationRecordSourceFile = mutRecSourceFile,
-            augmentedMutationRecordSourceLine = mutRecSourceLine,
-            augmentedMutationRecordMutatedLine = mutRecMutatedLine,
+            augmentedMutationRecordSourceLines = mutRecSourceLines,
+            augmentedMutationRecordMutatedLines = mutRecMutatedLines,
             augmentedMutationRecordContextBefore = mutRecContextBefore,
             augmentedMutationRecordContextAfter = mutRecContextAfter,
             augmentedMutationRecordCoveringTests = ts
@@ -287,45 +288,50 @@ renderMutationProgressEvent (MutationProgressEvent rec) =
 -- | Format a survived mutation as @\<op\> at \<srcloc\>@ followed by the diff,
 -- for use in the survivors section of the final report.
 formatMutationLog :: MutationId -> AugmentedMutationRecord -> String
-formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceFile, augmentedMutationRecordSourceLine, augmentedMutationRecordMutatedLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter} =
+formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceLines, augmentedMutationRecordMutatedLines, augmentedMutationRecordSourceFile, augmentedMutationRecordLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter} =
   case parts of
     (modName : _op : lineStr : colStartStr : colEndStr : _) ->
       let filePath = case augmentedMutationRecordSourceFile of
             Just p -> fromRelFile p
             Nothing -> moduleToFilePath modName
           header = T.unpack augmentedMutationRecordOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
-       in case augmentedMutationRecordSourceLine of
-            Nothing ->
+       in case augmentedMutationRecordSourceLines of
+            [] ->
               unlines
                 [ header,
                   "    - " ++ T.unpack augmentedMutationRecordOriginal,
                   "    + " ++ T.unpack augmentedMutationRecordReplacement
                 ]
-            Just srcLine ->
-              let lineNum = read lineStr :: Int
-                  nBefore = length augmentedMutationRecordContextBefore
-                  srcLines = T.splitOn "\n" srcLine
-                  mutLines = T.splitOn "\n" (fromMaybe srcLine augmentedMutationRecordMutatedLine)
-                  nSrcLines = length srcLines
-                  nMutLines = length mutLines
-                  hunkHeader =
-                    "@@ -"
-                      ++ show (lineNum - nBefore)
-                      ++ ","
-                      ++ show (nBefore + nSrcLines + length augmentedMutationRecordContextAfter)
-                      ++ " +"
-                      ++ show (lineNum - nBefore)
-                      ++ ","
-                      ++ show (nBefore + nMutLines + length augmentedMutationRecordContextAfter)
-                      ++ " @@"
-               in T.unpack $
-                    T.unlines $
-                      map T.pack [header, hunkHeader]
-                        ++ map (T.cons ' ') augmentedMutationRecordContextBefore
-                        ++ map (T.cons '-') srcLines
-                        ++ map (T.cons '+') mutLines
-                        ++ map (T.cons ' ') augmentedMutationRecordContextAfter
+            _ ->
+              header ++ "\n" ++ renderUnifiedDiff (fromIntegral augmentedMutationRecordLine) augmentedMutationRecordContextBefore augmentedMutationRecordSourceLines augmentedMutationRecordMutatedLines augmentedMutationRecordContextAfter
     _ ->
       intercalate "/" parts ++ "\n"
   where
     moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"
+
+-- | Render a unified diff of the source change.
+renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> String
+renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
+  let allBefore = ctxBefore ++ srcLines ++ ctxAfter
+      allAfter = ctxBefore ++ mutLines ++ ctxAfter
+      groups = getGroupedDiff allBefore allAfter
+      hunkStart = startLine - length ctxBefore
+      origCount = length allBefore
+      mutCount = length allAfter
+      hunkHeader =
+        "@@ -"
+          ++ show hunkStart
+          ++ ","
+          ++ show origCount
+          ++ " +"
+          ++ show hunkStart
+          ++ ","
+          ++ show mutCount
+          ++ " @@"
+      body = concatMap renderGroup groups
+   in unlines (hunkHeader : body)
+  where
+    renderGroup = \case
+      Both ls _ -> map (T.unpack . T.cons ' ') ls
+      First ls -> map (T.unpack . T.cons '-') ls
+      Second ls -> map (T.unpack . T.cons '+') ls

@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -22,9 +23,9 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LB
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Myers.Diff (PolyDiff (..), getGroupedDiff)
 import Path
 import Path.IO (ensureDir, listDirRel)
 import System.IO (hPutStrLn, stderr)
@@ -47,10 +48,10 @@ data MutationRecord = MutationRecord
     mutRecColEnd :: Word,
     -- | Source file path relative to the project root, as reported by GHC.
     mutRecSourceFile :: Maybe (Path Rel File),
-    -- | Verbatim source line containing the mutated expression.
-    mutRecSourceLine :: Maybe Text,
-    -- | The source line with the mutation applied (replacement source spliced in).
-    mutRecMutatedLine :: Maybe Text,
+    -- | Source lines of the mutated expression (from the actual source file).
+    mutRecSourceLines :: [Text],
+    -- | Source lines after applying the mutation (computed by the plugin).
+    mutRecMutatedLines :: [Text],
     -- | Up to 3 source lines immediately before the mutated line.
     mutRecContextBefore :: [Text],
     -- | Up to 3 source lines immediately after the mutated line.
@@ -80,8 +81,8 @@ instance HasCodec MutationRecord where
         <*> requiredField' "col_start" .= mutRecColStart
         <*> requiredField' "col_end" .= mutRecColEnd
         <*> optionalFieldWith' "source_file" relFileCodec .= mutRecSourceFile
-        <*> optionalField' "source_line" .= mutRecSourceLine
-        <*> optionalField' "mutated_line" .= mutRecMutatedLine
+        <*> optionalFieldWithDefault' "source_lines" [] .= mutRecSourceLines
+        <*> optionalFieldWithDefault' "mutated_lines" [] .= mutRecMutatedLines
         <*> optionalFieldWithDefault' "context_before" [] .= mutRecContextBefore
         <*> optionalFieldWithDefault' "context_after" [] .= mutRecContextAfter
         <*> optionalFieldWith' "covering_tests" coveringTestsMapCodec .= mutRecCoveringTests
@@ -184,10 +185,11 @@ renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
           mutRecOriginal,
           mutRecReplacement,
           mutRecSourceFile,
-          mutRecSourceLine,
-          mutRecMutatedLine,
+          mutRecSourceLines,
+          mutRecMutatedLines,
           mutRecContextBefore,
-          mutRecContextAfter
+          mutRecContextAfter,
+          mutRecLine
         } = mutationAddedRecord
    in case parts of
         (modName : _op : lineStr : colStartStr : colEndStr : _) ->
@@ -195,35 +197,40 @@ renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
                 Just p -> fromRelFile p
                 Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
               header = "added mutation " ++ T.unpack mutRecOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
-           in case mutRecSourceLine of
-                Nothing ->
+           in case mutRecSourceLines of
+                [] ->
                   unlines
                     [ header,
                       "    - " ++ T.unpack mutRecOriginal,
                       "    + " ++ T.unpack mutRecReplacement
                     ]
-                Just srcLine ->
-                  let lineNum = read lineStr :: Int
-                      nBefore = length mutRecContextBefore
-                      srcLines = T.splitOn "\n" srcLine
-                      mutLines = T.splitOn "\n" (fromMaybe srcLine mutRecMutatedLine)
-                      nSrcLines = length srcLines
-                      nMutLines = length mutLines
-                      hunkHeader =
-                        "@@ -"
-                          ++ show (lineNum - nBefore)
-                          ++ ","
-                          ++ show (nBefore + nSrcLines + length mutRecContextAfter)
-                          ++ " +"
-                          ++ show (lineNum - nBefore)
-                          ++ ","
-                          ++ show (nBefore + nMutLines + length mutRecContextAfter)
-                          ++ " @@"
-                   in T.unpack $
-                        T.unlines $
-                          map T.pack [header, hunkHeader]
-                            ++ map (T.cons ' ') mutRecContextBefore
-                            ++ map (T.cons '-') srcLines
-                            ++ map (T.cons '+') mutLines
-                            ++ map (T.cons ' ') mutRecContextAfter
+                _ ->
+                  header ++ "\n" ++ renderUnifiedDiff (fromIntegral mutRecLine) mutRecContextBefore mutRecSourceLines mutRecMutatedLines mutRecContextAfter
         _ -> "added mutation " ++ intercalate "/" parts ++ "\n"
+
+-- | Render a unified diff of the source change.
+renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> String
+renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
+  let allBefore = ctxBefore ++ srcLines ++ ctxAfter
+      allAfter = ctxBefore ++ mutLines ++ ctxAfter
+      groups = getGroupedDiff allBefore allAfter
+      hunkStart = startLine - length ctxBefore
+      origCount = length allBefore
+      mutCount = length allAfter
+      hunkHeader =
+        "@@ -"
+          ++ show hunkStart
+          ++ ","
+          ++ show origCount
+          ++ " +"
+          ++ show hunkStart
+          ++ ","
+          ++ show mutCount
+          ++ " @@"
+      body = concatMap renderGroup groups
+   in unlines (hunkHeader : body)
+  where
+    renderGroup = \case
+      Both ls _ -> map (T.unpack . T.cons ' ') ls
+      First ls -> map (T.unpack . T.cons '-') ls
+      Second ls -> map (T.unpack . T.cons '+') ls

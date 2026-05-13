@@ -2,10 +2,9 @@
 
 module Test.Syd.Mutation.Plugin.Operator.RemoveAction (theOperator) where
 
-import qualified Data.Text as T
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
@@ -34,16 +33,19 @@ action ::
   SrcSpanAnnL ->
   [ExprLStmt GhcTc] ->
   Type ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 action ann x ctx lann stmts ty =
   let removable = [i | (i, s) <- zip [0 ..] stmts, isRemovableStmt s]
       n = length stmts
       mkMutation i =
         let stmts' = take i stmts ++ drop (i + 1) stmts
+            removedSpan = case getLocA (stmts !! i) of
+              RealSrcSpan rss _ -> [rss]
+              UnhelpfulSpan _ -> []
          in ( ty,
               L ann (HsDo x ctx (L lann stmts')),
               show n ++ " statements",
               show (n - 1) ++ " statements (removed #" ++ show (i + 1) ++ ")",
-              id
+              SpanRemoval removedSpan
             )
    in pure [mkMutation i | i <- removable]

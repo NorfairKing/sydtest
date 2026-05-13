@@ -51,8 +51,8 @@ exampleMutationManifest =
           mutRecColStart = 14,
           mutRecColEnd = 15,
           mutRecSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
-          mutRecSourceLine = Just "  result = x + y",
-          mutRecMutatedLine = Just "  result = x - y",
+          mutRecSourceLines = ["  result = x + y"],
+          mutRecMutatedLines = ["  result = x - y"],
           mutRecContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
           mutRecContextAfter = ["  in result"],
           mutRecCoveringTests =
@@ -73,8 +73,8 @@ exampleMutationManifest =
           mutRecColStart = 8,
           mutRecColEnd = 10,
           mutRecSourceFile = Nothing,
-          mutRecSourceLine = Nothing,
-          mutRecMutatedLine = Nothing,
+          mutRecSourceLines = [],
+          mutRecMutatedLines = [],
           mutRecContextBefore = [],
           mutRecContextAfter = [],
           mutRecCoveringTests = Nothing
@@ -93,8 +93,8 @@ exampleAugmentedRecord =
       augmentedMutationRecordColStart = 14,
       augmentedMutationRecordColEnd = 15,
       augmentedMutationRecordSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
-      augmentedMutationRecordSourceLine = Just "  result = x + y",
-      augmentedMutationRecordMutatedLine = Just "  result = x - y",
+      augmentedMutationRecordSourceLines = ["  result = x + y"],
+      augmentedMutationRecordMutatedLines = ["  result = x - y"],
       augmentedMutationRecordContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
       augmentedMutationRecordContextAfter = ["  in result"],
       augmentedMutationRecordCoveringTests =
@@ -133,8 +133,8 @@ exampleMutationRunReport =
                     augmentedMutationRecordColStart = 8,
                     augmentedMutationRecordColEnd = 10,
                     augmentedMutationRecordSourceFile = Nothing,
-                    augmentedMutationRecordSourceLine = Nothing,
-                    augmentedMutationRecordMutatedLine = Nothing,
+                    augmentedMutationRecordSourceLines = [],
+                    augmentedMutationRecordMutatedLines = [],
                     augmentedMutationRecordContextBefore = [],
                     augmentedMutationRecordContextAfter = [],
                     augmentedMutationRecordCoveringTests = Map.empty

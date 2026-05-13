@@ -5,6 +5,7 @@
 module Test.Syd.Mutation.Plugin.Instrument
   ( MutationRecord (..),
     MutationOperator (..),
+    SrcSpanDelta (..),
     InstrumentEnv (..),
     InstrM,
     liftTcM,
@@ -21,6 +22,7 @@ import qualified Data.ByteString as SB
 import Data.List (stripPrefix)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe (isJust)
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import GHC
@@ -44,6 +46,18 @@ import Test.Syd.Mutation.Manifest (MutationAddedEvent (..), MutationRecord (..),
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
 -- ---------------------------------------------------------------------------
+-- Source delta
+
+-- | Describes the source-level change a mutation makes, for display purposes.
+data SrcSpanDelta
+  = -- | Replace the matched expression's span text with this exact text.
+    TokenReplace T.Text
+  | -- | Remove these source line ranges from within the outer expression's span.
+    SpanRemoval [RealSrcSpan]
+  | -- | Prepend this text at the start of the matched expression's span.
+    PrependText T.Text
+
+-- ---------------------------------------------------------------------------
 -- Operator
 
 -- | A single mutation operator.
@@ -62,14 +76,12 @@ data MutationOperator = MutationOperator
     -- | @Just action@ if this expression is a mutation candidate, @Nothing@ otherwise.
     -- The action runs in 'InstrM' so it can look up replacement operator ids via
     -- 'TcM' when needed (e.g. swapping @(+)@ for @(-)@).
-    -- The action returns a list of @(ty, mutated, originalStr, replacementStr, srcTransform)@
+    -- The action returns a list of @(ty, mutated, originalStr, replacementStr, delta)@
     -- tuples, one per distinct mutation to generate at this site.  Each gets its own
     -- 'MutationId' and is wrapped independently as a nested 'ifMutation' call.
     -- 'tryMutateWith' will validate each alternative via desugaring and silently drop
     -- any that produce diagnostics (e.g. overflowed literals).
-    -- 'srcTransform' maps the original source span text to the replacement source text
-    -- for display in the diff; use @const (T.pack replStr)@ for simple token swaps.
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)])
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)])
   }
 
 -- ---------------------------------------------------------------------------
@@ -409,7 +421,7 @@ applyOperator origExpr fallthrough op = case operatorMatch op origExpr of
         pure fallthrough
       (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
 
-validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String, T.Text -> T.Text) -> IO Bool
+validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> IO Bool
 validateAlt hscEnv (_, mutated, _, _, _) = do
   (msgs, mcore) <- deSugarExpr hscEnv mutated
   pure (isEmptyMessages msgs && isJust mcore)
@@ -421,9 +433,9 @@ locStr = \case
   UnhelpfulSpan _ -> ""
 
 -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
-applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String, T.Text -> T.Text) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-applyAlts opName ((ty, mutated, origStr, replStr, srcTransform) :| rest) original = do
-  mid <- recordMutation original opName origStr replStr srcTransform
+applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+applyAlts opName ((ty, mutated, origStr, replStr, delta) :| rest) original = do
+  mid <- recordMutation original opName origStr replStr delta
   inner <- case rest of
     [] -> pure original
     (a : as) -> applyAlts opName (a :| as) original
@@ -435,9 +447,9 @@ recordMutation ::
   String ->
   String ->
   String ->
-  (T.Text -> T.Text) ->
+  SrcSpanDelta ->
   InstrM MutationId
-recordMutation le op origStr replStr srcTransform = do
+recordMutation le op origStr replStr delta = do
   InstrumentEnv {instrModule, instrSourceFile} <- ask
   let sp = getLocA le
   case sp of
@@ -456,26 +468,17 @@ recordMutation le op origStr replStr srcTransform = do
                 replStr
               ]
           lineNumEnd = srcSpanEndLine rss
-          (mSrcFile, srcLine, mutatedLine, ctxBefore, ctxAfter) =
+          (mSrcFile, ctxBefore, ctxAfter, spanLines, mutatedLines) =
             case instrSourceFile of
-              Nothing -> (Nothing, Nothing, Nothing, [], [])
+              Nothing -> (Nothing, [], [], [], [])
               Just (relFile, ls) ->
                 let startIdx = lineNum - 1
                     endIdx = lineNumEnd - 1
                     before = reverse $ take 3 $ reverse $ take startIdx ls
                     after = take 3 $ drop (endIdx + 1) ls
-                    -- Collect all source lines covered by the span.
-                    spanLines =
-                      [ ls !! i
-                      | i <- [startIdx .. endIdx],
-                        i >= 0,
-                        i < length ls
-                      ]
-                    mLines = case spanLines of
-                      [] -> Nothing
-                      _ -> Just spanLines
-                    mMutated = fmap (mutateSpan colStart colEnd srcTransform) mLines
-                 in (Just relFile, T.intercalate (T.pack "\n") <$> mLines, T.intercalate (T.pack "\n") <$> mMutated, before, after)
+                    srcSpanLines = [ls !! i | i <- [startIdx .. endIdx], i >= 0, i < length ls]
+                    mutLines = applyDelta ls lineNum lineNumEnd colStart colEnd delta srcSpanLines
+                 in (Just relFile, before, after, srcSpanLines, mutLines)
       let record =
             MutationRecord
               { mutRecId = mid,
@@ -487,8 +490,8 @@ recordMutation le op origStr replStr srcTransform = do
                 mutRecColStart = fromIntegral colStart,
                 mutRecColEnd = fromIntegral colEnd,
                 mutRecSourceFile = mSrcFile,
-                mutRecSourceLine = srcLine,
-                mutRecMutatedLine = mutatedLine,
+                mutRecSourceLines = spanLines,
+                mutRecMutatedLines = mutatedLines,
                 mutRecContextBefore = ctxBefore,
                 mutRecContextAfter = ctxAfter,
                 mutRecCoveringTests = Nothing
@@ -501,39 +504,34 @@ recordMutation le op origStr replStr srcTransform = do
       pure mid
     UnhelpfulSpan _ -> pure (MutationId [])
 
--- | Apply a source transformation to a multi-line span.
--- @colStart@ and @colEnd@ are 1-based columns on the first and last lines
--- respectively.  The original span text (extracted across all lines) is passed
--- to @srcTransform@; the result replaces the span in the source.
-mutateSpan :: Int -> Int -> (T.Text -> T.Text) -> [T.Text] -> [T.Text]
-mutateSpan colStart colEnd srcTransform ls = case ls of
-  [] -> []
-  [line] ->
-    -- Single-line span: splice within one line.
-    let origSpan = T.take (colEnd - colStart) (T.drop (colStart - 1) line)
-        replSource = srcTransform origSpan
-     in [T.take (colStart - 1) line <> replSource <> T.drop (colEnd - 1) line]
-  (firstLine : rest) ->
-    -- Multi-line span: extract from colStart on first line to colEnd on last line.
-    let lastLine = last rest
-        midLines = init rest
-        nl = T.pack "\n"
-        origSpan =
-          T.intercalate nl $
-            T.drop (colStart - 1) firstLine
-              : midLines
-              ++ [T.take (colEnd - 1) lastLine]
-        replSource = srcTransform origSpan
-        -- Replace the span: prefix of first line + replacement + suffix of last line.
-        prefix = T.take (colStart - 1) firstLine
-        suffix = T.drop (colEnd - 1) lastLine
-        -- Split the replacement on newlines to produce multiple output lines.
-        replLines = T.splitOn nl replSource
-     in case replLines of
-          [] -> [prefix <> suffix]
-          [single] -> [prefix <> single <> suffix]
-          (rFirst : rRest) ->
-            (prefix <> rFirst) : init rRest ++ [last rRest <> suffix]
+-- | Apply a 'SrcSpanDelta' to compute the mutated lines.
+applyDelta :: [T.Text] -> Int -> Int -> Int -> Int -> SrcSpanDelta -> [T.Text] -> [T.Text]
+applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta of
+  TokenReplace newText -> applyTokenReplace colS colE newText spanLines
+  SpanRemoval rmSpans -> applySpanRemoval allLines outerStart outerEnd rmSpans
+  PrependText prefix -> applyPrependText colS prefix spanLines
+
+-- | Replace text at columns colS..colE on the first line of the span.
+-- GHC colEnd is exclusive (one past the last character), so T.drop (colE-1) is correct.
+applyTokenReplace :: Int -> Int -> T.Text -> [T.Text] -> [T.Text]
+applyTokenReplace _ _ _ [] = []
+applyTokenReplace colS colE newText (line : rest) =
+  let before = T.take (colS - 1) line
+      after = T.drop (colE - 1) line
+   in (before <> newText <> after) : rest
+
+-- | Remove lines belonging to any of the given spans from the outer span's line range.
+applySpanRemoval :: [T.Text] -> Int -> Int -> [RealSrcSpan] -> [T.Text]
+applySpanRemoval allLines outerStart outerEnd rmSpans =
+  let removed = Set.fromList [l | rss <- rmSpans, l <- [srcSpanStartLine rss .. srcSpanEndLine rss]]
+   in [allLines !! (i - 1) | i <- [outerStart .. outerEnd], Set.notMember i removed]
+
+-- | Prepend text at the column position of the start of the span.
+applyPrependText :: Int -> T.Text -> [T.Text] -> [T.Text]
+applyPrependText _ _ [] = []
+applyPrependText colS prefix (line : rest) =
+  let (before, after) = T.splitAt (colS - 1) line
+   in (before <> prefix <> after) : rest
 
 -- ---------------------------------------------------------------------------
 -- Building the ifMutation call

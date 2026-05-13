@@ -25,7 +25,6 @@ library
       Test.Syd.Mutation.Plugin.Operator.Arith
       Test.Syd.Mutation.Plugin.Operator.BoolLit
       Test.Syd.Mutation.Plugin.Operator.Cmp
-      Test.Syd.Mutation.Plugin.Operator.CondFlip
       Test.Syd.Mutation.Plugin.Operator.ConstBool
       Test.Syd.Mutation.Plugin.Operator.IntLit
       Test.Syd.Mutation.Plugin.Operator.ListLit
@@ -45,6 +44,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , containers
     , directory
     , filepath
     , ghc

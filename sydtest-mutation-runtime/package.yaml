@@ -17,6 +17,7 @@ library:
   - autodocodec
   - bytestring
   - containers
+  - fast-myers-diff
   - genvalidity
   - genvalidity-containers
   - genvalidity-path

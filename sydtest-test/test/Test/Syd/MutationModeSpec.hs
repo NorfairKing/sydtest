@@ -23,8 +23,8 @@ spec = do
           (MutationId ["Foo.Bar", "ArithOp", "42", "10", "12"])
           aRecord
             { augmentedMutationRecordSourceFile = Nothing,
-              augmentedMutationRecordSourceLine = Nothing,
-              augmentedMutationRecordMutatedLine = Nothing,
+              augmentedMutationRecordSourceLines = [],
+              augmentedMutationRecordMutatedLines = [],
               augmentedMutationRecordContextBefore = [],
               augmentedMutationRecordContextAfter = []
             }
@@ -50,8 +50,8 @@ spec = do
                   augmentedMutationRecordColStart = 14,
                   augmentedMutationRecordColEnd = 15,
                   augmentedMutationRecordSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
-                  augmentedMutationRecordSourceLine = Just "  result = x + y",
-                  augmentedMutationRecordMutatedLine = Just "  result = x - y",
+                  augmentedMutationRecordSourceLines = ["  result = x + y"],
+                  augmentedMutationRecordMutatedLines = ["  result = x - y"],
                   augmentedMutationRecordContextBefore =
                     [ "add :: Int -> Int -> Int",
                       "add x y ="
@@ -74,8 +74,8 @@ aRecord =
       augmentedMutationRecordColStart = 10,
       augmentedMutationRecordColEnd = 12,
       augmentedMutationRecordSourceFile = Nothing,
-      augmentedMutationRecordSourceLine = Nothing,
-      augmentedMutationRecordMutatedLine = Nothing,
+      augmentedMutationRecordSourceLines = [],
+      augmentedMutationRecordMutatedLines = [],
       augmentedMutationRecordContextBefore = [],
       augmentedMutationRecordContextAfter = [],
       augmentedMutationRecordCoveringTests = Map.empty

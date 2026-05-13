@@ -1,10 +1,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.Mutation.Plugin.Operator.Negate (theOperator) where
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
-import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy)
 import GHC.Hs.Syn.Type (lhsExprType)
@@ -13,7 +13,7 @@ import GHC.Tc.Utils.TcType (tcEqType)
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (greName)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), liftTcM)
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
 
 theOperator :: MutationOperator
 theOperator =
@@ -36,7 +36,7 @@ theOperator =
 
 action ::
   LHsExpr GhcTc ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 action le = do
   InstrumentEnv {instrRdrEnv} <- ask
   notId <- liftTcM $ case lookupOccEnv instrRdrEnv (mkVarOcc "not") of
@@ -44,4 +44,4 @@ action le = do
     _ -> liftIO $ ioError $ userError "mutation/Negate: 'not' not in scope"
   let notVar = noLocA (HsVar NoExtField (noLocA notId))
       negated = mkHsApp notVar le
-  pure [(boolTy, negated, "e", "not e", \origSpan -> T.pack "not (" <> origSpan <> T.pack ")")]
+  pure [(boolTy, negated, "e", "not e", PrependText "not ")]

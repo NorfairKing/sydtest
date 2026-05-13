@@ -6,7 +6,7 @@ module Test.Syd.Mutation.Plugin.Operator.Arith (theOperator) where
 import Control.Monad.Reader (ask)
 import qualified Data.Text as T
 import GHC
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), liftTcM)
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
 import Test.Syd.Mutation.Plugin.Operator.Util (lhsExprType, mkOpReplacement, opOccName)
 
 theOperator :: MutationOperator
@@ -32,13 +32,13 @@ action ::
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   String ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
+  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 action ty l op r origOcc = do
   InstrumentEnv {instrRdrEnv} <- ask
   let replacements = filter (/= origOcc) arithOps
   mapM
     ( \replOcc -> do
         repl <- liftTcM $ mkOpReplacement instrRdrEnv l op r replOcc
-        pure (ty, repl, origOcc, replOcc, const (T.pack replOcc))
+        pure (ty, repl, origOcc, replOcc, TokenReplace (T.pack replOcc))
     )
     replacements

@@ -451,23 +451,27 @@ recordMutation le op origStr replStr srcTransform = do
                 show colEnd,
                 replStr
               ]
+          lineNumEnd = srcSpanEndLine rss
           (mSrcFile, srcLine, mutatedLine, ctxBefore, ctxAfter) =
             case instrSourceFile of
               Nothing -> (Nothing, Nothing, Nothing, [], [])
               Just (relFile, ls) ->
-                let idx = lineNum - 1
-                    mLine = if idx >= 0 && idx < length ls then Just (ls !! idx) else Nothing
-                    before = reverse $ take 3 $ reverse $ take idx ls
-                    after = take 3 $ drop (idx + 1) ls
-                    mMutated =
-                      fmap
-                        ( \line ->
-                            let origSpan = T.take (colEnd - colStart) (T.drop (colStart - 1) line)
-                                replSource = srcTransform origSpan
-                             in T.take (colStart - 1) line <> replSource <> T.drop (colEnd - 1) line
-                        )
-                        mLine
-                 in (Just relFile, mLine, mMutated, before, after)
+                let startIdx = lineNum - 1
+                    endIdx = lineNumEnd - 1
+                    before = reverse $ take 3 $ reverse $ take startIdx ls
+                    after = take 3 $ drop (endIdx + 1) ls
+                    -- Collect all source lines covered by the span.
+                    spanLines =
+                      [ ls !! i
+                      | i <- [startIdx .. endIdx],
+                        i >= 0,
+                        i < length ls
+                      ]
+                    mLines = case spanLines of
+                      [] -> Nothing
+                      _ -> Just spanLines
+                    mMutated = fmap (mutateSpan colStart colEnd srcTransform) mLines
+                 in (Just relFile, T.intercalate (T.pack "\n") <$> mLines, T.intercalate (T.pack "\n") <$> mMutated, before, after)
       let record =
             MutationRecord
               { mutRecId = mid,
@@ -492,6 +496,40 @@ recordMutation le op origStr replStr srcTransform = do
       tell [record]
       pure mid
     UnhelpfulSpan _ -> pure (MutationId [])
+
+-- | Apply a source transformation to a multi-line span.
+-- @colStart@ and @colEnd@ are 1-based columns on the first and last lines
+-- respectively.  The original span text (extracted across all lines) is passed
+-- to @srcTransform@; the result replaces the span in the source.
+mutateSpan :: Int -> Int -> (T.Text -> T.Text) -> [T.Text] -> [T.Text]
+mutateSpan colStart colEnd srcTransform ls = case ls of
+  [] -> []
+  [line] ->
+    -- Single-line span: splice within one line.
+    let origSpan = T.take (colEnd - colStart) (T.drop (colStart - 1) line)
+        replSource = srcTransform origSpan
+     in [T.take (colStart - 1) line <> replSource <> T.drop (colEnd - 1) line]
+  (firstLine : rest) ->
+    -- Multi-line span: extract from colStart on first line to colEnd on last line.
+    let lastLine = last rest
+        midLines = init rest
+        nl = T.pack "\n"
+        origSpan =
+          T.intercalate nl $
+            T.drop (colStart - 1) firstLine
+              : midLines
+              ++ [T.take (colEnd - 1) lastLine]
+        replSource = srcTransform origSpan
+        -- Replace the span: prefix of first line + replacement + suffix of last line.
+        prefix = T.take (colStart - 1) firstLine
+        suffix = T.drop (colEnd - 1) lastLine
+        -- Split the replacement on newlines to produce multiple output lines.
+        replLines = T.splitOn nl replSource
+     in case replLines of
+          [] -> [prefix <> suffix]
+          [single] -> [prefix <> single <> suffix]
+          (rFirst : rRest) ->
+            (prefix <> rFirst) : init rRest ++ [last rRest <> suffix]
 
 -- ---------------------------------------------------------------------------
 -- Building the ifMutation call

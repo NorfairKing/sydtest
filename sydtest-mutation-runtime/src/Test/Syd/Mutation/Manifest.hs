@@ -205,21 +205,25 @@ renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
                 Just srcLine ->
                   let lineNum = read lineStr :: Int
                       nBefore = length mutRecContextBefore
+                      srcLines = T.splitOn "\n" srcLine
+                      mutLines = T.splitOn "\n" (fromMaybe srcLine mutRecMutatedLine)
+                      nSrcLines = length srcLines
+                      nMutLines = length mutLines
                       hunkHeader =
                         "@@ -"
                           ++ show (lineNum - nBefore)
                           ++ ","
-                          ++ show (nBefore + 1 + length mutRecContextAfter)
+                          ++ show (nBefore + nSrcLines + length mutRecContextAfter)
                           ++ " +"
                           ++ show (lineNum - nBefore)
                           ++ ","
-                          ++ show (nBefore + 1 + length mutRecContextAfter)
+                          ++ show (nBefore + nMutLines + length mutRecContextAfter)
                           ++ " @@"
-                      mutatedLine = fromMaybe srcLine mutRecMutatedLine
                    in T.unpack $
                         T.unlines $
                           map T.pack [header, hunkHeader]
                             ++ map (T.cons ' ') mutRecContextBefore
-                            ++ [T.cons '-' srcLine, T.cons '+' mutatedLine]
+                            ++ map (T.cons '-') srcLines
+                            ++ map (T.cons '+') mutLines
                             ++ map (T.cons ' ') mutRecContextAfter
         _ -> "added mutation " ++ intercalate "/" parts ++ "\n"

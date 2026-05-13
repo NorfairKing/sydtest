@@ -4,6 +4,7 @@ module Example.FunctionExceptionLib
   ( addOneArithDisabled,
     addOneArithAndIntLitDisabled,
     addOneFunctionDisabled,
+    constBoolDisabledPolymorphic,
   )
 where
 
@@ -23,3 +24,10 @@ addOneArithAndIntLitDisabled n = n + 1
 {-# ANN addOneFunctionDisabled ("DisableMutations" :: String) #-}
 addOneFunctionDisabled :: Int -> Int
 addOneFunctionDisabled n = n + 1
+
+-- | ConstBool disabled on a polymorphic function (which GHC wraps in AbsBinds).
+-- Without the fix, the ANN annotation on the poly Id is not propagated to the
+-- inner mono binding, so ConstBool would still fire and produce a surviving mutant.
+{-# ANN constBoolDisabledPolymorphic ("DisableMutation: ConstBool" :: String) #-}
+constBoolDisabledPolymorphic :: (Ord a, Num a) => a -> Bool
+constBoolDisabledPolymorphic n = n > 0

@@ -194,8 +194,12 @@ instrumentBind = \case
   VarBind x var rhs -> VarBind x var <$> instrumentLExpr rhs
   PatSynBind x psb -> pure (PatSynBind x psb)
   -- At GhcTc, XHsBindsLR carries an AbsBinds (see XXHsBindsLR instance).
-  XHsBindsLR ab@AbsBinds {abs_binds} -> do
-    binds' <- mapBagM (traverse instrumentBind) abs_binds
+  -- {-# ANN f #-} annotations attach to the poly Id (abe_poly), but the inner
+  -- FunBinds carry mono Ids.  Apply poly-name annotations here so they cover
+  -- the inner binds, which withFunBindEnv would otherwise miss.
+  XHsBindsLR ab@AbsBinds {abs_binds, abs_exports} -> do
+    let polyNames = map (idName . abe_poly) abs_exports
+    binds' <- foldr withFunBindEnv (mapBagM (traverse instrumentBind) abs_binds) polyNames
     pure (XHsBindsLR ab {abs_binds = binds'})
 
 -- | Run an instrumentation action with the operator list filtered by any

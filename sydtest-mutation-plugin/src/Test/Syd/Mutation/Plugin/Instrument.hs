@@ -439,7 +439,8 @@ recordMutation le op origStr replStr srcTransform = do
                 op,
                 show lineNum,
                 show colStart,
-                show colEnd
+                show colEnd,
+                replStr
               ]
           (mSrcFile, srcLine, mutatedLine, ctxBefore, ctxAfter) =
             case instrSourceFile of
@@ -460,7 +461,7 @@ recordMutation le op origStr replStr srcTransform = do
                  in (Just relFile, mLine, mMutated, before, after)
       liftTcM $
         liftIO $ do
-          putStrLn $ "mutation: added " ++ show mid
+          putStrLn $ "added mutation " ++ op ++ " at " ++ show lineNum ++ ":" ++ show colStart ++ "-" ++ show colEnd
           if instrDebug
             then putStrLn $ "mutation: recording " ++ mn ++ "/" ++ op ++ " at " ++ show lineNum ++ ":" ++ show colStart ++ "-" ++ show colEnd
             else pure ()

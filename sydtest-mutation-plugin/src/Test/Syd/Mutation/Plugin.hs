@@ -135,7 +135,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
                 (d : _) -> Just d
                 [] -> envDir
           liftIO $ do
-            putStrLn $ "mutation: " ++ mn ++ " total mutations: " ++ show (length mutations)
+            putStrLn $ "added " ++ show (length mutations) ++ " mutations"
             case rawDir of
               Nothing -> pure ()
               Just raw -> do

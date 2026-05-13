@@ -32,6 +32,8 @@ library
       Test.Syd.Mutation.Plugin.Operator.LogicOp
       Test.Syd.Mutation.Plugin.Operator.MaybeOp
       Test.Syd.Mutation.Plugin.Operator.Negate
+      Test.Syd.Mutation.Plugin.Operator.RemoveAction
+      Test.Syd.Mutation.Plugin.Operator.RemoveCase
       Test.Syd.Mutation.Plugin.Operator.Util
       Test.Syd.Mutation.Plugin.Operators
       Test.Syd.Mutation.Plugin.Operators.TH

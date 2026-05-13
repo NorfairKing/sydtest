@@ -21,6 +21,8 @@ source-repository head
 library
   exposed-modules:
       Example.BoolLib
+      Example.CaseLib
+      Example.DoLib
       Example.ExceptionLib
       Example.FunctionExceptionLib
       Example.Lib
@@ -40,6 +42,7 @@ test-suite sydtest-mutation-example-test
   main-is: Main.hs
   other-modules:
       Example.BoolLibSpec
+      Example.CaseLibSpec
       Example.LibSpec
       Example.OtherwiseLibSpec
       Spec

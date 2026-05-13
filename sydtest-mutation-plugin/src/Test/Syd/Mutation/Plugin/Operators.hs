@@ -22,6 +22,8 @@ import qualified Test.Syd.Mutation.Plugin.Operator.ListLit
 import qualified Test.Syd.Mutation.Plugin.Operator.LogicOp
 import qualified Test.Syd.Mutation.Plugin.Operator.MaybeOp
 import qualified Test.Syd.Mutation.Plugin.Operator.Negate
+import qualified Test.Syd.Mutation.Plugin.Operator.RemoveAction
+import qualified Test.Syd.Mutation.Plugin.Operator.RemoveCase
 import Test.Syd.Mutation.Plugin.Operators.TH (collectOperators)
 
 allOperators :: [MutationOperator]

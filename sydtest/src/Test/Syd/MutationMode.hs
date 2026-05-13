@@ -50,7 +50,6 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import GHC.Conc (getNumCapabilities)
 import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
@@ -90,7 +89,7 @@ import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour (hPutChunksLocaleWith, putChunksLocaleWith)
+import Text.Colour (hPutChunksLocaleWith, putChunksLocaleWith, unlinesChunks)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
 -- subprocess per test (up to N concurrently, N = 'getNumCapabilities'),
@@ -274,7 +273,7 @@ runMutationMode settings _manifestDirs _spec = do
             mutationRunReportUncoveredMutations = uncoveredMutations
           }
   mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
-  mapM_ (\line -> putChunksLocaleWith (settingTerminalCapabilities settings) line >> TIO.putStrLn "") (renderMutationRunReport jsonReport)
+  putChunksLocaleWith (settingTerminalCapabilities settings) (unlinesChunks (renderMutationRunReport jsonReport))
   where
     tally (MutationUncovered um) (k, s, ss, us) = (k, s, ss, us ++ [um])
     tally MutationKilled (k, s, ss, us) = (k + 1, s, ss, us)
@@ -284,7 +283,7 @@ runMutationMode settings _manifestDirs _spec = do
     runOne defaultExe augDir sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
-        mapM_ (\line -> hPutChunksLocaleWith (settingTerminalCapabilities settings) stderr line >> TIO.hPutStrLn stderr "") (renderMutationProgressEvent (MutationProgressEvent record))
+        hPutChunksLocaleWith (settingTerminalCapabilities settings) stderr (unlinesChunks (renderMutationProgressEvent (MutationProgressEvent record)))
         -- Only run suites that have at least one covering test for this mutation.
         let coveringBySuite =
               Map.filter (not . null) (augmentedMutationRecordCoveringTests record)

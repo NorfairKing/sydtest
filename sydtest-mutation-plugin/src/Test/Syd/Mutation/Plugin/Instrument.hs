@@ -42,9 +42,10 @@ import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
 import Path
 import Path.IO (resolveFile')
+import System.IO (hIsTerminalDevice, stdout)
 import Test.Syd.Mutation.Manifest (MutationAddedEvent (..), MutationRecord (..), renderMutationAddedEvent)
 import Test.Syd.Mutation.Runtime (MutationId (..))
-import Text.Colour (TerminalCapabilities (..), renderChunksText)
+import Text.Colour (TerminalCapabilities (..), putChunksLocaleWith, unlinesChunks)
 
 -- ---------------------------------------------------------------------------
 -- Source delta
@@ -498,9 +499,12 @@ recordMutation le op origStr replStr delta = do
                 mutRecCoveringTests = Nothing
               }
       liftTcM $
-        liftIO $
-          mapM_ (\line -> putStrLn (T.unpack (renderChunksText WithoutColours line))) $
-            renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord = record}
+        liftIO $ do
+          tc <-
+            hIsTerminalDevice stdout >>= \case
+              True -> pure With8Colours
+              False -> pure WithoutColours
+          putChunksLocaleWith tc (unlinesChunks (renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord = record}))
       tell [record]
       pure mid
     UnhelpfulSpan _ -> pure (MutationId [])

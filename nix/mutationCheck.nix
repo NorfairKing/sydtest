@@ -2,11 +2,11 @@
 
 # Build one mutation check.
 #
-# Returns the derivation of the first test package, extended with a 'report'
-# output containing report.txt and report.json. When assertScore is false (the
-# default), the check succeeds as long as all test suites complete without
-# crashing; surviving mutations appear in the report but do not cause a build
-# failure. Set assertScore = true to fail the build when any mutations survive.
+# Returns an attrset with:
+# - report: derivation containing report.txt and report.json; succeeds as long
+#           as all test suites complete without crashing
+# - check: derivation that fails the build if any mutations survive (only
+#          present when assertAllKilled = true, which is the default)
 #
 # Arguments:
 # - name: derivation name prefix
@@ -16,7 +16,7 @@
 # - tests: attr names whose test suites to run but not instrument
 # - exceptions: module names to skip during instrumentation
 # - disabledMutations: mutation type names to disable globally
-# - assertScore: fail the build if any mutations survive (default: false)
+# - assertAllKilled: add a 'check' output that fails if any mutations survive (default: true)
 # - debug: print each mutation site as it is recorded (for debugging the plugin)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
 #
@@ -31,7 +31,7 @@
 , tests ? [ ]
 , exceptions ? [ ]
 , disabledMutations ? [ ]
-, assertScore ? false
+, assertAllKilled ? true
 , debug ? false
 , ghcMemLimit ? "16g"
 }:
@@ -151,7 +151,7 @@ let
 in
 {
   report = drv.report;
-} // (if assertScore then
-  { score = assertMutationScore { inherit name; report = drv.report; }; }
+} // (if assertAllKilled then
+  { check = assertMutationScore { inherit name; report = drv.report; }; }
 else
   { })

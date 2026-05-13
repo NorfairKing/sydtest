@@ -57,7 +57,7 @@ import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
-import System.IO (IOMode (..), hClose, hPutStr, openFile, stderr)
+import System.IO (BufferMode (..), IOMode (..), hClose, hPutStr, hSetBuffering, openFile, stderr)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleOpen)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -253,6 +253,7 @@ data MutationResult
 -- 'settingMutationReportDir' when set.
 runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runMutationMode settings _manifestDirs _spec = do
+  hSetBuffering stderr (BlockBuffering Nothing)
   augDir <- resolveAugmentedManifestDir settings
   AugmentedManifest records <- readAugmentedManifestFile augDir
   defaultExe <- getExecutablePath

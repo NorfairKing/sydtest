@@ -28,4 +28,6 @@ Settings
   , settingMutationReportDir = Nothing
   , settingMutationSuiteName = Nothing
   , settingMutationSuiteExes = fromList []
+  , settingMutationCoverageOne = Nothing
+  , settingMutationCoverageOutput = Nothing
   }

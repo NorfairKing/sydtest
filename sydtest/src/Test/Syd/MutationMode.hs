@@ -126,6 +126,10 @@ runCoverageMode settings manifestDirs spec = do
       bracket_ (waitQSem sem) (signalQSem sem) $
         withSystemTempDir "coverage-child" $ \tmpDir -> do
           let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
+              -- Pass at least one --mutation-coverage dir so the child
+              -- dispatches to runSingleCoverageMode rather than the normal
+              -- test runner. The child ignores the manifest content; only
+              -- the flag's presence matters for dispatch.
               coverageDirArgs = concatMap (\d -> ["--mutation-coverage", fromAbsDir d]) manifestDirs'
               args =
                 coverageDirArgs

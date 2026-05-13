@@ -80,5 +80,5 @@ in
       "sydtest-mutation-example"
       "sydtest-mutation-example-gen"
     ];
-  }).report;
+  }).check;
 }

@@ -104,7 +104,13 @@ data Settings = Settings
     settingMutationSuiteName :: !(Maybe Text),
     -- | Map from suite name to executable path, used by the parent mutation
     -- process to spawn the right binary for each suite.
-    settingMutationSuiteExes :: !(Map.Map Text FilePath)
+    settingMutationSuiteExes :: !(Map.Map Text FilePath),
+    -- | When set, collect coverage for only this single test id (used by
+    -- coverage child processes spawned by the parent).
+    settingMutationCoverageOne :: !(Maybe Text),
+    -- | File path where a coverage child process writes its 'TestCoverageMap'
+    -- result. Only used when 'settingMutationCoverageOne' is set.
+    settingMutationCoverageOutput :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -236,7 +242,9 @@ instance HasParser Settings where
                 settingMutationChildMemLimit = flagMutationChildMemLimit,
                 settingMutationReportDir = flagMutationReportDir,
                 settingMutationSuiteName = flagMutationSuiteName,
-                settingMutationSuiteExes = flagMutationSuiteExes
+                settingMutationSuiteExes = flagMutationSuiteExes,
+                settingMutationCoverageOne = flagMutationCoverageOne,
+                settingMutationCoverageOutput = flagMutationCoverageOutput
               }
 
 defaultSettings :: Settings
@@ -271,7 +279,9 @@ defaultSettings =
           settingMutationChildMemLimit = Nothing,
           settingMutationReportDir = Nothing,
           settingMutationSuiteName = Nothing,
-          settingMutationSuiteExes = Map.empty
+          settingMutationSuiteExes = Map.empty,
+          settingMutationCoverageOne = Nothing,
+          settingMutationCoverageOutput = Nothing
         }
 
 -- 60 seconds
@@ -327,7 +337,9 @@ data Flags = Flags
     flagMutationChildMemLimit :: !(Maybe String),
     flagMutationReportDir :: !(Maybe (Path Abs Dir)),
     flagMutationSuiteName :: !(Maybe Text),
-    flagMutationSuiteExes :: !(Map.Map Text FilePath)
+    flagMutationSuiteExes :: !(Map.Map Text FilePath),
+    flagMutationCoverageOne :: !(Maybe Text),
+    flagMutationCoverageOutput :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -570,6 +582,26 @@ instance HasParser Flags where
               metavar "NAME=PATH",
               hidden
             ]
+    flagMutationCoverageOne <-
+      optional $
+        setting
+          [ help "Collect coverage for only this single test id (used internally by coverage child processes)",
+            reader str,
+            option,
+            long "mutation-coverage-one",
+            metavar "TEST_ID",
+            hidden
+          ]
+    flagMutationCoverageOutput <-
+      optional $
+        setting
+          [ help "File path where coverage child process writes its coverage map (used internally)",
+            reader str,
+            option,
+            long "mutation-coverage-output",
+            metavar "FILE",
+            hidden
+          ]
     pure Flags {..}
 
 -- | Parse a @name=path@ string from @--mutation-suite-exe@.

@@ -2,15 +2,20 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | This module provides three entry points for mutation testing:
+-- | This module provides four entry points for mutation testing:
 --
--- * 'runCoverageMode': collect per-test coverage and write @manifest-augmented.json@.
+-- * 'runCoverageMode': parent process — enumerate all tests, spawn one child
+--   subprocess per test concurrently to collect coverage, merge results, and
+--   write @manifest-augmented.json@.
+-- * 'runSingleCoverageMode': child process — run one test, write its
+--   'TestCoverageMap' to a file, and exit.
 -- * 'runMutationMode': parent process — read the augmented manifest and spawn
 --   one child process per mutation.
 -- * 'runSingleMutationMode': child process — run only the tests that cover a
 --   single mutation and exit with success/failure.
 --
--- Running each mutation in a subprocess is necessary for three reasons:
+-- Running each mutation (and each coverage collection) in a subprocess is
+-- necessary for three reasons:
 --
 -- 1. __Memory limit__: a mutation can cause unbounded allocation (e.g. turning
 --    a termination condition into a no-op).  The RTS @-M@ flag terminates the
@@ -24,14 +29,15 @@
 --    mutation.  Subprocesses get a fresh heap each time, so there is no risk
 --    of a memoised value masking a mutation.
 --
--- 3. __Parallelism__: because 'activeMutation' is a process-global 'IORef',
---    mutations must run serially within a single process.  Subprocesses are
---    independent, so the parent runs up to N children concurrently where
---    N = 'getNumCapabilities'.
+-- 3. __Parallelism__: because 'activeMutation' and 'coverageSlot' are
+--    process-global 'IORef's, both mutations and coverage collection must run
+--    serially within a single process.  Subprocesses are independent, so the
+--    parent runs up to N children concurrently where N = 'getNumCapabilities'.
 module Test.Syd.MutationMode
   ( runMutationMode,
     runSingleMutationMode,
     runCoverageMode,
+    runSingleCoverageMode,
     formatMutationLog,
   )
 where
@@ -39,7 +45,6 @@ where
 import Control.Concurrent (newQSem, signalQSem, waitQSem)
 import Control.Concurrent.Async (mapConcurrently)
 import Control.Exception (bracket_)
-import Control.Monad (zipWithM)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -75,59 +80,18 @@ import Test.Syd.Mutation.Manifest
     readManifestDir,
   )
 import Test.Syd.Mutation.Runtime (MutationId (..), parseMutationId, renderMutationId, setActiveMutation, withCoverageSlot)
-import Test.Syd.Mutation.TestId (TestId, renderTestId)
+import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverageMapFile, writeTestCoverageMapFile)
+import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
 
--- | Run every test in @forest@ once (no active mutation) and record which
--- 'MutationId's each test's execution reaches via 'ifMutation'.
---
--- Returns a map from each 'TestId' to the set of 'MutationId's it covers.
-collectCoverage :: Settings -> TestForest '[] () -> IO (Map.Map TestId (Set.Set MutationId))
-collectCoverage settings forest = do
-  let coverageSettings =
-        settings
-          { settingThreads = Synchronous,
-            -- One iteration is enough to discover which mutation sites a test
-            -- reaches; running the full QuickCheck suite would be wasteful.
-            settingMaxSuccess = 1
-          }
-      leafIds = map fst (flattenTestForestWithIds forest)
-      total = length leafIds
-  -- Sequential: coverage collection is a one-pass read-only run per leaf test;
-  -- the overhead of parallelism would exceed the benefit here.
-  Map.fromList <$> zipWithM (collectOne coverageSettings forest total) [1 :: Int ..] leafIds
-  where
-    collectOne coverageSettings forest' total i tid = do
-      let trie = testIdTrieFromList [tid]
-          filtered = filterTestForestByTrie trie forest'
-      ref <- newIORef Set.empty
-      _ <-
-        withCoverageSlot ref $
-          runSpecForestSynchronously coverageSettings filtered
-      covered <- readIORef ref
-      putStrLn $
-        "coverage ("
-          ++ show i
-          ++ "/"
-          ++ show total
-          ++ "): "
-          ++ T.unpack (renderTestId tid)
-          ++ " ("
-          ++ show (Set.size covered)
-          ++ " mutations)"
-      pure (tid, covered)
-
--- | Collect per-test coverage for the mutations in @manifestDirs@ and write
--- (or merge into) @manifest-augmented.json@ in @settingMutationAugmentedManifestDir@.
---
--- For each manifest directory, reads the plugin-written @*.json@ files,
--- runs every test once (no mutation active) to record which 'MutationId's
--- each test reaches, then writes the augmented manifest with
--- 'augmentedMutationRecordCoveringTests' filled in.
+-- | Parent process: enumerate all leaf tests, spawn one coverage child
+-- subprocess per test (up to N concurrently, N = 'getNumCapabilities'),
+-- merge the resulting 'TestCoverageMap's, and write (or merge into)
+-- @manifest-augmented.json@ in @settingMutationAugmentedManifestDir@.
 --
 -- When @settingMutationSuiteName@ is set, covering tests are recorded under
 -- that suite name key.  If @manifest-augmented.json@ already exists (from a
@@ -136,29 +100,77 @@ collectCoverage settings forest = do
 runCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runCoverageMode settings manifestDirs spec = do
   specForest <- execTestDefM settings spec
-  coverageMap <- collectCoverage settings specForest
-  -- Invert: Map TestId (Set MutationId) -> Map MutationId (Set TestId)
-  let mutationCoverage =
-        Map.foldlWithKey'
-          ( \acc tid mids ->
-              Set.foldl'
-                (\a mid -> Map.insertWith Set.union mid (Set.singleton tid) a)
-                acc
-                mids
-          )
-          Map.empty
-          coverageMap
+  let leafIds = map fst (flattenTestForestWithIds specForest)
+      total = length leafIds
+  defaultExe <- getExecutablePath
+  n <- getNumCapabilities
+  sem <- newQSem n
+  coverageMaps <-
+    mapConcurrently
+      (runCoverageChild defaultExe settings manifestDirs sem total)
+      (zip [1 :: Int ..] leafIds)
+  let TestCoverageMap coverageMap = mconcat coverageMaps
+      mutationCoverage = invertCoverageMap coverageMap
       suiteName = fromMaybe "" (settingMutationSuiteName settings)
   allRecords <- mconcat <$> mapM readManifestDir manifestDirs
   let newAugmented = buildAugmentedManifest suiteName mutationCoverage allRecords
   augDir <- resolveAugmentedManifestDir settings
-  -- Merge with any existing augmented manifest (from a prior suite's pass).
   existing <- readAugmentedManifestFileIfExists augDir
   let augmented = case existing of
         Nothing -> newAugmented
         Just prev -> mergeAugmentedManifests prev newAugmented
   writeAugmentedManifestFile augDir augmented
   where
+    runCoverageChild defaultExe settings' manifestDirs' sem total (i, tid) =
+      bracket_ (waitQSem sem) (signalQSem sem) $
+        withSystemTempDir "coverage-child" $ \tmpDir -> do
+          let outputFile = fromAbsDir tmpDir ++ "coverage.json"
+              coverageDirArgs = concatMap (\d -> ["--mutation-coverage", fromAbsDir d]) manifestDirs'
+              args =
+                coverageDirArgs
+                  ++ [ "--mutation-coverage-one",
+                       T.unpack (renderTestId tid),
+                       "--mutation-coverage-output",
+                       outputFile
+                     ]
+                  ++ case settingMutationSuiteName settings' of
+                    Nothing -> []
+                    Just name -> ["--mutation-suite-name", T.unpack name]
+                  ++ case settingMutationAugmentedManifestDir settings' of
+                    Nothing -> []
+                    Just d -> ["--mutation-augmented-manifest-dir", fromAbsDir d]
+              childProc = proc defaultExe args
+          ec <- runProcess childProc
+          case ec of
+            ExitFailure code ->
+              fail $
+                "coverage child for "
+                  ++ T.unpack (renderTestId tid)
+                  ++ " exited with code "
+                  ++ show code
+            ExitSuccess -> do
+              mMap <- readTestCoverageMapFile outputFile
+              case mMap of
+                Nothing ->
+                  fail $
+                    "coverage child for "
+                      ++ T.unpack (renderTestId tid)
+                      ++ " wrote an unreadable coverage map"
+                Just coverageMap -> do
+                  let TestCoverageMap m = coverageMap
+                      covered = fromMaybe Set.empty (Map.lookup tid m)
+                  putStrLn $
+                    "coverage ("
+                      ++ show i
+                      ++ "/"
+                      ++ show total
+                      ++ "): "
+                      ++ T.unpack (renderTestId tid)
+                      ++ " ("
+                      ++ show (Set.size covered)
+                      ++ " mutations)"
+                  pure coverageMap
+
     buildAugmentedManifest suiteName mutationCoverage (MutationManifest records) =
       AugmentedManifest $
         concatMap (annotateRecord suiteName mutationCoverage) records
@@ -175,6 +187,43 @@ runCoverageMode settings manifestDirs spec = do
        in case fromMutationRecord annotated of
             Nothing -> []
             Just r -> [r]
+
+-- | Invert a @'Map' 'TestId' ('Set' 'MutationId')@ to
+-- @'Map' 'MutationId' ('Set' 'TestId')@.
+invertCoverageMap :: Map.Map TestId (Set.Set MutationId) -> Map.Map MutationId (Set.Set TestId)
+invertCoverageMap =
+  Map.foldlWithKey'
+    ( \acc tid mids ->
+        Set.foldl'
+          (\a mid -> Map.insertWith Set.union mid (Set.singleton tid) a)
+          acc
+          mids
+    )
+    Map.empty
+
+-- | Child process: run the single test identified by @--mutation-coverage-one@,
+-- write its 'TestCoverageMap' to @--mutation-coverage-output@, and exit.
+runSingleCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
+runSingleCoverageMode settings _manifestDirs spec = do
+  tid <- case settingMutationCoverageOne settings >>= parseTestIdFilterArg of
+    Nothing -> fail "runSingleCoverageMode: no valid --mutation-coverage-one id"
+    Just t -> pure t
+  outputFile <- case settingMutationCoverageOutput settings of
+    Nothing -> fail "runSingleCoverageMode: no --mutation-coverage-output file"
+    Just f -> pure f
+  specForest <- execTestDefM settings spec
+  let coverageSettings =
+        settings
+          { settingThreads = Synchronous,
+            settingMaxSuccess = 1
+          }
+      trie = testIdTrieFromList [tid]
+      filtered = filterTestForestByTrie trie specForest
+  ref <- newIORef Set.empty
+  _ <- withCoverageSlot ref $ runSpecForestSynchronously coverageSettings filtered
+  covered <- readIORef ref
+  let coverageMap = TestCoverageMap (Map.singleton tid covered)
+  writeTestCoverageMapFile outputFile coverageMap
 
 -- | Resolve the augmented manifest directory from settings,
 -- falling back to the current working directory.

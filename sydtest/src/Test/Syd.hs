@@ -263,7 +263,7 @@ import Test.Syd.Def
 import Test.Syd.Expectation
 import Test.Syd.HList
 import Test.Syd.Modify
-import Test.Syd.MutationMode (runCoverageMode, runMutationMode, runSingleMutationMode)
+import Test.Syd.MutationMode (runCoverageMode, runMutationMode, runSingleCoverageMode, runSingleMutationMode)
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.ReRun
@@ -280,10 +280,11 @@ import Text.Show.Pretty (pPrint, ppShow)
 sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
-  case (settingMutationCoverage sets, settingMutation sets, settingMutationOne sets) of
-    (coverageDirs, _, _) | not (null coverageDirs) -> runCoverageMode sets coverageDirs spec
-    (_, mutDirs, Just _) | not (null mutDirs) -> runSingleMutationMode sets mutDirs spec
-    (_, mutDirs, _) | not (null mutDirs) -> runMutationMode sets mutDirs spec
+  case (settingMutationCoverage sets, settingMutationCoverageOne sets, settingMutation sets, settingMutationOne sets) of
+    (coverageDirs, Just _, _, _) | not (null coverageDirs) -> runSingleCoverageMode sets coverageDirs spec
+    (coverageDirs, _, _, _) | not (null coverageDirs) -> runCoverageMode sets coverageDirs spec
+    (_, _, mutDirs, Just _) | not (null mutDirs) -> runSingleMutationMode sets mutDirs spec
+    (_, _, mutDirs, _) | not (null mutDirs) -> runMutationMode sets mutDirs spec
     _ -> sydTestWith sets spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'

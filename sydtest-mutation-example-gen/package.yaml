@@ -16,7 +16,7 @@ library:
 
 tests:
   sydtest-mutation-example-gen-test:
-    main: Main.hs
+    main: Spec.hs
     source-dirs: test
     build-tools: sydtest-discover
     ghc-options:

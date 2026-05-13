@@ -32,13 +32,12 @@ library
 
 test-suite sydtest-mutation-example-gen-test
   type: exitcode-stdio-1.0
-  main-is: Main.hs
+  main-is: Spec.hs
   other-modules:
       Example.BoolLibSpec
       Example.ExceptionLibSpec
       Example.FunctionExceptionLibSpec
       Example.LibSpec
-      Spec
       Paths_sydtest_mutation_example_gen
   hs-source-dirs:
       test

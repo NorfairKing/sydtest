@@ -25,10 +25,10 @@ stdenv.mkDerivation {
       echo ""
       echo "FAIL: $survived mutation(s) survived — not all mutations were killed."
       echo "Add or strengthen tests to kill the surviving mutations."
-      echo "Full report: ${report}/report.txt"
-      echo "Machine-readable report: ${report}/report.json"
       echo ""
       cat ${report}/report.txt
+      echo "Full report:               ${report}/report.txt"
+      echo "Machine-readable report:   ${report}/report.json"
       exit 1
     else
       echo "PASS: All $total mutation(s) were killed."

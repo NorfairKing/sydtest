@@ -39,6 +39,7 @@ where
 import Control.Concurrent (newQSem, signalQSem, waitQSem)
 import Control.Concurrent.Async (mapConcurrently)
 import Control.Exception (bracket_)
+import Control.Monad (zipWithM)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -95,11 +96,13 @@ collectCoverage settings forest = do
             settingMaxSuccess = 1
           }
       leafIds = map fst (flattenTestForestWithIds forest)
+      total = length leafIds
   -- Sequential: coverage collection is a one-pass read-only run per leaf test;
   -- the overhead of parallelism would exceed the benefit here.
-  Map.fromList <$> mapM (collectOne coverageSettings forest) leafIds
+  Map.fromList <$> zipWithM (collectOne coverageSettings forest total) [1 :: Int ..] leafIds
   where
-    collectOne coverageSettings forest' tid = do
+    collectOne coverageSettings forest' total i tid = do
+      putStrLn $ "coverage (" ++ show i ++ "/" ++ show total ++ "): " ++ T.unpack (renderTestId tid)
       let trie = testIdTrieFromList [tid]
           filtered = filterTestForestByTrie trie forest'
       ref <- newIORef Set.empty

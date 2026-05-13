@@ -15,29 +15,20 @@ theOperator =
       operatorMatch = \case
         (L ann (ExplicitList elTy es))
           | length es >= 2,
-            spanCoversFullList ann es ->
+            spanIsSingleLine ann ->
               Just (action ann elTy es)
         _ -> Nothing
     }
 
--- | Return True when @ann@'s span covers the full list content (not just the
--- opening @[@).  GHC's typechecked AST sometimes gives @ExplicitList@ a span
--- that only covers the @[@ token; in that case any source-level diff we
--- generate would be a no-op, so we skip those sites entirely.
-spanCoversFullList :: SrcSpanAnnA -> [LHsExpr GhcTc] -> Bool
-spanCoversFullList ann es =
-  case (locA ann, map getLocA es) of
-    (RealSrcSpan listRss _, elemSpans)
-      | not (null elemSpans),
-        Just lastElemRss <- lastRealSpan elemSpans ->
-          srcSpanEndLine listRss > srcSpanStartLine lastElemRss
-            || srcSpanEndCol listRss > srcSpanEndCol lastElemRss
-    _ -> False
-  where
-    lastRealSpan [] = Nothing
-    lastRealSpan ss = case last ss of
-      RealSrcSpan rss _ -> Just rss
-      UnhelpfulSpan _ -> Nothing
+-- | Return True when @ann@'s span fits on a single source line.
+-- Multi-line list spans cannot be displayed correctly by the single-line diff
+-- logic in 'recordMutation', so we skip those sites entirely to avoid
+-- generating no-op diffs.
+spanIsSingleLine :: SrcSpanAnnA -> Bool
+spanIsSingleLine ann =
+  case locA ann of
+    RealSrcSpan rss _ -> srcSpanStartLine rss == srcSpanEndLine rss
+    UnhelpfulSpan _ -> False
 
 action ::
   SrcSpanAnnA ->

@@ -3,10 +3,10 @@
 # Build one mutation check.
 #
 # Returns the derivation of the first test package, extended with a 'report'
-# output containing report.txt and report.json. The check succeeds as long as
-# all test suites complete without crashing; surviving mutations appear in the
-# report but do not cause a build failure. Use assertMutationScore on the
-# report output to turn surviving mutations into a build failure.
+# output containing report.txt and report.json. When assertScore is false (the
+# default), the check succeeds as long as all test suites complete without
+# crashing; surviving mutations appear in the report but do not cause a build
+# failure. Set assertScore = true to fail the build when any mutations survive.
 #
 # Arguments:
 # - name: derivation name prefix
@@ -16,6 +16,7 @@
 # - tests: attr names whose test suites to run but not instrument
 # - exceptions: module names to skip during instrumentation
 # - disabledMutations: mutation type names to disable globally
+# - assertScore: fail the build if any mutations survive (default: false)
 # - debug: print each mutation site as it is recorded (for debugging the plugin)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
 #
@@ -30,12 +31,13 @@
 , tests ? [ ]
 , exceptions ? [ ]
 , disabledMutations ? [ ]
+, assertScore ? false
 , debug ? false
 , ghcMemLimit ? "16g"
 }:
 
 let
-  inherit (haskellPackages.sydtest) addManifest;
+  inherit (haskellPackages.sydtest) addManifest assertMutationScore;
 
   libraryPackages = packages ++ libraries;
   testPackages = packages ++ tests;
@@ -106,42 +108,50 @@ let
     extraTestPkgs;
 
   extraInputs = map builtTestPkg extraTestPkgs;
+
+  drv =
+    (pkgs.haskell.lib.overrideCabal
+      # dontBenchmark: benchmarks are not relevant here and would waste build time.
+      # doCheck: needed so Cabal compiles the test suite executable.
+      (pkgs.haskell.lib.dontBenchmark
+        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${firstTestPkg}))
+      (_old: {
+        checkPhase = ''
+          # Find the test executable inside the Cabal build tree. Filtering .so
+          # files excludes Haskell shared libraries that Cabal also places under
+          # dist/build/ and would otherwise be mistaken for executables.
+          exe=$(find dist -type f -executable | grep -v '\.so' | head -1)
+          mkdir -p augmented
+          echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
+          # +RTS -M4g -RTS: cap the test process heap to 4 GB to avoid OOM in
+          # the Nix sandbox, where memory is shared with the builder.
+          "$exe" +RTS -M4g -RTS ${coverageFlags} \
+            --mutation-suite-name ${firstTestPkg} \
+            --mutation-augmented-manifest-dir augmented
+          ${extraCoverageScript}
+          echo "mutation-nix: running mutations"
+          mkdir -p $report
+          "$exe" ${mutationFlags} \
+            --mutation-augmented-manifest-dir augmented \
+            ${allSuiteExeFlags} \
+            --mutation-child-mem-limit 4g \
+            --mutation-report-dir "$report" | tee $report/report.txt
+        '';
+        # Suppress the default postCheck phase so it does not re-run the test
+        # suite after our mutation checkPhase has already finished.
+        postCheck = "";
+      })).overrideAttrs (old: {
+      # extraInputs are the extra test package derivations; adding them to
+      # buildInputs ensures they are present in the sandbox PATH during checkPhase.
+      buildInputs = (old.buildInputs or [ ]) ++ extraInputs;
+      # Add a 'report' output so callers can access report.txt and report.json
+      # without having to build the full 'out' derivation.
+      outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
+    });
 in
-((pkgs.haskell.lib.overrideCabal
-  # dontBenchmark: benchmarks are not relevant here and would waste build time.
-  # doCheck: needed so Cabal compiles the test suite executable.
-  (pkgs.haskell.lib.dontBenchmark
-    (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${firstTestPkg}))
-  (_old: {
-    checkPhase = ''
-      # Find the test executable inside the Cabal build tree. Filtering .so
-      # files excludes Haskell shared libraries that Cabal also places under
-      # dist/build/ and would otherwise be mistaken for executables.
-      exe=$(find dist -type f -executable | grep -v '\.so' | head -1)
-      mkdir -p augmented
-      echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
-      # +RTS -M4g -RTS: cap the test process heap to 4 GB to avoid OOM in
-      # the Nix sandbox, where memory is shared with the builder.
-      "$exe" +RTS -M4g -RTS ${coverageFlags} \
-        --mutation-suite-name ${firstTestPkg} \
-        --mutation-augmented-manifest-dir augmented
-      ${extraCoverageScript}
-      echo "mutation-nix: running mutations"
-      mkdir -p $report
-      "$exe" ${mutationFlags} \
-        --mutation-augmented-manifest-dir augmented \
-        ${allSuiteExeFlags} \
-        --mutation-child-mem-limit 4g \
-        --mutation-report-dir "$report" | tee $report/report.txt
-    '';
-    # Suppress the default postCheck phase so it does not re-run the test
-    # suite after our mutation checkPhase has already finished.
-    postCheck = "";
-  })).overrideAttrs (old: {
-  # extraInputs are the extra test package derivations; adding them to
-  # buildInputs ensures they are present in the sandbox PATH during checkPhase.
-  buildInputs = (old.buildInputs or [ ]) ++ extraInputs;
-  # Add a 'report' output so callers can access report.txt and report.json
-  # without having to build the full 'out' derivation.
-  outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
-}))
+{
+  report = drv.report;
+} // (if assertScore then
+  { score = assertMutationScore { inherit name; report = drv.report; }; }
+else
+  { })

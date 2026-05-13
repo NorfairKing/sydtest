@@ -71,8 +71,9 @@ let
         addManifest' = addManifest;
         inherit compileMutationReport assertMutationScore;
       };
+      mutationCheck = callPackage ./mutationCheck.nix { haskellPackages = self; };
     in
-    { inherit addManifest compileMutationReport assertMutationScore runMutations makeMutationReport; };
+    { inherit addManifest compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck; };
 
   sydtestPackages = {
     "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old: {

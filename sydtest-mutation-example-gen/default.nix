@@ -1,4 +1,4 @@
-{ mkDerivation, base, lib, QuickCheck, sydtest
+{ mkDerivation, base, lib, QuickCheck, sydtest, sydtest-discover
 , sydtest-mutation-example
 }:
 mkDerivation {
@@ -9,6 +9,7 @@ mkDerivation {
   testHaskellDepends = [
     base QuickCheck sydtest sydtest-mutation-example
   ];
+  testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   license = lib.licenses.mit;
 }

@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Test.Syd.Mutation.Plugin.Operator.ConstBool (theOperator) where
 
 import qualified Data.Text as T
@@ -14,13 +16,23 @@ theOperator =
     { operatorName = "ConstBool",
       operatorDescription = "Replace a Bool-typed expression with True or False",
       operatorMatch = \le ->
-        case le of
-          L _ (HsVar _ (L _ v))
-            | getOccString v `elem` ["True", "False"] -> Nothing
-          _
-            | tcEqType (lhsExprType le) boolTy -> Just action
-            | otherwise -> Nothing
+        if isBoolLit le
+          then Nothing
+          else
+            if tcEqType (lhsExprType le) boolTy
+              then Just action
+              else Nothing
     }
+
+-- | Returns True if the expression is a boolean literal (True or False),
+-- unwrapping HsWrap nodes that GHC inserts after type-checking.
+-- | Returns True for boolean literals and 'otherwise' (which equals True),
+-- unwrapping HsWrap nodes that GHC inserts after type-checking.
+isBoolLit :: LHsExpr GhcTc -> Bool
+isBoolLit = \case
+  L _ (HsVar _ (L _ v)) -> getOccString v `elem` ["True", "False", "otherwise"]
+  L _ (XExpr (WrapExpr (HsWrap _ e))) -> isBoolLit (noLocA e)
+  _ -> False
 
 action :: InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
 action =

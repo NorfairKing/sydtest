@@ -134,11 +134,13 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           let rawDir = case manifestDirOpt of
                 (d : _) -> Just d
                 [] -> envDir
-          liftIO $ case rawDir of
-            Nothing -> mapM_ (\r -> putStrLn $ "mutation: " ++ show (mutRecId r)) mutations
-            Just raw -> do
-              dir <- resolveDir' raw
-              writeModuleManifest dir mn mutations
+          liftIO $ do
+            putStrLn $ "mutation: " ++ mn ++ " total mutations: " ++ show (length mutations)
+            case rawDir of
+              Nothing -> pure ()
+              Just raw -> do
+                dir <- resolveDir' raw
+                writeModuleManifest dir mn mutations
           pure tcGblEnv {tcg_binds = binds'}
 
 -- | Write a JSON manifest file for one module to @<dir>/<ModuleName>.json@.

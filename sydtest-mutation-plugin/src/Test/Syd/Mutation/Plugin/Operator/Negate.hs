@@ -26,7 +26,7 @@ theOperator =
         -- would produce redundant mutations.
         case le of
           L _ (HsVar _ (L _ v))
-            | getOccString v `elem` ["True", "False"] -> Nothing
+            | getOccString v `elem` ["True", "False", "otherwise"] -> Nothing
           _
             | tcEqType (lhsExprType le) boolTy -> Just (action le)
             | otherwise -> Nothing

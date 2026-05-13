@@ -1,7 +1,1 @@
-module Main (main) where
-
-import Example.LibSpec (spec)
-import Test.Syd (sydTest)
-
-main :: IO ()
-main = sydTest spec
+{-# OPTIONS_GHC -F -pgmF sydtest-discover -optF --no-main #-}

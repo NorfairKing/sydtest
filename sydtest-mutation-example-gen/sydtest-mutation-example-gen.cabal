@@ -32,12 +32,19 @@ library
 
 test-suite sydtest-mutation-example-gen-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
+      Example.BoolLibSpec
+      Example.ExceptionLibSpec
+      Example.FunctionExceptionLibSpec
+      Example.LibSpec
+      Spec
       Paths_sydtest_mutation_example_gen
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
   build-depends:
       QuickCheck
     , base >=4.7 && <5

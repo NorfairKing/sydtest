@@ -16,8 +16,9 @@ library:
 
 tests:
   sydtest-mutation-example-gen-test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: test
+    build-tools: sydtest-discover
     ghc-options:
     - -threaded
     - -rtsopts

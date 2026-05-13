@@ -11,21 +11,14 @@ dependencies:
 
 library:
   source-dirs: src
-  exposed-modules:
-  - Example.Lib
-  - Example.LibSpec
-  - Example.UntestedLib
-  - Example.ExceptionLib
-  - Example.FunctionExceptionLib
-  dependencies:
-  - sydtest
   ghc-options:
   - -fno-full-laziness
 
 tests:
   sydtest-mutation-example-test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: test
+    build-tools: sydtest-discover
     ghc-options:
     - -threaded
     - -rtsopts

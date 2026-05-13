@@ -13,13 +13,16 @@ theOperator =
   MutationOperator
     { operatorName = "BoolLit",
       operatorDescription = "Replace a boolean literal with its negation",
-      operatorMatch = \case
-        (L _ (HsVar _ (L _ v)))
-          | occ <- getOccString v,
-            occ `elem` boolLits ->
-              Just (action occ)
-        _ -> Nothing
+      operatorMatch = fmap action . extractBoolLit
     }
+
+-- | Extract the OccName of a boolean literal, unwrapping HsWrap nodes.
+extractBoolLit :: LHsExpr GhcTc -> Maybe String
+extractBoolLit = \case
+  L _ (HsVar _ (L _ v))
+    | occ <- getOccString v, occ `elem` boolLits -> Just occ
+  L _ (XExpr (WrapExpr (HsWrap _ e))) -> extractBoolLit (noLocA e)
+  _ -> Nothing
 
 boolLits :: [String]
 boolLits = ["True", "False"]

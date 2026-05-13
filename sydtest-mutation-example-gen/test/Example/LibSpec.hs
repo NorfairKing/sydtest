@@ -13,4 +13,4 @@ spec =
         addOne n `shouldBe` n + 1
     it "is greater than its input" $
       forAll genInt $ \n ->
-        addOne n > n
+        addOne n `shouldSatisfy` (> n)

@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 -- | This module provides four entry points for mutation testing:
 --
@@ -124,7 +125,7 @@ runCoverageMode settings manifestDirs spec = do
     runCoverageChild defaultExe settings' manifestDirs' sem total (i, tid) =
       bracket_ (waitQSem sem) (signalQSem sem) $
         withSystemTempDir "coverage-child" $ \tmpDir -> do
-          let outputFile = fromAbsDir tmpDir ++ "coverage.json"
+          let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
               coverageDirArgs = concatMap (\d -> ["--mutation-coverage", fromAbsDir d]) manifestDirs'
               args =
                 coverageDirArgs
@@ -136,9 +137,6 @@ runCoverageMode settings manifestDirs spec = do
                   ++ case settingMutationSuiteName settings' of
                     Nothing -> []
                     Just name -> ["--mutation-suite-name", T.unpack name]
-                  ++ case settingMutationAugmentedManifestDir settings' of
-                    Nothing -> []
-                    Just d -> ["--mutation-augmented-manifest-dir", fromAbsDir d]
               childProc = proc defaultExe args
           ec <- runProcess childProc
           case ec of
@@ -318,9 +316,7 @@ runMutationMode settings _manifestDirs _spec = do
             ]
               ++ rtsArgs
       withSystemTempDir "mutation-child" $ \tmpDir -> do
-        logPath <- case parseRelFile "child.log" of
-          Just f -> pure (tmpDir </> f)
-          Nothing -> fail "mutation: could not parse child.log as relative file"
+        let logPath = tmpDir </> [relfile|child.log|]
         logHandle <- openFile (fromAbsFile logPath) WriteMode
         let childProc =
               setStdout (useHandleOpen logHandle) $

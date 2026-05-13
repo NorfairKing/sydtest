@@ -92,7 +92,11 @@ data InstrumentEnv = InstrumentEnv
     -- | Source file (relative path) and pre-read lines, read once per module.
     instrSourceFile :: Maybe (Path Rel File, [T.Text]),
     -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
-    instrDebug :: Bool
+    instrDebug :: Bool,
+    -- | True when instrumenting a guard expression (BodyStmt inside a GRHS).
+    -- Used by ConstBool to suppress the e->False alternative, which would make
+    -- the guard non-exhaustive and throw an exception that tests can't catch.
+    instrInGuard :: Bool
   }
 
 type InstrM = WriterT [MutationRecord] (ReaderT InstrumentEnv TcM)
@@ -142,7 +146,8 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug action 
         instrAnnEnv = annEnv,
         instrDisabledMutations = disabledMutations,
         instrSourceFile = mSrcFile,
-        instrDebug = debug
+        instrDebug = debug,
+        instrInGuard = False
       }
   where
     ioErr :: IOException -> IO (Maybe SB.ByteString)
@@ -344,7 +349,11 @@ instrumentStmt :: ExprLStmt GhcTc -> InstrM (ExprLStmt GhcTc)
 instrumentStmt = traverse $ \case
   LastStmt x e mb se -> LastStmt x <$> instrumentLExpr e <*> pure mb <*> pure se
   BindStmt x p e -> BindStmt x p <$> instrumentLExpr e
-  BodyStmt x e se1 se2 -> BodyStmt x <$> instrumentLExpr e <*> pure se1 <*> pure se2
+  BodyStmt x e se1 se2 ->
+    BodyStmt x
+      <$> local (\env -> env {instrInGuard = True}) (instrumentLExpr e)
+      <*> pure se1
+      <*> pure se2
   LetStmt x lbs -> LetStmt x <$> instrumentLocalBinds lbs
   s -> pure s
 

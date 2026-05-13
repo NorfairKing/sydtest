@@ -1,14 +1,16 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Test.Syd.Mutation.Plugin.Operator.ConstBool (theOperator) where
 
+import Control.Monad.Reader (ask)
 import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy, falseDataCon, trueDataCon)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Tc.Utils.TcType (tcEqType)
 import GHC.Types.Name (getOccString)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..))
 
 theOperator :: MutationOperator
 theOperator =
@@ -34,8 +36,8 @@ isBoolLit = \case
   _ -> False
 
 action :: InstrM [(Type, LHsExpr GhcTc, String, String, T.Text -> T.Text)]
-action =
-  pure
-    [ (boolTy, nlHsDataCon trueDataCon, "e", "True", const (T.pack "True")),
-      (boolTy, nlHsDataCon falseDataCon, "e", "False", const (T.pack "False"))
-    ]
+action = do
+  InstrumentEnv {instrInGuard} <- ask
+  let trueAlt = (boolTy, nlHsDataCon trueDataCon, "e", "True", const (T.pack "True"))
+      falseAlt = (boolTy, nlHsDataCon falseDataCon, "e", "False", const (T.pack "False"))
+  pure $ if instrInGuard then [trueAlt] else [trueAlt, falseAlt]

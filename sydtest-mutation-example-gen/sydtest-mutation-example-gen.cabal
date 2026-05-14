@@ -40,6 +40,7 @@ test-suite sydtest-mutation-example-gen-test
       Example.ExceptionLibSpec
       Example.FunctionExceptionLibSpec
       Example.LibSpec
+      Example.ListLibSpec
       Example.OtherwiseLibSpec
       Paths_sydtest_mutation_example_gen
   hs-source-dirs:

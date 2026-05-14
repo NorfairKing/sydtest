@@ -52,6 +52,12 @@ import Test.Syd.Mutation.Runtime (MutationId (..))
 data SrcSpanDelta
   = -- | Replace the matched expression's span text with this exact text.
     TokenReplace T.Text
+  | -- | Replace the text at a specific sub-span (within the matched
+    -- expression) with this exact text. Used for operator-token swaps
+    -- (e.g. @+@ → @-@), where the matched expression covers the whole
+    -- operator application but the textual change is only the operator
+    -- token itself.
+    TokenReplaceAt RealSrcSpan T.Text
   | -- | Remove these source line ranges from within the outer expression's span.
     SpanRemoval [RealSrcSpan]
   | -- | Prepend this text at the start of the matched expression's span.
@@ -514,8 +520,27 @@ recordMutation le op origStr replStr delta = do
 applyDelta :: [T.Text] -> Int -> Int -> Int -> Int -> SrcSpanDelta -> [T.Text] -> [T.Text]
 applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta of
   TokenReplace newText -> applyTokenReplace colS colE newText spanLines
+  TokenReplaceAt subSpan newText ->
+    applyTokenReplaceAt outerStart subSpan newText spanLines
   SpanRemoval rmSpans -> applySpanRemoval allLines outerStart outerEnd rmSpans
   PrependText prefix -> applyPrependText colS prefix spanLines
+
+-- | Replace text at the columns covered by @subSpan@, relative to the outer
+-- expression's span (whose first line is @outerStart@). Only single-line
+-- sub-spans are handled — multi-line operator tokens don't occur in practice.
+applyTokenReplaceAt :: Int -> RealSrcSpan -> T.Text -> [T.Text] -> [T.Text]
+applyTokenReplaceAt outerStart subSpan newText spanLines =
+  let subLine = srcSpanStartLine subSpan
+      idx = subLine - outerStart
+   in case splitAt idx spanLines of
+        (before, line : after) ->
+          let line' = applySingleLineReplace (srcSpanStartCol subSpan) (srcSpanEndCol subSpan) newText line
+           in before ++ line' : after
+        _ -> spanLines
+
+applySingleLineReplace :: Int -> Int -> T.Text -> T.Text -> T.Text
+applySingleLineReplace colS colE newText line =
+  T.take (colS - 1) line <> newText <> T.drop (colE - 1) line
 
 -- | Replace text at columns colS..colE on the first line of the span.
 -- GHC colEnd is exclusive (one past the last character), so T.drop (colE-1) is correct.

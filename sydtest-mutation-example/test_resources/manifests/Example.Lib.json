@@ -58,5 +58,65 @@
     "source_lines": [
       "addOne n = n + 1"
     ]
+  },
+  {
+    "col_end": 17,
+    "col_start": 12,
+    "context_after": [],
+    "context_before": [
+      "-- The literal '1' here is a mutation site: the plugin will also compile a",
+      "-- version where this returns @n + 0@ instead of @n + 1@.",
+      "addOne :: Int -> Int"
+    ],
+    "id": [
+      "Example.Lib",
+      "Arith",
+      "8",
+      "12",
+      "17",
+      "-"
+    ],
+    "line": 8,
+    "module": "Example.Lib",
+    "mutated_lines": [
+      "addOne n = n - 1"
+    ],
+    "operator": "Arith",
+    "original": "+",
+    "replacement": "-",
+    "source_file": "src/Example/Lib.hs",
+    "source_lines": [
+      "addOne n = n + 1"
+    ]
+  },
+  {
+    "col_end": 17,
+    "col_start": 12,
+    "context_after": [],
+    "context_before": [
+      "-- The literal '1' here is a mutation site: the plugin will also compile a",
+      "-- version where this returns @n + 0@ instead of @n + 1@.",
+      "addOne :: Int -> Int"
+    ],
+    "id": [
+      "Example.Lib",
+      "Arith",
+      "8",
+      "12",
+      "17",
+      "*"
+    ],
+    "line": 8,
+    "module": "Example.Lib",
+    "mutated_lines": [
+      "addOne n = n * 1"
+    ],
+    "operator": "Arith",
+    "original": "+",
+    "replacement": "*",
+    "source_file": "src/Example/Lib.hs",
+    "source_lines": [
+      "addOne n = n + 1"
+    ]
   }
 ]

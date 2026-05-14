@@ -94,6 +94,22 @@ in
       --ghc-option=-plugin-package=sydtest-mutation-plugin \
       --ghc-option=-package=sydtest-mutation-plugin
   '';
+  # The library is installed by nixpkgs's default installPhase (which runs
+  # 'Setup copy lib:${pname}'). Executables built in postBuild are not copied
+  # by that command, so we install them manually here. Downstream wrappers
+  # such as opt-env-conf's installManpagesAndCompletions expect $out/bin/<exe>
+  # to exist when their postInstall hooks run, so this must run BEFORE any
+  # existing postInstall hooks the caller has already attached.
+  postInstall = ''
+    mkdir -p $out/bin
+    for exeDir in dist/build/*/; do
+      exeName=$(basename "$exeDir")
+      exePath="$exeDir$exeName"
+      if [ -f "$exePath" ] && [ -x "$exePath" ]; then
+        cp "$exePath" $out/bin/
+      fi
+    done
+  '' + (old.postInstall or "");
 })).overrideAttrs (old: {
   outputs = (old.outputs or [ "out" ]) ++ [ "manifest" ];
 })

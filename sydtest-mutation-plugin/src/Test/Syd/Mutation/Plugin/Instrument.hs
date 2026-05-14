@@ -62,6 +62,10 @@ data SrcSpanDelta
     SpanRemoval [RealSrcSpan]
   | -- | Prepend this text at the start of the matched expression's span.
     PrependText T.Text
+  | -- | Wrap the matched expression's span text with a prefix and suffix.
+    -- Useful when the prefix alone would re-parse with the wrong precedence
+    -- (e.g. @not n < 0@ parses as @(not n) < 0@, so we want @not (n < 0)@).
+    WrapWithText T.Text T.Text
 
 -- ---------------------------------------------------------------------------
 -- Operator
@@ -524,6 +528,29 @@ applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta o
     applyTokenReplaceAt outerStart subSpan newText spanLines
   SpanRemoval rmSpans -> applySpanRemoval allLines outerStart outerEnd rmSpans
   PrependText prefix -> applyPrependText colS prefix spanLines
+  WrapWithText prefix suffix -> applyWrapWithText colS colE prefix suffix spanLines
+
+-- | Wrap the matched span text with @prefix@ before and @suffix@ after.
+-- For multi-line spans only the prefix lands on the first line and the
+-- suffix on the last line; everything in between is unchanged.
+applyWrapWithText :: Int -> Int -> T.Text -> T.Text -> [T.Text] -> [T.Text]
+applyWrapWithText _ _ _ _ [] = []
+applyWrapWithText colS colE prefix suffix [line] =
+  let before = T.take (colS - 1) line
+      middle = T.drop (colS - 1) (T.take (colE - 1) line)
+      after = T.drop (colE - 1) line
+   in [before <> prefix <> middle <> suffix <> after]
+applyWrapWithText colS colE prefix suffix (firstLine : rest) =
+  let beforeF = T.take (colS - 1) firstLine
+      restOfF = T.drop (colS - 1) firstLine
+      firstLine' = beforeF <> prefix <> restOfF
+      (middle, lastLine) = case reverse rest of
+        l : ms -> (reverse ms, l)
+        [] -> ([], T.empty)
+      beforeL = T.take (colE - 1) lastLine
+      afterL = T.drop (colE - 1) lastLine
+      lastLine' = beforeL <> suffix <> afterL
+   in firstLine' : middle ++ [lastLine']
 
 -- | Replace text at the columns covered by @subSpan@, relative to the outer
 -- expression's span (whose first line is @outerStart@). Only single-line

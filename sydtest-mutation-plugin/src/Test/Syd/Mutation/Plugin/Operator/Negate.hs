@@ -44,4 +44,7 @@ action le = do
     _ -> liftIO $ ioError $ userError "mutation/Negate: 'not' not in scope"
   let notVar = noLocA (HsVar NoExtField (noLocA notId))
       negated = mkHsApp notVar le
-  pure [(boolTy, negated, "e", "not e", PrependText "not ")]
+  -- Wrap with parentheses so the rendered @mutated_lines@ keeps the right
+  -- precedence: @not n < 0@ reparses as @(not n) < 0@, but the AST mutant
+  -- is @not (n < 0)@. The @WrapWithText@ delta produces @not (n < 0)@.
+  pure [(boolTy, negated, "e", "not (e)", WrapWithText "not (" ")")]

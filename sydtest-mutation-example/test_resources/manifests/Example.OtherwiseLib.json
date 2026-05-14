@@ -182,16 +182,16 @@
       "12",
       "5",
       "10",
-      "not e"
+      "not (e)"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
     "mutated_lines": [
-      "  | not n < 0 = \"negative\""
+      "  | not (n < 0) = \"negative\""
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/OtherwiseLib.hs",
     "source_lines": [
       "  | n < 0 = \"negative\""
@@ -278,16 +278,16 @@
       "13",
       "5",
       "11",
-      "not e"
+      "not (e)"
     ],
     "line": 13,
     "module": "Example.OtherwiseLib",
     "mutated_lines": [
-      "  | not n == 0 = \"zero\""
+      "  | not (n == 0) = \"zero\""
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/OtherwiseLib.hs",
     "source_lines": [
       "  | n == 0 = \"zero\""

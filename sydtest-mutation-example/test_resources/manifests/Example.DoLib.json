@@ -80,16 +80,16 @@
       "14",
       "10",
       "14",
-      "not e"
+      "not (e)"
     ],
     "line": 14,
     "module": "Example.DoLib",
     "mutated_lines": [
-      "      if not loud then tell \"!\" else pure ()"
+      "      if not (loud) then tell \"!\" else pure ()"
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/DoLib.hs",
     "source_lines": [
       "      if loud then tell \"!\" else pure ()"

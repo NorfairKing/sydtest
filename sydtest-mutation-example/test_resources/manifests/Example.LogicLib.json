@@ -194,16 +194,16 @@
       "17",
       "22",
       "27",
-      "not e"
+      "not (e)"
     ],
     "line": 17,
     "module": "Example.LogicLib",
     "mutated_lines": [
-      "eitherPositive a b = not a > 0 || b > 0"
+      "eitherPositive a b = not (a > 0) || b > 0"
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/LogicLib.hs",
     "source_lines": [
       "eitherPositive a b = a > 0 || b > 0"
@@ -404,16 +404,16 @@
       "17",
       "31",
       "36",
-      "not e"
+      "not (e)"
     ],
     "line": 17,
     "module": "Example.LogicLib",
     "mutated_lines": [
-      "eitherPositive a b = a > 0 || not b > 0"
+      "eitherPositive a b = a > 0 || not (b > 0)"
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/LogicLib.hs",
     "source_lines": [
       "eitherPositive a b = a > 0 || b > 0"
@@ -524,16 +524,16 @@
       "17",
       "22",
       "36",
-      "not e"
+      "not (e)"
     ],
     "line": 17,
     "module": "Example.LogicLib",
     "mutated_lines": [
-      "eitherPositive a b = not a > 0 || b > 0"
+      "eitherPositive a b = not (a > 0 || b > 0)"
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/LogicLib.hs",
     "source_lines": [
       "eitherPositive a b = a > 0 || b > 0"
@@ -762,16 +762,16 @@
       "11",
       "20",
       "25",
-      "not e"
+      "not (e)"
     ],
     "line": 11,
     "module": "Example.LogicLib",
     "mutated_lines": [
-      "bothPositive a b = not a > 0 && b > 0"
+      "bothPositive a b = not (a > 0) && b > 0"
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/LogicLib.hs",
     "source_lines": [
       "bothPositive a b = a > 0 && b > 0"
@@ -1000,16 +1000,16 @@
       "11",
       "29",
       "34",
-      "not e"
+      "not (e)"
     ],
     "line": 11,
     "module": "Example.LogicLib",
     "mutated_lines": [
-      "bothPositive a b = a > 0 && not b > 0"
+      "bothPositive a b = a > 0 && not (b > 0)"
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/LogicLib.hs",
     "source_lines": [
       "bothPositive a b = a > 0 && b > 0"
@@ -1136,16 +1136,16 @@
       "11",
       "20",
       "34",
-      "not e"
+      "not (e)"
     ],
     "line": 11,
     "module": "Example.LogicLib",
     "mutated_lines": [
-      "bothPositive a b = not a > 0 && b > 0"
+      "bothPositive a b = not (a > 0 && b > 0)"
     ],
     "operator": "Negate",
     "original": "e",
-    "replacement": "not e",
+    "replacement": "not (e)",
     "source_file": "src/Example/LogicLib.hs",
     "source_lines": [
       "bothPositive a b = a > 0 && b > 0"

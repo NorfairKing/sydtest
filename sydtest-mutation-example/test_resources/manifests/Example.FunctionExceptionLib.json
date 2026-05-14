@@ -1,0 +1,70 @@
+[
+  {
+    "col_end": 30,
+    "col_start": 29,
+    "context_after": [
+      "",
+      "-- | Both Arith and IntLit mutations disabled on this function.",
+      "{-# ANN addOneArithAndIntLitDisabled (\"DisableMutations: Arith, IntLit\" :: String) #-}"
+    ],
+    "context_before": [
+      "-- IntLit mutations (replacing the literal @1@) still apply.",
+      "{-# ANN addOneArithDisabled (\"DisableMutation: Arith\" :: String) #-}",
+      "addOneArithDisabled :: Int -> Int"
+    ],
+    "id": [
+      "Example.FunctionExceptionLib",
+      "IntLit",
+      "15",
+      "29",
+      "30",
+      "0"
+    ],
+    "line": 15,
+    "module": "Example.FunctionExceptionLib",
+    "mutated_lines": [
+      "addOneArithDisabled n = n + 0"
+    ],
+    "operator": "IntLit",
+    "original": "1",
+    "replacement": "0",
+    "source_file": "src/Example/FunctionExceptionLib.hs",
+    "source_lines": [
+      "addOneArithDisabled n = n + 1"
+    ]
+  },
+  {
+    "col_end": 30,
+    "col_start": 29,
+    "context_after": [
+      "",
+      "-- | Both Arith and IntLit mutations disabled on this function.",
+      "{-# ANN addOneArithAndIntLitDisabled (\"DisableMutations: Arith, IntLit\" :: String) #-}"
+    ],
+    "context_before": [
+      "-- IntLit mutations (replacing the literal @1@) still apply.",
+      "{-# ANN addOneArithDisabled (\"DisableMutation: Arith\" :: String) #-}",
+      "addOneArithDisabled :: Int -> Int"
+    ],
+    "id": [
+      "Example.FunctionExceptionLib",
+      "IntLit",
+      "15",
+      "29",
+      "30",
+      "-1"
+    ],
+    "line": 15,
+    "module": "Example.FunctionExceptionLib",
+    "mutated_lines": [
+      "addOneArithDisabled n = n + -1"
+    ],
+    "operator": "IntLit",
+    "original": "1",
+    "replacement": "-1",
+    "source_file": "src/Example/FunctionExceptionLib.hs",
+    "source_lines": [
+      "addOneArithDisabled n = n + 1"
+    ]
+  }
+]

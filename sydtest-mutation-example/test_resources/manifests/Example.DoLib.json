@@ -1,0 +1,98 @@
+[
+  {
+    "col_end": 14,
+    "col_start": 10,
+    "context_after": [
+      "      tell \"\\n\""
+    ],
+    "context_before": [
+      "    go :: Writer String ()",
+      "    go = do",
+      "      tell \"Hello\""
+    ],
+    "id": [
+      "Example.DoLib",
+      "ConstBool",
+      "14",
+      "10",
+      "14",
+      "True"
+    ],
+    "line": 14,
+    "module": "Example.DoLib",
+    "mutated_lines": [
+      "      if True then tell \"!\" else pure ()"
+    ],
+    "operator": "ConstBool",
+    "original": "e",
+    "replacement": "True",
+    "source_file": "src/Example/DoLib.hs",
+    "source_lines": [
+      "      if loud then tell \"!\" else pure ()"
+    ]
+  },
+  {
+    "col_end": 14,
+    "col_start": 10,
+    "context_after": [
+      "      tell \"\\n\""
+    ],
+    "context_before": [
+      "    go :: Writer String ()",
+      "    go = do",
+      "      tell \"Hello\""
+    ],
+    "id": [
+      "Example.DoLib",
+      "ConstBool",
+      "14",
+      "10",
+      "14",
+      "False"
+    ],
+    "line": 14,
+    "module": "Example.DoLib",
+    "mutated_lines": [
+      "      if False then tell \"!\" else pure ()"
+    ],
+    "operator": "ConstBool",
+    "original": "e",
+    "replacement": "False",
+    "source_file": "src/Example/DoLib.hs",
+    "source_lines": [
+      "      if loud then tell \"!\" else pure ()"
+    ]
+  },
+  {
+    "col_end": 14,
+    "col_start": 10,
+    "context_after": [
+      "      tell \"\\n\""
+    ],
+    "context_before": [
+      "    go :: Writer String ()",
+      "    go = do",
+      "      tell \"Hello\""
+    ],
+    "id": [
+      "Example.DoLib",
+      "Negate",
+      "14",
+      "10",
+      "14",
+      "not e"
+    ],
+    "line": 14,
+    "module": "Example.DoLib",
+    "mutated_lines": [
+      "      if not loud then tell \"!\" else pure ()"
+    ],
+    "operator": "Negate",
+    "original": "e",
+    "replacement": "not e",
+    "source_file": "src/Example/DoLib.hs",
+    "source_lines": [
+      "      if loud then tell \"!\" else pure ()"
+    ]
+  }
+]

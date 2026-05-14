@@ -1,0 +1,197 @@
+[
+  {
+    "col_end": 10,
+    "col_start": 9,
+    "context_after": [
+      "  | n == 0 = \"zero\"",
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+      "classify :: Int -> String",
+      "classify n"
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "IntLit",
+      "12",
+      "9",
+      "10",
+      "1"
+    ],
+    "line": 12,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | n < 1 = \"negative\""
+    ],
+    "operator": "IntLit",
+    "original": "0",
+    "replacement": "1",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n < 0 = \"negative\""
+    ]
+  },
+  {
+    "col_end": 10,
+    "col_start": 5,
+    "context_after": [
+      "  | n == 0 = \"zero\"",
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+      "classify :: Int -> String",
+      "classify n"
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "ConstBool",
+      "12",
+      "5",
+      "10",
+      "True"
+    ],
+    "line": 12,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | True = \"negative\""
+    ],
+    "operator": "ConstBool",
+    "original": "e",
+    "replacement": "True",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n < 0 = \"negative\""
+    ]
+  },
+  {
+    "col_end": 10,
+    "col_start": 5,
+    "context_after": [
+      "  | n == 0 = \"zero\"",
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+      "classify :: Int -> String",
+      "classify n"
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "Negate",
+      "12",
+      "5",
+      "10",
+      "not e"
+    ],
+    "line": 12,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | not n < 0 = \"negative\""
+    ],
+    "operator": "Negate",
+    "original": "e",
+    "replacement": "not e",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n < 0 = \"negative\""
+    ]
+  },
+  {
+    "col_end": 11,
+    "col_start": 10,
+    "context_after": [
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "classify :: Int -> String",
+      "classify n",
+      "  | n < 0 = \"negative\""
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "IntLit",
+      "13",
+      "10",
+      "11",
+      "1"
+    ],
+    "line": 13,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | n == 1 = \"zero\""
+    ],
+    "operator": "IntLit",
+    "original": "0",
+    "replacement": "1",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n == 0 = \"zero\""
+    ]
+  },
+  {
+    "col_end": 11,
+    "col_start": 5,
+    "context_after": [
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "classify :: Int -> String",
+      "classify n",
+      "  | n < 0 = \"negative\""
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "ConstBool",
+      "13",
+      "5",
+      "11",
+      "True"
+    ],
+    "line": 13,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | True = \"zero\""
+    ],
+    "operator": "ConstBool",
+    "original": "e",
+    "replacement": "True",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n == 0 = \"zero\""
+    ]
+  },
+  {
+    "col_end": 11,
+    "col_start": 5,
+    "context_after": [
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "classify :: Int -> String",
+      "classify n",
+      "  | n < 0 = \"negative\""
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "Negate",
+      "13",
+      "5",
+      "11",
+      "not e"
+    ],
+    "line": 13,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | not n == 0 = \"zero\""
+    ],
+    "operator": "Negate",
+    "original": "e",
+    "replacement": "not e",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n == 0 = \"zero\""
+    ]
+  }
+]

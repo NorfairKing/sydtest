@@ -12,9 +12,10 @@
 # which mutations survived. This makes CI green even when mutation scores are
 # not perfect, while still surfacing the data.
 #
-# Each entry uses `.report` to select the 'report' multi-output from the
-# derivation returned by mutationCheck, so `nix build .#checks.x86_64-linux.mutation-X`
-# builds only the report output and not the full test package.
+# Entries that should not fail on surviving mutations pass
+# `assertAllKilled = false`, so `mutationCheck` returns the report derivation
+# directly. Entries that should fail on surviving mutations use the default
+# `assertAllKilled = true`, so `mutationCheck` returns the check derivation.
 
 let
   mutationCheck = pkgs.callPackage ./mutationCheck.nix {
@@ -24,7 +25,7 @@ let
 in
 {
   # TODO: autodocodec mutation check takes too long to run, investigate
-  # mutation-autodocodec = (mutationCheck {
+  # mutation-autodocodec = mutationCheck {
   #   name = "autodocodec";
   #   packages = [
   #     "autodocodec"
@@ -40,16 +41,18 @@ in
   #     "autodocodec-yaml"
   #   ];
   #   debug = true;
-  # }).report;
+  #   assertAllKilled = false;
+  # };
 
-  mutation-opt-env-conf = (mutationCheck {
+  mutation-opt-env-conf = mutationCheck {
     name = "opt-env-conf";
     packages = [ "opt-env-conf-test" ];
     libraries = [ "opt-env-conf" ];
     debug = true;
-  }).report;
+    assertAllKilled = false;
+  };
 
-  mutation-really-safe-money = (mutationCheck {
+  mutation-really-safe-money = mutationCheck {
     name = "really-safe-money";
     libraries = [
       "really-safe-money"
@@ -59,9 +62,10 @@ in
       "really-safe-money-gen"
     ];
     debug = true;
-  }).report;
+    assertAllKilled = false;
+  };
 
-  mutation-safe-coloured-text = (mutationCheck {
+  mutation-safe-coloured-text = mutationCheck {
     name = "safe-coloured-text";
     libraries = [
       "safe-coloured-text"
@@ -75,11 +79,12 @@ in
       "safe-coloured-text-parsing-gen"
     ];
     debug = true;
-  }).report;
+    assertAllKilled = false;
+  };
 
-  mutation-sydtest-mutation-example = (mutationCheck {
+  mutation-sydtest-mutation-example = mutationCheck {
     name = "sydtest-mutation-example";
     libraries = [ "sydtest-mutation-example" ];
     tests = [ "sydtest-mutation-example-gen" ];
-  }).check;
+  };
 }

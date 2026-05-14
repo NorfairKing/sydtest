@@ -2,11 +2,12 @@
 
 # Build one mutation check.
 #
-# Returns an attrset with:
-# - report: derivation containing report.txt and report.json; succeeds as long
-#           as all test suites complete without crashing
-# - check: derivation that fails the build if any mutations survive (only
-#          present when assertAllKilled = true, which is the default)
+# Returns a derivation:
+# - when assertAllKilled = true (the default): a check derivation that fails
+#   the build if any mutations survive
+# - when assertAllKilled = false: a report derivation containing report.txt
+#   and report.json; succeeds as long as all test suites complete without
+#   crashing
 #
 # Arguments:
 # - name: derivation name prefix
@@ -20,8 +21,8 @@
 #       link line. See ./nix/addMutationRuntimeDependency.nix.
 # - exceptions: module names to skip during instrumentation
 # - disabledMutations: mutation type names to disable globally
-# - assertAllKilled: add a 'check' output that fails if any mutations survive (default: true)
-# - assertNoneUncovered: also fail the 'check' output if any mutations are uncovered (default: true)
+# - assertAllKilled: return a check derivation that fails if any mutations survive (default: true)
+# - assertNoneUncovered: also fail the check derivation if any mutations are uncovered (default: true)
 # - debug: print each mutation site as it is recorded (for debugging the plugin)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
 #
@@ -174,10 +175,10 @@ let
       # without having to build the full 'out' derivation.
       outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
     });
-in
-{
+
   report = drv.report;
-} // (if assertAllKilled then
-  { check = assertMutationScore { inherit name assertNoneUncovered; report = drv.report; }; }
-else
-  { })
+  check = assertMutationScore { inherit name assertNoneUncovered; report = drv.report; };
+in
+if assertAllKilled
+then check
+else report

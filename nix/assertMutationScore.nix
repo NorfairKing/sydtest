@@ -15,6 +15,7 @@ stdenv.mkDerivation {
   # srcs = [] suppresses stdenv's default unpack phase without disabling the
   # rest of the generic build, so buildCommand runs in a clean empty sandbox.
   srcs = [ ];
+  passthru = { inherit report; };
   buildCommand = ''
     survived=$(jq '.survived' ${report}/report.json)
     killed=$(jq '.killed' ${report}/report.json)

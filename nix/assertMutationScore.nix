@@ -50,7 +50,7 @@ stdenv.mkDerivation {
     echo ""
 
     if [ "$fail" != "0" ]; then
-      echo "FAIL: Surviving or uncovered mutations."
+      echo "FAIL: $survived Surviving, $uncovered uncovered mutations."
 
       exit 1
     else

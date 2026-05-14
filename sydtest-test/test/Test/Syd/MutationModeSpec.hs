@@ -9,7 +9,7 @@ import Path
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest (AugmentedMutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
-import Test.Syd.MutationMode (formatMutationLog)
+import Test.Syd.MutationMode (formatMutationLog, renderUnifiedDiff)
 import Text.Colour (Chunk, TerminalCapabilities (..), renderChunksText)
 
 spec :: Spec
@@ -69,6 +69,73 @@ spec = do
                     augmentedMutationRecordCoveringTests = Map.empty
                   }
 
+  describe "renderUnifiedDiff" $ do
+    it "colours the differing characters within a paired line" $
+      goldenStringFile "test_resources/intra-line-diff-simple.txt" $
+        pure $
+          colouredChunksToString $
+            renderUnifiedDiff
+              5
+              ["bothPositive :: Int -> Int -> Bool"]
+              ["bothPositive a b = a > 0 && b > 0"]
+              ["bothPositive a b = a <= 0 && b > 0"]
+              []
+
+    it "colours intra-line diff with surrounding context" $
+      goldenStringFile "test_resources/intra-line-diff-with-context.txt" $
+        pure $
+          colouredChunksToString $
+            renderUnifiedDiff
+              10
+              ["add :: Int -> Int -> Int", "add x y ="]
+              ["  let result = x + y in result"]
+              ["  let result = x - y in result"]
+              ["", "-- end"]
+
+    it "renders unequal-size groups: deletes paired with adds plus extra deletes" $
+      goldenStringFile "test_resources/intra-line-diff-unequal-more-deletes.txt" $
+        pure $
+          colouredChunksToString $
+            renderUnifiedDiff
+              1
+              []
+              ["alpha = 1", "beta = 2", "gamma = 3"]
+              ["alpha = 11"]
+              []
+
+    it "renders unequal-size groups: extra adds after paired lines" $
+      goldenStringFile "test_resources/intra-line-diff-unequal-more-adds.txt" $
+        pure $
+          colouredChunksToString $
+            renderUnifiedDiff
+              1
+              []
+              ["one"]
+              ["one!", "two", "three"]
+              []
+
+    it "renders lines with no common characters using plain First/Second colours" $
+      goldenStringFile "test_resources/intra-line-diff-no-common.txt" $
+        pure $
+          colouredChunksToString $
+            renderUnifiedDiff
+              1
+              []
+              ["xxxxx"]
+              ["yyyyy"]
+              []
+
+    it "highlights only differing whitespace within otherwise-identical lines" $
+      goldenStringFile "test_resources/intra-line-diff-whitespace.txt" $
+        pure $
+          colouredChunksToString $
+            renderUnifiedDiff
+              1
+              []
+              ["foo  bar"]
+              ["foo bar"]
+              []
+
 aRecord :: AugmentedMutationRecord
 aRecord =
   AugmentedMutationRecord
@@ -91,3 +158,6 @@ aRecord =
 
 chunksToString :: [[Chunk]] -> String
 chunksToString = unlines . map (T.unpack . renderChunksText WithoutColours)
+
+colouredChunksToString :: [[Chunk]] -> String
+colouredChunksToString = unlines . map (T.unpack . renderChunksText With8BitColours)

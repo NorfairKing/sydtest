@@ -54,12 +54,13 @@ import Control.Exception (bracket_)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, listToMaybe)
+import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Vector as V
 import GHC.Conc (getNumCapabilities)
-import Myers.Diff (PolyDiff (..), getGroupedDiff)
+import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
@@ -97,7 +98,7 @@ import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (Chunk, back, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
 -- subprocess per test (up to N concurrently, N defaults to
@@ -494,9 +495,59 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
             ++ ","
             ++ show mutCount
             ++ " @@"
-   in [fore cyan (chunk hunkHeader)] : concatMap renderGroup groups
+   in [fore cyan (chunk hunkHeader)] : renderGroups groups
   where
-    renderGroup = \case
-      Both ls _ -> map (\l -> [chunk (T.cons ' ' l)]) ls
-      First ls -> map (\l -> [fore red (chunk (T.cons '-' l))]) ls
-      Second ls -> map (\l -> [fore green (chunk (T.cons '+' l))]) ls
+    renderGroups :: [PolyDiff [Text] [Text]] -> [[Chunk]]
+    renderGroups [] = []
+    renderGroups (Both ls _ : rest) =
+      map (\l -> [chunk (T.cons ' ' l)]) ls ++ renderGroups rest
+    renderGroups gs@(First _ : _) =
+      let (dels, adds, rest) = collectChange gs
+       in renderPaired dels adds ++ renderGroups rest
+    renderGroups gs@(Second _ : _) =
+      let (dels, adds, rest) = collectChange gs
+       in renderPaired dels adds ++ renderGroups rest
+
+    collectChange :: [PolyDiff [Text] [Text]] -> ([Text], [Text], [PolyDiff [Text] [Text]])
+    collectChange = go [] []
+      where
+        go ds as (First ls : rest) = go (ds ++ ls) as rest
+        go ds as (Second ls : rest) = go ds (as ++ ls) rest
+        go ds as rest = (ds, as, rest)
+
+    renderDelLine :: Text -> [Chunk]
+    renderDelLine l = [fore red (chunk (T.cons '-' l))]
+
+    renderAddLine :: Text -> [Chunk]
+    renderAddLine l = [fore green (chunk (T.cons '+' l))]
+
+    renderPaired :: [Text] -> [Text] -> [[Chunk]]
+    renderPaired dels adds =
+      let n = min (length dels) (length adds)
+          (pairedDels, extraDels) = splitAt n dels
+          (pairedAdds, extraAdds) = splitAt n adds
+          (delLines, addLines) = unzip (zipWith renderPair pairedDels pairedAdds)
+       in delLines ++ map renderDelLine extraDels ++ addLines ++ map renderAddLine extraAdds
+
+    renderPair :: Text -> Text -> ([Chunk], [Chunk])
+    renderPair delLine addLine =
+      let charDiff = V.toList (getTextDiff delLine addLine)
+          delChunks =
+            fore red (chunk (T.singleton '-'))
+              : mapMaybe
+                ( \case
+                    First t -> Just (back red (chunk t))
+                    Second _ -> Nothing
+                    Both t _ -> Just (fore red (chunk t))
+                )
+                charDiff
+          addChunks =
+            fore green (chunk (T.singleton '+'))
+              : mapMaybe
+                ( \case
+                    First _ -> Nothing
+                    Second t -> Just (back green (chunk t))
+                    Both t _ -> Just (fore green (chunk t))
+                )
+                charDiff
+       in (delChunks, addChunks)

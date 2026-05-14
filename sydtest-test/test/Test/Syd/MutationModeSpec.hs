@@ -66,7 +66,8 @@ spec = do
                     augmentedMutationRecordContextAfter =
                       [ "  in result"
                       ],
-                    augmentedMutationRecordCoveringTests = Map.empty
+                    augmentedMutationRecordCoveringTests = Map.empty,
+                    augmentedMutationRecordTimeoutMicros = 30000000
                   }
 
   describe "renderUnifiedDiff" $ do
@@ -153,7 +154,8 @@ aRecord =
       augmentedMutationRecordMutatedLines = [],
       augmentedMutationRecordContextBefore = [],
       augmentedMutationRecordContextAfter = [],
-      augmentedMutationRecordCoveringTests = Map.empty
+      augmentedMutationRecordCoveringTests = Map.empty,
+      augmentedMutationRecordTimeoutMicros = 30000000
     }
 
 chunksToString :: [[Chunk]] -> String

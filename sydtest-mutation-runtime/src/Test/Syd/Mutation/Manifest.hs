@@ -35,11 +35,18 @@ data MutationRecord = MutationRecord
     mutRecReplacement :: Text,
     -- | Haskell module name containing the mutation site (e.g. @"Foo.Bar"@).
     mutRecModule :: Text,
-    -- | 1-based source line number of the mutated expression.
+    -- | 1-based source line number where the mutated expression starts.
     mutRecLine :: Word,
-    -- | 1-based start column of the mutated expression.
+    -- | 1-based source line number where the mutated expression ends.
+    -- For single-line spans this equals 'mutRecLine'.
+    mutRecEndLine :: Word,
+    -- | 1-based start column of the mutated expression on 'mutRecLine'.
     mutRecColStart :: Word,
-    -- | 1-based end column of the mutated expression.
+    -- | 1-based end column of the mutated expression on 'mutRecEndLine'
+    -- (exclusive — one past the last character). When 'mutRecEndLine' differs
+    -- from 'mutRecLine', @col_start@ and @col_end@ are independent column
+    -- numbers on different lines; they do not form a contiguous range and
+    -- @col_end@ can be smaller than @col_start@.
     mutRecColEnd :: Word,
     -- | Source file path relative to the project root, as reported by GHC.
     mutRecSourceFile :: Maybe (Path Rel File),
@@ -73,6 +80,7 @@ instance HasCodec MutationRecord where
         <*> requiredField' "replacement" .= mutRecReplacement
         <*> requiredField' "module" .= mutRecModule
         <*> requiredField' "line" .= mutRecLine
+        <*> optionalFieldWithDefault' "end_line" 0 .= mutRecEndLine
         <*> requiredField' "col_start" .= mutRecColStart
         <*> requiredField' "col_end" .= mutRecColEnd
         <*> optionalFieldWith' "source_file" relFileCodec .= mutRecSourceFile

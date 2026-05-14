@@ -10,6 +10,7 @@
       "    go = do",
       "      tell \"Hello\""
     ],
+    "end_line": 14,
     "id": [
       "Example.DoLib",
       "ConstBool",
@@ -42,6 +43,7 @@
       "    go = do",
       "      tell \"Hello\""
     ],
+    "end_line": 14,
     "id": [
       "Example.DoLib",
       "ConstBool",
@@ -74,6 +76,7 @@
       "    go = do",
       "      tell \"Hello\""
     ],
+    "end_line": 14,
     "id": [
       "Example.DoLib",
       "Negate",
@@ -106,6 +109,7 @@
       "    go = do",
       "      tell \"Hello\""
     ],
+    "end_line": 14,
     "id": [
       "Example.DoLib",
       "RemoveAction",
@@ -134,6 +138,7 @@
       "  where",
       "    go :: Writer String ()"
     ],
+    "end_line": 15,
     "id": [
       "Example.DoLib",
       "RemoveAction",

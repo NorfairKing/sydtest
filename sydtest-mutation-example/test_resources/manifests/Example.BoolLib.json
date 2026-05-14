@@ -12,6 +12,7 @@
       "-- Mutation sites: BoolLit/ConstBool on the inner False, MaybeOp on Just False.",
       "wrapFalse :: Maybe Bool"
     ],
+    "end_line": 18,
     "id": [
       "Example.BoolLib",
       "BoolLit",
@@ -46,6 +47,7 @@
       "-- Mutation sites: BoolLit/ConstBool on the inner False, MaybeOp on Just False.",
       "wrapFalse :: Maybe Bool"
     ],
+    "end_line": 18,
     "id": [
       "Example.BoolLib",
       "MaybeOp",
@@ -80,6 +82,7 @@
       "-- Mutation sites: BoolLit/ConstBool on the inner True, MaybeOp on Just True.",
       "wrapTrue :: Maybe Bool"
     ],
+    "end_line": 12,
     "id": [
       "Example.BoolLib",
       "BoolLit",
@@ -114,6 +117,7 @@
       "-- Mutation sites: BoolLit/ConstBool on the inner True, MaybeOp on Just True.",
       "wrapTrue :: Maybe Bool"
     ],
+    "end_line": 12,
     "id": [
       "Example.BoolLib",
       "MaybeOp",

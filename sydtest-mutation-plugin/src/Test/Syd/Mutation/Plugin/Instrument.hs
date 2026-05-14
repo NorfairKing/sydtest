@@ -497,6 +497,7 @@ recordMutation le op origStr replStr delta = do
                 mutRecReplacement = T.pack replStr,
                 mutRecModule = T.pack mn,
                 mutRecLine = fromIntegral lineNum,
+                mutRecEndLine = fromIntegral lineNumEnd,
                 mutRecColStart = fromIntegral colStart,
                 mutRecColEnd = fromIntegral colEnd,
                 mutRecSourceFile = mSrcFile,

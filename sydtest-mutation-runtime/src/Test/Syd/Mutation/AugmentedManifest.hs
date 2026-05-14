@@ -49,6 +49,7 @@ data AugmentedMutationRecord = AugmentedMutationRecord
     augmentedMutationRecordReplacement :: Text,
     augmentedMutationRecordModule :: Text,
     augmentedMutationRecordLine :: Word,
+    augmentedMutationRecordEndLine :: Word,
     augmentedMutationRecordColStart :: Word,
     augmentedMutationRecordColEnd :: Word,
     augmentedMutationRecordSourceFile :: Maybe (Path Rel File),
@@ -79,6 +80,7 @@ instance HasCodec AugmentedMutationRecord where
         <*> requiredField' "replacement" .= augmentedMutationRecordReplacement
         <*> requiredField' "module" .= augmentedMutationRecordModule
         <*> requiredField' "line" .= augmentedMutationRecordLine
+        <*> optionalFieldWithDefault' "end_line" 0 .= augmentedMutationRecordEndLine
         <*> requiredField' "col_start" .= augmentedMutationRecordColStart
         <*> requiredField' "col_end" .= augmentedMutationRecordColEnd
         <*> optionalFieldWith' "source_file" relFileCodec .= augmentedMutationRecordSourceFile
@@ -228,7 +230,7 @@ writeMutationRunReport dir report = do
 -- | Convert a 'MutationRecord' with coverage data to an 'AugmentedMutationRecord'.
 -- Records with 'mutRecCoveringTests' = 'Nothing' are dropped.
 fromMutationRecord :: MutationRecord -> Maybe AugmentedMutationRecord
-fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLines, mutRecMutatedLines, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
+fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecEndLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLines, mutRecMutatedLines, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
   case mutRecCoveringTests of
     Nothing -> Nothing
     Just ts ->
@@ -240,6 +242,7 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             augmentedMutationRecordReplacement = mutRecReplacement,
             augmentedMutationRecordModule = mutRecModule,
             augmentedMutationRecordLine = mutRecLine,
+            augmentedMutationRecordEndLine = mutRecEndLine,
             augmentedMutationRecordColStart = mutRecColStart,
             augmentedMutationRecordColEnd = mutRecColEnd,
             augmentedMutationRecordSourceFile = mutRecSourceFile,

@@ -8,6 +8,7 @@
       "-- and a drop-last mutant on the literal @[a, b, c]@.",
       "tripleConcat :: String -> String -> String -> String"
     ],
+    "end_line": 19,
     "id": [
       "Example.ListLib",
       "ListLit",
@@ -36,6 +37,7 @@
       "-- and a drop-last mutant on the literal @[a, b, c]@.",
       "tripleConcat :: String -> String -> String -> String"
     ],
+    "end_line": 19,
     "id": [
       "Example.ListLib",
       "ListLit",
@@ -64,6 +66,7 @@
       "-- and a drop-last mutant on the literal @[a, b, c]@.",
       "tripleConcat :: String -> String -> String -> String"
     ],
+    "end_line": 19,
     "id": [
       "Example.ListLib",
       "ListLit",
@@ -96,6 +99,7 @@
       "-- mutant on the literal @[a, b]@.",
       "pairConcat :: String -> String -> String"
     ],
+    "end_line": 12,
     "id": [
       "Example.ListLib",
       "ListLit",
@@ -128,6 +132,7 @@
       "-- mutant on the literal @[a, b]@.",
       "pairConcat :: String -> String -> String"
     ],
+    "end_line": 12,
     "id": [
       "Example.ListLib",
       "ListLit",

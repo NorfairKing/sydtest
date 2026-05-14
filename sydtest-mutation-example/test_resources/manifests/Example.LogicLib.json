@@ -8,6 +8,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "IntLit",
@@ -38,6 +39,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -68,6 +70,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -98,6 +101,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -128,6 +132,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -158,6 +163,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -188,6 +194,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Negate",
@@ -218,6 +225,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "IntLit",
@@ -248,6 +256,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -278,6 +287,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -308,6 +318,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -338,6 +349,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -368,6 +380,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -398,6 +411,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Negate",
@@ -428,6 +442,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -458,6 +473,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -488,6 +504,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "LogicOp",
@@ -518,6 +535,7 @@
       "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
       "eitherPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 17,
     "id": [
       "Example.LogicLib",
       "Negate",
@@ -552,6 +570,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "IntLit",
@@ -586,6 +605,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -620,6 +640,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -654,6 +675,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -688,6 +710,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -722,6 +745,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -756,6 +780,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Negate",
@@ -790,6 +815,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "IntLit",
@@ -824,6 +850,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -858,6 +885,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -892,6 +920,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Cmp",
@@ -926,6 +955,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -960,6 +990,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -994,6 +1025,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Negate",
@@ -1028,6 +1060,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -1062,6 +1095,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "ConstBool",
@@ -1096,6 +1130,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "LogicOp",
@@ -1130,6 +1165,7 @@
       "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
       "bothPositive :: Int -> Int -> Bool"
     ],
+    "end_line": 11,
     "id": [
       "Example.LogicLib",
       "Negate",

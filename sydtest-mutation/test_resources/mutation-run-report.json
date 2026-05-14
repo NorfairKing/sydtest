@@ -20,6 +20,7 @@
                         "add.commutativity:1"
                     ]
                 },
+                "end_line": 5,
                 "id": [
                     "Foo.Bar",
                     "ArithOp",
@@ -51,6 +52,7 @@
                 "context_after": [],
                 "context_before": [],
                 "covering_tests": {},
+                "end_line": 12,
                 "id": [
                     "Foo.Bar",
                     "BoolOp",

@@ -11,6 +11,7 @@
       "classify :: Int -> String",
       "classify n"
     ],
+    "end_line": 12,
     "id": [
       "Example.OtherwiseLib",
       "IntLit",
@@ -44,6 +45,7 @@
       "classify :: Int -> String",
       "classify n"
     ],
+    "end_line": 12,
     "id": [
       "Example.OtherwiseLib",
       "Cmp",
@@ -77,6 +79,7 @@
       "classify :: Int -> String",
       "classify n"
     ],
+    "end_line": 12,
     "id": [
       "Example.OtherwiseLib",
       "Cmp",
@@ -110,6 +113,7 @@
       "classify :: Int -> String",
       "classify n"
     ],
+    "end_line": 12,
     "id": [
       "Example.OtherwiseLib",
       "Cmp",
@@ -143,6 +147,7 @@
       "classify :: Int -> String",
       "classify n"
     ],
+    "end_line": 12,
     "id": [
       "Example.OtherwiseLib",
       "ConstBool",
@@ -176,6 +181,7 @@
       "classify :: Int -> String",
       "classify n"
     ],
+    "end_line": 12,
     "id": [
       "Example.OtherwiseLib",
       "Negate",
@@ -208,6 +214,7 @@
       "classify n",
       "  | n < 0 = \"negative\""
     ],
+    "end_line": 13,
     "id": [
       "Example.OtherwiseLib",
       "IntLit",
@@ -240,6 +247,7 @@
       "classify n",
       "  | n < 0 = \"negative\""
     ],
+    "end_line": 13,
     "id": [
       "Example.OtherwiseLib",
       "ConstBool",
@@ -272,6 +280,7 @@
       "classify n",
       "  | n < 0 = \"negative\""
     ],
+    "end_line": 13,
     "id": [
       "Example.OtherwiseLib",
       "Negate",

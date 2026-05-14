@@ -8,6 +8,7 @@
       "-- Mutation sites: RemoveCase removes one of the three alternatives.",
       "describeList :: [a] -> String"
     ],
+    "end_line": 10,
     "id": [
       "Example.CaseLib",
       "RemoveCase",
@@ -43,6 +44,7 @@
       "-- Mutation sites: RemoveCase removes one of the three alternatives.",
       "describeList :: [a] -> String"
     ],
+    "end_line": 10,
     "id": [
       "Example.CaseLib",
       "RemoveCase",
@@ -78,6 +80,7 @@
       "-- Mutation sites: RemoveCase removes one of the three alternatives.",
       "describeList :: [a] -> String"
     ],
+    "end_line": 10,
     "id": [
       "Example.CaseLib",
       "RemoveCase",

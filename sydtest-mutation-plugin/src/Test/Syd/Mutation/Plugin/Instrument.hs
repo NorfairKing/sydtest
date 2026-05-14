@@ -42,10 +42,8 @@ import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
 import Path
 import Path.IO (resolveFile')
-import Test.Syd.Mutation.Manifest (MutationAddedEvent (..), MutationRecord (..), renderMutationAddedEvent)
+import Test.Syd.Mutation.Manifest (MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
-import Text.Colour (unlinesChunks)
-import Text.Colour.Term (putChunksLocale)
 
 -- ---------------------------------------------------------------------------
 -- Source delta
@@ -499,8 +497,15 @@ recordMutation le op origStr replStr delta = do
                 mutRecCoveringTests = Nothing
               }
       liftTcM $
-        liftIO $
-          putChunksLocale (unlinesChunks (renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord = record}))
+        liftIO $ do
+          let MutationId parts = mutRecId record
+          case parts of
+            (modName : _op : lineStr : colStartStr : colEndStr : _) ->
+              let filePath = case mutRecSourceFile record of
+                    Just p -> fromRelFile p
+                    Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
+               in putStrLn $ "added mutation " ++ T.unpack (mutRecOperator record) ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+            _ -> putStrLn $ "added mutation " ++ show parts
       tell [record]
       pure mid
     UnhelpfulSpan _ -> pure (MutationId [])

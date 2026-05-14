@@ -1,6 +1,5 @@
 { mkDerivation, base, bytestring, containers, directory, filepath
-, ghc, ghc-boot, lib, mtl, path, path-io, safe-coloured-text
-, safe-coloured-text-terminfo, sydtest-mutation-runtime
+, ghc, ghc-boot, lib, mtl, path, path-io, sydtest-mutation-runtime
 , template-haskell, text
 }:
 mkDerivation {
@@ -9,8 +8,7 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [
     base bytestring containers directory filepath ghc ghc-boot mtl path
-    path-io safe-coloured-text safe-coloured-text-terminfo
-    sydtest-mutation-runtime template-haskell text
+    path-io sydtest-mutation-runtime template-haskell text
   ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   license = lib.licenses.mit;

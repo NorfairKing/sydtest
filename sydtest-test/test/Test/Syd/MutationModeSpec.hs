@@ -7,8 +7,9 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import Path
 import Test.Syd
-import Test.Syd.Mutation.AugmentedManifest (AugmentedMutationRecord (..), formatMutationLog)
+import Test.Syd.Mutation.AugmentedManifest (AugmentedMutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
+import Test.Syd.MutationMode (formatMutationLog)
 import Text.Colour (Chunk, TerminalCapabilities (..), renderChunksText)
 
 spec :: Spec

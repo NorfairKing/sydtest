@@ -1,6 +1,4 @@
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -14,25 +12,20 @@ module Test.Syd.Mutation.Manifest
     writeCoverageFile,
     relFileCodec,
     MutationAddedEvent (..),
-    renderMutationAddedEvent,
-    renderUnifiedDiff,
   )
 where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as LB
-import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
-import Myers.Diff (PolyDiff (..), getGroupedDiff)
 import Path
 import Path.IO (ensureDir, listDirRel)
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId (..))
-import Text.Colour (Chunk, chunk, cyan, fore, green, red)
 
 -- | One discovered mutation site, as recorded by the plugin.
 data MutationRecord = MutationRecord
@@ -176,63 +169,3 @@ isCoverageFile f = case splitExtension f of
 newtype MutationAddedEvent = MutationAddedEvent
   { mutationAddedRecord :: MutationRecord
   }
-
--- | Render a mutation-added event for plugin output:
--- @added mutation \<op\> at \<srcloc\>@ followed by the diff.
-renderMutationAddedEvent :: MutationAddedEvent -> [[Chunk]]
-renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
-  let MutationRecord
-        { mutRecId = MutationId parts,
-          mutRecOperator,
-          mutRecOriginal,
-          mutRecReplacement,
-          mutRecSourceFile,
-          mutRecSourceLines,
-          mutRecMutatedLines,
-          mutRecContextBefore,
-          mutRecContextAfter,
-          mutRecLine
-        } = mutationAddedRecord
-   in case parts of
-        (modName : _op : lineStr : colStartStr : colEndStr : _) ->
-          let filePath = case mutRecSourceFile of
-                Just p -> fromRelFile p
-                Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
-              headerText = T.pack $ "added mutation " ++ T.unpack mutRecOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
-              headerLine = [chunk headerText]
-           in case mutRecSourceLines of
-                [] ->
-                  [ headerLine,
-                    [fore red (chunk ("    - " <> mutRecOriginal))],
-                    [fore green (chunk ("    + " <> mutRecReplacement))]
-                  ]
-                _ ->
-                  headerLine : renderUnifiedDiff (fromIntegral mutRecLine) mutRecContextBefore mutRecSourceLines mutRecMutatedLines mutRecContextAfter
-        _ -> [[chunk (T.pack $ "added mutation " ++ intercalate "/" parts)]]
-
--- | Render a unified diff of the source change.
-renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> [[Chunk]]
-renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
-  let allBefore = ctxBefore ++ srcLines ++ ctxAfter
-      allAfter = ctxBefore ++ mutLines ++ ctxAfter
-      groups = getGroupedDiff allBefore allAfter
-      hunkStart = startLine - length ctxBefore
-      origCount = length allBefore
-      mutCount = length allAfter
-      hunkHeader =
-        T.pack $
-          "@@ -"
-            ++ show hunkStart
-            ++ ","
-            ++ show origCount
-            ++ " +"
-            ++ show hunkStart
-            ++ ","
-            ++ show mutCount
-            ++ " @@"
-   in [fore cyan (chunk hunkHeader)] : concatMap renderGroup groups
-  where
-    renderGroup = \case
-      Both ls _ -> map (\l -> [chunk (T.cons ' ' l)]) ls
-      First ls -> map (\l -> [fore red (chunk (T.cons '-' l))]) ls
-      Second ls -> map (\l -> [fore green (chunk (T.cons '+' l))]) ls

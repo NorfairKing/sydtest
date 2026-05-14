@@ -52,8 +52,6 @@ library
     , mtl
     , path
     , path-io
-    , safe-coloured-text
-    , safe-coloured-text-terminfo
     , sydtest-mutation-runtime
     , template-haskell
     , text

@@ -4,7 +4,6 @@ module Test.Syd.Mutation.Plugin.Operator.Util
   ( opOccName,
     mkOpReplacement,
     mkIntLitExpr,
-    lhsExprType,
     TcOpApp (..),
     matchTcOpApp,
   )
@@ -12,6 +11,7 @@ where
 
 import Control.Monad.IO.Class (liftIO)
 import GHC
+import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Tc.Types (TcM)
 import GHC.Tc.Utils.Env (tcLookupId)
 import GHC.Types.Name (getOccString)
@@ -67,14 +67,12 @@ matchTcOpApp le = case unLoc le of
   --                                                (HsApp _ (HsApp _ tcOp tcL) tcR)@.
   XExpr (ExpandedThingTc orig expanded)
     | Just (tcOp, tcL, tcR) <- viewHsApp2 expanded,
-      Just occ <- opOccName tcOp,
-      Just ty <- lhsExprType tcL ->
-        Just (TcOpApp ty tcL tcOp tcR occ (origOpSrcSpan orig))
+      Just occ <- opOccName tcOp ->
+        Just (TcOpApp (lhsExprType tcL) tcL tcOp tcR occ (origOpSrcSpan orig))
   -- Fallback for any compiler version that keeps OpApp at GhcTc.
   OpApp _ lhs op rhs
-    | Just occ <- opOccName op,
-      Just ty <- lhsExprType lhs ->
-        Just (TcOpApp ty lhs op rhs occ (rnOpSrcSpan op))
+    | Just occ <- opOccName op ->
+        Just (TcOpApp (lhsExprType lhs) lhs op rhs occ (rnOpSrcSpan op))
   _ -> Nothing
 
 -- | Get the source 'RealSrcSpan' of the operator from the renamed origin of
@@ -161,24 +159,3 @@ substIntegerInWitness n = \case
   HsLit x (HsInteger src _ ty) -> HsLit x (HsInteger src n ty)
   XExpr (WrapExpr (HsWrap w e)) -> XExpr (WrapExpr (HsWrap w (substIntegerInWitness n e)))
   e -> e
-
--- | Extract the result 'Type' of a type-checked expression.
--- Walks through 'WrapExpr', 'ExpandedThingTc', 'HsPar', 'HsApp' and
--- 'HsAppType' to find an expression whose type we can read directly.
-lhsExprType :: LHsExpr GhcTc -> Maybe Type
-lhsExprType = go . unLoc
-  where
-    go = \case
-      HsOverLit _ (OverLit (OverLitTc {ol_type = ty}) _) -> Just ty
-      HsVar _ (L _ v) -> Just (idType v)
-      HsPar _ e -> go (unLoc e)
-      XExpr (WrapExpr (HsWrap _ e)) -> go e
-      -- After typecheck, many source forms become @ExpandedThingTc orig expanded@.
-      -- The @expanded@ field carries the real typechecked expression we can
-      -- read the result type from.
-      XExpr (ExpandedThingTc _ expanded) -> go expanded
-      -- For an application @f x@, the result type is the application's type,
-      -- which (post type/dict args) we can read from the head's idType after
-      -- stripping the type arrows. As a simple approximation, walk into the
-      -- function position: this matches the typechecker's own approach.
-      _ -> Nothing

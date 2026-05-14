@@ -41,6 +41,7 @@ test-suite sydtest-mutation-example-gen-test
       Example.FunctionExceptionLibSpec
       Example.LibSpec
       Example.ListLibSpec
+      Example.LogicLibSpec
       Example.OtherwiseLibSpec
       Paths_sydtest_mutation_example_gen
   hs-source-dirs:

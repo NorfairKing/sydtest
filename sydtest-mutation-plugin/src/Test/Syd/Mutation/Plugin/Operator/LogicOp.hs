@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Test.Syd.Mutation.Plugin.Operator.LogicOp (theOperator) where
@@ -8,18 +7,17 @@ import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
-import Test.Syd.Mutation.Plugin.Operator.Util (mkOpReplacement, opOccName)
+import Test.Syd.Mutation.Plugin.Operator.Util (TcOpApp (..), matchTcOpApp, mkOpReplacement)
 
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
     { operatorName = "LogicOp",
-      operatorDescription = "Replace any boolean binary operator with every other boolean binary operator",
-      operatorMatch = \case
-        (L _ (OpApp _ l op r))
-          | Just occ <- opOccName op,
-            occ `elem` logicOps ->
-              Just (action l op r occ)
+      operatorDescription = "Replace a boolean binary operator with the other",
+      operatorMatch = \le -> case matchTcOpApp le of
+        Just tcOp@(TcOpApp {tcOpAppOcc = occ})
+          | occ `elem` logicOps ->
+              Just (action tcOp)
         _ -> Nothing
     }
 
@@ -27,17 +25,17 @@ logicOps :: [String]
 logicOps = ["&&", "||"]
 
 action ::
-  LHsExpr GhcTc ->
-  LHsExpr GhcTc ->
-  LHsExpr GhcTc ->
-  String ->
+  TcOpApp ->
   InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
-action l op r origOcc = do
+action TcOpApp {tcOpAppLhs, tcOpAppOp, tcOpAppRhs, tcOpAppOcc, tcOpAppOpSrcSpan} = do
   InstrumentEnv {instrRdrEnv} <- ask
-  let replacements = filter (/= origOcc) logicOps
+  let replacements = filter (/= tcOpAppOcc) logicOps
+      delta replOcc = case tcOpAppOpSrcSpan of
+        Just rss -> TokenReplaceAt rss (T.pack replOcc)
+        Nothing -> TokenReplace (T.pack replOcc)
   mapM
     ( \replOcc -> do
-        repl <- liftTcM $ mkOpReplacement instrRdrEnv l op r replOcc
-        pure (boolTy, repl, origOcc, replOcc, TokenReplace (T.pack replOcc))
+        repl <- liftTcM $ mkOpReplacement instrRdrEnv tcOpAppLhs tcOpAppOp tcOpAppRhs replOcc
+        pure (boolTy, repl, tcOpAppOcc, replOcc, delta replOcc)
     )
     replacements

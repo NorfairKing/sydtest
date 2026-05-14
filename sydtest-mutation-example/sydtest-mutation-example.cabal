@@ -27,6 +27,7 @@ library
       Example.FunctionExceptionLib
       Example.Lib
       Example.ListLib
+      Example.LogicLib
       Example.OtherwiseLib
       Example.UntestedLib
   other-modules:

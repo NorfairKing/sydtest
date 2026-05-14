@@ -41,14 +41,20 @@ stdenv.mkDerivation {
     fi
     '' else ""}
 
+    echo ""
+    cat ${report}/report.txt
+
+    echo "Full report:               ${report}/report.txt"
+    echo "Machine-readable report:   ${report}/report.json"
+    echo ""
+
     if [ "$fail" != "0" ]; then
-      echo ""
-      cat ${report}/report.txt
-      echo "Full report:               ${report}/report.txt"
-      echo "Machine-readable report:   ${report}/report.json"
+      echo "FAIL: Surviving or uncovered mutations."
+
       exit 1
     else
       echo "PASS: All $total mutation(s) accounted for."
+
       mkdir -p $out
       cp ${report}/report.txt $out/report.txt
       cp ${report}/report.json $out/report.json

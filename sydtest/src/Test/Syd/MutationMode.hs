@@ -3,6 +3,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | This module provides four entry points for mutation testing:
 --
@@ -50,7 +51,8 @@ where
 
 import Control.Concurrent (newQSem, signalQSem, threadDelay, waitQSem)
 import Control.Concurrent.Async (mapConcurrently, race)
-import Control.Exception (bracket, bracket_)
+import Control.Exception (IOException, bracket, bracket_)
+import qualified Control.Exception as Exception
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -479,13 +481,21 @@ runMutationMode settings _manifestDirs _spec = do
     -- library's grace period) and report a Left (timeout) outcome.
     --
     -- bracket guarantees the child is reaped on both the timeout-wins branch
-    -- and on async exceptions propagating into this thread.
+    -- and on async exceptions propagating into this thread.  When the inner
+    -- branch wins, the child has already been reaped by 'waitExitCode'; the
+    -- cleanup's 'stopProcess' then calls 'waitForProcess' on an already-reaped
+    -- pid and throws ECHILD.  Swallow that — the only reason we hold the
+    -- bracket is to guarantee cleanup, which has already happened.
     startProcessAndWait childProc micros =
-      bracket (startProcess childProc) stopProcess $ \p -> do
+      bracket (startProcess childProc) cleanup $ \p -> do
         result <- race (threadDelay micros) (waitExitCode p)
         case result of
           Left () -> pure (Left ())
           Right ec -> pure (Right ec)
+      where
+        cleanup p =
+          stopProcess p
+            `Exception.catch` (\(_ :: IOException) -> pure ())
 
 -- | Child process: run only the tests covering a single mutation and exit
 -- with the appropriate exit code.

@@ -105,7 +105,8 @@ exampleAugmentedRecord =
           ""
           [ TestId (("add", 0) :| [("adds two numbers", 0)]),
             TestId (("add", 0) :| [("commutativity", 1)])
-          ]
+          ],
+      augmentedMutationRecordTimeoutMicros = 30000000
     }
 
 exampleAugmentedManifest :: AugmentedManifest
@@ -117,6 +118,7 @@ exampleMutationRunReport =
   MutationRunReport
     { mutationRunReportKilled = 5,
       mutationRunReportSurvived = 1,
+      mutationRunReportTimedOut = 0,
       mutationRunReportUncovered = 1,
       mutationRunReportSurvivors =
         [ SurvivedMutation
@@ -124,6 +126,7 @@ exampleMutationRunReport =
               survivedMutationLogFile = $(mkRelFile "children/Foo.Bar-ArithOp-5-14-15.txt")
             }
         ],
+      mutationRunReportTimedOutMutations = [],
       mutationRunReportUncoveredMutations =
         [ UncoveredMutation
             { uncoveredMutationRecord =
@@ -141,7 +144,8 @@ exampleMutationRunReport =
                     augmentedMutationRecordMutatedLines = [],
                     augmentedMutationRecordContextBefore = [],
                     augmentedMutationRecordContextAfter = [],
-                    augmentedMutationRecordCoveringTests = Map.empty
+                    augmentedMutationRecordCoveringTests = Map.empty,
+                    augmentedMutationRecordTimeoutMicros = 30000000
                   }
             }
         ]

@@ -39,10 +39,13 @@
                 "source_file": "src/Foo/Bar.hs",
                 "source_lines": [
                     "  result = x + y"
-                ]
+                ],
+                "timeout_micros": 30000000
             }
         }
     ],
+    "timed_out": 0,
+    "timed_out_mutations": [],
     "uncovered": 1,
     "uncovered_mutations": [
         {
@@ -66,7 +69,8 @@
                 "operator": "BoolOp",
                 "original": "&&",
                 "replacement": "||",
-                "source_lines": []
+                "source_lines": [],
+                "timeout_micros": 30000000
             }
         }
     ]

@@ -34,6 +34,7 @@
         "source_file": "src/Foo/Bar.hs",
         "source_lines": [
             "  result = x + y"
-        ]
+        ],
+        "timeout_micros": 30000000
     }
 ]

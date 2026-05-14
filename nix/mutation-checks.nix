@@ -17,7 +17,10 @@
 # builds only the report output and not the full test package.
 
 let
-  mutationCheck = pkgs.callPackage ./mutationCheck.nix { inherit haskellPackages; };
+  mutationCheck = pkgs.callPackage ./mutationCheck.nix {
+    inherit haskellPackages;
+    inherit (haskellPackages.sydtest) addMutationRuntimeDependency;
+  };
 in
 {
   # TODO: autodocodec mutation check takes too long to run, investigate

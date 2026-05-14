@@ -1,4 +1,4 @@
-{ haskellPackages, pkgs }:
+{ haskellPackages, pkgs, addMutationRuntimeDependency }:
 
 # Build one mutation check.
 #
@@ -14,6 +14,10 @@
 #             a library to instrument and a test suite to run
 # - libraries: attr names to instrument but not run test suites for
 # - tests: attr names whose test suites to run but not instrument
+# - needToBeLinkedAgainstMutationRuntime: attr names of packages whose
+#       executables (test suites or benchmarks) link against an instrumented
+#       library and therefore need sydtest-mutation-runtime added to their
+#       link line. See ./nix/addMutationRuntimeDependency.nix.
 # - exceptions: module names to skip during instrumentation
 # - disabledMutations: mutation type names to disable globally
 # - assertAllKilled: add a 'check' output that fails if any mutations survive (default: true)
@@ -30,6 +34,7 @@
 , packages ? [ ]
 , libraries ? [ ]
 , tests ? [ ]
+, needToBeLinkedAgainstMutationRuntime ? [ ]
 , exceptions ? [ ]
 , disabledMutations ? [ ]
 , assertAllKilled ? true
@@ -44,13 +49,29 @@ let
   libraryPackages = packages ++ libraries;
   testPackages = packages ++ tests;
 
-  instrumentedHaskellPackages = haskellPackages.extend (_: super:
+  # First, inject the sydtest-mutation-runtime build-dep into every package
+  # the caller has listed. This ensures their executables link successfully
+  # against any instrumented library they (transitively) depend on.
+  addRuntimeOverride = _: super:
+    builtins.listToAttrs (map
+      (pkg: {
+        name = pkg;
+        value = addMutationRuntimeDependency super.${pkg};
+      })
+      needToBeLinkedAgainstMutationRuntime);
+
+  # Then wrap the library packages with the mutation plugin so that
+  # compilation emits ifMutation calls and writes a manifest.
+  addManifestOverride = _: super:
     builtins.listToAttrs (map
       (pkg: {
         name = pkg;
         value = addManifest { inherit exceptions disabledMutations debug ghcMemLimit; } super.${pkg};
       })
-      libraryPackages));
+      libraryPackages);
+
+  instrumentedHaskellPackages = haskellPackages.extend
+    (pkgs.lib.composeExtensions addRuntimeOverride addManifestOverride);
 
   # Build a test package with doCheck=true so Cabal compiles the test
   # executable, then copy it to $out/test/ in postInstall. Cabal's 'copy'
@@ -58,9 +79,12 @@ let
   # so we copy them manually from dist/build/.
   # checkPhase is cleared so the tests are not run during this build; they are
   # run later in the mutation checkPhase of the first test package.
+  # dontBenchmark: avoid building benchmark executables that would also end up
+  # under dist/build/ and risk being picked up by the mutation harness's `find`.
   builtTestPkg = pkg:
     pkgs.haskell.lib.overrideCabal
-      (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkg})
+      (pkgs.haskell.lib.dontBenchmark
+        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkg}))
       (_: {
         checkPhase = "";
         postInstall = ''

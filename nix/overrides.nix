@@ -64,6 +64,9 @@ let
       addManifest = callPackage ./addManifest.nix {
         mutationPlugin = self.sydtest-mutation-plugin;
       };
+      addMutationRuntimeDependency = callPackage ./addMutationRuntimeDependency.nix {
+        haskellPackages = self;
+      };
       compileMutationReport = callPackage ./compileMutationReport.nix { };
       assertMutationScore = callPackage ./assertMutationScore.nix { };
       runMutations = callPackage ./runMutations.nix { inherit compileMutationReport assertMutationScore; };
@@ -71,9 +74,12 @@ let
         addManifest' = addManifest;
         inherit compileMutationReport assertMutationScore;
       };
-      mutationCheck = callPackage ./mutationCheck.nix { haskellPackages = self; };
+      mutationCheck = callPackage ./mutationCheck.nix {
+        inherit addMutationRuntimeDependency;
+        haskellPackages = self;
+      };
     in
-    { inherit addManifest compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck; };
+    { inherit addManifest addMutationRuntimeDependency compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck; };
 
   sydtestPackages = {
     "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old: {

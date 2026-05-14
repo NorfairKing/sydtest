@@ -48,9 +48,9 @@ module Test.Syd.MutationMode
   )
 where
 
-import Control.Concurrent (newQSem, signalQSem, waitQSem)
-import Control.Concurrent.Async (mapConcurrently)
-import Control.Exception (bracket_)
+import Control.Concurrent (newQSem, signalQSem, threadDelay, waitQSem)
+import Control.Concurrent.Async (mapConcurrently, race)
+import Control.Exception (bracket, bracket_)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -58,6 +58,7 @@ import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
 import qualified Data.Vector as V
 import GHC.Conc (getNumCapabilities)
 import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
@@ -66,7 +67,7 @@ import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import System.IO (BufferMode (..), IOMode (..), hClose, hSetBuffering, openFile, stderr)
-import System.Process.Typed (proc, runProcess, setStderr, setStdout, useHandleOpen)
+import System.Process.Typed (proc, runProcess, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -74,6 +75,7 @@ import Test.Syd.Mutation.AugmentedManifest
     MutationProgressEvent (..),
     MutationRunReport (..),
     SurvivedMutation (..),
+    TimedOutMutation (..),
     UncoveredMutation (..),
     fromMutationRecord,
     lookupAugmentedMutationRecord,
@@ -91,6 +93,7 @@ import Test.Syd.Mutation.Manifest
     readManifestDir,
   )
 import Test.Syd.Mutation.Runtime (MutationId (..), parseMutationId, renderMutationId, setActiveMutation, withCoverageSlot)
+import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap (..), readTestBaselineMapFile, writeTestBaselineMapFile)
 import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverageMapFile, writeTestCoverageMapFile)
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
 import Test.Syd.OptParse
@@ -120,15 +123,17 @@ runCoverageMode settings manifestDirs spec = do
     Just j | j > 0 -> pure j
     _ -> getNumCapabilities
   sem <- newQSem n
-  coverageMaps <-
+  childResults <-
     mapConcurrently
       (runCoverageChild defaultExe settings manifestDirs sem total)
       (zip [1 :: Int ..] leafIds)
-  let TestCoverageMap coverageMap = mconcat coverageMaps
+  let (coverageMaps, baselineMaps) = unzip childResults
+      TestCoverageMap coverageMap = mconcat coverageMaps
+      TestBaselineMap baselineMap = mconcat baselineMaps
       mutationCoverage = invertCoverageMap coverageMap
       suiteName = fromMaybe "" (settingMutationSuiteName settings)
   allRecords <- mconcat <$> mapM readManifestDir manifestDirs
-  let newAugmented = buildAugmentedManifest suiteName mutationCoverage allRecords
+  let newAugmented = buildAugmentedManifest suiteName mutationCoverage baselineMap allRecords
   augDir <- resolveAugmentedManifestDir settings
   existing <- readAugmentedManifestFileIfExists augDir
   let augmented = case existing of
@@ -140,6 +145,7 @@ runCoverageMode settings manifestDirs spec = do
       bracket_ (waitQSem sem) (signalQSem sem) $
         withSystemTempDir "coverage-child" $ \tmpDir -> do
           let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
+              baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
               -- Pass at least one --mutation-coverage dir so the child
               -- dispatches to runSingleCoverageMode rather than the normal
               -- test runner. The child ignores the manifest content; only
@@ -150,7 +156,9 @@ runCoverageMode settings manifestDirs spec = do
                   ++ [ "--mutation-coverage-one",
                        T.unpack (renderTestId tid),
                        "--mutation-coverage-output",
-                       outputFile
+                       outputFile,
+                       "--mutation-coverage-baseline-output",
+                       baselineFile
                      ]
                   ++ case settingMutationSuiteName settings' of
                     Nothing -> []
@@ -166,35 +174,50 @@ runCoverageMode settings manifestDirs spec = do
                   ++ show code
             ExitSuccess -> do
               mMap <- readTestCoverageMapFile outputFile
-              case mMap of
+              coverageMap <- case mMap of
                 Nothing ->
                   fail $
                     "coverage child for "
                       ++ T.unpack (renderTestId tid)
                       ++ " wrote an unreadable coverage map"
-                Just coverageMap -> do
-                  let TestCoverageMap m = coverageMap
-                      covered = fromMaybe Set.empty (Map.lookup tid m)
-                  putStrLn $
-                    "coverage ("
-                      ++ show i
-                      ++ "/"
-                      ++ show total
-                      ++ "): "
+                Just cm -> pure cm
+              mBaseline <- readTestBaselineMapFile baselineFile
+              baselineMap <- case mBaseline of
+                Nothing ->
+                  fail $
+                    "coverage child for "
                       ++ T.unpack (renderTestId tid)
-                      ++ " ("
-                      ++ show (Set.size covered)
-                      ++ " mutations)"
-                  pure coverageMap
+                      ++ " wrote an unreadable baseline map"
+                Just bm -> pure bm
+              let TestCoverageMap m = coverageMap
+                  covered = fromMaybe Set.empty (Map.lookup tid m)
+              putStrLn $
+                "coverage ("
+                  ++ show i
+                  ++ "/"
+                  ++ show total
+                  ++ "): "
+                  ++ T.unpack (renderTestId tid)
+                  ++ " ("
+                  ++ show (Set.size covered)
+                  ++ " mutations)"
+              pure (coverageMap, baselineMap)
 
-    buildAugmentedManifest suiteName mutationCoverage (MutationManifest records) =
+    buildAugmentedManifest suiteName mutationCoverage baselineMap (MutationManifest records) =
       AugmentedManifest $
-        concatMap (annotateRecord suiteName mutationCoverage) records
+        concatMap (annotateRecord suiteName mutationCoverage baselineMap) records
 
-    annotateRecord suiteName mutationCoverage rec =
+    annotateRecord suiteName mutationCoverage baselineMap rec =
       let coveringTests =
             Set.toList $
               Map.findWithDefault Set.empty (mutRecId rec) mutationCoverage
+          -- Per-mutation timeout (microseconds) = 10 * sum of covering-test
+          -- baselines, floored at 30s.  Tests with no recorded baseline
+          -- contribute 0; the floor still applies.
+          coveringBaselineSum :: Word
+          coveringBaselineSum =
+            sum [Map.findWithDefault 0 t baselineMap | t <- coveringTests]
+          timeoutMicros = max 30000000 (10 * coveringBaselineSum)
           annotated =
             rec
               { mutRecCoveringTests =
@@ -202,7 +225,8 @@ runCoverageMode settings manifestDirs spec = do
               }
        in case fromMutationRecord annotated of
             Nothing -> []
-            Just r -> [r]
+            Just r ->
+              [r {augmentedMutationRecordTimeoutMicros = timeoutMicros}]
 
 -- | Invert a @'Map' 'TestId' ('Set' 'MutationId')@ to
 -- @'Map' 'MutationId' ('Set' 'TestId')@.
@@ -218,7 +242,8 @@ invertCoverageMap =
     Map.empty
 
 -- | Child process: run the single test identified by @--mutation-coverage-one@,
--- write its 'TestCoverageMap' to @--mutation-coverage-output@, and exit.
+-- write its 'TestCoverageMap' to @--mutation-coverage-output@, write its
+-- wall-clock baseline to @--mutation-coverage-baseline-output@, and exit.
 runSingleCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runSingleCoverageMode settings _manifestDirs spec = do
   tid <- case settingMutationCoverageOne settings >>= parseTestIdFilterArg of
@@ -226,6 +251,9 @@ runSingleCoverageMode settings _manifestDirs spec = do
     Just t -> pure t
   outputFile <- case settingMutationCoverageOutput settings of
     Nothing -> fail "runSingleCoverageMode: no --mutation-coverage-output file"
+    Just f -> pure f
+  baselineFile <- case settingMutationCoverageBaselineOutput settings of
+    Nothing -> fail "runSingleCoverageMode: no --mutation-coverage-baseline-output file"
     Just f -> pure f
   specForest <- execTestDefM settings spec
   let coverageSettings =
@@ -236,10 +264,22 @@ runSingleCoverageMode settings _manifestDirs spec = do
       trie = testIdTrieFromList [tid]
       filtered = filterTestForestByTrie trie specForest
   ref <- newIORef Set.empty
+  startTime <- getCurrentTime
   _ <- withCoverageSlot ref $ runSpecForestSynchronously coverageSettings filtered
+  endTime <- getCurrentTime
   covered <- readIORef ref
   let coverageMap = TestCoverageMap (Map.singleton tid covered)
+      elapsedMicros = diffUTCTimeMicros endTime startTime
   writeTestCoverageMapFile outputFile coverageMap
+  writeTestBaselineMapFile baselineFile (TestBaselineMap (Map.singleton tid elapsedMicros))
+
+-- | Convert a 'NominalDiffTime' difference to microseconds as a 'Word',
+-- clamping negative results (clock skew) to zero.
+diffUTCTimeMicros :: UTCTime -> UTCTime -> Word
+diffUTCTimeMicros end start =
+  let secs = realToFrac (diffUTCTime end start) :: Double
+      micros = secs * 1000000
+   in if micros <= 0 then 0 else ceiling micros
 
 -- | Resolve the augmented manifest directory from settings,
 -- falling back to the current working directory.
@@ -250,7 +290,25 @@ resolveAugmentedManifestDir settings =
 data MutationResult
   = MutationUncovered UncoveredMutation
   | MutationKilled
+  | -- | At least one suite's child exceeded its wall-clock timeout. The
+    -- mutation is counted as killed in the overall score but also recorded
+    -- in 'mutationRunReportTimedOut' / 'mutationRunReportTimedOutMutations'
+    -- for visibility.
+    MutationTimedOut (Maybe TimedOutMutation)
   | MutationSurvived (Maybe SurvivedMutation)
+
+-- | Per-suite outcome of running a single mutation child.
+data SuiteOutcome
+  = -- | Child exited non-zero — mutation killed by this suite.
+    SuiteKilled
+  | -- | Child exited zero — mutation survived in this suite. The optional
+    -- log path points at the captured stdout/stderr (when a report dir is
+    -- configured).
+    SuiteSurvived (Maybe (Path Rel File))
+  | -- | Child exceeded its wall-clock timeout and was terminated by the
+    -- parent.  Carries the elapsed microseconds and (optionally) the
+    -- log path.
+    SuiteTimedOut Word (Maybe (Path Rel File))
 
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.
@@ -274,23 +332,30 @@ runMutationMode settings _manifestDirs _spec = do
   n <- getNumCapabilities
   sem <- newQSem n
   results <- mapConcurrently (runOne defaultExe augDir sem) records
-  let (killed, survived, survivors, uncoveredMutations) = foldr tally (0, 0, [], []) results
-      uncovered = length uncoveredMutations
+  let (killed, survived, timedOut, survivors, timedOuts, uncoveredMutations) =
+        foldr tally (0 :: Word, 0, 0, [], [], []) results
+      uncovered = fromIntegral (length uncoveredMutations) :: Word
       jsonReport =
         MutationRunReport
           { mutationRunReportKilled = killed,
             mutationRunReportSurvived = survived,
+            mutationRunReportTimedOut = timedOut,
             mutationRunReportUncovered = uncovered,
             mutationRunReportSurvivors = survivors,
+            mutationRunReportTimedOutMutations = timedOuts,
             mutationRunReportUncoveredMutations = uncoveredMutations
           }
   mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
   putChunksLocaleWith (settingTerminalCapabilities settings) (unlinesChunks (renderMutationRunReport jsonReport))
   where
-    tally (MutationUncovered um) (k, s, ss, us) = (k, s, ss, us ++ [um])
-    tally MutationKilled (k, s, ss, us) = (k + 1, s, ss, us)
-    tally (MutationSurvived Nothing) (k, s, ss, us) = (k, s + 1, ss, us)
-    tally (MutationSurvived (Just survivor)) (k, s, ss, us) = (k, s + 1, ss ++ [survivor], us)
+    -- Timed-out mutations are counted as killed; the timedOut count and
+    -- list are reported separately for visibility.
+    tally (MutationUncovered um) (k, s, t, ss, ts, us) = (k, s, t, ss, ts, us ++ [um])
+    tally MutationKilled (k, s, t, ss, ts, us) = (k + 1, s, t, ss, ts, us)
+    tally (MutationTimedOut Nothing) (k, s, t, ss, ts, us) = (k + 1, s, t + 1, ss, ts, us)
+    tally (MutationTimedOut (Just tm)) (k, s, t, ss, ts, us) = (k + 1, s, t + 1, ss, ts ++ [tm], us)
+    tally (MutationSurvived Nothing) (k, s, t, ss, ts, us) = (k, s + 1, t, ss, ts, us)
+    tally (MutationSurvived (Just survivor)) (k, s, t, ss, ts, us) = (k, s + 1, t, ss ++ [survivor], ts, us)
 
     runOne defaultExe augDir sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
@@ -302,19 +367,44 @@ runMutationMode settings _manifestDirs _spec = do
         if Map.null coveringBySuite
           then pure (MutationUncovered (UncoveredMutation record))
           else do
-            -- Run one child per covering suite; mutation is killed if any child fails.
-            outcomes <- mapM (runOneSuite defaultExe augDir mid) (Map.keys coveringBySuite)
-            pure $ case [() | Left () <- outcomes] of
-              (_ : _) -> MutationKilled
-              [] ->
-                MutationSurvived $
-                  let mRelFile = listToMaybe [rf | Right (Just rf) <- outcomes]
-                   in fmap (\relFile -> SurvivedMutation {survivedMutationRecord = record, survivedMutationLogFile = relFile}) mRelFile
+            -- Run one child per covering suite. The mutation is killed if any
+            -- child exits non-zero; timed out (counted as killed) if any
+            -- child exceeded its budget without any other child killing it
+            -- first; otherwise survived.
+            outcomes <- mapM (runOneSuite defaultExe augDir record mid) (Map.keys coveringBySuite)
+            pure $ classifyOutcomes record outcomes
 
-    -- Returns Left () when the mutation was killed (child exited non-zero),
-    -- Right (Just relFile) when survived and a log file was saved,
-    -- Right Nothing when survived but no log file was saved.
-    runOneSuite defaultExe augDir mid suiteName = do
+    classifyOutcomes record outcomes
+      | any isKilled outcomes = MutationKilled
+      | otherwise = case mTimedOut of
+          Just (elapsedMicros, mLog) ->
+            MutationTimedOut $
+              fmap
+                ( \relFile ->
+                    TimedOutMutation
+                      { timedOutMutationRecord = record,
+                        timedOutMutationElapsedMicros = elapsedMicros,
+                        timedOutMutationLogFile = relFile
+                      }
+                )
+                mLog
+          Nothing ->
+            MutationSurvived $
+              fmap
+                ( \relFile ->
+                    SurvivedMutation
+                      { survivedMutationRecord = record,
+                        survivedMutationLogFile = relFile
+                      }
+                )
+                mSurvived
+      where
+        isKilled SuiteKilled = True
+        isKilled _ = False
+        mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- outcomes]
+        mSurvived = listToMaybe [rf | SuiteSurvived (Just rf) <- outcomes]
+
+    runOneSuite defaultExe augDir record mid suiteName = do
       let suiteExes = settingMutationSuiteExes settings
           exe = fromMaybe defaultExe (Map.lookup suiteName suiteExes)
           rtsArgs = case settingMutationChildMemLimit settings of
@@ -339,28 +429,63 @@ runMutationMode settings _manifestDirs _spec = do
               setStdout (useHandleOpen logHandle) $
                 setStderr (useHandleOpen logHandle) $
                   proc exe args
-        ec <- runProcess childProc
+            -- Per-mutation wall-clock budget computed by the coverage phase.
+            timeoutMicros = augmentedMutationRecordTimeoutMicros record
+            -- Cap the threadDelay argument at maxBound Int so very large
+            -- budgets don't overflow when converted to the Int that
+            -- threadDelay expects.
+            micros =
+              if timeoutMicros >= fromIntegral (maxBound :: Int)
+                then maxBound :: Int
+                else fromIntegral timeoutMicros
+        startTime <- getCurrentTime
+        outcomeRaw <- startProcessAndWait childProc micros
+        endTime <- getCurrentTime
+        let elapsedMicros = diffUTCTimeMicros endTime startTime
         hClose logHandle
-        case ec of
-          ExitFailure _ -> pure (Left ())
-          ExitSuccess -> do
-            mRelFile <- case settingMutationReportDir settings of
-              Nothing -> pure Nothing
-              Just reportDir -> do
-                let logName =
-                      "survivor-"
-                        ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid)
-                        ++ ( if T.null suiteName
-                               then ""
-                               else "-" ++ suiteNameStr
-                           )
-                        ++ ".log"
-                case parseRelFile logName of
-                  Nothing -> pure Nothing
-                  Just relFile -> do
-                    copyFile logPath (reportDir </> relFile)
-                    pure (Just relFile)
-            pure (Right mRelFile)
+        case outcomeRaw of
+          Left () -> do
+            -- Timed out: parent killed the child. Preserve whatever the
+            -- child managed to write so the report retains useful context.
+            mRelFile <- copyChildLog "timeout-" mid suiteName logPath
+            pure (SuiteTimedOut elapsedMicros mRelFile)
+          Right ec -> case ec of
+            ExitFailure _ -> pure SuiteKilled
+            ExitSuccess -> do
+              mRelFile <- copyChildLog "survivor-" mid suiteName logPath
+              pure (SuiteSurvived mRelFile)
+
+    copyChildLog prefix mid suiteName logPath =
+      case settingMutationReportDir settings of
+        Nothing -> pure Nothing
+        Just reportDir -> do
+          let suiteNameStr = T.unpack suiteName
+              logName =
+                prefix
+                  ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid)
+                  ++ ( if T.null suiteName
+                         then ""
+                         else "-" ++ suiteNameStr
+                     )
+                  ++ ".log"
+          case parseRelFile logName of
+            Nothing -> pure Nothing
+            Just relFile -> do
+              copyFile logPath (reportDir </> relFile)
+              pure (Just relFile)
+
+    -- Race the child against a delay; on timeout, stop the process (SIGTERM
+    -- via System.Process.Typed's stopProcess; SIGKILL follows after the
+    -- library's grace period) and report a Left (timeout) outcome.
+    --
+    -- bracket guarantees the child is reaped on both the timeout-wins branch
+    -- and on async exceptions propagating into this thread.
+    startProcessAndWait childProc micros =
+      bracket (startProcess childProc) stopProcess $ \p -> do
+        result <- race (threadDelay micros) (waitExitCode p)
+        case result of
+          Left () -> pure (Left ())
+          Right ec -> pure (Right ec)
 
 -- | Child process: run only the tests covering a single mutation and exit
 -- with the appropriate exit code.
@@ -400,21 +525,47 @@ runSingleMutationMode settings _manifestDirs spec = do
     else exitSuccess
 
 renderMutationRunReport :: MutationRunReport -> [[Chunk]]
-renderMutationRunReport MutationRunReport {mutationRunReportKilled, mutationRunReportSurvived, mutationRunReportUncovered, mutationRunReportSurvivors} =
-  [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationRunReportKilled)))],
-    [chunk "Survived: ", fore red (chunk (T.pack (show mutationRunReportSurvived)))],
-    [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationRunReportUncovered)))]
-  ]
-    ++ if null mutationRunReportSurvivors
-      then []
-      else
-        [[], [chunk "Surviving mutations:"]]
-          ++ concatMap renderSurvivor mutationRunReportSurvivors
-  where
-    renderSurvivor sm =
-      let rec = survivedMutationRecord sm
-          mid = augmentedMutationRecordId rec
-       in [] : formatMutationLog mid rec
+renderMutationRunReport
+  MutationRunReport
+    { mutationRunReportKilled,
+      mutationRunReportSurvived,
+      mutationRunReportTimedOut,
+      mutationRunReportUncovered,
+      mutationRunReportSurvivors,
+      mutationRunReportTimedOutMutations
+    } =
+    [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationRunReportKilled)))],
+      [chunk "  (of which timed out: ", fore yellow (chunk (T.pack (show mutationRunReportTimedOut))), chunk ")"],
+      [chunk "Survived: ", fore red (chunk (T.pack (show mutationRunReportSurvived)))],
+      [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationRunReportUncovered)))]
+    ]
+      ++ ( if null mutationRunReportTimedOutMutations
+             then []
+             else
+               [[], [chunk "Timed-out mutations:"]]
+                 ++ concatMap renderTimedOut mutationRunReportTimedOutMutations
+         )
+      ++ ( if null mutationRunReportSurvivors
+             then []
+             else
+               [[], [chunk "Surviving mutations:"]]
+                 ++ concatMap renderSurvivor mutationRunReportSurvivors
+         )
+    where
+      renderSurvivor sm =
+        let rec = survivedMutationRecord sm
+            mid = augmentedMutationRecordId rec
+         in [] : formatMutationLog mid rec
+      renderTimedOut tm =
+        let rec = timedOutMutationRecord tm
+            mid = augmentedMutationRecordId rec
+            secs = fromIntegral (timedOutMutationElapsedMicros tm) / (1000000 :: Double)
+            header =
+              [ chunk "[timed out after ",
+                fore yellow (chunk (T.pack (show secs))),
+                chunk "s]"
+              ]
+         in [] : header : formatMutationLog mid rec
 
 renderMutationProgressEvent :: MutationProgressEvent -> [[Chunk]]
 renderMutationProgressEvent (MutationProgressEvent rec) =

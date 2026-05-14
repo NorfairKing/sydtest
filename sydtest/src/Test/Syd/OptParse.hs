@@ -113,7 +113,11 @@ data Settings = Settings
     settingMutationCoverageOne :: !(Maybe Text),
     -- | File path where a coverage child process writes its 'TestCoverageMap'
     -- result. Only used when 'settingMutationCoverageOne' is set.
-    settingMutationCoverageOutput :: !(Maybe FilePath)
+    settingMutationCoverageOutput :: !(Maybe FilePath),
+    -- | File path where a coverage child process writes its 'TestBaselineMap'
+    -- (one-entry: the elapsed wall-clock time of its single test).  Required
+    -- in coverage-child mode (paired with 'settingMutationCoverageOne').
+    settingMutationCoverageBaselineOutput :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -248,7 +252,8 @@ instance HasParser Settings where
                 settingMutationSuiteName = flagMutationSuiteName,
                 settingMutationSuiteExes = flagMutationSuiteExes,
                 settingMutationCoverageOne = flagMutationCoverageOne,
-                settingMutationCoverageOutput = flagMutationCoverageOutput
+                settingMutationCoverageOutput = flagMutationCoverageOutput,
+                settingMutationCoverageBaselineOutput = flagMutationCoverageBaselineOutput
               }
 
 defaultSettings :: Settings
@@ -286,7 +291,8 @@ defaultSettings =
           settingMutationSuiteName = Nothing,
           settingMutationSuiteExes = Map.empty,
           settingMutationCoverageOne = Nothing,
-          settingMutationCoverageOutput = Nothing
+          settingMutationCoverageOutput = Nothing,
+          settingMutationCoverageBaselineOutput = Nothing
         }
 
 -- 60 seconds
@@ -345,7 +351,8 @@ data Flags = Flags
     flagMutationSuiteName :: !(Maybe Text),
     flagMutationSuiteExes :: !(Map.Map Text FilePath),
     flagMutationCoverageOne :: !(Maybe Text),
-    flagMutationCoverageOutput :: !(Maybe FilePath)
+    flagMutationCoverageOutput :: !(Maybe FilePath),
+    flagMutationCoverageBaselineOutput :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -614,6 +621,16 @@ instance HasParser Flags where
             reader str,
             option,
             long "mutation-coverage-output",
+            metavar "FILE",
+            hidden
+          ]
+    flagMutationCoverageBaselineOutput <-
+      optional $
+        setting
+          [ help "File path where coverage child process writes its baseline timing (used internally)",
+            reader str,
+            option,
+            long "mutation-coverage-baseline-output",
             metavar "FILE",
             hidden
           ]

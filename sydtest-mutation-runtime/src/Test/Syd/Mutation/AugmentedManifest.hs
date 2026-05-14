@@ -15,6 +15,7 @@ module Test.Syd.Mutation.AugmentedManifest
     lookupAugmentedMutationRecord,
     fromMutationRecord,
     SurvivedMutation (..),
+    TimedOutMutation (..),
     UncoveredMutation (..),
     MutationRunReport (..),
     writeMutationRunReport,
@@ -61,7 +62,11 @@ data AugmentedMutationRecord = AugmentedMutationRecord
     -- name.  The empty string @""@ is used for anonymous\/single-suite setups
     -- (backward-compatible with the old flat list format).
     -- Always present (coverage was collected before writing this file).
-    augmentedMutationRecordCoveringTests :: Map.Map Text [TestId]
+    augmentedMutationRecordCoveringTests :: Map.Map Text [TestId],
+    -- | Wall-clock timeout (in microseconds) to apply to a mutation child
+    -- running this mutation.  Derived during the coverage phase as
+    -- @max 30_000_000 (10 * sum baselines_of_covering_tests)@.
+    augmentedMutationRecordTimeoutMicros :: Word
   }
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec AugmentedMutationRecord)
@@ -89,6 +94,7 @@ instance HasCodec AugmentedMutationRecord where
         <*> optionalFieldWithDefault' "context_before" [] .= augmentedMutationRecordContextBefore
         <*> optionalFieldWithDefault' "context_after" [] .= augmentedMutationRecordContextAfter
         <*> optionalFieldWithDefaultWith' "covering_tests" coveringTestsCodec Map.empty .= augmentedMutationRecordCoveringTests
+        <*> requiredField' "timeout_micros" .= augmentedMutationRecordTimeoutMicros
 
 instance Validity AugmentedMutationRecord where
   validate = trivialValidation
@@ -158,7 +164,13 @@ mergeAugmentedManifests (AugmentedManifest base) (AugmentedManifest new) =
                 Map.unionWith
                   (++)
                   (augmentedMutationRecordCoveringTests r)
-                  (augmentedMutationRecordCoveringTests r')
+                  (augmentedMutationRecordCoveringTests r'),
+              -- Take the larger of the two timeouts so a generously-budgeted
+              -- suite is not penalised when merged with a stricter one.
+              augmentedMutationRecordTimeoutMicros =
+                max
+                  (augmentedMutationRecordTimeoutMicros r)
+                  (augmentedMutationRecordTimeoutMicros r')
             }
 
 -- | O(n) lookup by 'MutationId'.
@@ -184,6 +196,28 @@ instance HasCodec SurvivedMutation where
         <$> requiredField' "mutation" .= survivedMutationRecord
         <*> requiredFieldWith' "log_file" relFileCodec .= survivedMutationLogFile
 
+-- | A mutation child that exceeded its wall-clock timeout and was killed by
+-- the parent.  Treated as killed for the overall score (a hung mutation is
+-- still a broken mutation), but reported separately for visibility.
+data TimedOutMutation = TimedOutMutation
+  { timedOutMutationRecord :: AugmentedMutationRecord,
+    -- | Wall-clock microseconds elapsed before the parent killed the child.
+    timedOutMutationElapsedMicros :: Word,
+    -- | Path to the raw child output file (the bit produced before the kill),
+    -- relative to the report directory.
+    timedOutMutationLogFile :: Path Rel File
+  }
+  deriving stock (Show, Eq)
+  deriving (Aeson.ToJSON) via (Autodocodec TimedOutMutation)
+
+instance HasCodec TimedOutMutation where
+  codec =
+    object "TimedOutMutation" $
+      TimedOutMutation
+        <$> requiredField' "mutation" .= timedOutMutationRecord
+        <*> requiredField' "elapsed_micros" .= timedOutMutationElapsedMicros
+        <*> requiredFieldWith' "log_file" relFileCodec .= timedOutMutationLogFile
+
 -- | A mutation that was not covered by any test (never executed).
 newtype UncoveredMutation = UncoveredMutation
   { uncoveredMutationRecord :: AugmentedMutationRecord
@@ -198,11 +232,19 @@ instance HasCodec UncoveredMutation where
         <$> requiredField' "mutation" .= uncoveredMutationRecord
 
 -- | Full JSON report written by the parent mutation process.
+--
+-- 'mutationRunReportKilled' includes timed-out mutations (a hung mutation is
+-- treated as killed for scoring).  'mutationRunReportTimedOut' is the count of
+-- those specifically, and 'mutationRunReportTimedOutMutations' is the
+-- accompanying detail list, so callers can distinguish a normal kill from a
+-- runaway one.
 data MutationRunReport = MutationRunReport
-  { mutationRunReportKilled :: Int,
-    mutationRunReportSurvived :: Int,
-    mutationRunReportUncovered :: Int,
+  { mutationRunReportKilled :: Word,
+    mutationRunReportSurvived :: Word,
+    mutationRunReportTimedOut :: Word,
+    mutationRunReportUncovered :: Word,
     mutationRunReportSurvivors :: [SurvivedMutation],
+    mutationRunReportTimedOutMutations :: [TimedOutMutation],
     mutationRunReportUncoveredMutations :: [UncoveredMutation]
   }
   deriving stock (Show, Eq)
@@ -214,8 +256,10 @@ instance HasCodec MutationRunReport where
       MutationRunReport
         <$> requiredField' "killed" .= mutationRunReportKilled
         <*> requiredField' "survived" .= mutationRunReportSurvived
+        <*> requiredField' "timed_out" .= mutationRunReportTimedOut
         <*> requiredField' "uncovered" .= mutationRunReportUncovered
         <*> requiredField' "survivors" .= mutationRunReportSurvivors
+        <*> requiredField' "timed_out_mutations" .= mutationRunReportTimedOutMutations
         <*> requiredField' "uncovered_mutations" .= mutationRunReportUncoveredMutations
 
 mutationRunReportRelFile :: Path Rel File
@@ -250,7 +294,12 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             augmentedMutationRecordMutatedLines = mutRecMutatedLines,
             augmentedMutationRecordContextBefore = mutRecContextBefore,
             augmentedMutationRecordContextAfter = mutRecContextAfter,
-            augmentedMutationRecordCoveringTests = ts
+            augmentedMutationRecordCoveringTests = ts,
+            -- Filled in later by 'annotateRecord' in runCoverageMode; this
+            -- code path constructs the record from a raw MutationRecord
+            -- that has no baseline info, so we use the 30s floor as a
+            -- safe initial value.
+            augmentedMutationRecordTimeoutMicros = 30000000
           }
 
 -- | A mutation that is about to be tested, used as the progress log event.

@@ -90,6 +90,7 @@ library
     , svg-builder
     , sydtest-mutation-runtime
     , text
+    , time
     , typed-process
     , vector
   default-language: Haskell2010

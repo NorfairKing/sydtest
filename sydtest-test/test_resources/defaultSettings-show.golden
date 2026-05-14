@@ -25,9 +25,11 @@ Settings
   , settingMutationAugmentedManifestDir = Nothing
   , settingMutationOne = Nothing
   , settingMutationChildMemLimit = Nothing
+  , settingMutationCoverageJobs = Nothing
   , settingMutationReportDir = Nothing
   , settingMutationSuiteName = Nothing
   , settingMutationSuiteExes = fromList []
   , settingMutationCoverageOne = Nothing
   , settingMutationCoverageOutput = Nothing
+  , settingMutationCoverageBaselineOutput = Nothing
   }

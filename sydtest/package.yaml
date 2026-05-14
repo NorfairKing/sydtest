@@ -46,6 +46,7 @@ library:
     - svg-builder
     - sydtest-mutation-runtime
     - text
+    - time
     - typed-process
     - vector
   when:

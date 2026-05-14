@@ -92,11 +92,11 @@ rawDoAction ::
   Type ->
   InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 rawDoAction ann x ctx lann stmts ty =
-  let removable = [i | (i, s) <- zip [0 ..] stmts, isRemovableStmt s]
+  let removable = [(i, s) | (i, s) <- zip [0 ..] stmts, isRemovableStmt s]
       n = length stmts
-      mkMutation i =
+      mkMutation i s =
         let stmts' = take i stmts ++ drop (i + 1) stmts
-            removedSpan = case getLocA (stmts !! i) of
+            removedSpan = case getLocA s of
               RealSrcSpan rss _ -> [rss]
               UnhelpfulSpan _ -> []
          in ( ty,
@@ -105,4 +105,4 @@ rawDoAction ann x ctx lann stmts ty =
               show (n - 1) ++ " statements (removed #" ++ show (i + 1) ++ ")",
               SpanRemoval removedSpan
             )
-   in pure [mkMutation i | i <- removable]
+   in pure [mkMutation i s | (i, s) <- removable]

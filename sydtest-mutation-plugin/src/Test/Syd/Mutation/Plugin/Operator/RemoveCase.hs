@@ -29,10 +29,10 @@ action ::
   InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 action ann x scrut mgx lann alts ty =
   let n = length alts
-      mkMutation i =
+      mkMutation i alt =
         let alts' = take i alts ++ drop (i + 1) alts
             mg' = MG mgx (L lann alts')
-            removedSpan = case getLocA (alts !! i) of
+            removedSpan = case getLocA alt of
               RealSrcSpan rss _ -> [rss]
               UnhelpfulSpan _ -> []
          in ( ty,
@@ -41,4 +41,4 @@ action ann x scrut mgx lann alts ty =
               show (n - 1) ++ " alternatives (removed #" ++ show (i + 1) ++ ")",
               SpanRemoval removedSpan
             )
-   in pure [mkMutation i | i <- [0 .. n - 1]]
+   in pure [mkMutation i alt | (i, alt) <- zip [0 ..] alts]

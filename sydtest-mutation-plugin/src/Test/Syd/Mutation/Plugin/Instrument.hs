@@ -11,6 +11,7 @@ module Test.Syd.Mutation.Plugin.Instrument
     liftTcM,
     runInstrument,
     instrumentModule,
+    applySpanRemoval,
   )
 where
 
@@ -486,7 +487,7 @@ recordMutation le op origStr replStr delta = do
                     endIdx = lineNumEnd - 1
                     before = reverse $ take 3 $ reverse $ take startIdx ls
                     after = take 3 $ drop (endIdx + 1) ls
-                    srcSpanLines = [ls !! i | i <- [startIdx .. endIdx], i >= 0, i < length ls]
+                    srcSpanLines = [line | (i, line) <- zip [0 :: Int ..] ls, i >= startIdx, i <= endIdx]
                     mutLines = applyDelta ls lineNum lineNumEnd colStart colEnd delta srcSpanLines
                  in (Just relFile, before, after, srcSpanLines, mutLines)
       let record =
@@ -580,10 +581,20 @@ applyTokenReplace colS colE newText (line : rest) =
    in (before <> newText <> after) : rest
 
 -- | Remove lines belonging to any of the given spans from the outer span's line range.
+--
+-- Lines outside the range @[1 .. length allLines]@ are silently dropped: this
+-- happens when GHC source spans refer to a preprocessor-generated source
+-- (e.g. via @-pgmF sydtest-discover@) while @allLines@ is the original
+-- on-disk @.hs@ file, which is shorter.
 applySpanRemoval :: [T.Text] -> Int -> Int -> [RealSrcSpan] -> [T.Text]
 applySpanRemoval allLines outerStart outerEnd rmSpans =
   let removed = Set.fromList [l | rss <- rmSpans, l <- [srcSpanStartLine rss .. srcSpanEndLine rss]]
-   in [allLines !! (i - 1) | i <- [outerStart .. outerEnd], Set.notMember i removed]
+   in [ line
+      | (i, line) <- zip [1 ..] allLines,
+        i >= outerStart,
+        i <= outerEnd,
+        Set.notMember i removed
+      ]
 
 -- | Prepend text at the column position of the start of the span.
 applyPrependText :: Int -> T.Text -> [T.Text] -> [T.Text]

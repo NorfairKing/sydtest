@@ -34,6 +34,40 @@
     ]
   },
   {
+    "col_end": 23,
+    "col_start": 13,
+    "context_after": [
+      "",
+      "-- | Negates a wrapped boolean.",
+      "negateWrapped :: Maybe Bool -> Maybe Bool"
+    ],
+    "context_before": [
+      "--",
+      "-- Mutation sites: BoolLit/ConstBool on the inner False, MaybeOp on Just False.",
+      "wrapFalse :: Maybe Bool"
+    ],
+    "id": [
+      "Example.BoolLib",
+      "MaybeOp",
+      "18",
+      "13",
+      "23",
+      "Nothing"
+    ],
+    "line": 18,
+    "module": "Example.BoolLib",
+    "mutated_lines": [
+      "wrapFalse = Nothing"
+    ],
+    "operator": "MaybeOp",
+    "original": "Just e",
+    "replacement": "Nothing",
+    "source_file": "src/Example/BoolLib.hs",
+    "source_lines": [
+      "wrapFalse = Just False"
+    ]
+  },
+  {
     "col_end": 21,
     "col_start": 17,
     "context_after": [
@@ -62,6 +96,40 @@
     "operator": "BoolLit",
     "original": "True",
     "replacement": "False",
+    "source_file": "src/Example/BoolLib.hs",
+    "source_lines": [
+      "wrapTrue = Just True"
+    ]
+  },
+  {
+    "col_end": 21,
+    "col_start": 12,
+    "context_after": [
+      "",
+      "-- | Wraps False in Just.",
+      "--"
+    ],
+    "context_before": [
+      "--",
+      "-- Mutation sites: BoolLit/ConstBool on the inner True, MaybeOp on Just True.",
+      "wrapTrue :: Maybe Bool"
+    ],
+    "id": [
+      "Example.BoolLib",
+      "MaybeOp",
+      "12",
+      "12",
+      "21",
+      "Nothing"
+    ],
+    "line": 12,
+    "module": "Example.BoolLib",
+    "mutated_lines": [
+      "wrapTrue = Nothing"
+    ],
+    "operator": "MaybeOp",
+    "original": "Just e",
+    "replacement": "Nothing",
     "source_file": "src/Example/BoolLib.hs",
     "source_lines": [
       "wrapTrue = Just True"

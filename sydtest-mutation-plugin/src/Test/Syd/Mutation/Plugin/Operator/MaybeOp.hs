@@ -22,11 +22,14 @@ theOperator =
         _ -> Nothing
     }
 
--- | Extract the OccName string of the function in an application,
--- handling type-checker wrappers.
+-- | Extract the OccName string of the function in an application, handling
+-- typechecker wrappers.  After typechecking, data constructors like @Just@
+-- are rewritten from @HsVar@ to @XExpr (ConLikeTc ...)@, so we have to
+-- inspect that form too — mirroring 'BoolLit.extractBoolLit'.
 funOccName :: LHsExpr GhcTc -> Maybe String
 funOccName = \case
   L _ (HsVar _ (L _ v)) -> Just (getOccString v)
+  L _ (XExpr (ConLikeTc con _ _)) -> Just (getOccString con)
   L _ (XExpr (WrapExpr (HsWrap _ e))) -> funOccName (noLocA e)
   _ -> Nothing
 

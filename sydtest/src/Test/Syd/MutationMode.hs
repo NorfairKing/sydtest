@@ -100,7 +100,8 @@ import Test.Syd.SpecDef
 import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
--- subprocess per test (up to N concurrently, N = 'getNumCapabilities'),
+-- subprocess per test (up to N concurrently, N defaults to
+-- 'getNumCapabilities' but can be overridden with @--mutation-coverage-jobs@),
 -- merge the resulting 'TestCoverageMap's, and write (or merge into)
 -- @manifest-augmented.json@ in @settingMutationAugmentedManifestDir@.
 --
@@ -114,7 +115,9 @@ runCoverageMode settings manifestDirs spec = do
   let leafIds = map fst (flattenTestForestWithIds specForest)
       total = length leafIds
   defaultExe <- getExecutablePath
-  n <- getNumCapabilities
+  n <- case settingMutationCoverageJobs settings of
+    Just j | j > 0 -> pure j
+    _ -> getNumCapabilities
   sem <- newQSem n
   coverageMaps <-
     mapConcurrently

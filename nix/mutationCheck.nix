@@ -25,6 +25,11 @@
 # - assertNoneUncovered: also fail the check derivation if any mutations are uncovered (default: true)
 # - debug: print each mutation site as it is recorded (for debugging the plugin)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
+# - coverageJobs: maximum number of coverage children to run concurrently.
+#       Defaults to the build-sandbox's RTS capability count, which is too
+#       aggressive for test suites that spawn expensive per-test resources
+#       (e.g. tmp-postgres). Set this to cap the parallelism. 'null' leaves
+#       the default in place.
 #
 # The mutations are run inside the Cabal build's checkPhase of the first test
 # package, so test resources (golden files, data files) are available at
@@ -42,6 +47,7 @@
 , assertNoneUncovered ? true
 , debug ? false
 , ghcMemLimit ? "16g"
+, coverageJobs ? null
 }:
 
 let
@@ -101,6 +107,8 @@ let
   coverageFlags = pkgs.lib.concatMapStringsSep " "
     (m: "--mutation-coverage ${m}")
     manifests;
+  coverageJobsFlag = pkgs.lib.optionalString (coverageJobs != null)
+    "--mutation-coverage-jobs ${toString coverageJobs}";
   mutationFlags = pkgs.lib.concatMapStringsSep " "
     (m: "--mutation ${m}")
     manifests;
@@ -128,7 +136,7 @@ let
     (pkg: ''
       echo "mutation-nix: collecting coverage for suite ${pkg}"
       storeExe=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)
-      "$storeExe" +RTS -M4g -RTS ${coverageFlags} \
+      "$storeExe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} \
         --mutation-suite-name ${pkg} \
         --mutation-augmented-manifest-dir augmented
     '')
@@ -152,7 +160,7 @@ let
           echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
           # +RTS -M4g -RTS: cap the test process heap to 4 GB to avoid OOM in
           # the Nix sandbox, where memory is shared with the builder.
-          "$exe" +RTS -M4g -RTS ${coverageFlags} \
+          "$exe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} \
             --mutation-suite-name ${firstTestPkg} \
             --mutation-augmented-manifest-dir augmented
           ${extraCoverageScript}

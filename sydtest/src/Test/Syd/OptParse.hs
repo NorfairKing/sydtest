@@ -95,6 +95,9 @@ data Settings = Settings
     -- | RTS heap limit to pass to each mutation child process (e.g. @"4g"@).
     -- 'Nothing' means no limit is passed.
     settingMutationChildMemLimit :: !(Maybe String),
+    -- | Maximum number of coverage children to run concurrently.
+    -- 'Nothing' means use 'getNumCapabilities'.
+    settingMutationCoverageJobs :: !(Maybe Int),
     -- | Directory where @report.json@ is written by the parent mutation process.
     -- 'Nothing' means no JSON report is written.
     settingMutationReportDir :: !(Maybe (Path Abs Dir)),
@@ -240,6 +243,7 @@ instance HasParser Settings where
                 settingMutationAugmentedManifestDir = flagMutationAugmentedManifestDir,
                 settingMutationOne = flagMutationOne,
                 settingMutationChildMemLimit = flagMutationChildMemLimit,
+                settingMutationCoverageJobs = flagMutationCoverageJobs,
                 settingMutationReportDir = flagMutationReportDir,
                 settingMutationSuiteName = flagMutationSuiteName,
                 settingMutationSuiteExes = flagMutationSuiteExes,
@@ -277,6 +281,7 @@ defaultSettings =
           settingMutationAugmentedManifestDir = Nothing,
           settingMutationOne = Nothing,
           settingMutationChildMemLimit = Nothing,
+          settingMutationCoverageJobs = Nothing,
           settingMutationReportDir = Nothing,
           settingMutationSuiteName = Nothing,
           settingMutationSuiteExes = Map.empty,
@@ -335,6 +340,7 @@ data Flags = Flags
     flagMutationAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
     flagMutationOne :: !(Maybe String),
     flagMutationChildMemLimit :: !(Maybe String),
+    flagMutationCoverageJobs :: !(Maybe Int),
     flagMutationReportDir :: !(Maybe (Path Abs Dir)),
     flagMutationSuiteName :: !(Maybe Text),
     flagMutationSuiteExes :: !(Map.Map Text FilePath),
@@ -552,6 +558,15 @@ instance HasParser Flags where
             option,
             long "mutation-child-mem-limit",
             metavar "SIZE"
+          ]
+    flagMutationCoverageJobs <-
+      optional $
+        setting
+          [ help "Maximum number of coverage child processes to run concurrently. Defaults to the RTS capability count.",
+            reader auto,
+            option,
+            long "mutation-coverage-jobs",
+            metavar "INTEGER"
           ]
     flagMutationReportDir <-
       optional $

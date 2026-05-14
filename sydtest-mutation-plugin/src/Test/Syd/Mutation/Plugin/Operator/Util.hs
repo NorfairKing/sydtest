@@ -127,16 +127,23 @@ mkOpReplacement rdrEnv l origOp r replOccStr = do
           userError $
             "mutation: replacement operator " ++ replOccStr ++ " not in scope"
   let replOp = substOpId replId origOp
-      inner = noLocA (HsApp NoExtField replOp l)
-      outer = noLocA (HsApp NoExtField inner r)
+      inner = mkHsApp replOp l
+      outer = mkHsApp inner r
   pure outer
   where
-    -- Replace the innermost HsVar id in the op expression, preserving wraps.
+    -- Replace the innermost HsVar id in the op expression, preserving the
+    -- surrounding 'HsApp', 'HsAppType', 'HsPar', and 'WrapExpr' wrappers that
+    -- carry the typechecker's type and dictionary applications. Mirrors the
+    -- structure 'opOccName' walks: substOpId must reach the same 'HsVar' that
+    -- 'opOccName' would have returned the OccName for.
     substOpId :: Id -> LHsExpr GhcTc -> LHsExpr GhcTc
     substOpId newId = \case
       L ann (HsVar x (L l' _)) -> L ann (HsVar x (L l' newId))
       L ann (XExpr (WrapExpr (HsWrap w e))) ->
         L ann (XExpr (WrapExpr (HsWrap w (unLoc (substOpId newId (noLocA e))))))
+      L ann (HsApp x f a) -> L ann (HsApp x (substOpId newId f) a)
+      L ann (HsAppType x f t) -> L ann (HsAppType x (substOpId newId f) t)
+      L ann (HsPar x e) -> L ann (HsPar x (substOpId newId e))
       other -> other
 
 -- | Build a replacement integer literal expression without any validation.

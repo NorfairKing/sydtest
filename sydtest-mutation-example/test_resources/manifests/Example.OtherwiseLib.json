@@ -46,6 +46,105 @@
     ],
     "id": [
       "Example.OtherwiseLib",
+      "Cmp",
+      "12",
+      "5",
+      "10",
+      "<="
+    ],
+    "line": 12,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | n <= 0 = \"negative\""
+    ],
+    "operator": "Cmp",
+    "original": "<",
+    "replacement": "<=",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n < 0 = \"negative\""
+    ]
+  },
+  {
+    "col_end": 10,
+    "col_start": 5,
+    "context_after": [
+      "  | n == 0 = \"zero\"",
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+      "classify :: Int -> String",
+      "classify n"
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "Cmp",
+      "12",
+      "5",
+      "10",
+      ">"
+    ],
+    "line": 12,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | n > 0 = \"negative\""
+    ],
+    "operator": "Cmp",
+    "original": "<",
+    "replacement": ">",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n < 0 = \"negative\""
+    ]
+  },
+  {
+    "col_end": 10,
+    "col_start": 5,
+    "context_after": [
+      "  | n == 0 = \"zero\"",
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+      "classify :: Int -> String",
+      "classify n"
+    ],
+    "id": [
+      "Example.OtherwiseLib",
+      "Cmp",
+      "12",
+      "5",
+      "10",
+      ">="
+    ],
+    "line": 12,
+    "module": "Example.OtherwiseLib",
+    "mutated_lines": [
+      "  | n >= 0 = \"negative\""
+    ],
+    "operator": "Cmp",
+    "original": "<",
+    "replacement": ">=",
+    "source_file": "src/Example/OtherwiseLib.hs",
+    "source_lines": [
+      "  | n < 0 = \"negative\""
+    ]
+  },
+  {
+    "col_end": 10,
+    "col_start": 5,
+    "context_after": [
+      "  | n == 0 = \"zero\"",
+      "  | otherwise = \"positive\""
+    ],
+    "context_before": [
+      "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+      "classify :: Int -> String",
+      "classify n"
+    ],
+    "id": [
+      "Example.OtherwiseLib",
       "ConstBool",
       "12",
       "5",

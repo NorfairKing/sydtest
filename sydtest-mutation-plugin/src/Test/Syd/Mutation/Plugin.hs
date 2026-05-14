@@ -77,7 +77,18 @@ plugin =
                     Opt_WarnIncompleteUniPatterns
                   ]
             },
-      pluginRecompile = impurePlugin
+      -- Recompile only when plugin flags change. We previously used
+      -- 'impurePlugin' (always force recompile), but that prevents the
+      -- two-step build in nix/addManifest.nix from working: the postBuild
+      -- step that compiles test-suites/executables re-invokes 'Setup build'
+      -- with the same plugin flags, and with 'impurePlugin' GHC would
+      -- recompile the already-instrumented library un-instrumented (the
+      -- env-var kill switch tells the plugin to instrument nothing).
+      -- 'flagRecompile' fingerprints only the plugin's CLI options, so the
+      -- library is not recompiled when the flags are identical between the
+      -- two invocations. Source-level changes still trigger recompile via
+      -- GHC's normal mechanism.
+      pluginRecompile = flagRecompile
     }
 
 -- | Inject @import Test.Syd.Mutation.Plugin.Runtime ()@ into every instrumented module.
@@ -109,7 +120,14 @@ mutationTypeCheckAction opts ms tcGblEnv = do
   let mn = moduleNameString (moduleName (tcg_mod tcGblEnv))
   let exceptions = mapMaybe (stripPrefix "--exception=") opts
   let manifestDirOpt = mapMaybe (stripPrefix "--manifest=") opts
-  if "Paths_" `isPrefixOf` mn || mn `elem` exceptions
+  -- Runtime kill switch: when MUTATION_PLUGIN_SKIP is set, the plugin loads
+  -- but instruments nothing. The Nix build sets this when re-invoking
+  -- 'Setup build' to compile non-library components (test-suites, executables,
+  -- benchmarks) — those should not be instrumented, but we cannot drop the
+  -- plugin flags from that invocation without making Cabal rebuild the
+  -- already-instrumented library un-instrumented.
+  skip <- liftIO $ lookupEnv "MUTATION_PLUGIN_SKIP"
+  if "Paths_" `isPrefixOf` mn || mn `elem` exceptions || skip == Just "1"
     then pure tcGblEnv
     else do
       let debug = "--debug" `elem` opts

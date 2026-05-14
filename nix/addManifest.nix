@@ -39,6 +39,13 @@ in
   # mutation testing and slows the build without benefit.
   enableStaticLibraries = false;
   buildDepends = (old.buildDepends or [ ]) ++ [ mutationPlugin ];
+  # Limit the main 'Setup build' to the library component. Without this,
+  # Cabal would compile every enabled component (test-suites, executables,
+  # benchmarks) with the same --ghc-options=-fplugin=... we set below,
+  # instrumenting them too. The remaining components are built in
+  # postBuild with the plugin loaded but its instrumentation suppressed
+  # via the MUTATION_PLUGIN_SKIP env var (see the postBuild comment).
+  buildTarget = "lib:${old.pname}";
   buildFlags = (old.buildFlags or [ ]) ++ [
     # Activate the plugin for every compiled module.
     "--ghc-option=-fplugin=Test.Syd.Mutation.Plugin"
@@ -69,9 +76,23 @@ in
     mkdir -p "$manifest"
     export MUTATION_MANIFEST_DIR="$manifest"
   '';
+  # The main 'Setup build' invocation (driven by buildFlags above) has
+  # 'lib:${old.pname}' as its buildTarget so only the library is compiled
+  # with the plugin. Remaining components (test-suites, executables,
+  # benchmarks) are built in postBuild with the plugin still loaded but
+  # silenced via MUTATION_PLUGIN_SKIP=1. We can NOT just drop the plugin
+  # flags in the second build: Cabal sees the package set change
+  # ('[sydtest-mutation-plugin removed]') and rebuilds the library
+  # un-instrumented. Keeping the same flags and using a runtime kill switch
+  # lets the library's compiled artefacts survive intact.
   postBuild = (old.postBuild or "") + ''
     echo "mutation-nix: manifest output at $manifest:"
     ls -la "$manifest/" || echo "(empty)"
+    echo "mutation-nix: building remaining components with plugin silenced"
+    MUTATION_PLUGIN_SKIP=1 ./Setup build \
+      --ghc-option=-fplugin=Test.Syd.Mutation.Plugin \
+      --ghc-option=-plugin-package=sydtest-mutation-plugin \
+      --ghc-option=-package=sydtest-mutation-plugin
   '';
 })).overrideAttrs (old: {
   outputs = (old.outputs or [ "out" ]) ++ [ "manifest" ];

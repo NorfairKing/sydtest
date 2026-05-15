@@ -1,7 +1,7 @@
 {
     "killed": 5,
     "survived": 1,
-    "survivors": [
+    "survived_mutations": [
         {
             "log_file": "children/Foo.Bar-ArithOp-5-14-15.txt",
             "mutation": {

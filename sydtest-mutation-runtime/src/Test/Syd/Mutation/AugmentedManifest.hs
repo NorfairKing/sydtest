@@ -258,7 +258,7 @@ instance HasCodec MutationRunReport where
         <*> requiredField' "survived" .= mutationRunReportSurvived
         <*> requiredField' "timed_out" .= mutationRunReportTimedOut
         <*> requiredField' "uncovered" .= mutationRunReportUncovered
-        <*> requiredField' "survivors" .= mutationRunReportSurvivors
+        <*> requiredField' "survived_mutations" .= mutationRunReportSurvivors
         <*> requiredField' "timed_out_mutations" .= mutationRunReportTimedOutMutations
         <*> requiredField' "uncovered_mutations" .= mutationRunReportUncoveredMutations
 

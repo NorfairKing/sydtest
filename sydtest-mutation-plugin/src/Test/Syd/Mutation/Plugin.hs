@@ -202,8 +202,12 @@ mutationTypeCheckAction opts ms tcGblEnv = do
       let modAnns = findAnns deserializeWithData annEnv (ModuleTarget (tcg_mod tcGblEnv)) :: [String]
       let disabledFromModAnns = parseMutationAnnStrings modAnns
       -- A "disable-mutations" annotation with no names means disable all
+      -- mutations for this module.  Skip both the AST walk and the splice-
+      -- span lookup; the module's compiled artefacts are returned unchanged.
       if DisableAll `elem` disabledFromModAnns
-        then pure tcGblEnv
+        then do
+          liftIO $ putStrLn $ "mutation: skipping " ++ mn ++ " (DisableMutations)"
+          pure tcGblEnv
         else do
           let disabledNames = disabledFromOpts ++ [n | DisableNamed n <- disabledFromModAnns]
           liftIO $ putStrLn $ "mutation: instrumenting " ++ mn

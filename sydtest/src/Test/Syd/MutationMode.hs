@@ -117,31 +117,41 @@ import Text.Colour (Chunk, back, chunk, cyan, fore, green, hPutChunksLocaleWith,
 -- multiple suites can be run sequentially.
 runCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runCoverageMode settings manifestDirs spec = do
-  specForest <- execTestDefM settings spec
-  let leafIds = map fst (flattenTestForestWithIds specForest)
-      total = length leafIds
-  defaultExe <- getExecutablePath
-  n <- case settingMutationCoverageJobs settings of
-    Just j | j > 0 -> pure j
-    _ -> getNumCapabilities
-  sem <- newQSem n
-  childResults <-
-    mapConcurrently
-      (runCoverageChild defaultExe settings manifestDirs sem total)
-      (zip [1 :: Int ..] leafIds)
-  let (coverageMaps, baselineMaps) = unzip childResults
-      TestCoverageMap coverageMap = mconcat coverageMaps
-      TestBaselineMap baselineMap = mconcat baselineMaps
-      mutationCoverage = invertCoverageMap coverageMap
-      suiteName = fromMaybe "" (settingMutationSuiteName settings)
-  allRecords <- mconcat <$> mapM readManifestDir manifestDirs
-  let newAugmented = buildAugmentedManifest suiteName mutationCoverage baselineMap allRecords
+  -- Short-circuit: if the mutation manifest has no records at all (every
+  -- module is disabled, e.g. via {-# ANN module ("DisableMutations" ...) #-},
+  -- or the library has no instrumentable expressions), there is no work to
+  -- do. Spawning one coverage child per leaf test would still run every
+  -- test once — wasted setup cost when no mutation can possibly be covered.
+  allRecords@(MutationManifest records) <- mconcat <$> mapM readManifestDir manifestDirs
   augDir <- resolveAugmentedManifestDir settings
-  existing <- readAugmentedManifestFileIfExists augDir
-  let augmented = case existing of
-        Nothing -> newAugmented
-        Just prev -> mergeAugmentedManifests prev newAugmented
-  writeAugmentedManifestFile augDir augmented
+  let suiteName = fromMaybe "" (settingMutationSuiteName settings)
+  if null records
+    then do
+      existing <- readAugmentedManifestFileIfExists augDir
+      writeAugmentedManifestFile augDir (fromMaybe (AugmentedManifest []) existing)
+    else do
+      specForest <- execTestDefM settings spec
+      let leafIds = map fst (flattenTestForestWithIds specForest)
+          total = length leafIds
+      defaultExe <- getExecutablePath
+      n <- case settingMutationCoverageJobs settings of
+        Just j | j > 0 -> pure j
+        _ -> getNumCapabilities
+      sem <- newQSem n
+      childResults <-
+        mapConcurrently
+          (runCoverageChild defaultExe settings manifestDirs sem total)
+          (zip [1 :: Int ..] leafIds)
+      let (coverageMaps, baselineMaps) = unzip childResults
+          TestCoverageMap coverageMap = mconcat coverageMaps
+          TestBaselineMap baselineMap = mconcat baselineMaps
+          mutationCoverage = invertCoverageMap coverageMap
+      let newAugmented = buildAugmentedManifest suiteName mutationCoverage baselineMap allRecords
+      existing <- readAugmentedManifestFileIfExists augDir
+      let augmented = case existing of
+            Nothing -> newAugmented
+            Just prev -> mergeAugmentedManifests prev newAugmented
+      writeAugmentedManifestFile augDir augmented
   where
     runCoverageChild defaultExe settings' manifestDirs' sem total (i, tid) =
       bracket_ (waitQSem sem) (signalQSem sem) $

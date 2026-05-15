@@ -501,13 +501,21 @@ containsSpan outer inner =
     endsBefore = innerEnd <= outerEnd
 
 -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
+--
+-- The 1-based @altIndex@ disambiguates alternatives that an operator emits
+-- with identical @replStr@ text: e.g. ListLit's drop-first and drop-last on a
+-- 3-element list both have replStr "2 elements", and without an index the
+-- 'MutationId's would collide.  The index is appended as the last component
+-- of the id.
 applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-applyAlts opName ((ty, mutated, origStr, replStr, delta) :| rest) original = do
-  mid <- recordMutation original opName origStr replStr delta
-  inner <- case rest of
-    [] -> pure original
-    (a : as) -> applyAlts opName (a :| as) original
-  wrapWithIfMutation ty mid mutated inner
+applyAlts opName alts original = go 1 alts
+  where
+    go altIndex ((ty, mutated, origStr, replStr, delta) :| rest) = do
+      mid <- recordMutation original opName origStr replStr delta altIndex
+      inner <- case rest of
+        [] -> pure original
+        (a : as) -> go (altIndex + 1) (a :| as)
+      wrapWithIfMutation ty mid mutated inner
 
 -- | Record one mutation site and return its 'MutationId'.
 recordMutation ::
@@ -516,8 +524,12 @@ recordMutation ::
   String ->
   String ->
   SrcSpanDelta ->
+  -- | 1-based index of this alternative within the operator's match.
+  -- Appended to the id so alternatives with identical @replStr@ text do not
+  -- collide.
+  Int ->
   InstrM MutationId
-recordMutation le op origStr replStr delta = do
+recordMutation le op origStr replStr delta altIndex = do
   InstrumentEnv {instrModule, instrSourceFile, instrSkipThSplices, instrSpliceSpans} <- ask
   let sp = getLocA le
   case sp of
@@ -537,7 +549,8 @@ recordMutation le op origStr replStr delta = do
                 show lineNum,
                 show colStart,
                 show colEnd,
-                replStr
+                replStr,
+                show altIndex
               ]
           lineNumEnd = srcSpanEndLine rss
           (mSrcFile, ctxBefore, ctxAfter, spanLines, mutatedLines) =
@@ -577,7 +590,10 @@ recordMutation le op origStr replStr delta = do
               let filePath = case mutRecSourceFile record of
                     Just p -> fromRelFile p
                     Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
-               in putStrLn $ "added mutation " ++ T.unpack (mutRecOperator record) ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+                  variantSuffix = case parts of
+                    [_, _, _, _, _, _, altIdx] -> " #" ++ altIdx
+                    _ -> ""
+               in putStrLn $ "added mutation " ++ T.unpack (mutRecOperator record) ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
             _ -> putStrLn $ "added mutation " ++ show parts
       tell [record]
       pure mid

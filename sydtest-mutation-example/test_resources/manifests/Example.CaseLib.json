@@ -15,7 +15,8 @@
       "7",
       "19",
       "16",
-      "2 alternatives (removed #1)"
+      "2 alternatives (removed #1)",
+      "1"
     ],
     "line": 7,
     "module": "Example.CaseLib",
@@ -51,7 +52,8 @@
       "7",
       "19",
       "16",
-      "2 alternatives (removed #2)"
+      "2 alternatives (removed #2)",
+      "2"
     ],
     "line": 7,
     "module": "Example.CaseLib",
@@ -87,7 +89,8 @@
       "7",
       "19",
       "16",
-      "2 alternatives (removed #3)"
+      "2 alternatives (removed #3)",
+      "3"
     ],
     "line": 7,
     "module": "Example.CaseLib",

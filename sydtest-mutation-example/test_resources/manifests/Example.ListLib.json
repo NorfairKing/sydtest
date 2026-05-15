@@ -15,7 +15,8 @@
       "19",
       "29",
       "38",
-      "0 elements"
+      "0 elements",
+      "1"
     ],
     "line": 19,
     "module": "Example.ListLib",
@@ -44,7 +45,8 @@
       "19",
       "29",
       "38",
-      "2 elements"
+      "2 elements",
+      "2"
     ],
     "line": 19,
     "module": "Example.ListLib",
@@ -73,7 +75,8 @@
       "19",
       "29",
       "38",
-      "2 elements"
+      "2 elements",
+      "3"
     ],
     "line": 19,
     "module": "Example.ListLib",
@@ -106,7 +109,8 @@
       "12",
       "25",
       "31",
-      "0 elements"
+      "0 elements",
+      "1"
     ],
     "line": 12,
     "module": "Example.ListLib",
@@ -139,7 +143,8 @@
       "12",
       "25",
       "31",
-      "1 elements"
+      "1 elements",
+      "2"
     ],
     "line": 12,
     "module": "Example.ListLib",

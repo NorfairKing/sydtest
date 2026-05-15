@@ -688,7 +688,13 @@ formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationR
       let filePath = case augmentedMutationRecordSourceFile of
             Just p -> fromRelFile p
             Nothing -> moduleToFilePath modName
-          headerText = T.pack $ T.unpack augmentedMutationRecordOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+          -- Append "#<index>" so identical replStr alternatives (e.g. ListLit's
+          -- drop-first and drop-last on a 3-element list, both "2 elements")
+          -- are distinguishable in the human-readable header line.
+          variantSuffix = case parts of
+            [_, _, _, _, _, _, altIdx] -> " #" ++ altIdx
+            _ -> ""
+          headerText = T.pack $ T.unpack augmentedMutationRecordOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
           headerLine = [chunk headerText]
        in case augmentedMutationRecordSourceLines of
             [] ->
@@ -722,7 +728,10 @@ renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
           let filePath = case mutRecSourceFile of
                 Just p -> fromRelFile p
                 Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
-              headerText = T.pack $ "added mutation " ++ T.unpack mutRecOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr
+              variantSuffix = case parts of
+                [_, _, _, _, _, _, altIdx] -> " #" ++ altIdx
+                _ -> ""
+              headerText = T.pack $ "added mutation " ++ T.unpack mutRecOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
               headerLine = [chunk headerText]
            in case mutRecSourceLines of
                 [] ->

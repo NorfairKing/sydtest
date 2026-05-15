@@ -18,6 +18,7 @@
       "12",
       "9",
       "10",
+      "1",
       "1"
     ],
     "line": 12,
@@ -52,7 +53,8 @@
       "12",
       "5",
       "10",
-      "<="
+      "<=",
+      "1"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
@@ -86,7 +88,8 @@
       "12",
       "5",
       "10",
-      ">"
+      ">",
+      "2"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
@@ -120,7 +123,8 @@
       "12",
       "5",
       "10",
-      ">="
+      ">=",
+      "3"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
@@ -154,7 +158,8 @@
       "12",
       "5",
       "10",
-      "True"
+      "True",
+      "4"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
@@ -188,7 +193,8 @@
       "12",
       "5",
       "10",
-      "not (e)"
+      "not (e)",
+      "5"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
@@ -221,6 +227,7 @@
       "13",
       "10",
       "11",
+      "1",
       "1"
     ],
     "line": 13,
@@ -254,7 +261,8 @@
       "13",
       "5",
       "11",
-      "True"
+      "True",
+      "1"
     ],
     "line": 13,
     "module": "Example.OtherwiseLib",
@@ -287,7 +295,8 @@
       "13",
       "5",
       "11",
-      "not (e)"
+      "not (e)",
+      "2"
     ],
     "line": 13,
     "module": "Example.OtherwiseLib",

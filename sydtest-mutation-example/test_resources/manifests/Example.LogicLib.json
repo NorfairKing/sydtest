@@ -15,6 +15,7 @@
       "17",
       "26",
       "27",
+      "1",
       "1"
     ],
     "line": 17,
@@ -46,7 +47,8 @@
       "17",
       "22",
       "27",
-      "<"
+      "<",
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -77,7 +79,8 @@
       "17",
       "22",
       "27",
-      "<="
+      "<=",
+      "2"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -108,7 +111,8 @@
       "17",
       "22",
       "27",
-      ">="
+      ">=",
+      "3"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -139,7 +143,8 @@
       "17",
       "22",
       "27",
-      "True"
+      "True",
+      "4"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -170,7 +175,8 @@
       "17",
       "22",
       "27",
-      "False"
+      "False",
+      "5"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -201,7 +207,8 @@
       "17",
       "22",
       "27",
-      "not (e)"
+      "not (e)",
+      "6"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -232,6 +239,7 @@
       "17",
       "35",
       "36",
+      "1",
       "1"
     ],
     "line": 17,
@@ -263,7 +271,8 @@
       "17",
       "31",
       "36",
-      "<"
+      "<",
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -294,7 +303,8 @@
       "17",
       "31",
       "36",
-      "<="
+      "<=",
+      "2"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -325,7 +335,8 @@
       "17",
       "31",
       "36",
-      ">="
+      ">=",
+      "3"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -356,7 +367,8 @@
       "17",
       "31",
       "36",
-      "True"
+      "True",
+      "4"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -387,7 +399,8 @@
       "17",
       "31",
       "36",
-      "False"
+      "False",
+      "5"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -418,7 +431,8 @@
       "17",
       "31",
       "36",
-      "not (e)"
+      "not (e)",
+      "6"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -449,7 +463,8 @@
       "17",
       "22",
       "36",
-      "True"
+      "True",
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -480,7 +495,8 @@
       "17",
       "22",
       "36",
-      "False"
+      "False",
+      "2"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -511,7 +527,8 @@
       "17",
       "22",
       "36",
-      "&&"
+      "&&",
+      "3"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -542,7 +559,8 @@
       "17",
       "22",
       "36",
-      "not (e)"
+      "not (e)",
+      "4"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -577,6 +595,7 @@
       "11",
       "24",
       "25",
+      "1",
       "1"
     ],
     "line": 11,
@@ -612,7 +631,8 @@
       "11",
       "20",
       "25",
-      "<"
+      "<",
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -647,7 +667,8 @@
       "11",
       "20",
       "25",
-      "<="
+      "<=",
+      "2"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -682,7 +703,8 @@
       "11",
       "20",
       "25",
-      ">="
+      ">=",
+      "3"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -717,7 +739,8 @@
       "11",
       "20",
       "25",
-      "True"
+      "True",
+      "4"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -752,7 +775,8 @@
       "11",
       "20",
       "25",
-      "False"
+      "False",
+      "5"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -787,7 +811,8 @@
       "11",
       "20",
       "25",
-      "not (e)"
+      "not (e)",
+      "6"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -822,6 +847,7 @@
       "11",
       "33",
       "34",
+      "1",
       "1"
     ],
     "line": 11,
@@ -857,7 +883,8 @@
       "11",
       "29",
       "34",
-      "<"
+      "<",
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -892,7 +919,8 @@
       "11",
       "29",
       "34",
-      "<="
+      "<=",
+      "2"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -927,7 +955,8 @@
       "11",
       "29",
       "34",
-      ">="
+      ">=",
+      "3"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -962,7 +991,8 @@
       "11",
       "29",
       "34",
-      "True"
+      "True",
+      "4"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -997,7 +1027,8 @@
       "11",
       "29",
       "34",
-      "False"
+      "False",
+      "5"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1032,7 +1063,8 @@
       "11",
       "29",
       "34",
-      "not (e)"
+      "not (e)",
+      "6"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1067,7 +1099,8 @@
       "11",
       "20",
       "34",
-      "True"
+      "True",
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1102,7 +1135,8 @@
       "11",
       "20",
       "34",
-      "False"
+      "False",
+      "2"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1137,7 +1171,8 @@
       "11",
       "20",
       "34",
-      "||"
+      "||",
+      "3"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1172,7 +1207,8 @@
       "11",
       "20",
       "34",
-      "not (e)"
+      "not (e)",
+      "4"
     ],
     "line": 11,
     "module": "Example.LogicLib",

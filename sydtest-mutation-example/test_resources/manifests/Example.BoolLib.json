@@ -19,7 +19,8 @@
       "18",
       "18",
       "23",
-      "True"
+      "True",
+      "1"
     ],
     "line": 18,
     "module": "Example.BoolLib",
@@ -54,7 +55,8 @@
       "18",
       "13",
       "23",
-      "Nothing"
+      "Nothing",
+      "1"
     ],
     "line": 18,
     "module": "Example.BoolLib",
@@ -89,7 +91,8 @@
       "12",
       "17",
       "21",
-      "False"
+      "False",
+      "1"
     ],
     "line": 12,
     "module": "Example.BoolLib",
@@ -124,7 +127,8 @@
       "12",
       "12",
       "21",
-      "Nothing"
+      "Nothing",
+      "1"
     ],
     "line": 12,
     "module": "Example.BoolLib",

@@ -94,6 +94,7 @@ test-suite sydtest-test
       Test.Syd.AroundAllSpec
       Test.Syd.AroundCombinationSpec
       Test.Syd.AroundSpec
+      Test.Syd.ClassifySyncExceptionAsKilledSpec
       Test.Syd.DescriptionsSpec
       Test.Syd.DiffSpec
       Test.Syd.ExceptionSpec

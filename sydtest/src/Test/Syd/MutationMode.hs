@@ -51,6 +51,10 @@ module Test.Syd.MutationMode
     formatMutationLog,
     renderMutationAddedEvent,
     renderUnifiedDiff,
+
+    -- * Exposed for testing
+    SuiteOutcome (..),
+    classifySyncExceptionAsKilled,
   )
 where
 
@@ -340,6 +344,25 @@ data SuiteOutcome
     -- parent.  Carries the elapsed microseconds and (optionally) the
     -- log path.
     SuiteTimedOut Word (Maybe (Path Rel File))
+  deriving (Eq, Show)
+
+-- | Wrap a per-suite runner so that any synchronous exception escaping it is
+-- treated as 'SuiteKilled'.  A mutation that makes the child process
+-- unrunnable (e.g. 'BlockedIndefinitelyOnMVar' / @<<loop>>@ propagating from
+-- 'waitExitCode', an 'IOException' from log-file IO, a parse failure on the
+-- child's output) is conceptually indistinguishable from a mutation that
+-- makes the child crash — both mean the test detected the mutation.
+--
+-- 'SomeAsyncException' is re-thrown so Ctrl-C and other cancellations still
+-- propagate out of the runner.
+classifySyncExceptionAsKilled :: IO SuiteOutcome -> IO SuiteOutcome
+classifySyncExceptionAsKilled action =
+  Exception.handle
+    ( \(e :: Exception.SomeException) -> case Exception.fromException e of
+        Just (_ :: Exception.SomeAsyncException) -> Exception.throwIO e
+        Nothing -> pure SuiteKilled
+    )
+    action
 
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.
@@ -453,38 +476,39 @@ runMutationMode settings _manifestDirs _spec = do
               suiteNameStr
             ]
               ++ rtsArgs
-      withSystemTempDir "mutation-child" $ \tmpDir -> do
-        let logPath = tmpDir </> [relfile|child.log|]
-        logHandle <- openFile (fromAbsFile logPath) WriteMode
-        let childProc =
-              setStdout (useHandleOpen logHandle) $
-                setStderr (useHandleOpen logHandle) $
-                  proc exe args
-            -- Per-mutation wall-clock budget computed by the coverage phase.
-            timeoutMicros = augmentedMutationRecordTimeoutMicros record
-            -- Cap the threadDelay argument at maxBound Int so very large
-            -- budgets don't overflow when converted to the Int that
-            -- threadDelay expects.
-            micros =
-              if timeoutMicros >= fromIntegral (maxBound :: Int)
-                then maxBound :: Int
-                else fromIntegral timeoutMicros
-        startTime <- getCurrentTime
-        outcomeRaw <- startProcessAndWait childProc micros
-        endTime <- getCurrentTime
-        let elapsedMicros = diffUTCTimeMicros endTime startTime
-        hClose logHandle
-        case outcomeRaw of
-          Left () -> do
-            -- Timed out: parent killed the child. Preserve whatever the
-            -- child managed to write so the report retains useful context.
-            mRelFile <- copyChildLog "timeout-" mid suiteName logPath
-            pure (SuiteTimedOut elapsedMicros mRelFile)
-          Right ec -> case ec of
-            ExitFailure _ -> pure SuiteKilled
-            ExitSuccess -> do
-              mRelFile <- copyChildLog "survivor-" mid suiteName logPath
-              pure (SuiteSurvived mRelFile)
+      classifySyncExceptionAsKilled $
+        withSystemTempDir "mutation-child" $ \tmpDir -> do
+          let logPath = tmpDir </> [relfile|child.log|]
+          logHandle <- openFile (fromAbsFile logPath) WriteMode
+          let childProc =
+                setStdout (useHandleOpen logHandle) $
+                  setStderr (useHandleOpen logHandle) $
+                    proc exe args
+              -- Per-mutation wall-clock budget computed by the coverage phase.
+              timeoutMicros = augmentedMutationRecordTimeoutMicros record
+              -- Cap the threadDelay argument at maxBound Int so very large
+              -- budgets don't overflow when converted to the Int that
+              -- threadDelay expects.
+              micros =
+                if timeoutMicros >= fromIntegral (maxBound :: Int)
+                  then maxBound :: Int
+                  else fromIntegral timeoutMicros
+          startTime <- getCurrentTime
+          outcomeRaw <- startProcessAndWait childProc micros
+          endTime <- getCurrentTime
+          let elapsedMicros = diffUTCTimeMicros endTime startTime
+          hClose logHandle
+          case outcomeRaw of
+            Left () -> do
+              -- Timed out: parent killed the child. Preserve whatever the
+              -- child managed to write so the report retains useful context.
+              mRelFile <- copyChildLog "timeout-" mid suiteName logPath
+              pure (SuiteTimedOut elapsedMicros mRelFile)
+            Right ec -> case ec of
+              ExitFailure _ -> pure SuiteKilled
+              ExitSuccess -> do
+                mRelFile <- copyChildLog "survivor-" mid suiteName logPath
+                pure (SuiteSurvived mRelFile)
 
     copyChildLog prefix mid suiteName logPath =
       case settingMutationReportDir settings of

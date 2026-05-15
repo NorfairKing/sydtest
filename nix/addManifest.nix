@@ -20,13 +20,15 @@
 , disabledMutations ? [ ] # list of mutation type names to disable globally (e.g. [ "Arith" "BoolLit" ])
 , debug ? false # print each mutation site as it is recorded (for debugging the plugin)
 , ghcMemLimit ? "16g" # RTS heap limit for GHC during instrumented compilation (e.g. "8g", "16g")
+, skipThSplices ? false # skip mutations inside Template Haskell splices and quasi-quotes
 }:
 pkg: # the Haskell package derivation to wrap
 
 let
   pluginOpts = builtins.map (e: "--exception=" + e) exceptions
     ++ builtins.map (m: "--disable-mutation=" + m) disabledMutations
-    ++ (if debug then [ "--debug" ] else [ ]);
+    ++ (if debug then [ "--debug" ] else [ ])
+    ++ (if skipThSplices then [ "--skip-th-splices" ] else [ ]);
   stringOpt = arg: "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:${arg}";
   exceptionConfigureFlags = builtins.map stringOpt pluginOpts;
 in

@@ -131,6 +131,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
     then pure tcGblEnv
     else do
       let debug = "--debug" `elem` opts
+      let skipThSplices = "--skip-th-splices" `elem` opts
       let disabledFromOpts = mapMaybe (stripPrefix "--disable-mutation=") opts
       let annEnv = tcg_ann_env tcGblEnv
       let modAnns = findAnns deserializeWithData annEnv (ModuleTarget (tcg_mod tcGblEnv)) :: [String]
@@ -143,7 +144,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
           let mSrcPath = ml_hs_file (ms_location ms)
           (binds', mutations) <-
-            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug $
+            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices $
               instrumentModule (tcg_binds tcGblEnv)
           -- The manifest dir comes from --manifest= plugin opt, or from the
           -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path

@@ -116,6 +116,11 @@ data InstrumentEnv = InstrumentEnv
     instrSourceFile :: Maybe (Path Rel File, [T.Text]),
     -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
     instrDebug :: Bool,
+    -- | When True, do not instrument the expanded body of TH splices and
+    -- quasi-quotes.  Detected by matching @XExpr (ExpandedThingTc orig _)@
+    -- where @orig@ is an 'OrigExpr' wrapping an 'HsUntypedSplice' or
+    -- 'HsTypedSplice'.  Enabled by @--skip-th-splices@.
+    instrSkipThSplices :: Bool,
     -- | True when instrumenting a guard expression (BodyStmt inside a GRHS).
     -- Used by ConstBool to suppress the e->False alternative, which would make
     -- the guard non-exhaustive and throw an exception that tests can't catch.
@@ -144,9 +149,11 @@ runInstrument ::
   Maybe FilePath ->
   -- | Print each mutation site as it is recorded.
   Bool ->
+  -- | Skip TH splices and quasi-quotes.
+  Bool ->
   InstrM a ->
   TcM (a, [MutationRecord])
-runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug action = do
+runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -170,6 +177,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug action 
         instrDisabledMutations = disabledMutations,
         instrSourceFile = mSrcFile,
         instrDebug = debug,
+        instrSkipThSplices = skipThSplices,
         instrInGuard = False
       }
   where
@@ -365,12 +373,34 @@ instrumentExpr _sp = \case
   ExplicitTuple x args bx -> ExplicitTuple x <$> mapM instrumentTupArg args <*> pure bx
   RecordCon x con flds -> RecordCon x con <$> instrumentRecordBinds flds
   -- XExpr nodes appear after typechecking for operator expansion etc.
-  -- We instrument the expanded expression (what the desugarer sees).
-  XExpr (ExpandedThingTc orig expanded) ->
-    XExpr . ExpandedThingTc orig <$> instrumentExpr _sp expanded
+  -- We instrument the expanded expression (what the desugarer sees), except
+  -- when 'instrSkipThSplices' is set and the original (pre-expansion) node
+  -- was a TH splice or quasi-quote — those expansions are macro-generated
+  -- code whose source location points at the splice site, so any mutations
+  -- recorded inside would be unhelpful (every covering test would have to
+  -- exercise the splice's expanded form, and the diff in the report would
+  -- not line up with the source file).
+  XExpr (ExpandedThingTc orig expanded) -> do
+    skipSplices <- asks instrSkipThSplices
+    if skipSplices && isSpliceThing orig
+      then pure (XExpr (ExpandedThingTc orig expanded))
+      else XExpr . ExpandedThingTc orig <$> instrumentExpr _sp expanded
   XExpr (WrapExpr (HsWrap co e)) ->
     XExpr . WrapExpr . HsWrap co <$> instrumentExpr _sp e
   e -> pure e
+
+-- | True when an 'HsThingRn' wraps the unexpanded form of a TH splice or
+-- quasi-quote.  GHC stores the pre-expansion node in 'ExpandedThingTc' so we
+-- can recognise these without falling back to source-line heuristics.
+isSpliceThing :: HsThingRn -> Bool
+isSpliceThing (OrigExpr e) = isSpliceHsExpr e
+isSpliceThing _ = False
+
+isSpliceHsExpr :: HsExpr GhcRn -> Bool
+isSpliceHsExpr = \case
+  HsUntypedSplice _ _ -> True
+  HsTypedSplice _ _ -> True
+  _ -> False
 
 instrumentStmt :: ExprLStmt GhcTc -> InstrM (ExprLStmt GhcTc)
 instrumentStmt = traverse $ \case

@@ -25,6 +25,12 @@
 # - assertNoneUncovered: also fail the check derivation if any mutations are uncovered (default: true)
 # - debug: print each mutation site as it is recorded (for debugging the plugin)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
+# - skipThSplices: skip mutations inside Template Haskell splices and
+#       quasi-quotes (default: false). Recommended for projects that use a
+#       lot of TH (e.g. Yesod widget files, Persistent schemas) because
+#       splice-expanded mutations expand to macro-generated code that has no
+#       meaningful source location and is usually impossible for tests to
+#       kill, inflating both the timeout and survivor counts.
 # - coverageJobs: maximum number of coverage children to run concurrently.
 #       Defaults to the build-sandbox's RTS capability count, which is too
 #       aggressive for test suites that spawn expensive per-test resources
@@ -47,6 +53,7 @@
 , assertNoneUncovered ? true
 , debug ? false
 , ghcMemLimit ? "16g"
+, skipThSplices ? false
 , coverageJobs ? null
 }:
 
@@ -73,7 +80,7 @@ let
     builtins.listToAttrs (map
       (pkg: {
         name = pkg;
-        value = addManifest { inherit exceptions disabledMutations debug ghcMemLimit; } super.${pkg};
+        value = addManifest { inherit exceptions disabledMutations debug ghcMemLimit skipThSplices; } super.${pkg};
       })
       libraryPackages);
 

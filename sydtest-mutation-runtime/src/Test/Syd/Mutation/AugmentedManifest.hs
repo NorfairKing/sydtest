@@ -25,6 +25,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Map ()
@@ -126,10 +127,17 @@ writeAugmentedManifestFile dir manifest = do
   LB.writeFile (fromAbsFile (dir </> augmentedManifestRelFile)) (Aeson.encode manifest)
 
 -- | Read from @<dir>/manifest-augmented.json@.
+--
+-- Reads strictly (via 'B.readFile' + 'Aeson.decodeStrict') so the file
+-- handle is closed before this function returns.  This is a defensive
+-- measure: under heavy concurrency the original 'LB.readFile' +
+-- 'Aeson.decode' path was a suspected (but unproven) contributor to a
+-- non-deterministic 'BlockedIndefinitelyOnMVar' / @<<loop>>@ at the
+-- coverage/mutation phase boundary on large projects.
 readAugmentedManifestFile :: Path Abs Dir -> IO AugmentedManifest
 readAugmentedManifestFile dir = do
   let path = dir </> augmentedManifestRelFile
-  result <- Aeson.decode <$> LB.readFile (fromAbsFile path)
+  result <- Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
   case result of
     Nothing -> do
       hPutStrLn stderr $ "mutation: failed to decode augmented manifest " ++ fromAbsFile path

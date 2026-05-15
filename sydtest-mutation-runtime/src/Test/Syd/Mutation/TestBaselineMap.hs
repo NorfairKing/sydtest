@@ -10,6 +10,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
 import Test.Syd.Mutation.TestId (TestId)
@@ -48,6 +49,11 @@ writeTestBaselineMapFile :: FilePath -> TestBaselineMap -> IO ()
 writeTestBaselineMapFile path m =
   LB.writeFile path (Aeson.encode m)
 
+-- | Read the baseline map strictly (via 'B.readFile' +
+-- 'Aeson.decodeStrict') so the file handle is closed before this function
+-- returns.  Defensive against a suspected (but unproven) contributor to
+-- 'BlockedIndefinitelyOnMVar' loops at the coverage/mutation phase
+-- boundary on large projects.
 readTestBaselineMapFile :: FilePath -> IO (Maybe TestBaselineMap)
 readTestBaselineMapFile path =
-  Aeson.decode <$> LB.readFile path
+  Aeson.decodeStrict <$> B.readFile path

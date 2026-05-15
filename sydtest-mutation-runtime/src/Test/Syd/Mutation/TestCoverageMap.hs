@@ -11,6 +11,7 @@ where
 import Autodocodec
 import qualified Data.Aeson as Aeson
 import Data.Bifunctor (second)
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
@@ -51,6 +52,11 @@ writeTestCoverageMapFile path m =
 
 -- | Read a 'TestCoverageMap' from the given file path.
 -- Returns 'Nothing' on parse failure.
+--
+-- Reads strictly (via 'B.readFile' + 'Aeson.decodeStrict') so the file
+-- handle is closed before this function returns.  Defensive against a
+-- suspected (but unproven) contributor to 'BlockedIndefinitelyOnMVar'
+-- loops at the coverage/mutation phase boundary on large projects.
 readTestCoverageMapFile :: FilePath -> IO (Maybe TestCoverageMap)
 readTestCoverageMapFile path =
-  Aeson.decode <$> LB.readFile path
+  Aeson.decodeStrict <$> B.readFile path

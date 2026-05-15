@@ -29,10 +29,13 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - aeson-pretty
+    - async
     - containers
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
     - path
+    - path-io
     - sydtest
     - sydtest-mutation
     - sydtest-mutation-runtime
+    - text

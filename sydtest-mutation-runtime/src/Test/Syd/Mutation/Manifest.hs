@@ -17,6 +17,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -120,8 +121,10 @@ writeManifestFile dir moduleName manifest = do
   LB.writeFile (fromAbsFile (dir </> fileName)) (Aeson.encode manifest)
 
 -- | Read a 'MutationManifest' from a file, returning 'Nothing' on parse failure.
+--
+-- Reads strictly so the file handle is closed before this function returns.
 readManifestFile :: Path Abs File -> IO (Maybe MutationManifest)
-readManifestFile path = Aeson.decode <$> LB.readFile (fromAbsFile path)
+readManifestFile path = Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
 
 -- | Read and concatenate all per-module manifests from a directory.
 -- Files that fail to parse are skipped with a warning to stderr.

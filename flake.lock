@@ -3258,11 +3258,11 @@
     "opt-env-conf": {
       "flake": false,
       "locked": {
-        "lastModified": 1773823910,
-        "narHash": "sha256-TVhGeT4bu4YL95OmymuRDTfLR9wUmaQOiPitlJzKlgk=",
+        "lastModified": 1778844309,
+        "narHash": "sha256-bVqammSrjDQ3XtWyw60j6lrmviSFDf6+ZGtkArs02/w=",
         "owner": "NorfairKing",
         "repo": "opt-env-conf",
-        "rev": "bafd2eb6c87082425880bab124114e3a9732ca87",
+        "rev": "5f115023d0f17de7241984bfc870e92a9a92960a",
         "type": "github"
       },
       "original": {

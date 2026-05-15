@@ -123,7 +123,10 @@ let
   # The first test package is the one whose Cabal checkPhase we hijack to run
   # the mutation harness. Its executable is found at runtime via `find dist`
   # inside the build sandbox, so golden files and other relative paths work.
-  firstTestPkg = builtins.head testPackages;
+  firstTestPkg =
+    if testPackages == [ ]
+    then throw "sydtest.mutationCheck '${name}': no test suites configured. Provide at least one package under 'packages' or 'tests'."
+    else builtins.head testPackages;
   # Extra test packages are built separately and referenced by their Nix store
   # paths; their executables are baked into the checkPhase script at eval time.
   extraTestPkgs = builtins.tail testPackages;

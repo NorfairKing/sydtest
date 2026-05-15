@@ -43,6 +43,11 @@ module Test.Syd.MutationMode
     runSingleCoverageMode,
     renderMutationRunReport,
     renderMutationProgressEvent,
+    CoverageProgressEvent (..),
+    CoverageProgressTestEvent (..),
+    CoverageProgressPhase (..),
+    CoverageProgressSkipReason (..),
+    renderCoverageProgressEvent,
     formatMutationLog,
     renderMutationAddedEvent,
     renderUnifiedDiff,
@@ -125,37 +130,53 @@ runCoverageMode settings manifestDirs spec = do
   allRecords@(MutationManifest records) <- mconcat <$> mapM readManifestDir manifestDirs
   augDir <- resolveAugmentedManifestDir settings
   let suiteName = fromMaybe "" (settingMutationSuiteName settings)
+      writeEmptyAugmented = do
+        existing <- readAugmentedManifestFileIfExists augDir
+        writeAugmentedManifestFile augDir (fromMaybe (AugmentedManifest []) existing)
   if null records
     then do
-      existing <- readAugmentedManifestFileIfExists augDir
-      writeAugmentedManifestFile augDir (fromMaybe (AugmentedManifest []) existing)
+      emitCoverageEvent settings (CoverageProgressSkipped CoverageSkipNoMutations)
+      writeEmptyAugmented
     else do
       specForest <- execTestDefM settings spec
       let leafIds = map fst (flattenTestForestWithIds specForest)
           total = length leafIds
-      defaultExe <- getExecutablePath
-      n <- case settingMutationCoverageJobs settings of
-        Just j | j > 0 -> pure j
-        _ -> getNumCapabilities
-      sem <- newQSem n
-      childResults <-
-        mapConcurrently
-          (runCoverageChild defaultExe settings manifestDirs sem total)
-          (zip [1 :: Int ..] leafIds)
-      let (coverageMaps, baselineMaps) = unzip childResults
-          TestCoverageMap coverageMap = mconcat coverageMaps
-          TestBaselineMap baselineMap = mconcat baselineMaps
-          mutationCoverage = invertCoverageMap coverageMap
-      let newAugmented = buildAugmentedManifest suiteName mutationCoverage baselineMap allRecords
-      existing <- readAugmentedManifestFileIfExists augDir
-      let augmented = case existing of
-            Nothing -> newAugmented
-            Just prev -> mergeAugmentedManifests prev newAugmented
-      writeAugmentedManifestFile augDir augmented
+      if total == 0
+        then do
+          emitCoverageEvent settings (CoverageProgressSkipped CoverageSkipNoTests)
+          writeEmptyAugmented
+        else do
+          defaultExe <- getExecutablePath
+          n <- case settingMutationCoverageJobs settings of
+            Just j | j > 0 -> pure j
+            _ -> getNumCapabilities
+          sem <- newQSem n
+          childResults <-
+            mapConcurrently
+              (runCoverageChild defaultExe settings manifestDirs sem total)
+              (zip [1 :: Int ..] leafIds)
+          let (coverageMaps, baselineMaps) = unzip childResults
+              TestCoverageMap coverageMap = mconcat coverageMaps
+              TestBaselineMap baselineMap = mconcat baselineMaps
+              mutationCoverage = invertCoverageMap coverageMap
+          let newAugmented = buildAugmentedManifest suiteName mutationCoverage baselineMap allRecords
+          existing <- readAugmentedManifestFileIfExists augDir
+          let augmented = case existing of
+                Nothing -> newAugmented
+                Just prev -> mergeAugmentedManifests prev newAugmented
+          writeAugmentedManifestFile augDir augmented
   where
     runCoverageChild defaultExe settings' manifestDirs' sem total (i, tid) =
       bracket_ (waitQSem sem) (signalQSem sem) $
         withSystemTempDir "coverage-child" $ \tmpDir -> do
+          emitCoverageEvent settings' $
+            CoverageProgressTest
+              CoverageProgressTestEvent
+                { coverageProgressIndex = i,
+                  coverageProgressTotal = total,
+                  coverageProgressTestId = tid,
+                  coverageProgressTestPhase = CoverageProgressStarting
+                }
           let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
               baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
               -- Pass at least one --mutation-coverage dir so the child
@@ -203,16 +224,14 @@ runCoverageMode settings manifestDirs spec = do
                 Just bm -> pure bm
               let TestCoverageMap m = coverageMap
                   covered = fromMaybe Set.empty (Map.lookup tid m)
-              putStrLn $
-                "coverage ("
-                  ++ show i
-                  ++ "/"
-                  ++ show total
-                  ++ "): "
-                  ++ T.unpack (renderTestId tid)
-                  ++ " ("
-                  ++ show (Set.size covered)
-                  ++ " mutations)"
+              emitCoverageEvent settings' $
+                CoverageProgressTest
+                  CoverageProgressTestEvent
+                    { coverageProgressIndex = i,
+                      coverageProgressTotal = total,
+                      coverageProgressTestId = tid,
+                      coverageProgressTestPhase = CoverageProgressDone (Set.size covered)
+                    }
               pure (coverageMap, baselineMap)
 
     buildAugmentedManifest suiteName mutationCoverage baselineMap (MutationManifest records) =
@@ -593,6 +612,74 @@ renderMutationProgressEvent (MutationProgressEvent rec) =
    in case logLines of
         [] -> [[chunk "Testing mutation"]]
         (firstLine : rest) -> (chunk "Testing mutation " : firstLine) : rest
+
+-- | Progress event for the coverage phase.
+data CoverageProgressEvent
+  = -- | Per-test event: emitted once when a coverage child for a test is
+    -- about to run, and once when it has finished.
+    CoverageProgressTest !CoverageProgressTestEvent
+  | -- | Suite-level event: emitted once when the whole coverage phase is
+    -- skipped because there is nothing to do.
+    CoverageProgressSkipped !CoverageProgressSkipReason
+
+data CoverageProgressTestEvent = CoverageProgressTestEvent
+  { coverageProgressIndex :: !Int,
+    coverageProgressTotal :: !Int,
+    coverageProgressTestId :: !TestId,
+    coverageProgressTestPhase :: !CoverageProgressPhase
+  }
+
+data CoverageProgressPhase
+  = CoverageProgressStarting
+  | -- | Number of mutations covered by this test.
+    CoverageProgressDone !Int
+
+-- | Why the coverage phase was skipped.
+data CoverageProgressSkipReason
+  = -- | The mutation manifest contained no records (every instrumentable
+    -- module was disabled, e.g. via @{-# ANN module ("DisableMutations" ...) #-}@).
+    CoverageSkipNoMutations
+  | -- | The test spec produced no leaf tests, so there is nothing to run
+    -- coverage on.
+    CoverageSkipNoTests
+
+renderCoverageProgressEvent :: CoverageProgressEvent -> [[Chunk]]
+renderCoverageProgressEvent = \case
+  CoverageProgressTest CoverageProgressTestEvent {coverageProgressIndex, coverageProgressTotal, coverageProgressTestId, coverageProgressTestPhase} ->
+    let prefix =
+          [ chunk "coverage (",
+            chunk (T.pack (show coverageProgressIndex)),
+            chunk "/",
+            chunk (T.pack (show coverageProgressTotal)),
+            chunk "): "
+          ]
+        tidChunk = chunk (renderTestId coverageProgressTestId)
+     in case coverageProgressTestPhase of
+          CoverageProgressStarting ->
+            [prefix ++ [fore cyan (chunk "running "), tidChunk]]
+          CoverageProgressDone n ->
+            [ prefix
+                ++ [ fore green (chunk "done "),
+                     tidChunk,
+                     chunk " (",
+                     chunk (T.pack (show n)),
+                     chunk " mutations)"
+                   ]
+            ]
+  CoverageProgressSkipped reason ->
+    [ [ fore yellow (chunk "coverage: skipped "),
+        chunk $ case reason of
+          CoverageSkipNoMutations -> "(no mutations in manifest)"
+          CoverageSkipNoTests -> "(no tests in spec)"
+      ]
+    ]
+
+emitCoverageEvent :: Settings -> CoverageProgressEvent -> IO ()
+emitCoverageEvent settings ev =
+  hPutChunksLocaleWith
+    (settingTerminalCapabilities settings)
+    stderr
+    (unlinesChunks (renderCoverageProgressEvent ev))
 
 formatMutationLog :: MutationId -> AugmentedMutationRecord -> [[Chunk]]
 formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceLines, augmentedMutationRecordMutatedLines, augmentedMutationRecordSourceFile, augmentedMutationRecordLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter} =

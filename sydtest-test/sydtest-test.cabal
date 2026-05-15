@@ -104,6 +104,7 @@ test-suite sydtest-test
       Test.Syd.MutationModeSpec
       Test.Syd.OptParseSpec
       Test.Syd.PathSpec
+      Test.Syd.RetryingIOSpec
       Test.Syd.RunnerSpec
       Test.Syd.ScenarioSpec
       Test.Syd.SequentialSpec

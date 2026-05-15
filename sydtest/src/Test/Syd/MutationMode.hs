@@ -55,6 +55,7 @@ module Test.Syd.MutationMode
     -- * Exposed for testing
     SuiteOutcome (..),
     classifySyncExceptionAsKilled,
+    retryingIO,
   )
 where
 
@@ -171,72 +172,95 @@ runCoverageMode settings manifestDirs spec = do
           writeAugmentedManifestFile augDir augmented
   where
     runCoverageChild defaultExe settings' manifestDirs' sem total (i, tid) =
-      bracket_ (waitQSem sem) (signalQSem sem) $
-        withSystemTempDir "coverage-child" $ \tmpDir -> do
-          emitCoverageEvent settings' $
-            CoverageProgressTest
-              CoverageProgressTestEvent
-                { coverageProgressIndex = i,
-                  coverageProgressTotal = total,
-                  coverageProgressTestId = tid,
-                  coverageProgressTestPhase = CoverageProgressStarting
-                }
-          let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
-              baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
-              -- Pass at least one --mutation-coverage dir so the child
-              -- dispatches to runSingleCoverageMode rather than the normal
-              -- test runner. The child ignores the manifest content; only
-              -- the flag's presence matters for dispatch.
-              coverageDirArgs = concatMap (\d -> ["--mutation-coverage", fromAbsDir d]) manifestDirs'
-              args =
-                coverageDirArgs
-                  ++ [ "--mutation-coverage-one",
-                       T.unpack (renderTestId tid),
-                       "--mutation-coverage-output",
-                       outputFile,
-                       "--mutation-coverage-baseline-output",
-                       baselineFile
-                     ]
-                  ++ case settingMutationSuiteName settings' of
-                    Nothing -> []
-                    Just name -> ["--mutation-suite-name", T.unpack name]
-              childProc = proc defaultExe args
-          ec <- runProcess childProc
-          case ec of
-            ExitFailure code ->
-              fail $
-                "coverage child for "
-                  ++ T.unpack (renderTestId tid)
-                  ++ " exited with code "
-                  ++ show code
-            ExitSuccess -> do
-              mMap <- readTestCoverageMapFile outputFile
-              coverageMap <- case mMap of
-                Nothing ->
-                  fail $
-                    "coverage child for "
-                      ++ T.unpack (renderTestId tid)
-                      ++ " wrote an unreadable coverage map"
-                Just cm -> pure cm
-              mBaseline <- readTestBaselineMapFile baselineFile
-              baselineMap <- case mBaseline of
-                Nothing ->
-                  fail $
-                    "coverage child for "
-                      ++ T.unpack (renderTestId tid)
-                      ++ " wrote an unreadable baseline map"
-                Just bm -> pure bm
-              let TestCoverageMap m = coverageMap
-                  covered = fromMaybe Set.empty (Map.lookup tid m)
-              emitCoverageEvent settings' $
-                CoverageProgressTest
-                  CoverageProgressTestEvent
-                    { coverageProgressIndex = i,
-                      coverageProgressTotal = total,
-                      coverageProgressTestId = tid,
-                      coverageProgressTestPhase = CoverageProgressDone (Set.size covered)
-                    }
-              pure (coverageMap, baselineMap)
+      bracket_ (waitQSem sem) (signalQSem sem) $ do
+        emitCoverageEvent settings' $
+          CoverageProgressTest
+            CoverageProgressTestEvent
+              { coverageProgressIndex = i,
+                coverageProgressTotal = total,
+                coverageProgressTestId = tid,
+                coverageProgressTestPhase = CoverageProgressStarting
+              }
+        result <- runCoverageChildAttempt defaultExe settings' manifestDirs' tid (settingMutationCoverageRetry settings')
+        let TestCoverageMap m = fst result
+            covered = fromMaybe Set.empty (Map.lookup tid m)
+        emitCoverageEvent settings' $
+          CoverageProgressTest
+            CoverageProgressTestEvent
+              { coverageProgressIndex = i,
+                coverageProgressTotal = total,
+                coverageProgressTestId = tid,
+                coverageProgressTestPhase = CoverageProgressDone (Set.size covered)
+              }
+        pure result
+
+    -- Run one coverage child, retrying up to @retriesLeft@ times if it exits
+    -- non-zero or writes an unreadable result.  The first attempt is one of
+    -- the @retriesLeft + 1@ tries (i.e. @retriesLeft = 0@ means "no retries,
+    -- one attempt").  Failure-after-all-retries is surfaced via 'fail'.
+    runCoverageChildAttempt defaultExe settings' manifestDirs' tid retriesLeft = do
+      result <- retryingIO retriesLeft (logCoverageRetry settings' tid) (runOneCoverageChild defaultExe settings' manifestDirs' tid)
+      case result of
+        Right v -> pure v
+        Left reason ->
+          fail $
+            "coverage child for "
+              ++ T.unpack (renderTestId tid)
+              ++ ": "
+              ++ reason
+
+    -- One coverage-child attempt: returns @Left reason@ on transient
+    -- failure (non-zero exit or unreadable output), @Right (cov, base)@
+    -- on success.
+    runOneCoverageChild defaultExe settings' manifestDirs' tid =
+      withSystemTempDir "coverage-child" $ \tmpDir -> do
+        let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
+            baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
+            -- Pass at least one --mutation-coverage dir so the child
+            -- dispatches to runSingleCoverageMode rather than the normal
+            -- test runner. The child ignores the manifest content; only
+            -- the flag's presence matters for dispatch.
+            coverageDirArgs = concatMap (\d -> ["--mutation-coverage", fromAbsDir d]) manifestDirs'
+            args =
+              coverageDirArgs
+                ++ [ "--mutation-coverage-one",
+                     T.unpack (renderTestId tid),
+                     "--mutation-coverage-output",
+                     outputFile,
+                     "--mutation-coverage-baseline-output",
+                     baselineFile
+                   ]
+                ++ case settingMutationSuiteName settings' of
+                  Nothing -> []
+                  Just name -> ["--mutation-suite-name", T.unpack name]
+            childProc = proc defaultExe args
+        ec <- runProcess childProc
+        case ec of
+          ExitFailure code -> pure $ Left ("exited with code " ++ show code)
+          ExitSuccess -> do
+            mMap <- readTestCoverageMapFile outputFile
+            case mMap of
+              Nothing -> pure $ Left "wrote an unreadable coverage map"
+              Just coverageMap -> do
+                mBaseline <- readTestBaselineMapFile baselineFile
+                case mBaseline of
+                  Nothing -> pure $ Left "wrote an unreadable baseline map"
+                  Just baselineMap -> pure $ Right (coverageMap, baselineMap)
+
+    logCoverageRetry settings' tid reason retriesAfter =
+      hPutChunksLocaleWith (settingTerminalCapabilities settings') stderr $
+        unlinesChunks
+          [ [ fore yellow (chunk "coverage: retrying "),
+              chunk (renderTestId tid),
+              chunk " (",
+              chunk (T.pack reason),
+              chunk ", ",
+              chunk (T.pack (show retriesAfter)),
+              chunk " retr",
+              chunk (if retriesAfter == 1 then "y" else "ies"),
+              chunk " left)"
+            ]
+          ]
 
     buildAugmentedManifest suiteName mutationCoverage baselineMap (MutationManifest records) =
       AugmentedManifest $
@@ -363,6 +387,43 @@ classifySyncExceptionAsKilled action =
         Nothing -> pure SuiteKilled
     )
     action
+
+-- | Retry an 'IO' action that produces a tagged failure reason.
+--
+-- @retryingIO retriesLeft onRetry action@ runs @action@; on 'Left' it calls
+-- @onRetry@ with the reason and the number of retries remaining, then runs
+-- @action@ again with a decremented counter.  When @retriesLeft@ reaches
+-- zero, the final 'Left' is returned unchanged (so the caller can decide
+-- how to surface the failure).
+--
+-- A @retriesLeft@ of 0 means "no retries, one attempt".  A @retriesLeft@ of
+-- 3 means "up to 4 total attempts".
+--
+-- The action itself decides what counts as a transient failure: returning
+-- 'Right' bypasses retry, returning 'Left' triggers it.
+--
+-- Synchronous exceptions thrown by @action@ are not caught here — they are
+-- not, in the coverage-child use case, the kind of failure we want to
+-- retry through.  Use 'Exception.handle' inside @action@ if you need to
+-- convert exceptions to 'Left'.
+retryingIO ::
+  -- | Initial number of retries (0 = no retries; one attempt total).
+  Word ->
+  -- | Called once per retry, with the reason and the number of retries
+  -- still remaining after the current attempt.
+  (String -> Word -> IO ()) ->
+  -- | The action to run.
+  IO (Either String a) ->
+  IO (Either String a)
+retryingIO retriesLeft onRetry action = do
+  result <- action
+  case result of
+    Right v -> pure (Right v)
+    Left reason
+      | retriesLeft > 0 -> do
+          onRetry reason (retriesLeft - 1)
+          retryingIO (retriesLeft - 1) onRetry action
+      | otherwise -> pure (Left reason)
 
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.

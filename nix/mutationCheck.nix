@@ -36,6 +36,11 @@
 #       aggressive for test suites that spawn expensive per-test resources
 #       (e.g. tmp-postgres). Set this to cap the parallelism. 'null' leaves
 #       the default in place.
+# - coverageRetry: how many times to retry a failing coverage child before
+#       giving up. Defaults to the harness default (3). Useful when test
+#       suites flake on contended resources (e.g. tmp-postgres' port binding)
+#       so the whole coverage phase doesn't get lost to a transient failure.
+#       'null' leaves the harness default in place.
 #
 # The mutations are run inside the Cabal build's checkPhase of the first test
 # package, so test resources (golden files, data files) are available at
@@ -62,6 +67,7 @@
 , ghcMemLimit ? "16g"
 , skipThSplices ? false
 , coverageJobs ? null
+, coverageRetry ? null
 }:
 
 let
@@ -123,6 +129,8 @@ let
     manifests;
   coverageJobsFlag = pkgs.lib.optionalString (coverageJobs != null)
     "--mutation-coverage-jobs ${toString coverageJobs}";
+  coverageRetryFlag = pkgs.lib.optionalString (coverageRetry != null)
+    "--mutation-coverage-retry ${toString coverageRetry}";
   mutationFlags = pkgs.lib.concatMapStringsSep " "
     (m: "--mutation ${m}")
     manifests;
@@ -153,7 +161,7 @@ let
     (pkg: ''
       echo "mutation-nix: collecting coverage for suite ${pkg}"
       storeExe=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)
-      "$storeExe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} \
+      "$storeExe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} \
         --mutation-suite-name ${pkg} \
         --mutation-augmented-manifest-dir augmented
     '')
@@ -198,7 +206,7 @@ let
           echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
           # +RTS -M4g -RTS: cap the test process heap to 4 GB to avoid OOM in
           # the Nix sandbox, where memory is shared with the builder.
-          "$exe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} \
+          "$exe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} \
             --mutation-suite-name ${firstTestPkg} \
             --mutation-augmented-manifest-dir augmented
           ${extraCoverageScript}

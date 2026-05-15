@@ -98,6 +98,11 @@ data Settings = Settings
     -- | Maximum number of coverage children to run concurrently.
     -- 'Nothing' means use 'getNumCapabilities'.
     settingMutationCoverageJobs :: !(Maybe Int),
+    -- | Number of times to retry a failing coverage child before giving up.
+    -- A coverage child may fail for flaky reasons (e.g. tmp-postgres failing
+    -- to bind a port under resource contention); we retry @N@ times so that
+    -- transient failures don't lose the entire coverage phase.
+    settingMutationCoverageRetry :: !Word,
     -- | Directory where @report.json@ is written by the parent mutation process.
     -- 'Nothing' means no JSON report is written.
     settingMutationReportDir :: !(Maybe (Path Abs Dir)),
@@ -248,6 +253,8 @@ instance HasParser Settings where
                 settingMutationOne = flagMutationOne,
                 settingMutationChildMemLimit = flagMutationChildMemLimit,
                 settingMutationCoverageJobs = flagMutationCoverageJobs,
+                settingMutationCoverageRetry =
+                  fromMaybe (d settingMutationCoverageRetry) flagMutationCoverageRetry,
                 settingMutationReportDir = flagMutationReportDir,
                 settingMutationSuiteName = flagMutationSuiteName,
                 settingMutationSuiteExes = flagMutationSuiteExes,
@@ -287,6 +294,7 @@ defaultSettings =
           settingMutationOne = Nothing,
           settingMutationChildMemLimit = Nothing,
           settingMutationCoverageJobs = Nothing,
+          settingMutationCoverageRetry = 3,
           settingMutationReportDir = Nothing,
           settingMutationSuiteName = Nothing,
           settingMutationSuiteExes = Map.empty,
@@ -347,6 +355,7 @@ data Flags = Flags
     flagMutationOne :: !(Maybe String),
     flagMutationChildMemLimit :: !(Maybe String),
     flagMutationCoverageJobs :: !(Maybe Int),
+    flagMutationCoverageRetry :: !(Maybe Word),
     flagMutationReportDir :: !(Maybe (Path Abs Dir)),
     flagMutationSuiteName :: !(Maybe Text),
     flagMutationSuiteExes :: !(Map.Map Text FilePath),
@@ -573,6 +582,15 @@ instance HasParser Flags where
             reader auto,
             option,
             long "mutation-coverage-jobs",
+            metavar "INTEGER"
+          ]
+    flagMutationCoverageRetry <-
+      optional $
+        setting
+          [ help "Retry a failing coverage child up to N times before failing the run. Defaults to 3.",
+            reader auto,
+            option,
+            long "mutation-coverage-retry",
             metavar "INTEGER"
           ]
     flagMutationReportDir <-

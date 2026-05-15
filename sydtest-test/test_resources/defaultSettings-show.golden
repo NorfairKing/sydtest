@@ -26,6 +26,7 @@ Settings
   , settingMutationOne = Nothing
   , settingMutationChildMemLimit = Nothing
   , settingMutationCoverageJobs = Nothing
+  , settingMutationCoverageRetry = 3
   , settingMutationReportDir = Nothing
   , settingMutationSuiteName = Nothing
   , settingMutationSuiteExes = fromList []

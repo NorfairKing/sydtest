@@ -10,6 +10,7 @@ import Data.List (isPrefixOf, stripPrefix)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
 import GHC
+import GHC.Data.FastString (unpackFS)
 import GHC.Driver.Env (Hsc, HscEnv (..))
 import GHC.Driver.Plugins
 import GHC.Driver.Session (WarningFlag (..), wopt_unset)
@@ -127,14 +128,49 @@ mutationAddRuntimeImport opts ms pr = do
     else do
       let pm = parsedResultModule pr
           lm = hpm_module pm
+          -- Look for a module-level
+          -- {-# ANN module ("DisableMutations" :: String) #-} in the parsed
+          -- AST.  When present, this module will be skipped in the
+          -- typecheck phase, so there's no point in walking its AST here to
+          -- collect splice spans.  Keep the runtime-import injection
+          -- regardless, so -Wunused-packages stays happy on the
+          -- sydtest-mutation-plugin dep.
+          disabled = hasDisableMutationsAnn (unLoc lm)
       liftIO $
-        when skipThSplices $ do
+        when (skipThSplices && not disabled) $ do
           let spliceRanges = collectSpliceSpans lm
           atomicModifyIORef' spliceSpansRef $ \m ->
             (Map.insert mn spliceRanges m, ())
       let runtimeImport = noLocA (simpleImportDecl (mkModuleName "Test.Syd.Mutation.Plugin.Runtime"))
           lm' = fmap (\m -> m {hsmodImports = runtimeImport : hsmodImports m}) lm
       pure pr {parsedResultModule = pm {hpm_module = lm'}}
+
+-- | Recognise @{-# ANN module ("DisableMutations" :: String) #-}@ at the
+-- top level of the parsed module.  Only looks at module-level annotations
+-- (ignores @ANN someFunction ...@) so it mirrors the typecheck-phase
+-- check that uses 'tcg_ann_env' with 'ModuleTarget'.
+hasDisableMutationsAnn :: HsModule GhcPs -> Bool
+hasDisableMutationsAnn m = any isDisableMutationsDecl (hsmodDecls m)
+  where
+    isDisableMutationsDecl :: LHsDecl GhcPs -> Bool
+    isDisableMutationsDecl (L _ d) = case d of
+      AnnD _ (HsAnnotation _ ModuleAnnProvenance {} expr) ->
+        annExprIsDisableMutations expr
+      _ -> False
+
+    -- The payload of {-# ANN module ("DisableMutations" :: String) #-}
+    -- parses as @ExprWithTySig _ "DisableMutations" String@; strip
+    -- parentheses and type signatures to find the underlying string.
+    annExprIsDisableMutations :: LHsExpr GhcPs -> Bool
+    annExprIsDisableMutations le = case unLoc (stripExpr le) of
+      HsLit _ (HsString _ s) -> unpackFS s == "DisableMutations"
+      _ -> False
+
+    stripExpr :: LHsExpr GhcPs -> LHsExpr GhcPs
+    stripExpr le = case unLoc le of
+      HsPar _ inner -> stripExpr inner
+      ExprWithTySig _ inner _ -> stripExpr inner
+      _ -> le
 
 -- | Per-module splice spans collected by 'mutationAddRuntimeImport' when
 -- @--skip-th-splices@ is set, read back by 'mutationTypeCheckAction' and

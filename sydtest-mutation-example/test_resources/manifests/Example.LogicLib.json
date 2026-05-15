@@ -144,7 +144,7 @@
       "22",
       "27",
       "True",
-      "4"
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -176,7 +176,7 @@
       "22",
       "27",
       "False",
-      "5"
+      "2"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -208,7 +208,7 @@
       "22",
       "27",
       "not (e)",
-      "6"
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -368,7 +368,7 @@
       "31",
       "36",
       "True",
-      "4"
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -400,7 +400,7 @@
       "31",
       "36",
       "False",
-      "5"
+      "2"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -432,7 +432,7 @@
       "31",
       "36",
       "not (e)",
-      "6"
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -528,7 +528,7 @@
       "22",
       "36",
       "&&",
-      "3"
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -560,7 +560,7 @@
       "22",
       "36",
       "not (e)",
-      "4"
+      "1"
     ],
     "line": 17,
     "module": "Example.LogicLib",
@@ -740,7 +740,7 @@
       "20",
       "25",
       "True",
-      "4"
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -776,7 +776,7 @@
       "20",
       "25",
       "False",
-      "5"
+      "2"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -812,7 +812,7 @@
       "20",
       "25",
       "not (e)",
-      "6"
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -992,7 +992,7 @@
       "29",
       "34",
       "True",
-      "4"
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1028,7 +1028,7 @@
       "29",
       "34",
       "False",
-      "5"
+      "2"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1064,7 +1064,7 @@
       "29",
       "34",
       "not (e)",
-      "6"
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1172,7 +1172,7 @@
       "20",
       "34",
       "||",
-      "3"
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",
@@ -1208,7 +1208,7 @@
       "20",
       "34",
       "not (e)",
-      "4"
+      "1"
     ],
     "line": 11,
     "module": "Example.LogicLib",

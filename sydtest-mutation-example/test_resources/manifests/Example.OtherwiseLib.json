@@ -159,7 +159,7 @@
       "5",
       "10",
       "True",
-      "4"
+      "1"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
@@ -194,7 +194,7 @@
       "5",
       "10",
       "not (e)",
-      "5"
+      "1"
     ],
     "line": 12,
     "module": "Example.OtherwiseLib",
@@ -296,7 +296,7 @@
       "5",
       "11",
       "not (e)",
-      "2"
+      "1"
     ],
     "line": 13,
     "module": "Example.OtherwiseLib",

@@ -117,10 +117,20 @@ data InstrumentEnv = InstrumentEnv
     -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
     instrDebug :: Bool,
     -- | When True, do not instrument the expanded body of TH splices and
-    -- quasi-quotes.  Detected by matching @XExpr (ExpandedThingTc orig _)@
-    -- where @orig@ is an 'OrigExpr' wrapping an 'HsUntypedSplice' or
-    -- 'HsTypedSplice'.  Enabled by @--skip-th-splices@.
+    -- quasi-quotes.  Detected two ways: (a) matching
+    -- @XExpr (ExpandedThingTc orig _)@ where @orig@ is an 'OrigExpr'
+    -- wrapping a splice node — covers operator-style expansions; (b)
+    -- checking whether a mutation's 'RealSrcSpan' lies inside any span in
+    -- 'instrSpliceSpans' — covers top-level splices like @mkYesodData@
+    -- and quasi-quotes that are evaluated at rename time and leave no
+    -- 'ExpandedThingTc' wrapper in the typechecked AST.  Enabled by
+    -- @--skip-th-splices@.
     instrSkipThSplices :: Bool,
+    -- | Splice 'RealSrcSpan's collected from the parsed AST (one entry per
+    -- @$(...)@, @[name|...|]@, or 'SpliceD').  Only populated when
+    -- 'instrSkipThSplices' is True; used by 'recordMutation' to drop
+    -- mutations whose own span is contained in any splice span.
+    instrSpliceSpans :: [RealSrcSpan],
     -- | True when instrumenting a guard expression (BodyStmt inside a GRHS).
     -- Used by ConstBool to suppress the e->False alternative, which would make
     -- the guard non-exhaustive and throw an exception that tests can't catch.
@@ -151,9 +161,11 @@ runInstrument ::
   Bool ->
   -- | Skip TH splices and quasi-quotes.
   Bool ->
+  -- | Splice spans collected at parse time, used to filter mutations.
+  [RealSrcSpan] ->
   InstrM a ->
   TcM (a, [MutationRecord])
-runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices action = do
+runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices spliceSpans action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -178,6 +190,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrSourceFile = mSrcFile,
         instrDebug = debug,
         instrSkipThSplices = skipThSplices,
+        instrSpliceSpans = spliceSpans,
         instrInGuard = False
       }
   where
@@ -473,6 +486,20 @@ locStr = \case
     " at " ++ show (srcSpanStartLine rss) ++ ":" ++ show (srcSpanStartCol rss)
   UnhelpfulSpan _ -> ""
 
+-- | True when the outer span fully contains the inner span (inclusive on
+-- both ends).  Compares by (line, col) ordering so multi-line splices are
+-- handled correctly.
+containsSpan :: RealSrcSpan -> RealSrcSpan -> Bool
+containsSpan outer inner =
+  startsAfter && endsBefore
+  where
+    outerStart = (srcSpanStartLine outer, srcSpanStartCol outer)
+    outerEnd = (srcSpanEndLine outer, srcSpanEndCol outer)
+    innerStart = (srcSpanStartLine inner, srcSpanStartCol inner)
+    innerEnd = (srcSpanEndLine inner, srcSpanEndCol inner)
+    startsAfter = outerStart <= innerStart
+    endsBefore = innerEnd <= outerEnd
+
 -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
 applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
 applyAlts opName ((ty, mutated, origStr, replStr, delta) :| rest) original = do
@@ -491,9 +518,13 @@ recordMutation ::
   SrcSpanDelta ->
   InstrM MutationId
 recordMutation le op origStr replStr delta = do
-  InstrumentEnv {instrModule, instrSourceFile} <- ask
+  InstrumentEnv {instrModule, instrSourceFile, instrSkipThSplices, instrSpliceSpans} <- ask
   let sp = getLocA le
   case sp of
+    RealSrcSpan rss _
+      | instrSkipThSplices && any (`containsSpan` rss) instrSpliceSpans ->
+          -- Mutation is inside a TH splice or quasi-quote; drop it.
+          pure (MutationId [])
     RealSrcSpan rss _ -> do
       let mn = moduleNameString (moduleName instrModule)
           lineNum = srcSpanStartLine rss

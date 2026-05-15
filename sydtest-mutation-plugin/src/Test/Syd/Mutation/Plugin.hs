@@ -1,9 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.Mutation.Plugin (plugin) where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Data (Data, cast, gmapQ)
+import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
 import Data.List (isPrefixOf, stripPrefix)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
 import GHC
 import GHC.Driver.Env (Hsc, HscEnv (..))
@@ -15,6 +19,7 @@ import GHC.Types.Annotations (AnnTarget (..), findAnns)
 import Path
 import Path.IO (resolveDir')
 import System.Environment (lookupEnv)
+import System.IO.Unsafe (unsafePerformIO)
 import Test.Syd.Mutation.Manifest (MutationManifest (..), writeManifestFile)
 import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Plugin.Operators (allOperators)
@@ -94,6 +99,20 @@ plugin =
 -- | Inject @import Test.Syd.Mutation.Plugin.Runtime ()@ into every instrumented module.
 -- This ensures sydtest-mutation-plugin is registered as used (it is already in
 -- build-depends as the plugin package), and satisfies -Wunused-packages.
+--
+-- Also, when @--skip-th-splices@ is set, walk the parsed AST to collect
+-- 'RealSrcSpan's covering every 'HsUntypedSplice', 'HsTypedSplice', and
+-- declaration-level 'SpliceD'.  These are stored in a process-global IORef
+-- keyed by module name and consulted by 'recordMutation' (via the
+-- 'instrSpliceSpans' field of 'InstrumentEnv') to drop mutations whose own
+-- span is contained inside any splice span.
+--
+-- Why parse-time: many top-level splices (e.g. @mkYesodData@,
+-- @mkPersist [persistLowerCase| ... |]@) are evaluated during renaming and
+-- their results are spliced into the typechecker as if they were original
+-- code, so the typechecked AST no longer carries an 'ExpandedThingTc'
+-- wrapper we could pattern-match on.  The original splice nodes are still
+-- present in the parsed AST.
 mutationAddRuntimeImport ::
   [CommandLineOption] ->
   ModSummary ->
@@ -102,14 +121,60 @@ mutationAddRuntimeImport ::
 mutationAddRuntimeImport opts ms pr = do
   let mn = moduleNameString (moduleName (ms_mod ms))
   let exceptions = mapMaybe (stripPrefix "--exception=") opts
+  let skipThSplices = "--skip-th-splices" `elem` opts
   if "Paths_" `isPrefixOf` mn || mn `elem` exceptions
     then pure pr
     else do
       let pm = parsedResultModule pr
           lm = hpm_module pm
-          runtimeImport = noLocA (simpleImportDecl (mkModuleName "Test.Syd.Mutation.Plugin.Runtime"))
+      liftIO $
+        when skipThSplices $ do
+          let spliceRanges = collectSpliceSpans lm
+          atomicModifyIORef' spliceSpansRef $ \m ->
+            (Map.insert mn spliceRanges m, ())
+      let runtimeImport = noLocA (simpleImportDecl (mkModuleName "Test.Syd.Mutation.Plugin.Runtime"))
           lm' = fmap (\m -> m {hsmodImports = runtimeImport : hsmodImports m}) lm
       pure pr {parsedResultModule = pm {hpm_module = lm'}}
+
+-- | Per-module splice spans collected by 'mutationAddRuntimeImport' when
+-- @--skip-th-splices@ is set, read back by 'mutationTypeCheckAction' and
+-- threaded through 'InstrumentEnv'.  Lives in a process-global IORef
+-- because 'Hsc' and 'TcM' don't share state cleanly across compilation
+-- units, and GHC may compile many modules in one process.
+{-# NOINLINE spliceSpansRef #-}
+spliceSpansRef :: IORef (Map.Map String [RealSrcSpan])
+spliceSpansRef = unsafePerformIO (newIORef Map.empty)
+
+when :: (Monad m) => Bool -> m () -> m ()
+when True m = m
+when False _ = pure ()
+
+-- | Generic traversal that collects 'RealSrcSpan's of all parsed-AST
+-- splice and quasi-quote nodes.  Uses 'Data' generics so we don't have
+-- to enumerate every constructor of the AST.
+collectSpliceSpans :: (Data a) => a -> [RealSrcSpan]
+collectSpliceSpans x = here ++ concat (gmapQ collectSpliceSpans x)
+  where
+    here :: [RealSrcSpan]
+    here =
+      case (cast x :: Maybe (LHsExpr GhcPs)) of
+        Just le | isSpliceLExpr le -> realSpan (getLocA le)
+        _ -> case (cast x :: Maybe (LHsDecl GhcPs)) of
+          Just ld | isSpliceLDecl ld -> realSpan (getLocA ld)
+          _ -> []
+    realSpan (RealSrcSpan rss _) = [rss]
+    realSpan _ = []
+
+isSpliceLExpr :: LHsExpr GhcPs -> Bool
+isSpliceLExpr (L _ e) = case e of
+  HsUntypedSplice _ _ -> True
+  HsTypedSplice _ _ -> True
+  _ -> False
+
+isSpliceLDecl :: LHsDecl GhcPs -> Bool
+isSpliceLDecl (L _ d) = case d of
+  SpliceD _ _ -> True
+  _ -> False
 
 mutationTypeCheckAction ::
   [CommandLineOption] ->
@@ -143,8 +208,12 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           let disabledNames = disabledFromOpts ++ [n | DisableNamed n <- disabledFromModAnns]
           liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
           let mSrcPath = ml_hs_file (ms_location ms)
+          spliceSpans <-
+            if skipThSplices
+              then liftIO $ Map.findWithDefault [] mn <$> readIORef spliceSpansRef
+              else pure []
           (binds', mutations) <-
-            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices $
+            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices spliceSpans $
               instrumentModule (tcg_binds tcGblEnv)
           -- The manifest dir comes from --manifest= plugin opt, or from the
           -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path

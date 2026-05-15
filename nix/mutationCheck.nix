@@ -41,6 +41,13 @@
 # package, so test resources (golden files, data files) are available at
 # relative paths. All other test suite executables are referenced by Nix store
 # paths baked in at evaluation time.
+#
+# The harness pulls testToolDepends from every test package automatically and
+# puts them on PATH for its own checkPhase. This is necessary because the
+# harness runs every test executable in turn from one checkPhase, so the
+# per-package testToolDepends (which only fire during that package's own
+# checkPhase, which the harness clears) are not otherwise visible to spawned
+# test exes.
 
 { name
 , packages ? [ ]
@@ -154,6 +161,21 @@ let
 
   extraInputs = map builtTestPkg extraTestPkgs;
 
+  # Pull testToolDepends from every test package (first and extras) so they
+  # are visible to the harness's checkPhase. Each package's own checkPhase is
+  # cleared, so we cannot rely on per-package testToolDepends — they only fire
+  # during that package's own check. We need them on PATH for the harness.
+  # 'getCabalDeps.testToolDepends' is provided by haskellPackages.generic-builder
+  # whenever doCheck = true; we apply doCheck before reading it.
+  collectedTestToolDepends = pkgs.lib.concatMap
+    (pkg:
+      let
+        p = pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkg};
+      in
+        p.getCabalDeps.testToolDepends or [ ]
+    )
+    testPackages;
+
   drv =
     (pkgs.haskell.lib.overrideCabal
       # dontBenchmark: benchmarks are not relevant here and would waste build time.
@@ -189,6 +211,12 @@ let
       # extraInputs are the extra test package derivations; adding them to
       # buildInputs ensures they are present in the sandbox PATH during checkPhase.
       buildInputs = (old.buildInputs or [ ]) ++ extraInputs;
+      # Test executables spawn tools (postgresql, git, nix, ...) at runtime
+      # via testToolDepends. The harness runs every test exe from a single
+      # checkPhase, so we put the union of those deps from every test package
+      # on PATH here — per-package testToolDepends only fire during that
+      # package's own checkPhase, which the harness clears.
+      nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ collectedTestToolDepends;
       # Add a 'report' output so callers can access report.txt and report.json
       # without having to build the full 'out' derivation.
       outputs = (old.outputs or [ "out" ]) ++ [ "report" ];

@@ -167,6 +167,12 @@ let
   # during that package's own check. We need them on PATH for the harness.
   # 'getCabalDeps.testToolDepends' is provided by haskellPackages.generic-builder
   # whenever doCheck = true; we apply doCheck before reading it.
+  #
+  # Caveat: this only works because we apply pkgs.haskell.lib.doCheck below
+  # before reading getCabalDeps.testToolDepends. If a future caller pre-builds
+  # the package without doCheck=true (or substitutes a derivation that does not
+  # go through generic-builder), getCabalDeps will not be present and the
+  # testToolDepends propagation will silently degrade to the empty list.
   collectedTestToolDepends = pkgs.lib.concatMap
     (pkg:
       let

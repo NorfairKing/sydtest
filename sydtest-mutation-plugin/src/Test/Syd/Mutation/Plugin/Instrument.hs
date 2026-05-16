@@ -287,25 +287,47 @@ instrumentBind = \case
 -- shares a source name with its poly export).
 withLocalDisable :: Name -> InstrM a -> InstrM a
 withLocalDisable bindName action = do
-  InstrumentEnv {instrLocalDisables, instrOperators, instrInLocalLet} <- ask
-  if not instrInLocalLet
-    then action
-    else
-      let occ = getOccString bindName
-       in case Map.lookup occ instrLocalDisables of
-            Nothing -> action
-            Just disable ->
-              let operators' = case disable of
-                    DisableAllOps -> []
-                    DisableOps names -> filter (\op -> operatorName op `notElem` names) instrOperators
-               in local
-                    ( \env ->
-                        env
-                          { instrOperators = operators',
-                            instrLocalDisables = Map.delete occ instrLocalDisables
-                          }
-                    )
-                    action
+  InstrumentEnv {instrInLocalLet} <- ask
+  if instrInLocalLet
+    then applyLocalDisables [getOccString bindName] action
+    else action
+
+-- | Like 'withLocalDisable' but takes a list of 'Id's (typically the binders
+-- of a @do@-block 'BindStmt' pattern) and matches any of them.
+--
+-- Always checks regardless of 'instrInLocalLet': @<-@-bound names cannot
+-- collide with the enclosing top-level binding the way the
+-- @XHsBindsLR AbsBinds@ inner 'FunBind' can, so the gate is unnecessary
+-- here.
+withLocalDisableMany :: [Id] -> InstrM a -> InstrM a
+withLocalDisableMany ids =
+  applyLocalDisables (map (getOccString . idName) ids)
+
+-- | Common implementation: look up any of @occs@ in 'instrLocalDisables',
+-- narrow operators by the merged disable list, and remove all matched
+-- entries from the map for the wrapped action.
+applyLocalDisables :: [String] -> InstrM a -> InstrM a
+applyLocalDisables occs action = do
+  InstrumentEnv {instrLocalDisables, instrOperators} <- ask
+  let matches = [(occ, d) | occ <- occs, Just d <- [Map.lookup occ instrLocalDisables]]
+  case matches of
+    [] -> action
+    _ ->
+      let disableAll = any ((== DisableAllOps) . snd) matches
+          namedDisables = concat [ns | (_, DisableOps ns) <- matches]
+          operators' =
+            if disableAll
+              then []
+              else filter (\op -> operatorName op `notElem` namedDisables) instrOperators
+          remaining = foldr (Map.delete . fst) instrLocalDisables matches
+       in local
+            ( \env ->
+                env
+                  { instrOperators = operators',
+                    instrLocalDisables = remaining
+                  }
+            )
+            action
 
 -- | Run an instrumentation action with the operator list filtered by any
 -- {-# ANN funName ("DisableMutations..." :: String) #-} annotations on the
@@ -550,7 +572,15 @@ instrumentExpr _sp = \case
     skipSplices <- asks instrSkipThSplices
     if skipSplices && isSpliceThing orig
       then pure (XExpr (ExpandedThingTc orig expanded))
-      else XExpr . ExpandedThingTc orig <$> instrumentExpr _sp expanded
+      else case origBindStmtBinders orig of
+        -- The expansion of @do { p <- rhs; rest }@ is @(>>=) rhs (\\p -> rest)@.
+        -- Walk the expanded expression manually so we can apply the
+        -- 'DisableMutationsFor' scope only to @rhs@ (the first argument of
+        -- @(>>=)@), not to the continuation lambda's body — that body
+        -- contains further expanded BindStmts whose RHS expressions belong
+        -- to other names entirely.
+        Just binders -> XExpr . ExpandedThingTc orig <$> instrumentBindExpansion binders expanded
+        Nothing -> XExpr . ExpandedThingTc orig <$> instrumentExpr _sp expanded
   XExpr (WrapExpr (HsWrap co e)) ->
     XExpr . WrapExpr . HsWrap co <$> instrumentExpr _sp e
   e -> pure e
@@ -562,6 +592,40 @@ isSpliceThing :: HsThingRn -> Bool
 isSpliceThing (OrigExpr e) = isSpliceHsExpr e
 isSpliceThing _ = False
 
+-- | If the original (pre-expansion) thing was a 'BindStmt' in a @do@-block,
+-- return its pattern's binders.  GHC 9.10+ expands @do@-blocks in the
+-- renamer so the typechecked AST sees @(>>=) e (\\p -> rest)@ rather than
+-- the original 'BindStmt'; the original is preserved here for diagnostics
+-- and we reuse it to drive 'DisableMutationsFor' scoping.
+origBindStmtBinders :: HsThingRn -> Maybe [Name]
+origBindStmtBinders = \case
+  OrigStmt (L _ (BindStmt _ pat _)) ->
+    Just (collectPatBinders CollNoDictBinders pat)
+  _ -> Nothing
+
+-- | Walk a typechecked @(>>=) rhs (\\pat -> rest)@ application, applying
+-- 'DisableMutationsFor' scoping (drawn from @binders@) only to the @rhs@
+-- argument.  The continuation lambda body is instrumented normally so its
+-- own nested BindStmt expansions can fire.
+--
+-- Falls back to a normal walk if the expansion does not match the expected
+-- shape (which would be a GHC change worth noticing).
+instrumentBindExpansion :: [Name] -> HsExpr GhcTc -> InstrM (HsExpr GhcTc)
+instrumentBindExpansion binders = \case
+  HsApp x1 (L l1 (HsApp x2 bindOp rhs)) lam ->
+    HsApp x1
+      <$> ( do
+              rhs' <- withLocalDisableManyNames binders (instrumentLExpr rhs)
+              pure (L l1 (HsApp x2 bindOp rhs'))
+          )
+      <*> instrumentLExpr lam
+  other -> instrumentExpr noSrcSpan other
+
+-- | Variant of 'withLocalDisableMany' that takes 'Name's directly (we
+-- already extracted them from a renamed pattern, not a typechecked one).
+withLocalDisableManyNames :: [Name] -> InstrM a -> InstrM a
+withLocalDisableManyNames names = applyLocalDisables (map getOccString names)
+
 isSpliceHsExpr :: HsExpr GhcRn -> Bool
 isSpliceHsExpr = \case
   HsUntypedSplice _ _ -> True
@@ -571,7 +635,24 @@ isSpliceHsExpr = \case
 instrumentStmt :: ExprLStmt GhcTc -> InstrM (ExprLStmt GhcTc)
 instrumentStmt = traverse $ \case
   LastStmt x e mb se -> LastStmt x <$> instrumentLExpr e <*> pure mb <*> pure se
-  BindStmt x p e -> BindStmt x p <$> instrumentLExpr e
+  -- A 'BindStmt' binds names on the left of @<-@. If any of those names match
+  -- a 'DisableMutationsFor' entry, narrow operators for the RHS expression
+  -- the same way we do for @let foo = …@ bindings. The bound 'Id's come from
+  -- the pattern via 'collectPatBinders' so tuple and constructor patterns
+  -- like @(x, y) <- …@ work too.
+  -- A 'BindStmt' binds names on the left of @<-@. If any of those names match
+  -- a 'DisableMutationsFor' entry, narrow operators for the RHS expression
+  -- the same way we do for @let foo = …@ bindings. The bound 'Id's come from
+  -- the pattern via 'collectPatBinders' so tuple and constructor patterns
+  -- like @(x, y) <- …@ work too.
+  --
+  -- NB: in GHC 9.10+ the renamer expands @do { p <- e; …rest }@ into
+  -- @(>>=) e (\\p -> rest)@ before typechecking, so we usually never get
+  -- here — the expanded form lands in 'instrumentExpr' as an
+  -- @XExpr (ExpandedThingTc …)@ and is handled there.  This case still
+  -- runs for list comprehensions, monad comprehensions, and any flavour
+  -- where the typechecker preserves the original 'BindStmt' shape.
+  BindStmt x p e -> BindStmt x p <$> withLocalDisableMany (collectPatBinders CollNoDictBinders p) (instrumentLExpr e)
   BodyStmt x e se1 se2 ->
     BodyStmt x
       <$> local (\env -> env {instrInGuard = True}) (instrumentLExpr e)

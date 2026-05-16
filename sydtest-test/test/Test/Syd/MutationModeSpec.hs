@@ -39,6 +39,52 @@ spec = do
               "    + (-)"
             ]
 
+    -- Regression test for bug #4: when several alternatives share the same
+    -- replacement text on the same span (e.g. ListLit's drop-first and
+    -- drop-last on a 3-element list both rendering as "2 elements"), the
+    -- 7-part MutationId carries a trailing alt-index.  The human-readable
+    -- header must surface that index as " #<n>" so the two survivors do
+    -- not render as identical lines in report.txt.
+    describe "with 7-part MutationId (alt-index disambiguation)" $ do
+      it "appends the alt-index suffix to the header line" $
+        chunksToString
+          ( formatMutationLog
+              (MutationId ["Foo.Bar", "ListLit", "19", "29", "38", "2 elements", "2"])
+              aRecord
+                { augmentedMutationRecordOperator = "ListLit",
+                  augmentedMutationRecordOriginal = "3 elements",
+                  augmentedMutationRecordReplacement = "2 elements",
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = []
+                }
+          )
+          `shouldBe` unlines
+            [ "ListLit at Foo/Bar.hs:19:29-38 #2",
+              "    - 3 elements",
+              "    + 2 elements"
+            ]
+
+      it "renders sibling alternatives with distinct headers" $
+        let mkRec replStr =
+              aRecord
+                { augmentedMutationRecordOperator = "ListLit",
+                  augmentedMutationRecordOriginal = "3 elements",
+                  augmentedMutationRecordReplacement = replStr,
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = []
+                }
+            firstId = MutationId ["Foo.Bar", "ListLit", "19", "29", "38", "2 elements", "1"]
+            secondId = MutationId ["Foo.Bar", "ListLit", "19", "29", "38", "2 elements", "2"]
+            first = chunksToString (formatMutationLog firstId (mkRec "2 elements"))
+            second = chunksToString (formatMutationLog secondId (mkRec "2 elements"))
+         in first `shouldNotBe` second
+
     describe "with full source context" $
       it "produces git-diff style output with real source path" $
         goldenStringFile "test_resources/mutation-log-with-context.txt" $

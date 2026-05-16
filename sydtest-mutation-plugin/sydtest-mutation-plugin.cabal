@@ -70,6 +70,7 @@ test-suite sydtest-mutation-plugin-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
+    , containers
     , ghc
     , sydtest
     , sydtest-mutation-plugin

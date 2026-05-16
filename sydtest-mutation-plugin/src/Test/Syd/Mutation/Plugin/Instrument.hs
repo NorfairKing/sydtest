@@ -12,6 +12,9 @@ module Test.Syd.Mutation.Plugin.Instrument
     runInstrument,
     instrumentModule,
     applySpanRemoval,
+    parseFunMutationAnns,
+    FunMutationAnns (..),
+    LocalDisable (..),
   )
 where
 
@@ -22,6 +25,8 @@ import Control.Monad.Writer.Strict
 import qualified Data.ByteString as SB
 import Data.List (stripPrefix)
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (isJust)
 import qualified Data.Set as Set
 import qualified Data.Text as T
@@ -38,6 +43,7 @@ import GHC.Tc.Utils.Monad (getTopEnv)
 import GHC.Types.Annotations (AnnEnv, AnnTarget (..), findAnns)
 import GHC.Types.Error (isEmptyMessages)
 import GHC.Types.Id (idName)
+import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
@@ -134,7 +140,22 @@ data InstrumentEnv = InstrumentEnv
     -- | True when instrumenting a guard expression (BodyStmt inside a GRHS).
     -- Used by ConstBool to suppress the e->False alternative, which would make
     -- the guard non-exhaustive and throw an exception that tests can't catch.
-    instrInGuard :: Bool
+    instrInGuard :: Bool,
+    -- | Per-local-binding mutation disables that apply inside the currently
+    -- enclosing top-level binding. Keyed by the local binding's source-level
+    -- name (its 'OccName' string).  Populated by 'withFunBindEnv' when an
+    -- outer @{-# ANN funName ("DisableMutationsFor inner..." :: String) #-}@
+    -- annotation is present, and consumed by 'instrumentBind' when entering
+    -- a matching local 'FunBind' or 'VarBind'.  Cleared at the start of each
+    -- top-level binding so disables don't leak across them.
+    instrLocalDisables :: Map String LocalDisable,
+    -- | True when we are currently instrumenting a local binding inside a
+    -- @let@ or @where@.  Gates 'withLocalDisable' so it never matches the
+    -- top-level binding itself — which would happen at @XHsBindsLR
+    -- AbsBinds@, whose inner 'FunBind' has the same source name as its poly
+    -- export and would otherwise spuriously consume a 'DisableMutationsFor'
+    -- entry intended for an identically named local.
+    instrInLocalLet :: Bool
   }
 
 type InstrM = WriterT [MutationRecord] (ReaderT InstrumentEnv TcM)
@@ -191,7 +212,9 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrDebug = debug,
         instrSkipThSplices = skipThSplices,
         instrSpliceSpans = spliceSpans,
-        instrInGuard = False
+        instrInGuard = False,
+        instrLocalDisables = Map.empty,
+        instrInLocalLet = False
       }
   where
     ioErr :: IOException -> IO (Maybe SB.ByteString)
@@ -232,10 +255,15 @@ instrumentBinds = mapBagM (traverse instrumentBind)
 instrumentBind :: HsBind GhcTc -> InstrM (HsBind GhcTc)
 instrumentBind = \case
   FunBind x name mg -> do
-    mg' <- withFunBindEnv (idName (unLoc name)) (instrumentMatchGroup mg)
+    let funName = idName (unLoc name)
+    -- 'withLocalDisable' is a no-op outside an enclosing local-let scope (the
+    -- 'instrInLocalLet' flag is false at module top-level), so it only fires
+    -- on truly local bindings.  Inside, 'withFunBindEnv' sees no annotations
+    -- (locals can't be ANN'd) and leaves the disable map intact.
+    mg' <- withLocalDisable funName (withFunBindEnv funName (instrumentMatchGroup mg))
     pure (FunBind x name mg')
   PatBind x pat mult rhs -> PatBind x pat mult <$> instrumentGRHSs rhs
-  VarBind x var rhs -> VarBind x var <$> instrumentLExpr rhs
+  VarBind x var rhs -> VarBind x var <$> withLocalDisable (idName var) (instrumentLExpr rhs)
   PatSynBind x psb -> pure (PatSynBind x psb)
   -- At GhcTc, XHsBindsLR carries an AbsBinds (see XXHsBindsLR instance).
   -- {-# ANN f #-} annotations attach to the poly Id (abe_poly), but the inner
@@ -246,37 +274,160 @@ instrumentBind = \case
     binds' <- foldr withFunBindEnv (mapBagM (traverse instrumentBind) abs_binds) polyNames
     pure (XHsBindsLR ab {abs_binds = binds'})
 
+-- | If @bindName@'s source-level name is a key in 'instrLocalDisables',
+-- narrow 'instrOperators' for the wrapped action and remove the entry from
+-- the map (so the same disable doesn't re-fire on a shadowed inner binding).
+--
+-- This is the lookup half of @DisableMutationsFor <name>@: the outer
+-- top-level binding's 'withFunBindEnv' installed the map; this is where
+-- the local binding's RHS instrumentation consults it.
+--
+-- No-op when 'instrInLocalLet' is False — the matching only applies inside a
+-- @let@ or @where@, not to the top-level binding itself (whose inner FunBind
+-- shares a source name with its poly export).
+withLocalDisable :: Name -> InstrM a -> InstrM a
+withLocalDisable bindName action = do
+  InstrumentEnv {instrLocalDisables, instrOperators, instrInLocalLet} <- ask
+  if not instrInLocalLet
+    then action
+    else
+      let occ = getOccString bindName
+       in case Map.lookup occ instrLocalDisables of
+            Nothing -> action
+            Just disable ->
+              let operators' = case disable of
+                    DisableAllOps -> []
+                    DisableOps names -> filter (\op -> operatorName op `notElem` names) instrOperators
+               in local
+                    ( \env ->
+                        env
+                          { instrOperators = operators',
+                            instrLocalDisables = Map.delete occ instrLocalDisables
+                          }
+                    )
+                    action
+
 -- | Run an instrumentation action with the operator list filtered by any
--- {-# ANN funName ("disable-mutation:..." :: String) #-} annotations on the
+-- {-# ANN funName ("DisableMutations..." :: String) #-} annotations on the
 -- given top-level name.
+--
+-- Also reads any @DisableMutationsFor <localName>...@ annotations on the
+-- same top-level name and installs them in 'instrLocalDisables' so that
+-- 'instrumentBind' can scope them down to the right local binding.
+--
+-- @ANN@ targets only resolve for top-level names, so for local bindings
+-- 'findAnns' returns @[]@; in that case this is the identity on the
+-- environment (the existing 'instrLocalDisables' from the enclosing
+-- top-level binding is preserved).
 withFunBindEnv :: Name -> InstrM a -> InstrM a
 withFunBindEnv funName action = do
-  InstrumentEnv {instrAnnEnv, instrOperators} <- ask
+  InstrumentEnv {instrAnnEnv, instrOperators, instrLocalDisables} <- ask
   let funAnns = findAnns deserializeWithData instrAnnEnv (NamedTarget funName) :: [String]
-  case parseFunMutationAnns funAnns of
-    Just [] -> action -- no annotation affecting this function
-    Just disabled ->
-      local (\env -> env {instrOperators = filter (\op -> operatorName op `notElem` disabled) instrOperators}) action
-    Nothing -> local (\env -> env {instrOperators = []}) action -- disable all
+      FunMutationAnns selfDisable localDisables = parseFunMutationAnns funAnns
+      operators' = case selfDisable of
+        DisableAllOps -> []
+        DisableOps disabled -> filter (\op -> operatorName op `notElem` disabled) instrOperators
+      -- Only replace instrLocalDisables when this binding actually contributes
+      -- entries.  Local bindings have no ANN entries, so they return an empty
+      -- map and we must keep the enclosing top-level binding's map intact.
+      localDisables' =
+        if Map.null localDisables
+          then instrLocalDisables
+          else localDisables
+  local
+    ( \env ->
+        env
+          { instrOperators = operators',
+            instrLocalDisables = localDisables'
+          }
+    )
+    action
+
+-- | Parsed result of all mutation-related @{-# ANN funName ... #-}@
+-- annotations on a single top-level binding.
+data FunMutationAnns = FunMutationAnns
+  { -- | What to do with mutations inside the binding itself.
+    famSelfDisable :: !LocalDisable,
+    -- | Disables targeted at specific local bindings within this top-level
+    -- binding's body, keyed by the local binding's user-visible name.
+    famLocalDisables :: !(Map String LocalDisable)
+  }
+  deriving (Eq, Show)
+
+-- | What a single annotation disables on a scope.
+data LocalDisable
+  = -- | Disable all operators on this scope.
+    DisableAllOps
+  | -- | Disable exactly the listed operator names on this scope. An empty
+    -- list means no disables apply at this scope.
+    DisableOps [String]
+  deriving (Eq, Show)
+
+-- | Parse a list of @{-# ANN funName #-}@ string payloads.
+--
+-- Recognised forms (whitespace after the colon and commas is tolerated):
+--
+--   * @DisableMutations@                            — disable all operators on the binding.
+--   * @DisableMutations: A, B@                      — disable the listed operators on the binding.
+--   * @DisableMutation: A@                          — disable the single named operator on the binding.
+--   * @DisableMutationsFor <name>@                  — disable all operators inside the
+--                                                    local binding named @\<name\>@.
+--   * @DisableMutationsFor <name>: A, B@            — disable the listed operators inside @\<name\>@.
+--   * @DisableMutationFor <name>: A@                — disable the single named operator inside @\<name\>@.
+--
+-- @\<name\>@ matches the source-level identifier of a local binding inside
+-- the annotated top-level function's body. Unrecognised strings are ignored.
+parseFunMutationAnns :: [String] -> FunMutationAnns
+parseFunMutationAnns =
+  foldr combine (FunMutationAnns (DisableOps []) Map.empty) . concatMap parseOne
   where
-    -- Returns Nothing for "disable all", Just names for specific disables,
-    -- Just [] when no relevant annotation is present.
-    parseFunMutationAnns :: [String] -> Maybe [String]
-    parseFunMutationAnns anns =
-      let parsed = concatMap parseOne anns
-       in if any isDisableAll parsed
-            then Nothing
-            else Just (concatMap getNames parsed)
+    combine (Self d) (FunMutationAnns s ls) = FunMutationAnns (mergeDisable s d) ls
+    combine (Local n d) (FunMutationAnns s ls) =
+      FunMutationAnns s (Map.insertWith mergeDisable n d ls)
+
+    parseOne :: String -> [ParsedAnn]
     parseOne s
-      | s == "DisableMutations" = [Left ()]
-      | Just rest <- stripPrefix "DisableMutations:" s = [Right (map trim (splitOnComma rest))]
-      | Just rest <- stripPrefix "DisableMutation:" s = [Right [trim rest]]
+      -- Try the "...For <name>" forms first so they don't get swallowed by
+      -- the shorter prefixes.
+      | Just rest <- stripPrefix "DisableMutationsFor " s =
+          [Local n d | (n, d) <- splitForPayload rest DisableAllOps]
+      | Just rest <- stripPrefix "DisableMutationFor " s =
+          [Local n d | (n, d) <- splitForPayload rest (DisableOps [])]
+      | s == "DisableMutations" = [Self DisableAllOps]
+      | Just rest <- stripPrefix "DisableMutations:" s =
+          [Self (DisableOps (map trim (splitOnComma rest)))]
+      | Just rest <- stripPrefix "DisableMutation:" s =
+          [Self (DisableOps [trim rest])]
       | otherwise = []
+
+    -- After "DisableMutationsFor " (or "DisableMutationFor "), the rest is
+    -- either "<name>"            (no colon → default disable)
+    --        "<name>: A, B, ..."  (colon → DisableOps with named operators).
+    -- For DisableMutationsFor without a colon, default = DisableAllOps.
+    -- For DisableMutationFor without a colon, default = DisableOps [] (no-op),
+    -- but we accept it for symmetry.
+    splitForPayload :: String -> LocalDisable -> [(String, LocalDisable)]
+    splitForPayload rest defaultDisable =
+      case break (== ':') (trim rest) of
+        (name, []) ->
+          let n = trimTrailing name
+           in [(n, defaultDisable) | not (null n)]
+        (name, _ : opsRest) ->
+          let n = trimTrailing name
+              ops = map trim (splitOnComma opsRest)
+           in [(n, DisableOps ops) | not (null n)]
+
+    mergeDisable :: LocalDisable -> LocalDisable -> LocalDisable
+    mergeDisable DisableAllOps _ = DisableAllOps
+    mergeDisable _ DisableAllOps = DisableAllOps
+    mergeDisable (DisableOps a) (DisableOps b) = DisableOps (a ++ b)
+
     trim = dropWhile (== ' ')
-    isDisableAll (Left ()) = True
-    isDisableAll _ = False
-    getNames (Right ns) = ns
-    getNames _ = []
+    trimTrailing = reverse . dropWhile (== ' ') . reverse . trim
+
+data ParsedAnn
+  = Self LocalDisable
+  | Local String LocalDisable
 
 splitOnComma :: String -> [String]
 splitOnComma s = case break (== ',') s of
@@ -313,7 +464,9 @@ instrumentGRHS = \case
 
 instrumentLocalBinds :: HsLocalBinds GhcTc -> InstrM (HsLocalBinds GhcTc)
 instrumentLocalBinds = \case
-  HsValBinds x valBinds -> HsValBinds x <$> instrumentValBinds valBinds
+  HsValBinds x valBinds ->
+    HsValBinds x
+      <$> local (\env -> env {instrInLocalLet = True}) (instrumentValBinds valBinds)
   lbs -> pure lbs
 
 instrumentValBinds :: HsValBinds GhcTc -> InstrM (HsValBinds GhcTc)

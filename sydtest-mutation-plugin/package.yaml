@@ -35,6 +35,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - containers
     - ghc
     - sydtest
     - sydtest-mutation-plugin

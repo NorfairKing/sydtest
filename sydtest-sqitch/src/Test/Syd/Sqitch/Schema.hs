@@ -7,6 +7,7 @@ module Test.Syd.Sqitch.Schema
   ( normaliseSchema,
     removeComments,
     querySchema,
+    queryIndices,
     align,
     compareSchemas,
   )
@@ -56,6 +57,24 @@ querySchema =
       )
     <$> rawSql
       "SELECT table_schema, table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position"
+      []
+
+-- | Snapshot the indices of every table in the @public@ schema, keyed
+-- by @(table_name, index_name)@. The value is the normalised
+-- @CREATE INDEX@ statement reported by @pg_indexes.indexdef@ — which
+-- captures columns, ordering, uniqueness, and any partial-index
+-- predicate. This is what 'compareSchemas' needs to detect drift
+-- between two ways of building the schema (e.g. sqitch deploy vs
+-- persistent automatic migration plus extra setup).
+queryIndices :: (MonadIO m) => SqlPersistT m (Map (Text, Text) Text)
+queryIndices =
+  Map.fromList
+    . map
+      ( \(Single tableName, Single indexName, Single indexDef) ->
+          ((tableName, indexName), normaliseSchema indexDef)
+      )
+    <$> rawSql
+      "SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' ORDER BY tablename, indexname"
       []
 
 -- | Outer-join two maps, recording for each key which side it came from.

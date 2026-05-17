@@ -24,6 +24,11 @@ extra-source-files:
     test_resources/toy-sqitch-drift/sqitch.conf
     test_resources/toy-sqitch-drift/sqitch.plan
     test_resources/toy-sqitch-drift/verify/init.sql
+    test_resources/toy-sqitch-index-drift/deploy/init.sql
+    test_resources/toy-sqitch-index-drift/revert/init.sql
+    test_resources/toy-sqitch-index-drift/sqitch.conf
+    test_resources/toy-sqitch-index-drift/sqitch.plan
+    test_resources/toy-sqitch-index-drift/verify/init.sql
     test_resources/toy-sqitch-ok/deploy/add-color.sql
     test_resources/toy-sqitch-ok/deploy/add-color@v1.sql
     test_resources/toy-sqitch-ok/deploy/init.sql

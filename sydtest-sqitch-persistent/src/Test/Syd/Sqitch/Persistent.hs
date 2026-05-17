@@ -90,20 +90,23 @@ runSqitchPersistentChecks ::
   DB.ConnectionPool ->
   IO ()
 runSqitchPersistentChecks settings tdb pool = do
-  -- Phase 1: snapshot the schema produced by persistent's automatic
-  -- migration. Start from an empty schema so any state left behind by
-  -- a previous test does not pollute the snapshot.
-  schemaFromPersistent <- runNoLoggingT $
+  -- Phase 1: snapshot columns + indices produced by persistent's
+  -- automatic migration (plus the caller's extra setup). Start from an
+  -- empty schema so any state left behind by a previous test does not
+  -- pollute the snapshot.
+  (columnsFromPersistent, indicesFromPersistent) <- runNoLoggingT $
     flip DB.runSqlPool pool $ do
       DB.rawExecute "DROP SCHEMA IF EXISTS public CASCADE" []
       DB.rawExecute "CREATE SCHEMA public" []
       DB.rawExecute "DROP SCHEMA IF EXISTS sqitch CASCADE" []
       migrationRunner (sqitchPersistentAutoMigration settings)
       sqitchPersistentExtraSetup settings
-      querySchema
+      (,) <$> querySchema <*> queryIndices
 
   -- Phase 2: clean the database and run sqitch deploy for the whole
-  -- plan, then capture that schema.
+  -- plan, then capture columns + indices on the sqitch side (also
+  -- after the caller's extra setup, so indices created by setUpIndices
+  -- and friends are part of the comparison on both sides).
   testdb <- runNoLoggingT $
     flip DB.runSqlPool pool $ do
       [DB.Single dbName] <- DB.rawSql "SELECT current_database()::text" []
@@ -118,13 +121,16 @@ runSqitchPersistentChecks settings tdb pool = do
 
   sqitchAt sqitchSettings target "deploy" ["--verify"]
 
-  schemaFromSqitch <- runNoLoggingT $
+  (columnsFromSqitch, indicesFromSqitch) <- runNoLoggingT $
     flip DB.runSqlPool pool $ do
       sqitchPersistentExtraSetup settings
-      querySchema
+      (,) <$> querySchema <*> queryIndices
 
-  -- Phase 3: compare.
-  compareSchemas "sqitch migrations" (align schemaFromSqitch schemaFromPersistent)
+  -- Phase 3: compare columns and indices.
+  context "columns" $
+    compareSchemas "sqitch migrations" (align columnsFromSqitch columnsFromPersistent)
+  context "indices" $
+    compareSchemas "sqitch migrations" (align indicesFromSqitch indicesFromPersistent)
 
   -- Phase 4: revert so the database is clean for any downstream tests
   -- that share the same pool.

@@ -51,7 +51,7 @@ spec = sequential $ do
         it "passes through to the inner spec with a clean database" $ \_pool ->
           pure () :: IO ()
 
-  describe "runSqitchPersistentChecks (negative case)" $
+  describe "runSqitchPersistentChecks (negative cases)" $ do
     describe "toy-sqitch-drift" $
       persistPostgresqlSpec (pure ()) $
         itWithAll "fails when the sqitch schema is missing a column the persistent model has" $
@@ -63,3 +63,15 @@ spec = sequential $ do
               Right () ->
                 expectationFailure
                   "expected runSqitchPersistentChecks to throw when the schemas diverge"
+
+    describe "toy-sqitch-index-drift" $
+      persistPostgresqlSpec (pure ()) $
+        itWithAll "fails when the columns match but the sqitch side has an extra index the persistent model does not" $
+          \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
+            settings <- settingsFor "test_resources/toy-sqitch-index-drift" Nothing
+            res <- try @SomeException $ runSqitchPersistentChecks settings tdb pool
+            case res of
+              Left _ -> pure ()
+              Right () ->
+                expectationFailure
+                  "expected runSqitchPersistentChecks to throw when indices diverge"

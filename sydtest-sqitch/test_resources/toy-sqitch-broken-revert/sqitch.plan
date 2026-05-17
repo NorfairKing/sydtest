@@ -1,0 +1,6 @@
+%syntax-version=1.0.0
+%project=toy-broken-revert
+%uri=sydtest-sqitch/toy-broken-revert
+
+init 2026-01-01T00:00:00Z syd <syd@example.com> # Create widget table
+add-color 2026-01-02T00:00:00Z syd <syd@example.com> # Add color column; revert is wrong

@@ -3,6 +3,7 @@
 , libredirect
 , redis
 , postgresql
+, sqitchPg
 , iana-etc
 , chromedriver
 , chromium
@@ -79,6 +80,14 @@ let
       testDepends = (old.testDepends or [ ]) ++ [ postgresql ];
       # Turn off testing there's something wrong with a gclib version on
       # older nixpkgs versions?
+      doCheck = false;
+    });
+    "sydtest-sqitch" = overrideCabal (sydtestPkg "sydtest-sqitch") (old: {
+      testDepends = (old.testDepends or [ ]) ++ [ postgresql sqitchPg ];
+      doCheck = false;
+    });
+    "sydtest-sqitch-persistent" = overrideCabal (sydtestPkg "sydtest-sqitch-persistent") (old: {
+      testDepends = (old.testDepends or [ ]) ++ [ postgresql sqitchPg ];
       doCheck = false;
     });
     "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {

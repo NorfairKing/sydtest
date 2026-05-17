@@ -1,0 +1,8 @@
+%syntax-version=1.0.0
+%project=toy-ok
+%uri=sydtest-sqitch/toy-ok
+
+init 2026-01-01T00:00:00Z syd <syd@example.com> # Create widget table
+add-color 2026-01-02T00:00:00Z syd <syd@example.com> # Add color column to widget
+@v1 2026-01-03T00:00:00Z syd <syd@example.com> # Tag before reworking add-color
+add-color [add-color@v1] 2026-01-04T00:00:00Z syd <syd@example.com> # Rework add-color to use TEXT

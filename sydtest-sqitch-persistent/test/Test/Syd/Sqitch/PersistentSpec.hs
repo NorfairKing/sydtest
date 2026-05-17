@@ -3,12 +3,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.Sqitch.PersistentSpec (spec) where
 
-import Control.Exception (SomeException, try)
 import Data.Text (Text)
 import qualified Database.Persist.Sql as DB
 import Path
@@ -51,27 +49,18 @@ spec = sequential $ do
         it "passes through to the inner spec with a clean database" $ \_pool ->
           pure () :: IO ()
 
-  describe "runSqitchPersistentChecks (negative cases)" $ do
-    describe "toy-sqitch-drift" $
-      persistPostgresqlSpec (pure ()) $
-        itWithAll "fails when the sqitch schema is missing a column the persistent model has" $
-          \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
-            settings <- settingsFor [reldir|test_resources/toy-sqitch-drift|] Nothing
-            res <- try @SomeException $ runSqitchPersistentChecks settings tdb pool
-            case res of
-              Left _ -> pure ()
-              Right () ->
-                expectationFailure
-                  "expected runSqitchPersistentChecks to throw when the schemas diverge"
+  describe "runSqitchPersistentChecks (negative cases)" $
+    expectFailing $ do
+      describe "toy-sqitch-drift" $
+        persistPostgresqlSpec (pure ()) $
+          itWithAll "fails when the sqitch schema is missing a column the persistent model has" $
+            \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
+              settings <- settingsFor [reldir|test_resources/toy-sqitch-drift|] Nothing
+              runSqitchPersistentChecks settings tdb pool
 
-    describe "toy-sqitch-index-drift" $
-      persistPostgresqlSpec (pure ()) $
-        itWithAll "fails when the columns match but the sqitch side has an extra index the persistent model does not" $
-          \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
-            settings <- settingsFor [reldir|test_resources/toy-sqitch-index-drift|] Nothing
-            res <- try @SomeException $ runSqitchPersistentChecks settings tdb pool
-            case res of
-              Left _ -> pure ()
-              Right () ->
-                expectationFailure
-                  "expected runSqitchPersistentChecks to throw when indices diverge"
+      describe "toy-sqitch-index-drift" $
+        persistPostgresqlSpec (pure ()) $
+          itWithAll "fails when the columns match but the sqitch side has an extra index the persistent model does not" $
+            \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
+              settings <- settingsFor [reldir|test_resources/toy-sqitch-index-drift|] Nothing
+              runSqitchPersistentChecks settings tdb pool

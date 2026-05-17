@@ -3,6 +3,7 @@
 , libredirect
 , redis
 , postgresql
+, sqitchPg
 , iana-etc
 , chromedriver
 , chromium
@@ -72,15 +73,10 @@ let
     "sydtest-typed-process" = sydtestPkg "sydtest-typed-process";
     "sydtest-wai" = sydtestPkg "sydtest-wai";
     "sydtest-yesod" = sydtestPkg "sydtest-yesod";
-    "sydtest-hedis" = overrideCabal (sydtestPkg "sydtest-hedis") (old: {
-      testDepends = (old.testDepends or [ ]) ++ [ redis ];
-    });
-    "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
-      testDepends = (old.testDepends or [ ]) ++ [ postgresql ];
-      # Turn off testing there's something wrong with a gclib version on
-      # older nixpkgs versions?
-      doCheck = false;
-    });
+    "sydtest-hedis" = addTestToolDepend (sydtestPkg "sydtest-hedis") redis;
+    "sydtest-persistent-postgresql" = addTestToolDepend (sydtestPkg "sydtest-persistent-postgresql") postgresql;
+    "sydtest-sqitch-postgres" = addTestToolDepends (sydtestPkg "sydtest-sqitch-postgres") [ postgresql sqitchPg ];
+    "sydtest-sqitch-postgres-persistent" = addTestToolDepends (sydtestPkg "sydtest-sqitch-postgres-persistent") [ postgresql sqitchPg ];
     "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
       passthru = (old.passthru or { }) // {
         inherit fontsConfig;

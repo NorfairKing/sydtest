@@ -1,0 +1,5 @@
+%syntax-version=1.0.0
+%project=toy-non-idempotent
+%uri=sydtest-sqitch/toy-non-idempotent
+
+init 2026-01-01T00:00:00Z syd <syd@example.com> # Create widget table (non-idempotent)

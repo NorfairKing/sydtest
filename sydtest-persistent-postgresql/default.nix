@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "sydtest-persistent-postgresql";
-  version = "0.3.0.0";
+  version = "0.4.0.0";
   src = ./.;
   libraryHaskellDepends = [
     base monad-logger mtl persistent-postgresql postgres-options

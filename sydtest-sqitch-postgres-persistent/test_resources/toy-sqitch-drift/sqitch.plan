@@ -1,0 +1,5 @@
+%syntax-version=1.0.0
+%project=toy-drift
+%uri=sydtest-sqitch/toy-drift
+
+init 2026-01-01T00:00:00Z syd <syd@example.com> # Create widget table without color

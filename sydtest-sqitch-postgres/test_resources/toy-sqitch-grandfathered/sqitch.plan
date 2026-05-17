@@ -1,0 +1,8 @@
+%syntax-version=1.0.0
+%project=toy-grandfathered
+%uri=sydtest-sqitch/toy-grandfathered
+
+init 2026-01-01T00:00:00Z syd <syd@example.com> # Non-idempotent: CREATE TABLE without IF NOT EXISTS
+add-shape 2026-01-02T00:00:00Z syd <syd@example.com> # Round-trip-broken: revert uses _new rename pattern
+@legacy 2026-01-03T00:00:00Z syd <syd@example.com> # Cut-over: everything after must pass both checks
+add-color 2026-01-04T00:00:00Z syd <syd@example.com> # Idempotent and round-trip-safe

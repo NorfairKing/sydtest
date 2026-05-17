@@ -88,6 +88,7 @@
           cabal-install
           postgresql
           redis
+          sqitchPg
           # mongodb
           zlib
         ]) ++ self.checks.${system}.pre-commit.enabledPackages;

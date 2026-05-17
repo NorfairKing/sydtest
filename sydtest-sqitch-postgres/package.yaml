@@ -30,7 +30,6 @@ library:
   - sydtest
   - sydtest-persistent-postgresql
   - text
-  - tmp-postgres
   - typed-process
 
 tests:
@@ -44,10 +43,8 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
-    - containers
     - path
     - path-io
-    - persistent
     - sydtest
     - sydtest-persistent-postgresql
     - sydtest-sqitch-postgres

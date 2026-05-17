@@ -4,7 +4,7 @@
 module Test.Syd.Sqitch.Postgresql.Process
   ( SqitchSettings (..),
     SqitchTarget,
-    sqitchTargetFromTemplateDB,
+    sqitchTargetFromOptions,
     sqitchAt,
     sqitchDeployTo,
     sqitchRevertTo,
@@ -19,12 +19,10 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Word (Word16)
 import qualified Database.PostgreSQL.Simple.Options as Postgres
-import Database.Postgres.Temp (toConnectionOptions)
 import Network.URI (escapeURIString, isUnreserved)
 import Path
 import System.Environment (getEnvironment)
 import System.Process.Typed
-import Test.Syd.Persistent.Postgresql (TemplateDB)
 
 -- | Static configuration for a sqitch-based test suite.
 data SqitchSettings = SqitchSettings
@@ -44,22 +42,22 @@ data SqitchSettings = SqitchSettings
 -- | A @sqitch --target@ value: a libpq-style URI pointing at a database.
 newtype SqitchTarget = SqitchTarget {unSqitchTarget :: String}
 
--- | Build a sqitch target URI for a temporary database created by
--- 'Test.Syd.Persistent.Postgresql.persistPostgresqlSpec'. The current
--- database name is queried from the pool by the caller and passed in.
-sqitchTargetFromTemplateDB ::
-  TemplateDB ->
-  -- | Current database name (as reported by @SELECT current_database()@).
-  Text ->
-  SqitchTarget
-sqitchTargetFromTemplateDB (db, (testuser, testpassword, _templatedb)) testdb =
-  let options = toConnectionOptions db
-      rawHost :: String
+-- | Build a sqitch target URI from libpq connection 'Postgres.Options'.
+-- Handles the unix-socket host case (host starts with @/@) by
+-- URL-encoding the host segment so sqitch's URI parser keeps the
+-- socket path intact.
+sqitchTargetFromOptions :: Postgres.Options -> SqitchTarget
+sqitchTargetFromOptions options =
+  let rawHost :: String
       rawHost = fromMaybe "localhost" (getLast (Postgres.host options))
       port :: Word16
       port = maybe 5432 fromIntegral (getLast (Postgres.port options))
-      -- A unix-socket directory (which starts with '/') must be
-      -- URL-encoded for sqitch's URI parser to keep it intact.
+      user :: String
+      user = fromMaybe "" (getLast (Postgres.user options))
+      password :: String
+      password = fromMaybe "" (getLast (Postgres.password options))
+      dbname :: String
+      dbname = fromMaybe "" (getLast (Postgres.dbname options))
       encodedHost
         | "/" `isPrefixOf` rawHost = escapeURIString isUnreserved rawHost
         | otherwise = rawHost
@@ -67,15 +65,15 @@ sqitchTargetFromTemplateDB (db, (testuser, testpassword, _templatedb)) testdb =
    in SqitchTarget $
         concat
           [ "db:pg://",
-            enc (Text.unpack testuser),
+            enc user,
             ":",
-            enc (Text.unpack testpassword),
+            enc password,
             "@",
             encodedHost,
             ":",
             show port,
             "/",
-            enc (Text.unpack testdb)
+            enc dbname
           ]
 
 -- | Run a sqitch subcommand against a target. Forces @TZ=UTC@: sqitch

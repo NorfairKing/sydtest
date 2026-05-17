@@ -1,18 +1,14 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Test.Syd.Sqitch.Postgresql.PersistentSpec (spec) where
 
 import Data.Text (Text)
-import qualified Database.Persist.Sql as DB
 import Path
 import Path.IO
 import Test.Syd
-import Test.Syd.Persistent.Postgresql
+import Test.Syd.Persistent.Postgresql (emptyPostgresOptionsSetupFunc)
 import Test.Syd.Sqitch.Postgresql
 import Test.Syd.Sqitch.Postgresql.Persistent
 import Test.Syd.Sqitch.Postgresql.Persistent.Example (migrateWidget)
@@ -46,21 +42,20 @@ spec = sequential $ do
     describe "toy-sqitch-ok" $ do
       settings <- runIO $ settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
       sqitchPersistentPostgresqlSpec settings $
-        it "passes through to the inner spec with a clean database" $ \_pool ->
-          pure () :: IO ()
+        it
+          "completes without surfacing anything to downstream tests"
+          (pure () :: IO ())
 
   describe "runSqitchPersistentChecks (negative cases)" $
     expectFailing $ do
       describe "toy-sqitch-drift" $
-        persistPostgresqlSpec (pure ()) $
-          itWithAll "fails when the sqitch schema is missing a column the persistent model has" $
-            \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
-              settings <- settingsFor [reldir|test_resources/toy-sqitch-drift|] Nothing
-              runSqitchPersistentChecks settings tdb pool
+        setupAround emptyPostgresOptionsSetupFunc $
+          it "fails when the sqitch schema is missing a column the persistent model has" $ \opts -> do
+            settings <- settingsFor [reldir|test_resources/toy-sqitch-drift|] Nothing
+            runSqitchPersistentChecks settings opts
 
       describe "toy-sqitch-index-drift" $
-        persistPostgresqlSpec (pure ()) $
-          itWithAll "fails when the columns match but the sqitch side has an extra index the persistent model does not" $
-            \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
-              settings <- settingsFor [reldir|test_resources/toy-sqitch-index-drift|] Nothing
-              runSqitchPersistentChecks settings tdb pool
+        setupAround emptyPostgresOptionsSetupFunc $
+          it "fails when the columns match but the sqitch side has an extra index the persistent model does not" $ \opts -> do
+            settings <- settingsFor [reldir|test_resources/toy-sqitch-index-drift|] Nothing
+            runSqitchPersistentChecks settings opts

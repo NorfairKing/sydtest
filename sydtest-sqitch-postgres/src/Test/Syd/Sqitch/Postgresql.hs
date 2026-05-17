@@ -1,8 +1,5 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
 
 -- | Sanity-check tests for a sqitch project against a temporary
 -- PostgreSQL database.
@@ -30,8 +27,8 @@
 --
 --      The whole-plan cycle test (3) still exercises both of these
 --      classes of step end-to-end, and the schema-equality check in
---      @sydtest-sqitch-persistent@ asserts the final schema matches
---      the persistent model.
+--      @sydtest-sqitch-postgres-persistent@ asserts the final schema
+--      matches the persistent model.
 --
 --   2. /Per-change idempotence/: for each change, re-execute the
 --      deploy script's raw SQL against a database where the change has
@@ -47,12 +44,11 @@
 --      (1) skips, and also exercises sqitch's own registry across a
 --      full cycle.
 --
--- After every check the database is left clean (everything reverted)
--- for any downstream tests that share the same pool.
+-- Each check runs against a fresh empty database (its own server,
+-- user, and DB), allocated and torn down by the spec combinator. The
+-- caller never sees the postgres machinery in its outer-type stack.
 module Test.Syd.Sqitch.Postgresql
   ( sqitchPostgresqlSpec,
-    sqitchPostgresqlSpec',
-    runSqitchPostgresqlChecks,
     runSqitchPerChangeChecks,
     runSqitchWholePlanCycle,
     module Test.Syd.Sqitch.Postgresql.Plan,
@@ -68,139 +64,79 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Database.Persist.Sql as DB
+import qualified Database.PostgreSQL.Simple.Options as Postgres
 import Path
 import Test.Syd
 import Test.Syd.Persistent.Postgresql
-  ( TemplateDB,
-    persistPostgresqlSpec,
+  ( emptyPostgresOptionsSetupFunc,
+    postgresqlPoolSetupFunc,
   )
 import Test.Syd.Sqitch.Postgresql.Plan
 import Test.Syd.Sqitch.Postgresql.Process
 import Test.Syd.Sqitch.Postgresql.Schema
 
--- | Top-level entry point: sets up a temporary postgres database via
--- 'persistPostgresqlSpec' with an empty migration, then runs the sqitch
--- sanity checks against it.
+-- | Top-level spec combinator: layers the per-change, whole-plan
+-- cycle, and (when used through @sydtest-sqitch-postgres-persistent@)
+-- schema-equality checks onto a test definition.
 --
--- The inner test definition shares the same 'TemplateDB' outer setup,
--- so callers can layer extra tests (e.g. the persistent-vs-sqitch
--- schema-equality check provided by @sydtest-sqitch-persistent@).
+-- The combinator allocates fresh empty postgres databases internally
+-- for each check, so the caller's outer-type stack is unchanged.
 sqitchPostgresqlSpec ::
   SqitchSettings ->
-  TestDef (TemplateDB ': outers) DB.ConnectionPool ->
+  TestDef outers a ->
   TestDef outers a
-sqitchPostgresqlSpec settings inner =
-  persistPostgresqlSpec (pure ()) $
-    sqitchPostgresqlSpec' settings inner
+sqitchPostgresqlSpec settings rest = do
+  describe "sqitch sanity checks" $
+    setupAround emptyPostgresOptionsSetupFunc $ do
+      perChangeIt settings
+      wholePlanCycleIt settings
+  rest
 
--- | Variant that assumes 'TemplateDB' is already in the outer setup.
-sqitchPostgresqlSpec' ::
-  (HContains outers TemplateDB) =>
-  SqitchSettings ->
-  TestDef outers DB.ConnectionPool ->
-  TestDef outers DB.ConnectionPool
-sqitchPostgresqlSpec' settings rest =
-  describe "sqitch sanity checks" $ do
-    perChangeSpec settings
-    wholePlanCycleSpec settings
-    rest
+perChangeIt :: SqitchSettings -> TestDef outers Postgres.Options
+perChangeIt settings =
+  it "round-trips and (unless grandfathered) is idempotent for every change in sqitch.plan" $
+    \(opts :: Postgres.Options) ->
+      runSqitchPerChangeChecks settings opts
 
-perChangeSpec ::
-  forall outers.
-  (HContains outers TemplateDB) =>
-  SqitchSettings ->
-  TestDef outers DB.ConnectionPool
-perChangeSpec settings =
-  itWithAll "round-trips and (unless grandfathered) is idempotent for every change in sqitch.plan" $
-    \(outers :: HList outers) (pool :: DB.ConnectionPool) ->
-      runSqitchPerChangeChecks settings (getElem outers) pool
+wholePlanCycleIt :: SqitchSettings -> TestDef outers Postgres.Options
+wholePlanCycleIt settings =
+  it "the whole plan deploys, reverts, and redeploys to the same schema" $
+    \(opts :: Postgres.Options) ->
+      runSqitchWholePlanCycle settings opts
 
-wholePlanCycleSpec ::
-  forall outers.
-  (HContains outers TemplateDB) =>
-  SqitchSettings ->
-  TestDef outers DB.ConnectionPool
-wholePlanCycleSpec settings =
-  itWithAll "the whole plan deploys, reverts, and redeploys to the same schema" $
-    \(outers :: HList outers) (pool :: DB.ConnectionPool) ->
-      runSqitchWholePlanCycle settings (getElem outers) pool
+-- | Run the per-change round-trip and idempotence checks against a
+-- fresh empty database described by the given options. Exposed in 'IO'
+-- so callers can wrap it in 'expectFailing' for negative tests.
+runSqitchPerChangeChecks :: SqitchSettings -> Postgres.Options -> IO ()
+runSqitchPerChangeChecks settings opts =
+  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool -> do
+    let target = sqitchTargetFromOptions opts
 
--- | Backwards-compatible alias for 'runSqitchPerChangeChecks', kept so
--- the negative-case tests of this package don't have to rename.
-runSqitchPostgresqlChecks ::
-  SqitchSettings ->
-  TemplateDB ->
-  DB.ConnectionPool ->
-  IO ()
-runSqitchPostgresqlChecks = runSqitchPerChangeChecks
+    planRel <- parseRelFile "sqitch.plan"
+    steps <-
+      readSqitchPlan
+        (sqitchSettingsGrandfatherTag settings)
+        (sqitchSettingsProjectDir settings </> planRel)
 
--- | Run the per-change round-trip and idempotence checks against an
--- existing pool whose template DB was set up by 'persistPostgresqlSpec'.
--- Exposed in 'IO' so callers can wrap it in 'try' for negative tests.
-runSqitchPerChangeChecks ::
-  SqitchSettings ->
-  TemplateDB ->
-  DB.ConnectionPool ->
-  IO ()
-runSqitchPerChangeChecks settings tdb pool = do
-  target <- buildTarget tdb pool
-  cleanDatabase pool
-
-  planRel <- parseRelFile "sqitch.plan"
-  steps <-
-    readSqitchPlan
-      (sqitchSettingsGrandfatherTag settings)
-      (sqitchSettingsProjectDir settings </> planRel)
-
-  iterateSteps settings target pool steps
-
-  -- Leave the database clean for downstream tests.
-  sqitchRevertAll settings target
+    iterateSteps settings target pool steps
 
 -- | Deploy the entire plan, snapshot the schema, revert everything,
 -- redeploy the entire plan, snapshot again, assert the two snapshots
--- are equal. Then revert to leave the database clean.
-runSqitchWholePlanCycle ::
-  SqitchSettings ->
-  TemplateDB ->
-  DB.ConnectionPool ->
-  IO ()
-runSqitchWholePlanCycle settings tdb pool = do
-  target <- buildTarget tdb pool
-  cleanDatabase pool
+-- are equal. Runs against a fresh empty database.
+runSqitchWholePlanCycle :: SqitchSettings -> Postgres.Options -> IO ()
+runSqitchWholePlanCycle settings opts =
+  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool -> do
+    let target = sqitchTargetFromOptions opts
 
-  sqitchAt settings target "deploy" ["--verify"]
-  schemaFirst <- runNoLoggingT $ DB.runSqlPool querySchema pool
+    sqitchAt settings target "deploy" ["--verify"]
+    schemaFirst <- runNoLoggingT $ DB.runSqlPool querySchema pool
 
-  sqitchRevertAll settings target
-  sqitchAt settings target "deploy" ["--verify"]
-  schemaSecond <- runNoLoggingT $ DB.runSqlPool querySchema pool
+    sqitchRevertAll settings target
+    sqitchAt settings target "deploy" ["--verify"]
+    schemaSecond <- runNoLoggingT $ DB.runSqlPool querySchema pool
 
-  context "whole-plan deploy/revert/redeploy cycle" $
-    compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
-
-  sqitchRevertAll settings target
-
--- | Build a sqitch target URI for the database the pool is currently
--- connected to.
-buildTarget :: TemplateDB -> DB.ConnectionPool -> IO SqitchTarget
-buildTarget tdb pool = do
-  testdb <- runNoLoggingT $
-    flip DB.runSqlPool pool $ do
-      [DB.Single dbName] <- DB.rawSql "SELECT current_database()::text" []
-      pure (dbName :: Text)
-  pure $ sqitchTargetFromTemplateDB tdb testdb
-
--- | Drop the public schema and sqitch's registry schema, then recreate
--- public. Used at the start of every check so we don't inherit state
--- left behind by an earlier test (or the template DB).
-cleanDatabase :: DB.ConnectionPool -> IO ()
-cleanDatabase pool =
-  runNoLoggingT $
-    flip DB.runSqlPool pool $ do
-      DB.rawExecute "DROP SCHEMA IF EXISTS public CASCADE" []
-      DB.rawExecute "CREATE SCHEMA public" []
-      DB.rawExecute "DROP SCHEMA IF EXISTS sqitch CASCADE" []
+    context "whole-plan deploy/revert/redeploy cycle" $
+      compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
 
 -- | Walk the plan one step at a time.
 --
@@ -221,23 +157,7 @@ iterateSteps settings target pool steps =
       schemaPostStep <-
         runNoLoggingT $ DB.runSqlPool querySchema pool
 
-      -- Round-trip: revert one step then redeploy. Schema must be
-      -- unchanged.
-      --
-      -- Skipped in two situations:
-      --
-      --   * /Rework heads/ (steps whose deploy target is
-      --     @name\@HEAD@). Sqitch's revert of just the rework runs the
-      --     rework's revert script, which by convention undoes the
-      --     whole change rather than only the rework, so the
-      --     intermediate state is not post(predecessor) and this
-      --     check would fail spuriously.
-      --   * /Grandfathered/ steps. These shipped before the test
-      --     existed and may have minor inconsistencies (e.g. revert
-      --     scripts that bring back columns with different but valid
-      --     index names) that don't matter on the production databases
-      --     that already ran them. The whole-plan deploy/revert/redeploy
-      --     cycle and schema-equality checks still apply to these.
+      -- Round-trip: see module-level docs for the skip conditions.
       unless (stepIsReworkHead step || stepIsGrandfathered step) $ do
         case mPrev of
           Nothing -> sqitchRevertTo settings target "@ROOT"

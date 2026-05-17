@@ -6,13 +6,25 @@
 
 -- | Testing with a temporary postgresql database using persistent-postgresql
 module Test.Syd.Persistent.Postgresql
-  ( persistPostgresqlSpec,
+  ( -- * Spec combinators
+    persistPostgresqlSpec,
     persistPostgresqlAdminSpec,
     persistPostgresqlDatabaseSpec,
-    runPostgresqlTest,
     postgresqlMigrationSucceedsSpec,
-    connectionPoolSetupFunc,
+    runPostgresqlTest,
+
+    -- * Outer-stack handle
     TemplateDB,
+    connectionPoolSetupFunc,
+
+    -- * Lower-level pieces
+    -- $building-blocks
+    postgresqlServerSetupFunc,
+    postgresqlUserSetupFunc,
+    postgresqlDatabaseSetupFunc,
+    postgresqlPoolSetupFunc,
+    emptyPostgresOptionsSetupFunc,
+    emptyPostgresPoolSetupFunc,
   )
 where
 
@@ -34,8 +46,19 @@ import System.Random
 import Test.Syd
 import Test.Syd.Persistent
 
-adminDBSetupFunc :: SetupFunc Temp.DB
-adminDBSetupFunc = SetupFunc $ \takeTempDB -> do
+-- $building-blocks
+-- 'postgresqlServerSetupFunc', 'postgresqlUserSetupFunc', and
+-- 'postgresqlDatabaseSetupFunc' are the building blocks that
+-- 'persistPostgresqlAdminSpec' and friends are built from. They are
+-- exported so other testing libraries can compose their own setup
+-- chains — for example, a sanity-check suite that wants a fresh empty
+-- database per check without going through a migrated template.
+
+-- | A 'SetupFunc' that spins up a temporary PostgreSQL server via
+-- @tmp-postgres@ and tears it down on cleanup. Equivalent to the
+-- internal admin/superuser handle the other helpers need.
+postgresqlServerSetupFunc :: SetupFunc Temp.DB
+postgresqlServerSetupFunc = SetupFunc $ \takeTempDB -> do
   -- Clear PostgreSQL environment variables that might interfere with tmp-postgres
   unsetEnv "PGHOST"
   unsetEnv "PGPORT"
@@ -54,8 +77,10 @@ adminConfig =
     { Temp.createDbConfig = Temp.Zlich
     }
 
-dbConnectionOptionsPoolSetupFunc :: Postgres.Options -> SetupFunc ConnectionPool
-dbConnectionOptionsPoolSetupFunc options =
+-- | Given libpq-style 'Postgres.Options', allocate a small
+-- 'ConnectionPool' to the database those options describe.
+postgresqlPoolSetupFunc :: Postgres.Options -> SetupFunc ConnectionPool
+postgresqlPoolSetupFunc options =
   SetupFunc $ \takeConnectionPool -> do
     runNoLoggingT $ do
       -- We use a fixed (small) number of connections to avoid overwhelming
@@ -66,8 +91,11 @@ dbConnectionOptionsPoolSetupFunc options =
       withPostgresqlPool (Options.toConnectionString options) 3 $ \pool -> do
         liftIO $ takeConnectionPool pool
 
-tempUserSetupFunc :: Temp.DB -> SetupFunc (Text, Text)
-tempUserSetupFunc db =
+-- | A 'SetupFunc' that creates a fresh PostgreSQL user against the
+-- given server (and drops it on cleanup). The result is the
+-- @(username, password)@ pair.
+postgresqlUserSetupFunc :: Temp.DB -> SetupFunc (Text, Text)
+postgresqlUserSetupFunc db =
   let createUser =
         withAdminConn db $ \conn -> do
           testuser <- genName "user"
@@ -94,8 +122,10 @@ tempUserSetupFunc db =
           pure ()
    in SetupFunc $ bracket createUser deleteUser
 
-tempNewDatabaseSetupFunc :: Temp.DB -> Text -> SetupFunc Text
-tempNewDatabaseSetupFunc db owner =
+-- | A 'SetupFunc' that creates a fresh empty database owned by the
+-- given user against the given server (and drops it on cleanup).
+postgresqlDatabaseSetupFunc :: Temp.DB -> Text -> SetupFunc Text
+postgresqlDatabaseSetupFunc db owner =
   let createDB = do
         testdb <- genName "template_db"
         withAdminConn db $ \conn -> do
@@ -232,9 +262,9 @@ persistPostgresqlAdminSpec ::
   TestDef outers a
 persistPostgresqlAdminSpec migration =
   setupAroundAll $ do
-    db <- adminDBSetupFunc
-    (templateuser, templatepassword) <- tempUserSetupFunc db
-    templatedb <- tempNewDatabaseSetupFunc db templateuser
+    db <- postgresqlServerSetupFunc
+    (templateuser, templatepassword) <- postgresqlUserSetupFunc db
+    templatedb <- postgresqlDatabaseSetupFunc db templateuser
     migrateTempDBSetupFunc db templateuser templatepassword templatedb migration
     pure (db, (templateuser, templatepassword, templatedb))
 
@@ -259,7 +289,37 @@ connectionPoolSetupFunc (db, (testuser, testpassword, templatedb)) = do
             Postgres.password = pure (Text.unpack testpassword),
             Postgres.dbname = pure (Text.unpack testdb)
           }
-  dbConnectionOptionsPoolSetupFunc options
+  postgresqlPoolSetupFunc options
+
+-- | A 'SetupFunc' that provides connection 'Postgres.Options' for a
+-- fresh empty database — its own server, its own user, its own empty
+-- database, all torn down on cleanup.
+--
+-- Pair with 'postgresqlPoolSetupFunc' to get a 'ConnectionPool', or
+-- use the options directly when an external tool (like @sqitch@)
+-- needs them.
+--
+-- Pay attention to cost: every use of this function spins up a
+-- 'Temp.DB' (postgres server start-up is on the order of seconds).
+-- For per-test setup, prefer 'setupAroundAll' so the cost is
+-- amortised across the suite.
+emptyPostgresOptionsSetupFunc :: SetupFunc Postgres.Options
+emptyPostgresOptionsSetupFunc = do
+  db <- postgresqlServerSetupFunc
+  (testuser, testpassword) <- postgresqlUserSetupFunc db
+  testdb <- postgresqlDatabaseSetupFunc db testuser
+  pure $
+    (toConnectionOptions db)
+      { Postgres.user = pure (Text.unpack testuser),
+        Postgres.password = pure (Text.unpack testpassword),
+        Postgres.dbname = pure (Text.unpack testdb)
+      }
+
+-- | Convenience: 'emptyPostgresOptionsSetupFunc' threaded through
+-- 'postgresqlPoolSetupFunc' to give a 'ConnectionPool' directly.
+emptyPostgresPoolSetupFunc :: SetupFunc ConnectionPool
+emptyPostgresPoolSetupFunc =
+  emptyPostgresOptionsSetupFunc >>= postgresqlPoolSetupFunc
 
 -- | A flipped version of 'runSqlPool' to run your tests
 runPostgresqlTest :: ConnectionPool -> SqlPersistM a -> IO a

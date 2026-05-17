@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0.0] - 2026-05-17
+
+### Added
+
+* `postgresqlServerSetupFunc`, `postgresqlUserSetupFunc`, and
+  `postgresqlDatabaseSetupFunc` are now exported as building blocks
+  for composing custom setup chains.
+* `emptyPostgresPoolSetupFunc` provides a `ConnectionPool` to a fresh
+  empty database (server + user + db + pool) without going through a
+  migrated template.
+
+### Changed
+
+* Internal helpers `adminDBSetupFunc`, `tempUserSetupFunc`, and
+  `tempNewDatabaseSetupFunc` were renamed to `postgresqlServerSetupFunc`,
+  `postgresqlUserSetupFunc`, and `postgresqlDatabaseSetupFunc` and
+  promoted to the public API.
+
 ## [0.3.0.0] - 2025-12-26
 
 ### Changed

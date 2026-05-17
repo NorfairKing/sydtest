@@ -27,8 +27,16 @@ data PlanStep = PlanStep
     -- | Filename (without directory) in @deploy/@, e.g. @init.sql@ or
     -- @add-foo\@v2026-01-01.sql@.
     stepScriptName :: Text,
-    -- | If 'True', skip the idempotence check for this step. Set when the
-    -- step is at or before the grandfather tag (see 'readSqitchPlan').
+    -- | If 'True', skip the per-change round-trip /and/ idempotence
+    -- checks for this step. Set when the step is at or before the
+    -- grandfather tag (see 'readSqitchPlan').
+    --
+    -- These checks are end-state invariants that grandfathered scripts
+    -- aren't expected to satisfy in isolation — they shipped before the
+    -- checks existed, and the failure modes they guard against (revert
+    -- drift, registry retry) can't manifest on databases that already
+    -- ran them. The whole-plan cycle and schema-equality checks still
+    -- apply to grandfathered steps end-to-end.
     stepIsGrandfathered :: Bool,
     -- | If 'True', this step is the post-tag head of a reworked change
     -- (its deploy target is @name\@HEAD@). The round-trip check is

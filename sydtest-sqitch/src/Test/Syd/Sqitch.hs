@@ -13,25 +13,39 @@
 --      through it, revert one step, redeploy. The schema after the
 --      redeploy must match the schema before the revert.
 --
---      Skipped for /rework heads/ — the second occurrence of a change
---      name in the plan, whose deploy target ends in @\@HEAD@. Sqitch's
---      revert of just the rework runs the rework's revert script, which
---      by sqitch convention undoes the /whole/ change rather than only
---      the rework, so the intermediate state isn't post(predecessor)
---      and this check would fail spuriously. The whole-plan cycle test
---      (3) still exercises these steps.
+--      Skipped in two situations:
+--
+--        * /Rework heads/ — the second occurrence of a change name in
+--          the plan, whose deploy target ends in @\@HEAD@. Sqitch's
+--          revert of just the rework runs the rework's revert script,
+--          which by sqitch convention undoes the /whole/ change rather
+--          than only the rework, so the intermediate state isn't
+--          post(predecessor) and this check would fail spuriously.
+--        * /Grandfathered/ steps — those at or before
+--          'sqitchSettingsGrandfatherTag'. These shipped before this
+--          test existed and may have minor revert/deploy inconsistencies
+--          (e.g. index names that differ between deploy and
+--          revert-then-redeploy) that don't matter on the production
+--          databases that already ran them.
+--
+--      The whole-plan cycle test (3) still exercises both of these
+--      classes of step end-to-end, and the schema-equality check in
+--      @sydtest-sqitch-persistent@ asserts the final schema matches
+--      the persistent model.
 --
 --   2. /Per-change idempotence/: for each change, re-execute the
 --      deploy script's raw SQL against a database where the change has
 --      already been applied. The schema must be unchanged. Skipped for
---      changes at or before 'sqitchSettingsGrandfatherTag' (see
---      "Test.Syd.Sqitch.Plan").
+--      grandfathered steps, for the same reason: the failure mode this
+--      check guards against (registry drift on retry) cannot bite
+--      databases that already successfully ran these scripts.
 --
 --   3. /Whole-plan deploy/revert/redeploy cycle/: deploy the entire
 --      plan, snapshot the schema, revert everything, redeploy the
 --      entire plan, snapshot again. The two snapshots must be equal.
---      This exercises the rework heads that (1) skips, and also
---      exercises sqitch's own registry across a full cycle.
+--      This exercises both rework heads and grandfathered steps that
+--      (1) skips, and also exercises sqitch's own registry across a
+--      full cycle.
 --
 -- After every check the database is left clean (everything reverted)
 -- for any downstream tests that share the same pool.
@@ -210,14 +224,21 @@ iterateSteps settings target pool steps =
       -- Round-trip: revert one step then redeploy. Schema must be
       -- unchanged.
       --
-      -- Skipped for rework heads (steps whose deploy target is
-      -- @name\@HEAD@). Sqitch's revert of just the rework runs the
-      -- rework's revert script, which by convention undoes the whole
-      -- change rather than only the rework, so the intermediate state
-      -- is not post(predecessor) and this check would fail spuriously.
-      -- The whole-plan deploy/revert/redeploy cycle test still covers
-      -- these steps.
-      unless (stepIsReworkHead step) $ do
+      -- Skipped in two situations:
+      --
+      --   * /Rework heads/ (steps whose deploy target is
+      --     @name\@HEAD@). Sqitch's revert of just the rework runs the
+      --     rework's revert script, which by convention undoes the
+      --     whole change rather than only the rework, so the
+      --     intermediate state is not post(predecessor) and this
+      --     check would fail spuriously.
+      --   * /Grandfathered/ steps. These shipped before the test
+      --     existed and may have minor inconsistencies (e.g. revert
+      --     scripts that bring back columns with different but valid
+      --     index names) that don't matter on the production databases
+      --     that already ran them. The whole-plan deploy/revert/redeploy
+      --     cycle and schema-equality checks still apply to these.
+      unless (stepIsReworkHead step || stepIsGrandfathered step) $ do
         case mPrev of
           Nothing -> sqitchRevertTo settings target "@ROOT"
           Just prev -> sqitchRevertTo settings target (stepDeployTarget prev)

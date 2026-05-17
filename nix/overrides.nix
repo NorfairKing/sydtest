@@ -78,17 +78,12 @@ let
     });
     "sydtest-persistent-postgresql" = overrideCabal (sydtestPkg "sydtest-persistent-postgresql") (old: {
       testDepends = (old.testDepends or [ ]) ++ [ postgresql ];
-      # Turn off testing there's something wrong with a gclib version on
-      # older nixpkgs versions?
-      doCheck = false;
     });
     "sydtest-sqitch" = overrideCabal (sydtestPkg "sydtest-sqitch") (old: {
       testDepends = (old.testDepends or [ ]) ++ [ postgresql sqitchPg ];
-      doCheck = false;
     });
     "sydtest-sqitch-persistent" = overrideCabal (sydtestPkg "sydtest-sqitch-persistent") (old: {
       testDepends = (old.testDepends or [ ]) ++ [ postgresql sqitchPg ];
-      doCheck = false;
     });
     "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
       passthru = (old.passthru or { }) // {

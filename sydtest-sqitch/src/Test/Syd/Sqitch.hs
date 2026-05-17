@@ -7,23 +7,40 @@
 -- | Sanity-check tests for a sqitch project against a temporary
 -- PostgreSQL database.
 --
--- Two checks are run per change in the plan:
+-- Three checks are layered on every sqitch project:
 --
---   1. /Round-trip/: deploy through the change, revert one step,
---      redeploy. The schema after the redeploy must match the schema
---      snapshot taken before the revert.
+--   1. /Per-change round-trip/: for each change in the plan, deploy
+--      through it, revert one step, redeploy. The schema after the
+--      redeploy must match the schema before the revert.
 --
---   2. /Idempotence/: re-execute the deploy script's raw SQL against a
---      database where the change has already been applied. The schema
---      must be unchanged. Skipped for changes at or before
---      'sqitchSettingsGrandfatherTag' (see "Test.Syd.Sqitch.Plan").
+--      Skipped for /rework heads/ — the second occurrence of a change
+--      name in the plan, whose deploy target ends in @\@HEAD@. Sqitch's
+--      revert of just the rework runs the rework's revert script, which
+--      by sqitch convention undoes the /whole/ change rather than only
+--      the rework, so the intermediate state isn't post(predecessor)
+--      and this check would fail spuriously. The whole-plan cycle test
+--      (3) still exercises these steps.
 --
--- After the loop, every change has been deployed; the database is
--- reverted to leave it clean for downstream tests sharing the same pool.
+--   2. /Per-change idempotence/: for each change, re-execute the
+--      deploy script's raw SQL against a database where the change has
+--      already been applied. The schema must be unchanged. Skipped for
+--      changes at or before 'sqitchSettingsGrandfatherTag' (see
+--      "Test.Syd.Sqitch.Plan").
+--
+--   3. /Whole-plan deploy/revert/redeploy cycle/: deploy the entire
+--      plan, snapshot the schema, revert everything, redeploy the
+--      entire plan, snapshot again. The two snapshots must be equal.
+--      This exercises the rework heads that (1) skips, and also
+--      exercises sqitch's own registry across a full cycle.
+--
+-- After every check the database is left clean (everything reverted)
+-- for any downstream tests that share the same pool.
 module Test.Syd.Sqitch
   ( sqitchPostgresqlSpec,
     sqitchPostgresqlSpec',
     runSqitchPostgresqlChecks,
+    runSqitchPerChangeChecks,
+    runSqitchWholePlanCycle,
     module Test.Syd.Sqitch.Plan,
     module Test.Syd.Sqitch.Process,
     module Test.Syd.Sqitch.Schema,
@@ -70,44 +87,50 @@ sqitchPostgresqlSpec' ::
   TestDef outers DB.ConnectionPool
 sqitchPostgresqlSpec' settings rest =
   describe "sqitch sanity checks" $ do
-    perMigrationSpec settings
+    perChangeSpec settings
+    wholePlanCycleSpec settings
     rest
 
--- | The per-migration round-trip-and-idempotence test, inlined as a
--- single 'it' so a failure points at the right step via 'context'.
-perMigrationSpec ::
+perChangeSpec ::
   forall outers.
   (HContains outers TemplateDB) =>
   SqitchSettings ->
   TestDef outers DB.ConnectionPool
-perMigrationSpec settings =
+perChangeSpec settings =
   itWithAll "round-trips and (unless grandfathered) is idempotent for every change in sqitch.plan" $
     \(outers :: HList outers) (pool :: DB.ConnectionPool) ->
-      runSqitchPostgresqlChecks settings (getElem outers) pool
+      runSqitchPerChangeChecks settings (getElem outers) pool
 
--- | Run the round-trip and idempotence checks against an existing pool
--- whose template DB was set up by 'persistPostgresqlSpec'. Exposed
--- separately from 'sqitchPostgresqlSpec' so callers (and this package's
--- own tests for failure modes) can drive the checks in 'IO' and catch
--- the 'ExpectationFailed' that 'shouldBe' throws.
+wholePlanCycleSpec ::
+  forall outers.
+  (HContains outers TemplateDB) =>
+  SqitchSettings ->
+  TestDef outers DB.ConnectionPool
+wholePlanCycleSpec settings =
+  itWithAll "the whole plan deploys, reverts, and redeploys to the same schema" $
+    \(outers :: HList outers) (pool :: DB.ConnectionPool) ->
+      runSqitchWholePlanCycle settings (getElem outers) pool
+
+-- | Backwards-compatible alias for 'runSqitchPerChangeChecks', kept so
+-- the negative-case tests of this package don't have to rename.
 runSqitchPostgresqlChecks ::
   SqitchSettings ->
   TemplateDB ->
   DB.ConnectionPool ->
   IO ()
-runSqitchPostgresqlChecks settings tdb pool = do
-  testdb <- runNoLoggingT $
-    flip DB.runSqlPool pool $ do
-      [DB.Single dbName] <- DB.rawSql "SELECT current_database()::text" []
-      pure (dbName :: Text)
-  let target = sqitchTargetFromTemplateDB tdb testdb
+runSqitchPostgresqlChecks = runSqitchPerChangeChecks
 
-  -- The pool's template DB may have leftovers from prior runs.
-  runNoLoggingT $
-    flip DB.runSqlPool pool $ do
-      DB.rawExecute "DROP SCHEMA IF EXISTS public CASCADE" []
-      DB.rawExecute "CREATE SCHEMA public" []
-      DB.rawExecute "DROP SCHEMA IF EXISTS sqitch CASCADE" []
+-- | Run the per-change round-trip and idempotence checks against an
+-- existing pool whose template DB was set up by 'persistPostgresqlSpec'.
+-- Exposed in 'IO' so callers can wrap it in 'try' for negative tests.
+runSqitchPerChangeChecks ::
+  SqitchSettings ->
+  TemplateDB ->
+  DB.ConnectionPool ->
+  IO ()
+runSqitchPerChangeChecks settings tdb pool = do
+  target <- buildTarget tdb pool
+  cleanDatabase pool
 
   planRel <- parseRelFile "sqitch.plan"
   steps <-
@@ -119,6 +142,51 @@ runSqitchPostgresqlChecks settings tdb pool = do
 
   -- Leave the database clean for downstream tests.
   sqitchRevertAll settings target
+
+-- | Deploy the entire plan, snapshot the schema, revert everything,
+-- redeploy the entire plan, snapshot again, assert the two snapshots
+-- are equal. Then revert to leave the database clean.
+runSqitchWholePlanCycle ::
+  SqitchSettings ->
+  TemplateDB ->
+  DB.ConnectionPool ->
+  IO ()
+runSqitchWholePlanCycle settings tdb pool = do
+  target <- buildTarget tdb pool
+  cleanDatabase pool
+
+  sqitchAt settings target "deploy" ["--verify"]
+  schemaFirst <- runNoLoggingT $ DB.runSqlPool querySchema pool
+
+  sqitchRevertAll settings target
+  sqitchAt settings target "deploy" ["--verify"]
+  schemaSecond <- runNoLoggingT $ DB.runSqlPool querySchema pool
+
+  context "whole-plan deploy/revert/redeploy cycle" $
+    schemaSecond `shouldBe` schemaFirst
+
+  sqitchRevertAll settings target
+
+-- | Build a sqitch target URI for the database the pool is currently
+-- connected to.
+buildTarget :: TemplateDB -> DB.ConnectionPool -> IO SqitchTarget
+buildTarget tdb pool = do
+  testdb <- runNoLoggingT $
+    flip DB.runSqlPool pool $ do
+      [DB.Single dbName] <- DB.rawSql "SELECT current_database()::text" []
+      pure (dbName :: Text)
+  pure $ sqitchTargetFromTemplateDB tdb testdb
+
+-- | Drop the public schema and sqitch's registry schema, then recreate
+-- public. Used at the start of every check so we don't inherit state
+-- left behind by an earlier test (or the template DB).
+cleanDatabase :: DB.ConnectionPool -> IO ()
+cleanDatabase pool =
+  runNoLoggingT $
+    flip DB.runSqlPool pool $ do
+      DB.rawExecute "DROP SCHEMA IF EXISTS public CASCADE" []
+      DB.rawExecute "CREATE SCHEMA public" []
+      DB.rawExecute "DROP SCHEMA IF EXISTS sqitch CASCADE" []
 
 -- | Walk the plan one step at a time.
 --
@@ -141,14 +209,23 @@ iterateSteps settings target pool steps =
 
       -- Round-trip: revert one step then redeploy. Schema must be
       -- unchanged.
-      case mPrev of
-        Nothing -> sqitchRevertTo settings target "@ROOT"
-        Just prev -> sqitchRevertTo settings target (stepDeployTarget prev)
-      sqitchDeployTo settings target (stepDeployTarget step)
-      schemaAfterRoundtrip <-
-        runNoLoggingT $ DB.runSqlPool querySchema pool
-      context "round-trip (revert one step then redeploy)" $
-        schemaAfterRoundtrip `shouldBe` schemaPostStep
+      --
+      -- Skipped for rework heads (steps whose deploy target is
+      -- @name\@HEAD@). Sqitch's revert of just the rework runs the
+      -- rework's revert script, which by convention undoes the whole
+      -- change rather than only the rework, so the intermediate state
+      -- is not post(predecessor) and this check would fail spuriously.
+      -- The whole-plan deploy/revert/redeploy cycle test still covers
+      -- these steps.
+      unless (stepIsReworkHead step) $ do
+        case mPrev of
+          Nothing -> sqitchRevertTo settings target "@ROOT"
+          Just prev -> sqitchRevertTo settings target (stepDeployTarget prev)
+        sqitchDeployTo settings target (stepDeployTarget step)
+        schemaAfterRoundtrip <-
+          runNoLoggingT $ DB.runSqlPool querySchema pool
+        context "round-trip (revert one step then redeploy)" $
+          schemaAfterRoundtrip `shouldBe` schemaPostStep
 
       -- Idempotence: re-run the deploy script's raw SQL bypassing
       -- sqitch (which would short-circuit on "already deployed").

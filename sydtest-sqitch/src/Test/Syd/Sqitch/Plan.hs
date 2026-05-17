@@ -29,7 +29,16 @@ data PlanStep = PlanStep
     stepScriptName :: Text,
     -- | If 'True', skip the idempotence check for this step. Set when the
     -- step is at or before the grandfather tag (see 'readSqitchPlan').
-    stepIsGrandfathered :: Bool
+    stepIsGrandfathered :: Bool,
+    -- | If 'True', this step is the post-tag head of a reworked change
+    -- (its deploy target is @name\@HEAD@). The round-trip check is
+    -- skipped on such steps because sqitch's revert of just the rework
+    -- runs the rework's revert script, which by sqitch convention
+    -- undoes the whole change rather than only the rework. A partial
+    -- revert/redeploy therefore does not land at post(rework) and would
+    -- fail the round-trip check spuriously. Whole-plan deploy/revert
+    -- cycles still exercise this code path.
+    stepIsReworkHead :: Bool
   }
   deriving (Show, Eq)
 
@@ -99,21 +108,24 @@ readSqitchPlan mGrandfatherTag path = do
             _ -> case Text.words stripped of
               (name : _) ->
                 let grandfathered = not pastTag
+                    isHead = Map.member name seen
                     step = case findNextTagBeforeName name rest of
                       Just tagName ->
                         PlanStep
                           { stepLabel = name <> "@" <> tagName,
                             stepDeployTarget = "@" <> tagName,
                             stepScriptName = name <> "@" <> tagName,
-                            stepIsGrandfathered = grandfathered
+                            stepIsGrandfathered = grandfathered,
+                            stepIsReworkHead = False
                           }
                       Nothing ->
                         PlanStep
                           { stepLabel = name,
                             stepDeployTarget =
-                              if Map.member name seen then name <> "@HEAD" else name,
+                              if isHead then name <> "@HEAD" else name,
                             stepScriptName = name,
-                            stepIsGrandfathered = grandfathered
+                            stepIsGrandfathered = grandfathered,
+                            stepIsReworkHead = isHead
                           }
                  in step : go pastTag (Map.insertWith (+) name (1 :: Int) seen) rest
               [] -> go pastTag seen rest

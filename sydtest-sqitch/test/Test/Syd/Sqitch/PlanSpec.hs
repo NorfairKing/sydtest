@@ -35,12 +35,17 @@ spec = describe "readSqitchPlan" $ do
       parsePlan
         Nothing
         "%syntax-version=1.0.0\n%project=p\ninit 2026-01-01T00:00:00Z syd <syd@example.com> # x\n"
-    map stepLabel steps `shouldBe` ["init"]
-    map stepDeployTarget steps `shouldBe` ["init"]
-    map stepScriptName steps `shouldBe` ["init"]
-    map stepIsGrandfathered steps `shouldBe` [False]
+    steps
+      `shouldBe` [ PlanStep
+                     { stepLabel = "init",
+                       stepDeployTarget = "init",
+                       stepScriptName = "init",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     }
+                 ]
 
-  it "splits a reworked change into two steps" $ do
+  it "splits a reworked change into two steps and marks the head" $ do
     steps <-
       parsePlan
         Nothing
@@ -53,11 +58,31 @@ spec = describe "readSqitchPlan" $ do
               "add-foo [add-foo@v1] 2026-01-04T00:00:00Z syd <syd@example.com> # rework"
             ]
         )
-    map stepLabel steps `shouldBe` ["init", "add-foo@v1", "add-foo"]
-    map stepDeployTarget steps `shouldBe` ["init", "@v1", "add-foo@HEAD"]
-    map stepScriptName steps `shouldBe` ["init", "add-foo@v1", "add-foo"]
+    steps
+      `shouldBe` [ PlanStep
+                     { stepLabel = "init",
+                       stepDeployTarget = "init",
+                       stepScriptName = "init",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "add-foo@v1",
+                       stepDeployTarget = "@v1",
+                       stepScriptName = "add-foo@v1",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "add-foo",
+                       stepDeployTarget = "add-foo@HEAD",
+                       stepScriptName = "add-foo",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = True
+                     }
+                 ]
 
-  it "marks every step as not grandfathered when no tag is given" $ do
+  it "marks no step as grandfathered when no tag is given" $ do
     steps <-
       parsePlan
         Nothing
@@ -68,7 +93,22 @@ spec = describe "readSqitchPlan" $ do
               "b 2026-01-03T00:00:00Z syd <syd@example.com> # x"
             ]
         )
-    map stepIsGrandfathered steps `shouldBe` [False, False]
+    steps
+      `shouldBe` [ PlanStep
+                     { stepLabel = "a",
+                       stepDeployTarget = "a",
+                       stepScriptName = "a",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "b",
+                       stepDeployTarget = "b",
+                       stepScriptName = "b",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     }
+                 ]
 
   it "marks steps at or before the tag as grandfathered, others not" $ do
     steps <-
@@ -83,8 +123,36 @@ spec = describe "readSqitchPlan" $ do
               "d 2026-01-05T00:00:00Z syd <syd@example.com> # x"
             ]
         )
-    map stepLabel steps `shouldBe` ["a", "b", "c", "d"]
-    map stepIsGrandfathered steps `shouldBe` [True, True, False, False]
+    steps
+      `shouldBe` [ PlanStep
+                     { stepLabel = "a",
+                       stepDeployTarget = "a",
+                       stepScriptName = "a",
+                       stepIsGrandfathered = True,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "b",
+                       stepDeployTarget = "b",
+                       stepScriptName = "b",
+                       stepIsGrandfathered = True,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "c",
+                       stepDeployTarget = "c",
+                       stepScriptName = "c",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "d",
+                       stepDeployTarget = "d",
+                       stepScriptName = "d",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     }
+                 ]
 
   it "fails when the grandfather tag is not present in the plan" $ do
     res <-
@@ -100,4 +168,26 @@ spec = describe "readSqitchPlan" $ do
   it "parses the toy-sqitch-ok fixture file from disk" $ do
     p <- resolveFile' "test_resources/toy-sqitch-ok/sqitch.plan"
     steps <- readSqitchPlan Nothing p
-    map stepLabel steps `shouldBe` ["init", "add-color@v1", "add-color"]
+    steps
+      `shouldBe` [ PlanStep
+                     { stepLabel = "init",
+                       stepDeployTarget = "init",
+                       stepScriptName = "init",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "add-color@v1",
+                       stepDeployTarget = "@v1",
+                       stepScriptName = "add-color@v1",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = False
+                     },
+                   PlanStep
+                     { stepLabel = "add-color",
+                       stepDeployTarget = "add-color@HEAD",
+                       stepScriptName = "add-color",
+                       stepIsGrandfathered = False,
+                       stepIsReworkHead = True
+                     }
+                 ]

@@ -44,28 +44,24 @@ data SqitchPersistentSettings = SqitchPersistentSettings
     sqitchPersistentExtraSetup :: forall m. (MonadIO m) => DB.SqlPersistT m ()
   }
 
--- | Top-level spec combinator. Layers four checks onto a test
--- definition:
---
---   * The per-change round-trip + idempotence and whole-plan cycle
---     checks from 'Test.Syd.Sqitch.Postgresql.sqitchPostgresqlSpec'.
---   * One additional test comparing the schema after deploying every
---     sqitch migration with the schema after running the persistent
---     automatic migration (plus any 'sqitchPersistentExtraSetup').
+-- | Top-level spec combinator. Declares all the checks from
+-- 'Test.Syd.Sqitch.Postgresql.sqitchPostgresqlSpec' (per-change
+-- round-trip + idempotence, whole-plan cycle) plus one additional
+-- test comparing the schema after deploying every sqitch migration
+-- with the schema after running the persistent automatic migration
+-- (plus any 'sqitchPersistentExtraSetup').
 --
 -- Each check runs against a fresh empty database allocated and torn
 -- down internally; nothing about the postgres machinery surfaces in
 -- the caller's outer-type stack.
 sqitchPersistentPostgresqlSpec ::
   SqitchPersistentSettings ->
-  TestDef outers a ->
-  TestDef outers a
-sqitchPersistentPostgresqlSpec settings rest = do
-  sqitchPostgresqlSpec (sqitchPersistentSqitch settings) $
-    describe "sqitch+persistent" $
-      setupAround emptyPostgresOptionsSetupFunc $
-        schemaEqualityIt settings
-  rest
+  TestDef outers ()
+sqitchPersistentPostgresqlSpec settings = do
+  sqitchPostgresqlSpec (sqitchPersistentSqitch settings)
+  describe "sqitch+persistent" $
+    setupAround emptyPostgresOptionsSetupFunc $
+      schemaEqualityIt settings
 
 schemaEqualityIt ::
   SqitchPersistentSettings ->

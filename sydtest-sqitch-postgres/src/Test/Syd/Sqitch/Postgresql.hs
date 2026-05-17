@@ -75,22 +75,24 @@ import Test.Syd.Sqitch.Postgresql.Plan
 import Test.Syd.Sqitch.Postgresql.Process
 import Test.Syd.Sqitch.Postgresql.Schema
 
--- | Top-level spec combinator: layers the per-change, whole-plan
--- cycle, and (when used through @sydtest-sqitch-postgres-persistent@)
--- schema-equality checks onto a test definition.
---
--- The combinator allocates fresh empty postgres databases internally
+-- | Top-level spec combinator: declares the per-change and whole-plan
+-- cycle checks. Allocates fresh empty postgres databases internally
 -- for each check, so the caller's outer-type stack is unchanged.
+--
+-- Sequence with other 'TestDef' values via 'do' or '>>':
+--
+-- > spec :: Spec
+-- > spec = do
+-- >   sqitchPostgresqlSpec mySettings
+-- >   describe "my other tests" $ ...
 sqitchPostgresqlSpec ::
   SqitchSettings ->
-  TestDef outers a ->
-  TestDef outers a
-sqitchPostgresqlSpec settings rest = do
+  TestDef outers ()
+sqitchPostgresqlSpec settings =
   describe "sqitch sanity checks" $
     setupAround emptyPostgresOptionsSetupFunc $ do
       perChangeIt settings
       wholePlanCycleIt settings
-  rest
 
 perChangeIt :: SqitchSettings -> TestDef outers Postgres.Options
 perChangeIt settings =

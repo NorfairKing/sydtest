@@ -41,10 +41,7 @@ spec = sequential $ do
   describe "sqitchPersistentPostgresqlSpec" $ do
     describe "toy-sqitch-ok" $ do
       settings <- runIO $ settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
-      sqitchPersistentPostgresqlSpec settings $
-        it
-          "completes without surfacing anything to downstream tests"
-          (pure () :: IO ())
+      sqitchPersistentPostgresqlSpec settings
 
   describe "runSqitchPersistentChecks (negative cases)" $
     expectFailing $ do

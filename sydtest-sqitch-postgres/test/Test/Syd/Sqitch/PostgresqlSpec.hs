@@ -35,18 +35,12 @@ spec = sequential $ do
   describe "sqitchPostgresqlSpec" $ do
     describe "toy-sqitch-ok" $ do
       settings <- runIO $ settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
-      sqitchPostgresqlSpec settings $
-        it
-          "completes without surfacing anything to downstream tests"
-          (pure () :: IO ())
+      sqitchPostgresqlSpec settings
 
     describe "toy-sqitch-grandfathered with grandfather tag" $ do
       settings <-
         runIO $ settingsFor [reldir|test_resources/toy-sqitch-grandfathered|] (Just "legacy")
-      sqitchPostgresqlSpec settings $
-        it
-          "passes when the pre-tag legacy changes are skipped"
-          (pure () :: IO ())
+      sqitchPostgresqlSpec settings
 
   describe "negative cases" $
     expectFailing $ do

@@ -1,0 +1,49 @@
+name: sydtest-sqitch-postgres-persistent
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: OtherLicense
+license-file: LICENSE.md
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+copyright: "Copyright (c) 2026 Tom Sydney Kerckhove"
+category: Testing
+synopsis: A sqitch-on-PostgreSQL + persistent companion library for sydtest
+
+extra-source-files:
+- LICENSE.md
+- CHANGELOG.md
+- test_resources/**/*
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - monad-logger
+  - persistent
+  - sydtest
+  - sydtest-persistent
+  - sydtest-persistent-postgresql
+  - sydtest-sqitch-postgres
+  - text
+
+tests:
+  sydtest-sqitch-postgres-persistent-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -Wall
+    dependencies:
+    - path
+    - path-io
+    - persistent
+    - sydtest
+    - sydtest-persistent-postgresql
+    - sydtest-sqitch-postgres
+    - sydtest-sqitch-postgres-persistent
+    - text

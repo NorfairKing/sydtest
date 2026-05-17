@@ -75,8 +75,8 @@ let
     "sydtest-yesod" = sydtestPkg "sydtest-yesod";
     "sydtest-hedis" = addTestToolDepend (sydtestPkg "sydtest-hedis") redis;
     "sydtest-persistent-postgresql" = addTestToolDepend (sydtestPkg "sydtest-persistent-postgresql") postgresql;
-    "sydtest-sqitch" = addTestToolDepends (sydtestPkg "sydtest-sqitch") [ postgresql sqitchPg ];
-    "sydtest-sqitch-persistent" = addTestToolDepends (sydtestPkg "sydtest-sqitch-persistent") [ postgresql sqitchPg ];
+    "sydtest-sqitch-postgres" = addTestToolDepends (sydtestPkg "sydtest-sqitch-postgres") [ postgresql sqitchPg ];
+    "sydtest-sqitch-postgres-persistent" = addTestToolDepends (sydtestPkg "sydtest-sqitch-postgres-persistent") [ postgresql sqitchPg ];
     "sydtest-webdriver" = (enableWebdriver (sydtestPkg "sydtest-webdriver")).overrideAttrs (old: {
       passthru = (old.passthru or { }) // {
         inherit fontsConfig;

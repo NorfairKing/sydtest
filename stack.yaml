@@ -12,8 +12,8 @@ packages:
 - sydtest-persistent-sqlite
 - sydtest-process
 - sydtest-servant
-- sydtest-sqitch
-- sydtest-sqitch-persistent
+- sydtest-sqitch-postgres
+- sydtest-sqitch-postgres-persistent
 - sydtest-typed-process
 - sydtest-wai
 - sydtest-webdriver

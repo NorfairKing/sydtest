@@ -13,7 +13,7 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import Path (Abs, File, Path, toFilePath)
+import Path
 
 -- | One step in a sqitch plan: enough information to drive @sqitch deploy@,
 -- find the deploy script on disk, identify the step in test output, and
@@ -62,7 +62,7 @@ readSqitchPlan ::
   Path Abs File ->
   IO [PlanStep]
 readSqitchPlan mGrandfatherTag path = do
-  contents <- Text.decodeUtf8Lenient <$> ByteString.readFile (toFilePath path)
+  contents <- Text.decodeUtf8Lenient <$> ByteString.readFile (fromAbsFile path)
   let allLines = Text.lines contents
       -- When there is no grandfather tag, no change is grandfathered;
       -- this is modelled by starting "past the tag" immediately.
@@ -79,7 +79,7 @@ readSqitchPlan mGrandfatherTag path = do
         "sydtest-sqitch: grandfather tag '"
           <> Text.unpack (fromMaybe "" mGrandfatherTag)
           <> "' was not found in "
-          <> toFilePath path
+          <> fromAbsFile path
     else pure steps
   where
     -- A line is a tag declaration line if (after stripping) it starts with

@@ -12,8 +12,8 @@ import Control.Exception (SomeException, try)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Database.Persist.Sql as DB
-import Path (Abs, File, Path, relfile)
-import qualified Path.IO as Path
+import Path
+import Path.IO
 import Test.Syd
 import Test.Syd.Persistent.Postgresql
 import Test.Syd.Sqitch
@@ -21,14 +21,14 @@ import Test.Syd.Sqitch
 -- | Locate the sqitch executable on @PATH@ at test-suite start.
 locateSqitch :: IO (Path Abs File)
 locateSqitch = do
-  m <- Path.findExecutable [relfile|sqitch|]
+  m <- findExecutable [relfile|sqitch|]
   case m of
     Nothing -> fail "sqitch not found on PATH"
     Just p -> pure p
 
-settingsFor :: FilePath -> Maybe Text -> IO SqitchSettings
+settingsFor :: Path Rel Dir -> Maybe Text -> IO SqitchSettings
 settingsFor relDir mTag = do
-  projectDir <- Path.resolveDir' relDir
+  projectDir <- makeAbsolute relDir
   binPath <- locateSqitch
   pure
     SqitchSettings
@@ -41,26 +41,34 @@ spec :: Spec
 spec = sequential $ do
   describe "sqitchPostgresqlSpec" $ do
     describe "toy-sqitch-ok" $ do
-      settings <- runIO $ settingsFor "test_resources/toy-sqitch-ok" Nothing
+      settings <- runIO $ settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
       sqitchPostgresqlSpec settings $
         it "leaves the database in an empty state after the checks pass" $ \pool -> do
           schema <- runPostgresqlTest pool querySchema
-          schema `shouldBe` Map.empty
+          schema
+            `shouldBe` SchemaSnapshot
+              { schemaSnapshotColumns = Map.empty,
+                schemaSnapshotIndices = Map.empty
+              }
 
     describe "toy-sqitch-grandfathered with grandfather tag" $ do
       settings <-
-        runIO $ settingsFor "test_resources/toy-sqitch-grandfathered" (Just "legacy")
+        runIO $ settingsFor [reldir|test_resources/toy-sqitch-grandfathered|] (Just "legacy")
       sqitchPostgresqlSpec settings $
         it "passes when the non-idempotent change is grandfathered" $ \pool -> do
           schema <- runPostgresqlTest pool querySchema
-          schema `shouldBe` Map.empty
+          schema
+            `shouldBe` SchemaSnapshot
+              { schemaSnapshotColumns = Map.empty,
+                schemaSnapshotIndices = Map.empty
+              }
 
   describe "runSqitchPostgresqlChecks (negative cases)" $ do
     describe "toy-sqitch-non-idempotent" $
       persistPostgresqlSpec (pure ()) $
         itWithAll "fails because the change is non-idempotent" $
           \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
-            settings <- settingsFor "test_resources/toy-sqitch-non-idempotent" Nothing
+            settings <- settingsFor [reldir|test_resources/toy-sqitch-non-idempotent|] Nothing
             res <- try @SomeException $ runSqitchPostgresqlChecks settings tdb pool
             case res of
               Left _ -> pure ()
@@ -72,7 +80,7 @@ spec = sequential $ do
       persistPostgresqlSpec (pure ()) $
         itWithAll "fails because the revert is not the inverse of the deploy" $
           \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
-            settings <- settingsFor "test_resources/toy-sqitch-broken-revert" Nothing
+            settings <- settingsFor [reldir|test_resources/toy-sqitch-broken-revert|] Nothing
             res <- try @SomeException $ runSqitchPostgresqlChecks settings tdb pool
             case res of
               Left _ -> pure ()
@@ -84,7 +92,7 @@ spec = sequential $ do
       persistPostgresqlSpec (pure ()) $
         itWithAll "fails because the pre-tag non-idempotent change is no longer exempt" $
           \(HCons tdb HNil :: HList '[TemplateDB]) (pool :: DB.ConnectionPool) -> do
-            settings <- settingsFor "test_resources/toy-sqitch-grandfathered" Nothing
+            settings <- settingsFor [reldir|test_resources/toy-sqitch-grandfathered|] Nothing
             res <- try @SomeException $ runSqitchPostgresqlChecks settings tdb pool
             case res of
               Left _ -> pure ()

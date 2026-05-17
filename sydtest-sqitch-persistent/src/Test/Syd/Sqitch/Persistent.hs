@@ -90,23 +90,22 @@ runSqitchPersistentChecks ::
   DB.ConnectionPool ->
   IO ()
 runSqitchPersistentChecks settings tdb pool = do
-  -- Phase 1: snapshot columns + indices produced by persistent's
-  -- automatic migration (plus the caller's extra setup). Start from an
-  -- empty schema so any state left behind by a previous test does not
-  -- pollute the snapshot.
-  (columnsFromPersistent, indicesFromPersistent) <- runNoLoggingT $
+  -- Phase 1: snapshot what persistent's automatic migration (plus the
+  -- caller's extra setup) produces. Start from an empty schema so
+  -- state left behind by an earlier test cannot pollute the snapshot.
+  schemaFromPersistent <- runNoLoggingT $
     flip DB.runSqlPool pool $ do
       DB.rawExecute "DROP SCHEMA IF EXISTS public CASCADE" []
       DB.rawExecute "CREATE SCHEMA public" []
       DB.rawExecute "DROP SCHEMA IF EXISTS sqitch CASCADE" []
       migrationRunner (sqitchPersistentAutoMigration settings)
       sqitchPersistentExtraSetup settings
-      (,) <$> querySchema <*> queryIndices
+      querySchema
 
   -- Phase 2: clean the database and run sqitch deploy for the whole
-  -- plan, then capture columns + indices on the sqitch side (also
-  -- after the caller's extra setup, so indices created by setUpIndices
-  -- and friends are part of the comparison on both sides).
+  -- plan, then snapshot the sqitch side (also after the caller's
+  -- extra setup, so anything setUpIndices and friends create is part
+  -- of the comparison on both sides).
   testdb <- runNoLoggingT $
     flip DB.runSqlPool pool $ do
       [DB.Single dbName] <- DB.rawSql "SELECT current_database()::text" []
@@ -121,16 +120,13 @@ runSqitchPersistentChecks settings tdb pool = do
 
   sqitchAt sqitchSettings target "deploy" ["--verify"]
 
-  (columnsFromSqitch, indicesFromSqitch) <- runNoLoggingT $
+  schemaFromSqitch <- runNoLoggingT $
     flip DB.runSqlPool pool $ do
       sqitchPersistentExtraSetup settings
-      (,) <$> querySchema <*> queryIndices
+      querySchema
 
-  -- Phase 3: compare columns and indices.
-  context "columns" $
-    compareSchemas "sqitch migrations" (align columnsFromSqitch columnsFromPersistent)
-  context "indices" $
-    compareSchemas "sqitch migrations" (align indicesFromSqitch indicesFromPersistent)
+  -- Phase 3: compare.
+  compareSchemaSnapshots "sqitch migrations" schemaFromSqitch schemaFromPersistent
 
   -- Phase 4: revert so the database is clean for any downstream tests
   -- that share the same pool.

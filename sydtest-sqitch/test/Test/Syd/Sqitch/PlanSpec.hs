@@ -8,8 +8,8 @@ import Data.List (isInfixOf)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Path (parseRelFile, toFilePath, (</>))
-import Path.IO (resolveDir', resolveFile')
+import Path
+import Path.IO
 import Test.Syd
 import Test.Syd.Sqitch.Plan
 import qualified UnliftIO.Temporary as Tmp
@@ -21,7 +21,7 @@ parsePlan mTag body =
     dir <- resolveDir' dirStr
     name <- parseRelFile "sqitch.plan"
     let path = dir </> name
-    Text.writeFile (toFilePath path) body
+    Text.writeFile (fromAbsFile path) body
     readSqitchPlan mTag path
 
 spec :: Spec

@@ -54,7 +54,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Database.Persist.Sql as DB
-import Path (parseRelDir, parseRelFile, toFilePath, (</>))
+import Path
 import Test.Syd
 import Test.Syd.Persistent.Postgresql
   ( TemplateDB,
@@ -163,7 +163,7 @@ runSqitchWholePlanCycle settings tdb pool = do
   schemaSecond <- runNoLoggingT $ DB.runSqlPool querySchema pool
 
   context "whole-plan deploy/revert/redeploy cycle" $
-    schemaSecond `shouldBe` schemaFirst
+    compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
 
   sqitchRevertAll settings target
 
@@ -225,7 +225,7 @@ iterateSteps settings target pool steps =
         schemaAfterRoundtrip <-
           runNoLoggingT $ DB.runSqlPool querySchema pool
         context "round-trip (revert one step then redeploy)" $
-          schemaAfterRoundtrip `shouldBe` schemaPostStep
+          compareSchemaSnapshots "after redeploy" schemaAfterRoundtrip schemaPostStep
 
       -- Idempotence: re-run the deploy script's raw SQL bypassing
       -- sqitch (which would short-circuit on "already deployed").
@@ -237,7 +237,7 @@ iterateSteps settings target pool steps =
         schemaAfterRerun <-
           runNoLoggingT $ DB.runSqlPool querySchema pool
         context "idempotence (re-run the deploy script)" $
-          schemaAfterRerun `shouldBe` schemaPostStep
+          compareSchemaSnapshots "after rerun" schemaAfterRerun schemaPostStep
   where
     prevTargets = Nothing : map Just steps
 
@@ -247,4 +247,4 @@ readDeployScript settings scriptName = do
   fileRel <- parseRelFile (Text.unpack scriptName <> ".sql")
   Text.decodeUtf8Lenient
     <$> ByteString.readFile
-      (toFilePath (sqitchSettingsProjectDir settings </> deployDir </> fileRel))
+      (fromAbsFile (sqitchSettingsProjectDir settings </> deployDir </> fileRel))

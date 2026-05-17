@@ -1,13 +1,23 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- The undefined-trick in 'compareSchemaSnapshots' deliberately binds no
+-- variables; that's the point — it forces GHC to error when a field is
+-- added to SchemaSnapshot.
+{-# OPTIONS_GHC -Wno-unused-pattern-binds #-}
 
 -- | Helpers for snapshotting a PostgreSQL schema and comparing two
 -- snapshots.
 module Test.Syd.Sqitch.Schema
-  ( normaliseSchema,
-    removeComments,
+  ( -- * Snapshots
+    SchemaSnapshot (..),
     querySchema,
+    queryColumns,
     queryIndices,
+    compareSchemaSnapshots,
+
+    -- * Low-level helpers
+    normaliseSchema,
+    removeComments,
     align,
     compareSchemas,
   )
@@ -22,8 +32,81 @@ import qualified Data.Text as Text
 import Database.Persist.Sql (Single (..), SqlPersistT, rawSql)
 import Test.Syd
 
--- | Strip SQL comments and collapse whitespace so two semantically equal
--- snippets compare equal as 'Text'.
+-- | Everything that defines the shape of a PostgreSQL @public@ schema
+-- for the purposes of equality testing.
+--
+-- Add new fields here as new categories of schema object grow into
+-- scope (constraints, sequences, triggers, views, …). The
+-- undefined-trick inside 'compareSchemaSnapshots' will then prompt you
+-- to extend the comparison.
+data SchemaSnapshot = SchemaSnapshot
+  { -- | Columns of every table in @public@, keyed by
+    -- @(table_name, column_name)@. See 'queryColumns'.
+    schemaSnapshotColumns :: Map (Text, Text) Text,
+    -- | Indices of every table in @public@, keyed by
+    -- @(table_name, index_name)@. See 'queryIndices'.
+    schemaSnapshotIndices :: Map (Text, Text) Text
+  }
+  deriving (Show, Eq)
+
+-- | Snapshot everything in 'SchemaSnapshot' in one query batch.
+querySchema :: (MonadIO m) => SqlPersistT m SchemaSnapshot
+querySchema = SchemaSnapshot <$> queryColumns <*> queryIndices
+
+-- | Snapshot the columns of every table in the @public@ schema, keyed
+-- by @(table_name, column_name)@. The value is a normalised string
+-- containing the schema name, table name, column name, and data type.
+queryColumns :: (MonadIO m) => SqlPersistT m (Map (Text, Text) Text)
+queryColumns =
+  Map.fromList
+    . map
+      ( \(Single schemaName, Single tableName, Single columnName, Single dataType) ->
+          ( (tableName, columnName),
+            normaliseSchema $
+              schemaName <> "." <> tableName <> "." <> columnName <> " " <> dataType
+          )
+      )
+    <$> rawSql
+      "SELECT table_schema, table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position"
+      []
+
+-- | Snapshot the indices of every table in the @public@ schema, keyed
+-- by @(table_name, index_name)@. The value is the normalised
+-- @CREATE INDEX@ statement reported by @pg_indexes.indexdef@ — which
+-- captures columns, ordering, uniqueness, and any partial-index
+-- predicate.
+queryIndices :: (MonadIO m) => SqlPersistT m (Map (Text, Text) Text)
+queryIndices =
+  Map.fromList
+    . map
+      ( \(Single tableName, Single indexName, Single indexDef) ->
+          ((tableName, indexName), normaliseSchema indexDef)
+      )
+    <$> rawSql
+      "SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' ORDER BY tablename, indexname"
+      []
+
+-- | Compare two 'SchemaSnapshot's field by field, calling
+-- 'expectationFailure' on any divergence. The label names the first
+-- side so failures read naturally (\"Missing in <label>: ...\" /
+-- \"Extra in <label>: ...\").
+--
+-- The 'undefined' pattern is a deliberate compile-time prompt: when a
+-- new field is added to 'SchemaSnapshot', this pattern stops matching
+-- and GHC complains, forcing you to extend the comparison.
+compareSchemaSnapshots :: String -> SchemaSnapshot -> SchemaSnapshot -> IO ()
+compareSchemaSnapshots label actual expected =
+  let SchemaSnapshot _ _ = undefined :: SchemaSnapshot
+   in do
+        context "columns" $
+          compareSchemas label $
+            align (schemaSnapshotColumns actual) (schemaSnapshotColumns expected)
+        context "indices" $
+          compareSchemas label $
+            align (schemaSnapshotIndices actual) (schemaSnapshotIndices expected)
+
+-- | Strip SQL comments and collapse whitespace so two semantically
+-- equal snippets compare equal as 'Text'.
 normaliseSchema :: Text -> Text
 normaliseSchema =
   Text.strip
@@ -42,41 +125,6 @@ removeComments =
     . map (fst . Text.breakOn "--")
     . Text.lines
 
--- | Snapshot the columns of every table in the @public@ schema, keyed by
--- @(table_name, column_name)@. The value is a normalised string containing
--- the schema name, table name, column name, and data type.
-querySchema :: (MonadIO m) => SqlPersistT m (Map (Text, Text) Text)
-querySchema =
-  Map.fromList
-    . map
-      ( \(Single schemaName, Single tableName, Single columnName, Single dataType) ->
-          ( (tableName, columnName),
-            normaliseSchema $
-              schemaName <> "." <> tableName <> "." <> columnName <> " " <> dataType
-          )
-      )
-    <$> rawSql
-      "SELECT table_schema, table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' ORDER BY table_name, ordinal_position"
-      []
-
--- | Snapshot the indices of every table in the @public@ schema, keyed
--- by @(table_name, index_name)@. The value is the normalised
--- @CREATE INDEX@ statement reported by @pg_indexes.indexdef@ — which
--- captures columns, ordering, uniqueness, and any partial-index
--- predicate. This is what 'compareSchemas' needs to detect drift
--- between two ways of building the schema (e.g. sqitch deploy vs
--- persistent automatic migration plus extra setup).
-queryIndices :: (MonadIO m) => SqlPersistT m (Map (Text, Text) Text)
-queryIndices =
-  Map.fromList
-    . map
-      ( \(Single tableName, Single indexName, Single indexDef) ->
-          ((tableName, indexName), normaliseSchema indexDef)
-      )
-    <$> rawSql
-      "SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = 'public' ORDER BY tablename, indexname"
-      []
-
 -- | Outer-join two maps, recording for each key which side it came from.
 align :: (Ord k) => Map k a -> Map k b -> Map k (Maybe a, Maybe b)
 align =
@@ -85,9 +133,9 @@ align =
     (Merge.mapMissing (\_ b -> (Nothing, Just b)))
     (Merge.zipWithMatched (\_ a b -> (Just a, Just b)))
 
--- | Walk an aligned schema map and 'expectationFailure' on any divergence.
--- The label names the first side so failures read naturally
--- (\"Missing in <label>: ...\" / \"Extra in <label>: ...\").
+-- | Walk an aligned schema map and 'expectationFailure' on any
+-- divergence. Used internally by 'compareSchemaSnapshots'; exposed for
+-- callers that want to compare ad-hoc maps.
 compareSchemas ::
   String ->
   Map (Text, Text) (Maybe Text, Maybe Text) ->

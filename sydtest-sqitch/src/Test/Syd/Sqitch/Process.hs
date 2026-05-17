@@ -21,7 +21,7 @@ import Data.Word (Word16)
 import qualified Database.PostgreSQL.Simple.Options as Postgres
 import Database.Postgres.Temp (toConnectionOptions)
 import Network.URI (escapeURIString, isUnreserved)
-import Path (Abs, Dir, File, Path, toFilePath)
+import Path
 import System.Environment (getEnvironment)
 import System.Process.Typed
 import Test.Syd.Persistent.Postgresql (TemplateDB)
@@ -94,8 +94,8 @@ sqitchAt settings target cmd extraArgs = do
   env <- getEnvironment
   runProcess_ $
     setEnv (("TZ", "UTC") : filter ((/= "TZ") . fst) env) $
-      setWorkingDir (toFilePath (sqitchSettingsProjectDir settings)) $
-        proc (toFilePath (sqitchSettingsBin settings)) $
+      setWorkingDir (fromAbsDir (sqitchSettingsProjectDir settings)) $
+        proc (fromAbsFile (sqitchSettingsBin settings)) $
           [cmd, "--target", unSqitchTarget target] <> extraArgs
 
 -- | @sqitch deploy --target ... --to <change> --verify@

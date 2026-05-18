@@ -30,10 +30,10 @@
 #       coverage phase and for each mutation child during the mutation phase
 #       (default: "4g")
 # - coverageJobs: maximum number of coverage children to run concurrently.
-#       Defaults to the build-sandbox's RTS capability count, which is too
-#       aggressive for test suites that spawn expensive per-test resources
-#       (e.g. tmp-postgres). Set this to cap the parallelism. 'null' leaves
-#       the default in place.
+#       Defaults to 4, a conservative cap that keeps mutation checks from
+#       OOM-ing on hosts where 'getNumCapabilities' is high but test suites
+#       spawn expensive per-test resources (e.g. tmp-postgres). Pass 'null'
+#       to fall back to the harness default of 'getNumCapabilities'.
 # - coverageRetry: how many times to retry a failing coverage child before
 #       giving up. Defaults to the harness default (3). Useful when test
 #       suites flake on contended resources (e.g. tmp-postgres' port binding)
@@ -65,7 +65,7 @@
   # mutation child during the mutation phase.  Passed as '+RTS -M<limit> -RTS'
   # to the test exe and as '--mutation-child-mem-limit' to the harness.
 , testProcessMemLimit ? "4g"
-, coverageJobs ? null
+, coverageJobs ? 4
 , coverageRetry ? null
   # Whether to enable fail-fast in the harness run. Defaults to false because
   # e2e checks want the full report (driven by assertMutationScore), and

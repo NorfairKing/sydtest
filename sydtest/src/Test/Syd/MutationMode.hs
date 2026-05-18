@@ -86,7 +86,7 @@ import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitWith)
-import System.IO (BufferMode (..), IOMode (..), hClose, hSetBuffering, openFile, stderr)
+import System.IO (BufferMode (..), IOMode (..), hSetBuffering, stderr, withFile)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -728,25 +728,25 @@ runMutationMode settings failFast mutParent _spec = do
       classifySyncExceptionAsKilled $
         withSystemTempDir "mutation-child" $ \tmpDir -> do
           let logPath = tmpDir </> [relfile|child.log|]
-          logHandle <- openFile (fromAbsFile logPath) WriteMode
-          let childProc =
-                setStdout (useHandleOpen logHandle) $
-                  setStderr (useHandleOpen logHandle) $
-                    proc exe args
-              -- Per-mutation wall-clock budget computed by the coverage phase.
-              timeoutMicros = augmentedMutationRecordTimeoutMicros record
-              -- Cap the threadDelay argument at maxBound Int so very large
-              -- budgets don't overflow when converted to the Int that
-              -- threadDelay expects.
-              micros =
-                if timeoutMicros >= fromIntegral (maxBound :: Int)
-                  then maxBound :: Int
-                  else fromIntegral timeoutMicros
-          startTime <- getCurrentTime
-          outcomeRaw <- startProcessAndWait childProc micros
-          endTime <- getCurrentTime
-          let elapsedMicros = diffUTCTimeMicros endTime startTime
-          hClose logHandle
+          (outcomeRaw, elapsedMicros) <-
+            withFile (fromAbsFile logPath) WriteMode $ \logHandle -> do
+              let childProc =
+                    setStdout (useHandleOpen logHandle) $
+                      setStderr (useHandleOpen logHandle) $
+                        proc exe args
+                  -- Per-mutation wall-clock budget computed by the coverage phase.
+                  timeoutMicros = augmentedMutationRecordTimeoutMicros record
+                  -- Cap the threadDelay argument at maxBound Int so very large
+                  -- budgets don't overflow when converted to the Int that
+                  -- threadDelay expects.
+                  micros =
+                    if timeoutMicros >= fromIntegral (maxBound :: Int)
+                      then maxBound :: Int
+                      else fromIntegral timeoutMicros
+              startTime <- getCurrentTime
+              raw <- startProcessAndWait childProc micros
+              endTime <- getCurrentTime
+              pure (raw, diffUTCTimeMicros endTime startTime)
           case outcomeRaw of
             Left () -> do
               -- Timed out: parent killed the child. Preserve whatever the

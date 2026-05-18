@@ -44,4 +44,5 @@ library
     , path
     , path-io
     , text
+    , unordered-containers
   default-language: Haskell2010

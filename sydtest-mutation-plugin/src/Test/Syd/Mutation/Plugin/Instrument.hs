@@ -49,7 +49,7 @@ import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
 import Path
 import Path.IO (resolveFile')
-import Test.Syd.Mutation.Manifest (MutationRecord (..))
+import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
 -- ---------------------------------------------------------------------------
@@ -158,7 +158,7 @@ data InstrumentEnv = InstrumentEnv
     instrInLocalLet :: Bool
   }
 
-type InstrM = WriterT [MutationRecord] (ReaderT InstrumentEnv TcM)
+type InstrM = WriterT [MutationGroup] (ReaderT InstrumentEnv TcM)
 
 liftTcM :: TcM a -> InstrM a
 liftTcM = lift . lift
@@ -185,7 +185,7 @@ runInstrument ::
   -- | Splice spans collected at parse time, used to filter mutations.
   [RealSrcSpan] ->
   InstrM a ->
-  TcM (a, [MutationRecord])
+  TcM (a, [MutationGroup])
 runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices spliceSpans action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
@@ -742,16 +742,28 @@ containsSpan outer inner =
 -- 'MutationId's would collide.  The index is appended as the last component
 -- of the id.
 applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-applyAlts opName alts original = go 1 alts
+applyAlts opName alts original = do
+  (wrapped, records) <- go 1 alts
+  -- Every applyAlts call emits exactly one mutation group, even if a
+  -- specific alternative was filtered out (TH splice / UnhelpfulSpan) and
+  -- produced no record.  An empty group is harmless: no scheduling work, no
+  -- report entries.
+  tell [MutationGroup records]
+  pure wrapped
   where
     go altIndex ((ty, mutated, origStr, replStr, delta) :| rest) = do
-      mid <- recordMutation original opName origStr replStr delta altIndex
-      inner <- case rest of
-        [] -> pure original
+      (mid, mRec) <- recordMutation original opName origStr replStr delta altIndex
+      (innerExpr, innerRecs) <- case rest of
+        [] -> pure (original, [])
         (a : as) -> go (altIndex + 1) (a :| as)
-      wrapWithIfMutation ty mid mutated inner
+      outer <- wrapWithIfMutation ty mid mutated innerExpr
+      let recs = maybe innerRecs (: innerRecs) mRec
+      pure (outer, recs)
 
--- | Record one mutation site and return its 'MutationId'.
+-- | Record one mutation site, returning its 'MutationId' and (when the
+-- mutation is kept) the corresponding 'MutationRecord'.  Returns
+-- @(MutationId [], Nothing)@ when the mutation is filtered out (TH splice or
+-- 'UnhelpfulSpan'); callers should treat the empty 'MutationId' as inert.
 recordMutation ::
   LHsExpr GhcTc ->
   String ->
@@ -762,7 +774,7 @@ recordMutation ::
   -- Appended to the id so alternatives with identical @replStr@ text do not
   -- collide.
   Int ->
-  InstrM MutationId
+  InstrM (MutationId, Maybe MutationRecord)
 recordMutation le op origStr replStr delta altIndex = do
   InstrumentEnv {instrModule, instrSourceFile, instrSkipThSplices, instrSpliceSpans} <- ask
   let sp = getLocA le
@@ -770,7 +782,7 @@ recordMutation le op origStr replStr delta altIndex = do
     RealSrcSpan rss _
       | instrSkipThSplices && any (`containsSpan` rss) instrSpliceSpans ->
           -- Mutation is inside a TH splice or quasi-quote; drop it.
-          pure (MutationId [])
+          pure (MutationId [], Nothing)
     RealSrcSpan rss _ -> do
       let mn = moduleNameString (moduleName instrModule)
           lineNum = srcSpanStartLine rss
@@ -829,9 +841,8 @@ recordMutation le op origStr replStr delta altIndex = do
                     _ -> ""
                in putStrLn $ "added mutation " ++ T.unpack (mutRecOperator record) ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
             _ -> putStrLn $ "added mutation " ++ show parts
-      tell [record]
-      pure mid
-    UnhelpfulSpan _ -> pure (MutationId [])
+      pure (mid, Just record)
+    UnhelpfulSpan _ -> pure (MutationId [], Nothing)
 
 -- | Apply a 'SrcSpanDelta' to compute the mutated lines.
 applyDelta :: [T.Text] -> Int -> Int -> Int -> Int -> SrcSpanDelta -> [T.Text] -> [T.Text]

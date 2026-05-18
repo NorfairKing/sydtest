@@ -4,6 +4,7 @@
 
 module Test.Syd.Mutation.Manifest
   ( MutationRecord (..),
+    MutationGroup (..),
     MutationManifest (..),
     readManifestFile,
     readManifestDir,
@@ -99,13 +100,27 @@ relFileCodec =
     (T.pack . fromRelFile)
     codec
 
--- | All mutation sites discovered in one or more modules by the plugin.
-newtype MutationManifest = MutationManifest [MutationRecord]
+-- | A group of mutation records produced by applying one operator at one
+-- source location.  Every group has at least one record in practice, but the
+-- type does not enforce non-emptiness — the plugin can drop alternatives
+-- during validation.
+--
+-- Within-group fail-fast (in the runner) skips remaining mutations in a
+-- group once one of them survives or is uncovered.
+newtype MutationGroup = MutationGroup [MutationRecord]
+  deriving stock (Show)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationGroup)
+
+instance HasCodec MutationGroup where
+  codec = dimapCodec MutationGroup (\(MutationGroup rs) -> rs) codec
+
+-- | All mutation groups discovered in one or more modules by the plugin.
+newtype MutationManifest = MutationManifest [MutationGroup]
   deriving stock (Show)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationManifest)
 
 instance HasCodec MutationManifest where
-  codec = dimapCodec MutationManifest (\(MutationManifest rs) -> rs) codec
+  codec = dimapCodec MutationManifest (\(MutationManifest gs) -> gs) codec
 
 instance Semigroup MutationManifest where
   MutationManifest a <> MutationManifest b = MutationManifest (a <> b)

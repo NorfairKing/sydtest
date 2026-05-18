@@ -21,7 +21,7 @@ import Path
 import Path.IO (resolveDir')
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
-import Test.Syd.Mutation.Manifest (MutationManifest (..), writeManifestFile)
+import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), writeManifestFile)
 import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Plugin.Operators (allOperators)
 import Test.Syd.Mutation.Plugin.OptParse
@@ -285,7 +285,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
             if skipThSplices
               then liftIO $ Map.findWithDefault [] mn <$> readIORef spliceSpansRef
               else pure []
-          (binds', mutations) <-
+          (binds', groups) <-
             runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices spliceSpans $
               instrumentModule (tcg_binds tcGblEnv)
           -- The manifest dir comes from --manifest= plugin opt, or from the
@@ -295,17 +295,18 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           let rawDir = case manifestDirOpt of
                 (d : _) -> Just d
                 [] -> envDir
+          let totalMutations = sum [length rs | MutationGroup rs <- groups]
           liftIO $ do
-            putStrLn $ "added " ++ show (length mutations) ++ " mutations"
+            putStrLn $ "added " ++ show totalMutations ++ " mutations in " ++ show (length groups) ++ " groups"
             case rawDir of
               Nothing -> pure ()
               Just raw -> do
                 dir <- resolveDir' raw
-                writeModuleManifest dir mn mutations
+                writeModuleManifest dir mn groups
           pure tcGblEnv {tcg_binds = binds'}
 
 -- | Write a JSON manifest file for one module to @<dir>/<ModuleName>.json@.
 -- Each module gets its own file, so no locking is needed.
-writeModuleManifest :: Path Abs Dir -> String -> [MutationRecord] -> IO ()
-writeModuleManifest dir mn mutations =
-  writeManifestFile dir mn (MutationManifest mutations)
+writeModuleManifest :: Path Abs Dir -> String -> [MutationGroup] -> IO ()
+writeModuleManifest dir mn groups =
+  writeManifestFile dir mn (MutationManifest groups)

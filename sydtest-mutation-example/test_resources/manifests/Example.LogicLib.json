@@ -1,1226 +1,1270 @@
 [
-  {
-    "col_end": 27,
-    "col_start": 26,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "IntLit",
-      "17",
-      "26",
-      "27",
-      "1",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 1 || b > 0"
-    ],
-    "operator": "IntLit",
-    "original": "0",
-    "replacement": "1",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 27,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "17",
-      "22",
-      "27",
-      "<",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a < 0 || b > 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 27,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "17",
-      "22",
-      "27",
-      "<=",
-      "2"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a <= 0 || b > 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 27,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "17",
-      "22",
-      "27",
-      ">=",
-      "3"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a >= 0 || b > 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": ">=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 27,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "17",
-      "22",
-      "27",
-      "True",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = True || b > 0"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "True",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 27,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "17",
-      "22",
-      "27",
-      "False",
-      "2"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = False || b > 0"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "False",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 27,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Negate",
-      "17",
-      "22",
-      "27",
-      "not (e)",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = not (a > 0) || b > 0"
-    ],
-    "operator": "Negate",
-    "original": "e",
-    "replacement": "not (e)",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 35,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "IntLit",
-      "17",
-      "35",
-      "36",
-      "1",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 || b > 1"
-    ],
-    "operator": "IntLit",
-    "original": "0",
-    "replacement": "1",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 31,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "17",
-      "31",
-      "36",
-      "<",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 || b < 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 31,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "17",
-      "31",
-      "36",
-      "<=",
-      "2"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 || b <= 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 31,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "17",
-      "31",
-      "36",
-      ">=",
-      "3"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 || b >= 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": ">=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 31,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "17",
-      "31",
-      "36",
-      "True",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 || True"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "True",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 31,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "17",
-      "31",
-      "36",
-      "False",
-      "2"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 || False"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "False",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 31,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Negate",
-      "17",
-      "31",
-      "36",
-      "not (e)",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 || not (b > 0)"
-    ],
-    "operator": "Negate",
-    "original": "e",
-    "replacement": "not (e)",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "17",
-      "22",
-      "36",
-      "True",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = True"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "True",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "17",
-      "22",
-      "36",
-      "False",
-      "2"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = False"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "False",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "LogicOp",
-      "17",
-      "22",
-      "36",
-      "&&",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = a > 0 && b > 0"
-    ],
-    "operator": "LogicOp",
-    "original": "||",
-    "replacement": "&&",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 36,
-    "col_start": 22,
-    "context_after": [],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
-      "eitherPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 17,
-    "id": [
-      "Example.LogicLib",
-      "Negate",
-      "17",
-      "22",
-      "36",
-      "not (e)",
-      "1"
-    ],
-    "line": 17,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "eitherPositive a b = not (a > 0 || b > 0)"
-    ],
-    "operator": "Negate",
-    "original": "e",
-    "replacement": "not (e)",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "eitherPositive a b = a > 0 || b > 0"
-    ]
-  },
-  {
-    "col_end": 25,
-    "col_start": 24,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "IntLit",
-      "11",
-      "24",
-      "25",
-      "1",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 1 && b > 0"
-    ],
-    "operator": "IntLit",
-    "original": "0",
-    "replacement": "1",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 25,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "11",
-      "20",
-      "25",
-      "<",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a < 0 && b > 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 25,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "11",
-      "20",
-      "25",
-      "<=",
-      "2"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a <= 0 && b > 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 25,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "11",
-      "20",
-      "25",
-      ">=",
-      "3"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a >= 0 && b > 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": ">=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 25,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "11",
-      "20",
-      "25",
-      "True",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = True && b > 0"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "True",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 25,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "11",
-      "20",
-      "25",
-      "False",
-      "2"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = False && b > 0"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "False",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 25,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Negate",
-      "11",
-      "20",
-      "25",
-      "not (e)",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = not (a > 0) && b > 0"
-    ],
-    "operator": "Negate",
-    "original": "e",
-    "replacement": "not (e)",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 33,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "IntLit",
-      "11",
-      "33",
-      "34",
-      "1",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 && b > 1"
-    ],
-    "operator": "IntLit",
-    "original": "0",
-    "replacement": "1",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 29,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "11",
-      "29",
-      "34",
-      "<",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 && b < 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 29,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "11",
-      "29",
-      "34",
-      "<=",
-      "2"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 && b <= 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": "<=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 29,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Cmp",
-      "11",
-      "29",
-      "34",
-      ">=",
-      "3"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 && b >= 0"
-    ],
-    "operator": "Cmp",
-    "original": ">",
-    "replacement": ">=",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 29,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "11",
-      "29",
-      "34",
-      "True",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 && True"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "True",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 29,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "11",
-      "29",
-      "34",
-      "False",
-      "2"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 && False"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "False",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 29,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Negate",
-      "11",
-      "29",
-      "34",
-      "not (e)",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 && not (b > 0)"
-    ],
-    "operator": "Negate",
-    "original": "e",
-    "replacement": "not (e)",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "11",
-      "20",
-      "34",
-      "True",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = True"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "True",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "ConstBool",
-      "11",
-      "20",
-      "34",
-      "False",
-      "2"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = False"
-    ],
-    "operator": "ConstBool",
-    "original": "e",
-    "replacement": "False",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "LogicOp",
-      "11",
-      "20",
-      "34",
-      "||",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = a > 0 || b > 0"
-    ],
-    "operator": "LogicOp",
-    "original": "&&",
-    "replacement": "||",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  },
-  {
-    "col_end": 34,
-    "col_start": 20,
-    "context_after": [
-      "",
-      "-- | True iff at least one argument is strictly positive.",
-      "--"
-    ],
-    "context_before": [
-      "--",
-      "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
-      "bothPositive :: Int -> Int -> Bool"
-    ],
-    "end_line": 11,
-    "id": [
-      "Example.LogicLib",
-      "Negate",
-      "11",
-      "20",
-      "34",
-      "not (e)",
-      "1"
-    ],
-    "line": 11,
-    "module": "Example.LogicLib",
-    "mutated_lines": [
-      "bothPositive a b = not (a > 0 && b > 0)"
-    ],
-    "operator": "Negate",
-    "original": "e",
-    "replacement": "not (e)",
-    "source_file": "src/Example/LogicLib.hs",
-    "source_lines": [
-      "bothPositive a b = a > 0 && b > 0"
-    ]
-  }
+  [
+    {
+      "col_end": 27,
+      "col_start": 26,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "IntLit",
+        "17",
+        "26",
+        "27",
+        "1",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 1 || b > 0"
+      ],
+      "operator": "IntLit",
+      "original": "0",
+      "replacement": "1",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 27,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "17",
+        "22",
+        "27",
+        "<",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a < 0 || b > 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    },
+    {
+      "col_end": 27,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "17",
+        "22",
+        "27",
+        "<=",
+        "2"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a <= 0 || b > 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    },
+    {
+      "col_end": 27,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "17",
+        "22",
+        "27",
+        ">=",
+        "3"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a >= 0 || b > 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": ">=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 27,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "17",
+        "22",
+        "27",
+        "True",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = True || b > 0"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "True",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    },
+    {
+      "col_end": 27,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "17",
+        "22",
+        "27",
+        "False",
+        "2"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = False || b > 0"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "False",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 27,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Negate",
+        "17",
+        "22",
+        "27",
+        "not (e)",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = not (a > 0) || b > 0"
+      ],
+      "operator": "Negate",
+      "original": "e",
+      "replacement": "not (e)",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 36,
+      "col_start": 35,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "IntLit",
+        "17",
+        "35",
+        "36",
+        "1",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 || b > 1"
+      ],
+      "operator": "IntLit",
+      "original": "0",
+      "replacement": "1",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 36,
+      "col_start": 31,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "17",
+        "31",
+        "36",
+        "<",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 || b < 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    },
+    {
+      "col_end": 36,
+      "col_start": 31,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "17",
+        "31",
+        "36",
+        "<=",
+        "2"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 || b <= 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    },
+    {
+      "col_end": 36,
+      "col_start": 31,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "17",
+        "31",
+        "36",
+        ">=",
+        "3"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 || b >= 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": ">=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 36,
+      "col_start": 31,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "17",
+        "31",
+        "36",
+        "True",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 || True"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "True",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    },
+    {
+      "col_end": 36,
+      "col_start": 31,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "17",
+        "31",
+        "36",
+        "False",
+        "2"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 || False"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "False",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 36,
+      "col_start": 31,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Negate",
+        "17",
+        "31",
+        "36",
+        "not (e)",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 || not (b > 0)"
+      ],
+      "operator": "Negate",
+      "original": "e",
+      "replacement": "not (e)",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 36,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "17",
+        "22",
+        "36",
+        "True",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = True"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "True",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    },
+    {
+      "col_end": 36,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "17",
+        "22",
+        "36",
+        "False",
+        "2"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = False"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "False",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 36,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "LogicOp",
+        "17",
+        "22",
+        "36",
+        "&&",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = a > 0 && b > 0"
+      ],
+      "operator": "LogicOp",
+      "original": "||",
+      "replacement": "&&",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 36,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.",
+        "eitherPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.LogicLib",
+        "Negate",
+        "17",
+        "22",
+        "36",
+        "not (e)",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "eitherPositive a b = not (a > 0 || b > 0)"
+      ],
+      "operator": "Negate",
+      "original": "e",
+      "replacement": "not (e)",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "eitherPositive a b = a > 0 || b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 25,
+      "col_start": 24,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "IntLit",
+        "11",
+        "24",
+        "25",
+        "1",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 1 && b > 0"
+      ],
+      "operator": "IntLit",
+      "original": "0",
+      "replacement": "1",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 25,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "11",
+        "20",
+        "25",
+        "<",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a < 0 && b > 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    },
+    {
+      "col_end": 25,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "11",
+        "20",
+        "25",
+        "<=",
+        "2"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a <= 0 && b > 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    },
+    {
+      "col_end": 25,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "11",
+        "20",
+        "25",
+        ">=",
+        "3"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a >= 0 && b > 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": ">=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 25,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "11",
+        "20",
+        "25",
+        "True",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = True && b > 0"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "True",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    },
+    {
+      "col_end": 25,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "11",
+        "20",
+        "25",
+        "False",
+        "2"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = False && b > 0"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "False",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 25,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Negate",
+        "11",
+        "20",
+        "25",
+        "not (e)",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = not (a > 0) && b > 0"
+      ],
+      "operator": "Negate",
+      "original": "e",
+      "replacement": "not (e)",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 33,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "IntLit",
+        "11",
+        "33",
+        "34",
+        "1",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 && b > 1"
+      ],
+      "operator": "IntLit",
+      "original": "0",
+      "replacement": "1",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "11",
+        "29",
+        "34",
+        "<",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 && b < 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    },
+    {
+      "col_end": 34,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "11",
+        "29",
+        "34",
+        "<=",
+        "2"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 && b <= 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": "<=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    },
+    {
+      "col_end": 34,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Cmp",
+        "11",
+        "29",
+        "34",
+        ">=",
+        "3"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 && b >= 0"
+      ],
+      "operator": "Cmp",
+      "original": ">",
+      "replacement": ">=",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "11",
+        "29",
+        "34",
+        "True",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 && True"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "True",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    },
+    {
+      "col_end": 34,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "11",
+        "29",
+        "34",
+        "False",
+        "2"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 && False"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "False",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Negate",
+        "11",
+        "29",
+        "34",
+        "not (e)",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 && not (b > 0)"
+      ],
+      "operator": "Negate",
+      "original": "e",
+      "replacement": "not (e)",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "11",
+        "20",
+        "34",
+        "True",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = True"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "True",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    },
+    {
+      "col_end": 34,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "ConstBool",
+        "11",
+        "20",
+        "34",
+        "False",
+        "2"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = False"
+      ],
+      "operator": "ConstBool",
+      "original": "e",
+      "replacement": "False",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "LogicOp",
+        "11",
+        "20",
+        "34",
+        "||",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = a > 0 || b > 0"
+      ],
+      "operator": "LogicOp",
+      "original": "&&",
+      "replacement": "||",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | True iff at least one argument is strictly positive.",
+        "--"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.",
+        "bothPositive :: Int -> Int -> Bool"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.LogicLib",
+        "Negate",
+        "11",
+        "20",
+        "34",
+        "not (e)",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.LogicLib",
+      "mutated_lines": [
+        "bothPositive a b = not (a > 0 && b > 0)"
+      ],
+      "operator": "Negate",
+      "original": "e",
+      "replacement": "not (e)",
+      "source_file": "src/Example/LogicLib.hs",
+      "source_lines": [
+        "bothPositive a b = a > 0 && b > 0"
+      ]
+    }
+  ]
 ]

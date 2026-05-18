@@ -102,6 +102,7 @@ test-suite sydtest-test
       Test.Syd.ExpectationSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
+      Test.Syd.MutationGroupSkipSpec
       Test.Syd.MutationModeSpec
       Test.Syd.OptParseSpec
       Test.Syd.PathSpec

@@ -54,8 +54,13 @@ module Test.Syd.MutationMode
 
     -- * Exposed for testing
     SuiteOutcome (..),
+    MutationResult (..),
     classifySyncExceptionAsKilled,
     retryingIO,
+    isMutationFailure,
+    mutationResultId,
+    resultToOutcome,
+    runOneGroup,
   )
 where
 
@@ -85,9 +90,13 @@ import System.Process.Typed (proc, runProcess, setStderr, setStdout, startProces
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
+    AugmentedMutationGroup (..),
     AugmentedMutationRecord (..),
+    MutationGroupReport (..),
+    MutationOutcome (..),
     MutationProgressEvent (..),
     MutationRunReport (..),
+    SkippedMutation (..),
     SurvivedMutation (..),
     TimedOutMutation (..),
     UncoveredMutation (..),
@@ -102,6 +111,7 @@ import Test.Syd.Mutation.AugmentedManifest
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, flattenTestForestWithIds, testIdTrieFromList)
 import Test.Syd.Mutation.Manifest
   ( MutationAddedEvent (..),
+    MutationGroup (..),
     MutationManifest (..),
     MutationRecord (..),
     readManifestDir,
@@ -141,13 +151,13 @@ runCoverageMode settings manifestDirs spec = do
   -- or the library has no instrumentable expressions), there is no work to
   -- do. Spawning one coverage child per leaf test would still run every
   -- test once — wasted setup cost when no mutation can possibly be covered.
-  allRecords@(MutationManifest records) <- mconcat <$> mapM readManifestDir manifestDirs
+  allRecords@(MutationManifest groups) <- mconcat <$> mapM readManifestDir manifestDirs
   augDir <- resolveAugmentedManifestDir settings
   let suiteName = fromMaybe "" (settingMutationSuiteName settings)
       writeEmptyAugmented = do
         existing <- readAugmentedManifestFileIfExists augDir
         writeAugmentedManifestFile augDir (fromMaybe (AugmentedManifest []) existing)
-  if null records
+  if all (\(MutationGroup rs) -> null rs) groups
     then do
       emitCoverageEvent settings (CoverageProgressSkipped CoverageSkipNoMutations)
       writeEmptyAugmented
@@ -297,9 +307,13 @@ runCoverageMode settings manifestDirs spec = do
             ]
           ]
 
-    buildAugmentedManifest suiteName mutationCoverage baselineMap (MutationManifest records) =
-      AugmentedManifest $
-        concatMap (annotateRecord suiteName mutationCoverage baselineMap) records
+    buildAugmentedManifest suiteName mutationCoverage baselineMap (MutationManifest groups) =
+      AugmentedManifest
+        [ AugmentedMutationGroup augmented
+        | MutationGroup recs <- groups,
+          let augmented = concatMap (annotateRecord suiteName mutationCoverage baselineMap) recs,
+          not (null augmented)
+        ]
 
     annotateRecord suiteName mutationCoverage baselineMap rec =
       let coveringTests =
@@ -398,13 +412,17 @@ resolveAugmentedManifestDir settings =
 
 data MutationResult
   = MutationUncovered UncoveredMutation
-  | MutationKilled
+  | MutationKilled AugmentedMutationRecord
   | -- | At least one suite's child exceeded its wall-clock timeout. The
     -- mutation is counted as killed in the overall score but also recorded
-    -- in 'mutationRunReportTimedOut' / 'mutationRunReportTimedOutMutations'
-    -- for visibility.
-    MutationTimedOut (Maybe TimedOutMutation)
-  | MutationSurvived (Maybe SurvivedMutation)
+    -- separately in the report for visibility.
+    MutationTimedOut TimedOutMutation
+  | MutationSurvived SurvivedMutation
+  | -- | The mutation was not tested because an earlier mutation in the same
+    -- group already failed (survived or was uncovered).  Within-group
+    -- fail-fast records every remaining alternative as 'MutationSkipped'
+    -- without spawning a child.
+    MutationSkipped SkippedMutation
 
 -- | Per-suite outcome of running a single mutation child.
 data SuiteOutcome
@@ -506,63 +524,122 @@ data CoverageFailFast = CoverageFailFast
 
 instance Exception CoverageFailFast
 
--- | A mutation result that should trip fail-fast: the test suite did not
--- detect the mutation (survivor) or no test reaches the mutation site
--- (uncovered).  A timeout is counted as killed, so it does not trip.
+-- | A mutation result that should trip within-group fail-fast: the test
+-- suite did not detect the mutation (survivor) or no test reaches the
+-- mutation site (uncovered).  Timeouts count as killed, so they do not
+-- trip; 'MutationSkipped' is itself a consequence of a prior failure and
+-- does not trip again.
 isMutationFailure :: MutationResult -> Bool
 isMutationFailure = \case
   MutationSurvived _ -> True
   MutationUncovered _ -> True
-  MutationKilled -> False
+  MutationKilled _ -> False
   MutationTimedOut _ -> False
+  MutationSkipped _ -> False
+
+-- | The 'MutationId' of the mutation that produced a failing result, used as
+-- the @cause@ on 'SkippedMutation' entries for subsequent group members.
+mutationResultId :: MutationResult -> Maybe MutationId
+mutationResultId = \case
+  MutationSurvived sm -> Just (augmentedMutationRecordId (survivedMutationRecord sm))
+  MutationUncovered um -> Just (augmentedMutationRecordId (uncoveredMutationRecord um))
+  _ -> Nothing
+
+resultToOutcome :: MutationResult -> MutationOutcome
+resultToOutcome = \case
+  MutationKilled r -> OutcomeKilled r
+  MutationSurvived sm -> OutcomeSurvived sm
+  MutationTimedOut tm -> OutcomeTimedOut tm
+  MutationUncovered um -> OutcomeUncovered um
+  MutationSkipped sk -> OutcomeSkipped sk
+
+-- | Run one mutation group: walk records sequentially, calling the supplied
+-- @run@ for each record, and once one record's result is 'isMutationFailure'
+-- record every remaining record as 'MutationSkipped' instead of running it.
+--
+-- Returns the results in source order.  When @globalFailFast@ is 'True' and
+-- a non-skipped result is a failure, 'MutationFailFast' is thrown after the
+-- group's results have been written to the accumulator so a partial report
+-- can still be assembled by the caller.
+runOneGroup ::
+  -- | Whether to throw 'MutationFailFast' after the first failing result.
+  Bool ->
+  -- | How to run one mutation.  Receives the record being tested.
+  (AugmentedMutationRecord -> IO MutationResult) ->
+  -- | Called once per produced 'MutationResult' (in source order) so the
+  -- caller can stream results into an accumulator.
+  (MutationResult -> IO ()) ->
+  -- | Records of this group in source order.
+  [AugmentedMutationRecord] ->
+  IO ()
+runOneGroup globalFailFast runOne onResult = loop Nothing
+  where
+    loop _ [] = pure ()
+    loop (Just causeMid) (rec : rest) = do
+      let r = MutationSkipped (SkippedMutation rec causeMid)
+      onResult r
+      loop (Just causeMid) rest
+    loop Nothing (rec : rest) = do
+      r <- runOne rec
+      onResult r
+      when (globalFailFast && isMutationFailure r) $
+        Exception.throwIO MutationFailFast
+      loop (mutationResultId r) rest
 
 runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runMutationMode settings _manifestDirs _spec = do
   hSetBuffering stderr (BlockBuffering Nothing)
   augDir <- resolveAugmentedManifestDir settings
-  AugmentedManifest records <- readAugmentedManifestFile augDir
+  AugmentedManifest groups <- readAugmentedManifestFile augDir
   defaultExe <- getExecutablePath
   n <- getNumCapabilities
   sem <- newQSem n
-  -- Accumulate results as workers complete so we can produce a partial report
-  -- even when fail-fast aborts the run by throwing 'MutationFailFast' (which
-  -- cancels the sibling 'mapConcurrently' workers).
-  resultsVar <- newTVarIO []
+  -- Each group's per-mutation results, accumulated in source order so a
+  -- partial report (after a global fail-fast abort) reflects the work done.
+  groupResultsVar <- newTVarIO (Map.empty :: Map.Map Int [MutationResult])
   let failFast = settingMutationFailFast settings
-      runOne' record = do
-        r <- runOne defaultExe augDir sem record
-        atomically $ modifyTVar' resultsVar (r :)
-        when (failFast && isMutationFailure r) $ Exception.throwIO MutationFailFast
-        pure r
+      runGroup' (gix, AugmentedMutationGroup recs) =
+        runOneGroup
+          failFast
+          (runOne defaultExe augDir sem)
+          ( \r ->
+              atomically $
+                modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
+          )
+          recs
   Exception.handle (\MutationFailFast -> pure ()) $ do
-    _ <- mapConcurrently runOne' records
+    _ <- mapConcurrently runGroup' (zip [0 :: Int ..] groups)
     pure ()
-  results <- readTVarIO resultsVar
-  let (killed, survived, timedOut, survivors, timedOuts, uncoveredMutations) =
-        foldr tally (0 :: Word, 0, 0, [], [], []) results
-      uncovered = fromIntegral (length uncoveredMutations) :: Word
+  finalGroupResults <- readTVarIO groupResultsVar
+  -- Preserve original group order; reverse each group's results because they
+  -- were accumulated cons-style.
+  let groupReports =
+        [ MutationGroupReport (map resultToOutcome (reverse (Map.findWithDefault [] gix finalGroupResults)))
+        | gix <- [0 .. length groups - 1]
+        ]
+      (killed, survived, timedOut, uncovered, skipped) = tallyGroups groupReports
       jsonReport =
         MutationRunReport
           { mutationRunReportKilled = killed,
             mutationRunReportSurvived = survived,
             mutationRunReportTimedOut = timedOut,
             mutationRunReportUncovered = uncovered,
-            mutationRunReportSurvivors = survivors,
-            mutationRunReportTimedOutMutations = timedOuts,
-            mutationRunReportUncoveredMutations = uncoveredMutations
+            mutationRunReportSkipped = skipped,
+            mutationRunReportGroups = groupReports
           }
   mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
   putChunksLocaleWith (settingTerminalCapabilities settings) (unlinesChunks (renderMutationRunReport jsonReport))
   when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
   where
-    -- Timed-out mutations are counted as killed; the timedOut count and
-    -- list are reported separately for visibility.
-    tally (MutationUncovered um) (k, s, t, ss, ts, us) = (k, s, t, ss, ts, us ++ [um])
-    tally MutationKilled (k, s, t, ss, ts, us) = (k + 1, s, t, ss, ts, us)
-    tally (MutationTimedOut Nothing) (k, s, t, ss, ts, us) = (k + 1, s, t + 1, ss, ts, us)
-    tally (MutationTimedOut (Just tm)) (k, s, t, ss, ts, us) = (k + 1, s, t + 1, ss, ts ++ [tm], us)
-    tally (MutationSurvived Nothing) (k, s, t, ss, ts, us) = (k, s + 1, t, ss, ts, us)
-    tally (MutationSurvived (Just survivor)) (k, s, t, ss, ts, us) = (k, s + 1, t, ss ++ [survivor], ts, us)
+    tallyGroups :: [MutationGroupReport] -> (Word, Word, Word, Word, Word)
+    tallyGroups = foldr (\(MutationGroupReport os) acc -> foldr step acc os) (0, 0, 0, 0, 0)
+      where
+        step o (k, s, t, u, sk) = case o of
+          OutcomeKilled _ -> (k + 1, s, t, u, sk)
+          OutcomeTimedOut _ -> (k + 1, s, t + 1, u, sk)
+          OutcomeSurvived _ -> (k, s + 1, t, u, sk)
+          OutcomeUncovered _ -> (k, s, t, u + 1, sk)
+          OutcomeSkipped _ -> (k, s, t, u, sk + 1)
 
     runOne defaultExe augDir sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
@@ -582,34 +659,30 @@ runMutationMode settings _manifestDirs _spec = do
             pure $ classifyOutcomes record outcomes
 
     classifyOutcomes record outcomes
-      | any isKilled outcomes = MutationKilled
+      | any isKilled outcomes = MutationKilled record
       | otherwise = case mTimedOut of
           Just (elapsedMicros, mLog) ->
-            MutationTimedOut $
-              fmap
-                ( \relFile ->
-                    TimedOutMutation
-                      { timedOutMutationRecord = record,
-                        timedOutMutationElapsedMicros = elapsedMicros,
-                        timedOutMutationLogFile = relFile
-                      }
-                )
-                mLog
+            MutationTimedOut
+              TimedOutMutation
+                { timedOutMutationRecord = record,
+                  timedOutMutationElapsedMicros = elapsedMicros,
+                  timedOutMutationLogFile = mLog
+                }
           Nothing ->
-            MutationSurvived $
-              fmap
-                ( \relFile ->
-                    SurvivedMutation
-                      { survivedMutationRecord = record,
-                        survivedMutationLogFile = relFile
-                      }
-                )
-                mSurvived
+            MutationSurvived
+              SurvivedMutation
+                { survivedMutationRecord = record,
+                  -- Prefer a survivor suite that produced a log file; fall back
+                  -- to no log otherwise.  We are guaranteed at least one
+                  -- 'SuiteSurvived' here because we fell through both prior
+                  -- branches.
+                  survivedMutationLogFile =
+                    listToMaybe [rf | SuiteSurvived (Just rf) <- outcomes]
+                }
       where
         isKilled SuiteKilled = True
         isKilled _ = False
         mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- outcomes]
-        mSurvived = listToMaybe [rf | SuiteSurvived (Just rf) <- outcomes]
 
     runOneSuite defaultExe augDir record mid suiteName = do
       let suiteExes = settingMutationSuiteExes settings
@@ -747,38 +820,49 @@ renderMutationRunReport
       mutationRunReportSurvived,
       mutationRunReportTimedOut,
       mutationRunReportUncovered,
-      mutationRunReportSurvivors,
-      mutationRunReportTimedOutMutations,
-      mutationRunReportUncoveredMutations
+      mutationRunReportSkipped,
+      mutationRunReportGroups
     } =
     [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationRunReportKilled)))],
       [chunk "  (of which timed out: ", fore yellow (chunk (T.pack (show mutationRunReportTimedOut))), chunk ")"],
       [chunk "Survived: ", fore red (chunk (T.pack (show mutationRunReportSurvived)))],
-      [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationRunReportUncovered)))]
+      [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationRunReportUncovered)))],
+      [chunk "Skipped: ", fore yellow (chunk (T.pack (show mutationRunReportSkipped)))]
     ]
-      ++ ( if null mutationRunReportTimedOutMutations
+      ++ ( if null timedOuts
              then []
              else
                [[], [chunk "Timed-out mutations:"]]
-                 ++ concatMap renderTimedOut mutationRunReportTimedOutMutations
+                 ++ concatMap renderTimedOut timedOuts
          )
-      ++ ( if null mutationRunReportSurvivors
+      ++ ( if null survivors
              then []
              else
                [[], [chunk "Surviving mutations:"]]
-                 ++ concatMap renderSurvivor mutationRunReportSurvivors
+                 ++ concatMap renderSurvivor survivors
                  ++ [[], remediationHeader "To resolve a surviving mutation:"]
                  ++ remediationSurvivorBody
          )
-      ++ ( if null mutationRunReportUncoveredMutations
+      ++ ( if null uncovereds
              then []
              else
                [[], [chunk "Uncovered mutations:"]]
-                 ++ concatMap renderUncovered mutationRunReportUncoveredMutations
+                 ++ concatMap renderUncovered uncovereds
                  ++ [[], remediationHeader "To resolve an uncovered mutation:"]
                  ++ remediationUncoveredBody
          )
+      ++ ( if null skippeds
+             then []
+             else
+               [[], [chunk "Skipped mutations:"]]
+                 ++ concatMap renderSkipped skippeds
+         )
     where
+      allOutcomes = concatMap mutationGroupReportOutcomes mutationRunReportGroups
+      survivors = [s | OutcomeSurvived s <- allOutcomes]
+      timedOuts = [t | OutcomeTimedOut t <- allOutcomes]
+      uncovereds = [u | OutcomeUncovered u <- allOutcomes]
+      skippeds = [sk | OutcomeSkipped sk <- allOutcomes]
       renderSurvivor sm =
         let rec = survivedMutationRecord sm
             mid = augmentedMutationRecordId rec
@@ -797,6 +881,16 @@ renderMutationRunReport
         let rec = uncoveredMutationRecord um
             mid = augmentedMutationRecordId rec
          in [] : formatMutationLog mid rec
+      renderSkipped sk =
+        let rec = skippedMutationRecord sk
+            mid = augmentedMutationRecordId rec
+            cause = skippedMutationCause sk
+            header =
+              [ chunk "[skipped — failed in same group: ",
+                fore yellow (chunk (T.pack (renderMutationId cause))),
+                chunk "]"
+              ]
+         in [] : header : formatMutationLog mid rec
       remediationHeader t = [fore cyan (chunk t)]
       -- Kept in sync with the disable-annotation syntax in
       -- sydtest-mutation-plugin (Test.Syd.Mutation.Plugin.Instrument:

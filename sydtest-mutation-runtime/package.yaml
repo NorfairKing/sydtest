@@ -24,3 +24,4 @@ library:
   - path
   - path-io
   - text
+  - unordered-containers

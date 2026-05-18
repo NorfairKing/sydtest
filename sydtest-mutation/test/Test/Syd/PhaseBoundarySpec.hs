@@ -100,7 +100,10 @@ spec = describe "phase boundary smoke (bug #1)" $ do
                 augmentedMutationRecordTimeoutMicros = 30000000
               }
           newSuite :: Int -> Int -> AugmentedManifest
-          newSuite suite recs = AugmentedManifest [mkRec i suite | i <- [1 .. recs]]
+          newSuite suite recs =
+            -- One singleton group per record keeps the merge semantics
+            -- (combine by id) easy to reason about.
+            AugmentedManifest [AugmentedMutationGroup [mkRec i suite] | i <- [1 .. recs]]
           recsPerSuite = 200
           totalSuites = 50
       writeAugmentedManifestFile dir (newSuite 0 recsPerSuite)
@@ -115,7 +118,8 @@ spec = describe "phase boundary smoke (bug #1)" $ do
                     writeAugmentedManifestFile dir merged
                     loop (s + 1)
       loop 1
-      AugmentedManifest finalRecords <- readAugmentedManifestFile dir
+      AugmentedManifest finalGroups <- readAugmentedManifestFile dir
+      let finalRecords = [r | AugmentedMutationGroup rs <- finalGroups, r <- rs]
       length finalRecords `shouldBe` recsPerSuite
       -- All suites should appear in the merged covering_tests maps.
       let allSuites = Map.unionsWith (++) (map augmentedMutationRecordCoveringTests finalRecords)

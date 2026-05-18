@@ -7,6 +7,7 @@
 
 module Test.Syd.Mutation.AugmentedManifest
   ( AugmentedMutationRecord (..),
+    AugmentedMutationGroup (..),
     AugmentedManifest (..),
     mergeAugmentedManifests,
     writeAugmentedManifestFile,
@@ -17,6 +18,9 @@ module Test.Syd.Mutation.AugmentedManifest
     SurvivedMutation (..),
     TimedOutMutation (..),
     UncoveredMutation (..),
+    SkippedMutation (..),
+    MutationOutcome (..),
+    MutationGroupReport (..),
     MutationRunReport (..),
     writeMutationRunReport,
     MutationProgressEvent (..),
@@ -31,6 +35,7 @@ import Data.GenValidity
 import Data.GenValidity.Map ()
 import Data.GenValidity.Path ()
 import Data.GenValidity.Text ()
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -104,12 +109,23 @@ instance GenValid AugmentedMutationRecord where
   genValid = genValidStructurallyWithoutExtraChecking
   shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
 
-newtype AugmentedManifest = AugmentedManifest [AugmentedMutationRecord]
+-- | A group of augmented mutation records sharing one operator-at-one-location
+-- origin.  The runner walks groups concurrently and walks records within a
+-- group sequentially; the first failing record in a group skips the
+-- remaining records (within-group fail-fast).
+newtype AugmentedMutationGroup = AugmentedMutationGroup [AugmentedMutationRecord]
+  deriving stock (Show, Eq)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec AugmentedMutationGroup)
+
+instance HasCodec AugmentedMutationGroup where
+  codec = dimapCodec AugmentedMutationGroup (\(AugmentedMutationGroup rs) -> rs) codec
+
+newtype AugmentedManifest = AugmentedManifest [AugmentedMutationGroup]
   deriving stock (Show, Eq)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec AugmentedManifest)
 
 instance HasCodec AugmentedManifest where
-  codec = dimapCodec AugmentedManifest (\(AugmentedManifest rs) -> rs) codec
+  codec = dimapCodec AugmentedManifest (\(AugmentedManifest gs) -> gs) codec
 
 instance Semigroup AugmentedManifest where
   AugmentedManifest a <> AugmentedManifest b = AugmentedManifest (a <> b)
@@ -156,15 +172,40 @@ readAugmentedManifestFileIfExists dir = do
 
 -- | Merge two 'AugmentedManifest's, combining 'covering_tests' maps by
 -- mutation id.  Records present only in one manifest are kept as-is.
+-- Group structure is preserved: a record in 'new' is matched into the base
+-- group whose first record (by id lookup) it shares.  Groups present only in
+-- 'new' are appended.
 mergeAugmentedManifests :: AugmentedManifest -> AugmentedManifest -> AugmentedManifest
 mergeAugmentedManifests (AugmentedManifest base) (AugmentedManifest new) =
-  AugmentedManifest (map mergeRecord base ++ newOnly)
+  AugmentedManifest (map mergeGroup base ++ newOnlyGroups)
   where
-    newById = Map.fromList [(augmentedMutationRecordId r, r) | r <- new]
-    baseIds = Map.fromList [(augmentedMutationRecordId r, ()) | r <- base]
-    newOnly = filter (\r -> Map.notMember (augmentedMutationRecordId r) baseIds) new
+    newRecsById :: Map.Map MutationId AugmentedMutationRecord
+    newRecsById =
+      Map.fromList
+        [ (augmentedMutationRecordId r, r)
+        | AugmentedMutationGroup rs <- new,
+          r <- rs
+        ]
+    baseIds :: Map.Map MutationId ()
+    baseIds =
+      Map.fromList
+        [ (augmentedMutationRecordId r, ())
+        | AugmentedMutationGroup rs <- base,
+          r <- rs
+        ]
+    newOnlyGroups =
+      [ AugmentedMutationGroup keptRecs
+      | AugmentedMutationGroup rs <- new,
+        let keptRecs =
+              filter
+                (\r -> Map.notMember (augmentedMutationRecordId r) baseIds)
+                rs,
+        not (null keptRecs)
+      ]
+    mergeGroup (AugmentedMutationGroup rs) =
+      AugmentedMutationGroup (map mergeRecord rs)
     mergeRecord r =
-      case Map.lookup (augmentedMutationRecordId r) newById of
+      case Map.lookup (augmentedMutationRecordId r) newRecsById of
         Nothing -> r
         Just r' ->
           r
@@ -181,28 +222,36 @@ mergeAugmentedManifests (AugmentedManifest base) (AugmentedManifest new) =
                   (augmentedMutationRecordTimeoutMicros r')
             }
 
--- | O(n) lookup by 'MutationId'.
+-- | O(n) lookup by 'MutationId' across every group.
 lookupAugmentedMutationRecord :: MutationId -> AugmentedManifest -> Maybe AugmentedMutationRecord
-lookupAugmentedMutationRecord mid (AugmentedManifest records) =
-  case filter (\r -> augmentedMutationRecordId r == mid) records of
+lookupAugmentedMutationRecord mid (AugmentedManifest groups) =
+  case [r | AugmentedMutationGroup rs <- groups, r <- rs, augmentedMutationRecordId r == mid] of
     (r : _) -> Just r
     [] -> Nothing
 
--- | A survived mutation with a pointer to the raw child output file.
+-- | A survived mutation with an optional pointer to the raw child output file.
+-- The log file is 'Nothing' when no report directory is configured.
 data SurvivedMutation = SurvivedMutation
   { survivedMutationRecord :: AugmentedMutationRecord,
     -- | Path to the raw child output file, relative to the report directory.
-    survivedMutationLogFile :: Path Rel File
+    survivedMutationLogFile :: Maybe (Path Rel File)
   }
-  deriving stock (Show, Eq)
-  deriving (Aeson.ToJSON) via (Autodocodec SurvivedMutation)
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec SurvivedMutation)
+
+instance Validity SurvivedMutation where
+  validate = trivialValidation
+
+instance GenValid SurvivedMutation where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
 
 instance HasCodec SurvivedMutation where
   codec =
     object "SurvivedMutation" $
       SurvivedMutation
         <$> requiredField' "mutation" .= survivedMutationRecord
-        <*> requiredFieldWith' "log_file" relFileCodec .= survivedMutationLogFile
+        <*> optionalFieldWith' "log_file" relFileCodec .= survivedMutationLogFile
 
 -- | A mutation child that exceeded its wall-clock timeout and was killed by
 -- the parent.  Treated as killed for the overall score (a hung mutation is
@@ -212,11 +261,19 @@ data TimedOutMutation = TimedOutMutation
     -- | Wall-clock microseconds elapsed before the parent killed the child.
     timedOutMutationElapsedMicros :: Word,
     -- | Path to the raw child output file (the bit produced before the kill),
-    -- relative to the report directory.
-    timedOutMutationLogFile :: Path Rel File
+    -- relative to the report directory.  'Nothing' when no report directory is
+    -- configured.
+    timedOutMutationLogFile :: Maybe (Path Rel File)
   }
-  deriving stock (Show, Eq)
-  deriving (Aeson.ToJSON) via (Autodocodec TimedOutMutation)
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec TimedOutMutation)
+
+instance Validity TimedOutMutation where
+  validate = trivialValidation
+
+instance GenValid TimedOutMutation where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
 
 instance HasCodec TimedOutMutation where
   codec =
@@ -224,14 +281,21 @@ instance HasCodec TimedOutMutation where
       TimedOutMutation
         <$> requiredField' "mutation" .= timedOutMutationRecord
         <*> requiredField' "elapsed_micros" .= timedOutMutationElapsedMicros
-        <*> requiredFieldWith' "log_file" relFileCodec .= timedOutMutationLogFile
+        <*> optionalFieldWith' "log_file" relFileCodec .= timedOutMutationLogFile
 
 -- | A mutation that was not covered by any test (never executed).
 newtype UncoveredMutation = UncoveredMutation
   { uncoveredMutationRecord :: AugmentedMutationRecord
   }
-  deriving stock (Show, Eq)
-  deriving (Aeson.ToJSON) via (Autodocodec UncoveredMutation)
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec UncoveredMutation)
+
+instance Validity UncoveredMutation where
+  validate = trivialValidation
+
+instance GenValid UncoveredMutation where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
 
 instance HasCodec UncoveredMutation where
   codec =
@@ -239,24 +303,133 @@ instance HasCodec UncoveredMutation where
       UncoveredMutation
         <$> requiredField' "mutation" .= uncoveredMutationRecord
 
+-- | A mutation that was not tested because an earlier mutation in the same
+-- group already failed (survived or was uncovered).  The 'skippedMutationCause'
+-- points at the id of that earlier mutation.
+data SkippedMutation = SkippedMutation
+  { skippedMutationRecord :: AugmentedMutationRecord,
+    skippedMutationCause :: MutationId
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec SkippedMutation)
+
+instance Validity SkippedMutation where
+  validate = trivialValidation
+
+instance GenValid SkippedMutation where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+
+instance HasCodec SkippedMutation where
+  codec =
+    object "SkippedMutation" $
+      SkippedMutation
+        <$> requiredField' "mutation" .= skippedMutationRecord
+        <*> requiredField' "cause" .= skippedMutationCause
+
+-- | One mutation's outcome within a group.
+data MutationOutcome
+  = OutcomeKilled AugmentedMutationRecord
+  | OutcomeSurvived SurvivedMutation
+  | OutcomeTimedOut TimedOutMutation
+  | OutcomeUncovered UncoveredMutation
+  | OutcomeSkipped SkippedMutation
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationOutcome)
+
+instance Validity MutationOutcome where
+  validate = trivialValidation
+
+instance GenValid MutationOutcome where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+
+instance HasCodec MutationOutcome where
+  codec =
+    object "MutationOutcome" $
+      discriminatedUnionCodec
+        "outcome"
+        ( \case
+            OutcomeKilled r -> ("killed", mapToEncoder r killedSubCodec)
+            OutcomeSurvived s -> ("survived", mapToEncoder s survivedSubCodec)
+            OutcomeTimedOut t -> ("timed_out", mapToEncoder t timedOutSubCodec)
+            OutcomeUncovered u -> ("uncovered", mapToEncoder u uncoveredSubCodec)
+            OutcomeSkipped sk -> ("skipped", mapToEncoder sk skippedSubCodec)
+        )
+        ( HashMap.fromList
+            [ ("killed", ("OutcomeKilled", mapToDecoder OutcomeKilled killedSubCodec)),
+              ("survived", ("OutcomeSurvived", mapToDecoder OutcomeSurvived survivedSubCodec)),
+              ("timed_out", ("OutcomeTimedOut", mapToDecoder OutcomeTimedOut timedOutSubCodec)),
+              ("uncovered", ("OutcomeUncovered", mapToDecoder OutcomeUncovered uncoveredSubCodec)),
+              ("skipped", ("OutcomeSkipped", mapToDecoder OutcomeSkipped skippedSubCodec))
+            ]
+        )
+    where
+      killedSubCodec :: JSONObjectCodec AugmentedMutationRecord
+      killedSubCodec = requiredField' "mutation"
+      survivedSubCodec :: JSONObjectCodec SurvivedMutation
+      survivedSubCodec =
+        SurvivedMutation
+          <$> requiredField' "mutation" .= survivedMutationRecord
+          <*> optionalFieldWith' "log_file" relFileCodec .= survivedMutationLogFile
+      timedOutSubCodec :: JSONObjectCodec TimedOutMutation
+      timedOutSubCodec =
+        TimedOutMutation
+          <$> requiredField' "mutation" .= timedOutMutationRecord
+          <*> requiredField' "elapsed_micros" .= timedOutMutationElapsedMicros
+          <*> optionalFieldWith' "log_file" relFileCodec .= timedOutMutationLogFile
+      uncoveredSubCodec :: JSONObjectCodec UncoveredMutation
+      uncoveredSubCodec = UncoveredMutation <$> requiredField' "mutation" .= uncoveredMutationRecord
+      skippedSubCodec :: JSONObjectCodec SkippedMutation
+      skippedSubCodec =
+        SkippedMutation
+          <$> requiredField' "mutation" .= skippedMutationRecord
+          <*> requiredField' "cause" .= skippedMutationCause
+
+-- | All outcomes for the mutations of one group, in their original order.
+newtype MutationGroupReport = MutationGroupReport
+  { mutationGroupReportOutcomes :: [MutationOutcome]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationGroupReport)
+
+instance HasCodec MutationGroupReport where
+  codec =
+    dimapCodec MutationGroupReport mutationGroupReportOutcomes codec
+
+instance Validity MutationGroupReport where
+  validate = trivialValidation
+
+instance GenValid MutationGroupReport where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+
 -- | Full JSON report written by the parent mutation process.
 --
 -- 'mutationRunReportKilled' includes timed-out mutations (a hung mutation is
 -- treated as killed for scoring).  'mutationRunReportTimedOut' is the count of
--- those specifically, and 'mutationRunReportTimedOutMutations' is the
--- accompanying detail list, so callers can distinguish a normal kill from a
--- runaway one.
+-- those specifically.  'mutationRunReportSkipped' counts mutations that were
+-- not tested because an earlier mutation in the same group already failed.
+--
+-- The per-mutation detail is carried under 'mutationRunReportGroups', which
+-- mirrors the manifest's group structure.
 data MutationRunReport = MutationRunReport
   { mutationRunReportKilled :: Word,
     mutationRunReportSurvived :: Word,
     mutationRunReportTimedOut :: Word,
     mutationRunReportUncovered :: Word,
-    mutationRunReportSurvivors :: [SurvivedMutation],
-    mutationRunReportTimedOutMutations :: [TimedOutMutation],
-    mutationRunReportUncoveredMutations :: [UncoveredMutation]
+    mutationRunReportSkipped :: Word,
+    mutationRunReportGroups :: [MutationGroupReport]
   }
-  deriving stock (Show, Eq)
-  deriving (Aeson.ToJSON) via (Autodocodec MutationRunReport)
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationRunReport)
+
+instance Validity MutationRunReport where
+  validate = trivialValidation
+
+instance GenValid MutationRunReport where
+  genValid = genValidStructurallyWithoutExtraChecking
+  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
 
 instance HasCodec MutationRunReport where
   codec =
@@ -266,9 +439,8 @@ instance HasCodec MutationRunReport where
         <*> requiredField' "survived" .= mutationRunReportSurvived
         <*> requiredField' "timed_out" .= mutationRunReportTimedOut
         <*> requiredField' "uncovered" .= mutationRunReportUncovered
-        <*> requiredField' "survived_mutations" .= mutationRunReportSurvivors
-        <*> requiredField' "timed_out_mutations" .= mutationRunReportTimedOutMutations
-        <*> requiredField' "uncovered_mutations" .= mutationRunReportUncoveredMutations
+        <*> requiredField' "skipped" .= mutationRunReportSkipped
+        <*> requiredField' "groups" .= mutationRunReportGroups
 
 mutationRunReportRelFile :: Path Rel File
 mutationRunReportRelFile = [relfile|report.json|]

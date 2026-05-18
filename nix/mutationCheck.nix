@@ -111,7 +111,9 @@ let
   # Then wrap the library packages with the mutation plugin so that
   # compilation emits ifMutation calls and writes a manifest.  Each
   # package's declared 'executable' components are also built (silenced)
-  # and installed; see nix/addManifest.nix.
+  # and installed; see nix/addManifest.nix.  Test-suites are NOT built
+  # here: the outer doCheck=true wrapper below rebuilds the test
+  # package with --enable-tests, which is where test exes are produced.
   addManifestOverride = _: super:
     builtins.listToAttrs (map
       (pkg: {

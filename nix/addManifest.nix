@@ -28,9 +28,9 @@
 , # Names of executable components declared in @pkg@'s cabal file.  Each is
   # built with MUTATION_PLUGIN_SKIP=1 after the instrumented library and
   # installed to @$out/bin/<name>@. The default '[]' is right for
-  # library-only packages: no second build, nothing copied to $out/bin.
-  # Test-suites and benchmarks are intentionally NOT built here;
-  # 'mutationCheck.nix' handles those in its own overlay.
+  # library-only packages: nothing extra to install.  Test-suites are not
+  # built here -- the outer @doCheck=true@ wrapper in
+  # @mutationCheck.nix@ takes care of that.
   executables ? [ ]
 }:
 pkg: # the Haskell package derivation to wrap
@@ -89,28 +89,27 @@ in
     export MUTATION_MANIFEST_DIR="$manifest"
   '';
   # The main 'Setup build' invocation (driven by buildFlags above) has
-  # 'lib:${old.pname}' as its buildTarget so only the library is compiled
-  # with the plugin.  When the package also declares 'executable' stanzas
-  # (caller supplies their names via the 'executables' argument), we build
-  # each of those in postBuild with the plugin loaded but silenced via
-  # MUTATION_PLUGIN_SKIP=1.  Test-suites and benchmarks are deliberately
-  # NOT built here: 'mutationCheck.nix' wraps test packages with
-  # doCheck=true in its own overlay and copies the test executables to
-  # $out/test; this avoids duplicating that work and avoids polluting
-  # $out/bin with test exes.  We cannot drop the plugin flags from the
-  # second build because Cabal would see the package set change and
-  # rebuild the library un-instrumented; the runtime kill switch keeps
-  # the library's compiled artefacts intact.
+  # 'lib:${old.pname}' as its buildTarget so only the library is
+  # compiled with the plugin.  We always run a second 'Setup build' (no
+  # target) so Cabal compiles every other configured component
+  # (executables, test-suites if doCheck=true, benchmarks if
+  # doBenchmark=true) with the plugin still loaded but silenced via
+  # MUTATION_PLUGIN_SKIP=1.  This way the caller controls which
+  # components exist via configure-time flags (`--enable-tests`,
+  # `--enable-benchmarks`); addManifest doesn't second-guess it.
+  #
+  # We cannot drop the plugin flags from the second build because Cabal
+  # would see the package set change ('[sydtest-mutation-plugin
+  # removed]') and rebuild the library un-instrumented; the runtime
+  # kill switch keeps the library's compiled artefacts intact.
   postBuild = (old.postBuild or "") + ''
     echo "mutation-nix: manifest output at $manifest:"
     ls -la "$manifest/" || echo "(empty)"
-  '' + lib.optionalString (executables != [ ]) ''
-    echo "mutation-nix: building executables with plugin silenced: ${lib.concatStringsSep " " executables}"
+    echo "mutation-nix: building remaining configured components with plugin silenced"
     MUTATION_PLUGIN_SKIP=1 ./Setup build \
       --ghc-option=-fplugin=Test.Syd.Mutation.Plugin \
       --ghc-option=-plugin-package=sydtest-mutation-plugin \
-      --ghc-option=-package=sydtest-mutation-plugin \
-      ${lib.concatMapStringsSep " " (n: "exe:${n}") executables}
+      --ghc-option=-package=sydtest-mutation-plugin
   '';
   # The library is installed by nixpkgs's default installPhase (which runs
   # 'Setup copy lib:${pname}').  Executables built in postBuild are not

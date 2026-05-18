@@ -4,6 +4,10 @@
 
 ### Added
 
+* Mutation testing.  Instrument a library with the
+  `sydtest-mutation-plugin` GHC plugin to record mutation sites, then run the
+  test suite with `--mutation-coverage` and `--mutation` to find untested
+  behaviour.  Surviving mutations indicate gaps in the test suite.
 * `delColour`, `addColour`, `emphasiseIntraLine`, `renderDelSide`,
   `renderAddSide` in `Test.Syd.Output.Common` for diff rendering.
 

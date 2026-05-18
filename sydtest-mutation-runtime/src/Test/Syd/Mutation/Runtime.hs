@@ -80,8 +80,13 @@ setActiveMutation = writeIORef activeMutation
 -- @original@.  When no mutation is active but a coverage slot is installed,
 -- records @mid@ as covered.
 --
--- 'NOINLINE' prevents GHC from floating the 'readIORef' out of the call site
--- or caching a stale result across mutation runs.
+-- 'NOINLINE' prevents GHC from floating the 'readIORef' on 'coverageSlot' out
+-- of the call site or CSE-ing it across calls.  Each 'ifMutation' call must
+-- read 'coverageSlot' afresh so that 'withCoverageSlot' can install and
+-- uninstall the slot between tests in the coverage phase.  The
+-- 'activeMutation' read is constant within a process (mutations run in
+-- separate processes, each set by MUTATION_ACTIVE at start), but the
+-- 'coverageSlot' read is not.
 {-# NOINLINE ifMutation #-}
 ifMutation :: MutationId -> a -> a -> a
 ifMutation mid mutated original =

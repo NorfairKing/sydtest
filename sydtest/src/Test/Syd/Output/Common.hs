@@ -151,6 +151,21 @@ outputEqualityAssertionFailed actual expected diffM =
           [[fromString expected]]
         ]
 
+-- | Theme-friendly colours for diff output.  Using the named 'red' and
+-- 'green' (rather than 256-colour shades) lets each terminal apply its own
+-- palette.  Shared between 'formatDiff' (equality assertions) and
+-- 'Test.Syd.MutationMode.renderUnifiedDiff' (mutation reports).
+delColour, addColour :: Colour
+delColour = red
+addColour = green
+
+-- | If the text is only whitespace, emphasise with a background fill so it
+-- is visible; otherwise colour the foreground.
+foreOrBack :: Colour -> Text -> Chunk
+foreOrBack c t =
+  (if T.null (T.strip t) then back c else fore c)
+    (chunk t)
+
 formatDiff :: String -> String -> [PolyDiff Text Text] -> [[Chunk]]
 formatDiff actual expected diff =
   let -- Add a header to a list of lines of chunks
@@ -161,16 +176,11 @@ formatDiff actual expected diff =
         -- If there is more than one line, put the header on a separate line before
         cs -> [header] : cs
 
-      -- If it's only whitespace, change the background, otherwise change the foreground
-      foreOrBack :: Colour -> Text -> Chunk
-      foreOrBack c t =
-        (if T.null (T.strip t) then back c else fore c)
-          (chunk t)
       actualChunks :: [[Chunk]]
       actualChunks = chunksLinesWithHeader (fore blue "Actual:   ") $
         splitChunksIntoLines $
           flip mapMaybe diff $ \case
-            First t -> Just $ foreOrBack red t
+            First t -> Just $ foreOrBack delColour t
             Second _ -> Nothing
             Both t _ -> Just $ chunk t
       expectedChunks :: [[Chunk]]
@@ -178,7 +188,7 @@ formatDiff actual expected diff =
         splitChunksIntoLines $
           flip mapMaybe diff $ \case
             First _ -> Nothing
-            Second t -> Just $ foreOrBack green t
+            Second t -> Just $ foreOrBack addColour t
             Both t _ -> Just $ chunk t
       inlineDiffChunks :: [[Chunk]]
       inlineDiffChunks =
@@ -187,8 +197,8 @@ formatDiff actual expected diff =
           else chunksLinesWithHeader (fore blue "Inline diff: ") $
             splitChunksIntoLines $
               flip map diff $ \case
-                First t -> foreOrBack red t
-                Second t -> foreOrBack green t
+                First t -> foreOrBack delColour t
+                Second t -> foreOrBack addColour t
                 Both t _ -> chunk t
    in concat
         [ [[chunk "Expected these values to be equal:"]],

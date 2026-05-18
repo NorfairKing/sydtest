@@ -110,10 +110,11 @@ import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverage
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
+import Test.Syd.Output.Common (addColour, delColour, foreOrBack)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour (Chunk, Colour, back, chunk, colour256, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
 -- subprocess per test (up to N concurrently, N defaults to
@@ -828,17 +829,6 @@ renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
                   headerLine : renderUnifiedDiff (fromIntegral mutRecLine) mutRecContextBefore mutRecSourceLines mutRecMutatedLines mutRecContextAfter
         _ -> [[chunk (T.pack $ "added mutation " ++ intercalate "/" parts)]]
 
--- | Foreground colour for whole-line deletions in a unified diff.  Picked
--- noticeably darker than 'red' so paired-line intra-character highlights
--- (which use 'back red') visually dominate over surrounding whole-line
--- markers.
-interLineDelColour :: Colour
-interLineDelColour = colour256 88
-
--- | Foreground colour for whole-line additions.  See 'interLineDelColour'.
-interLineAddColour :: Colour
-interLineAddColour = colour256 22
-
 renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> [[Chunk]]
 renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
   let allBefore = ctxBefore ++ srcLines ++ ctxAfter
@@ -879,10 +869,10 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
         go ds as rest = (ds, as, rest)
 
     renderDelLine :: Text -> [Chunk]
-    renderDelLine l = [fore interLineDelColour (chunk (T.cons '-' l))]
+    renderDelLine l = [fore delColour (chunk (T.cons '-' l))]
 
     renderAddLine :: Text -> [Chunk]
-    renderAddLine l = [fore interLineAddColour (chunk (T.cons '+' l))]
+    renderAddLine l = [fore addColour (chunk (T.cons '+' l))]
 
     renderPaired :: [Text] -> [Text] -> [[Chunk]]
     renderPaired dels adds =
@@ -896,21 +886,21 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
     renderPair delLine addLine =
       let charDiff = V.toList (getTextDiff delLine addLine)
           delChunks =
-            fore red (chunk (T.singleton '-'))
+            fore delColour (chunk (T.singleton '-'))
               : mapMaybe
                 ( \case
-                    First t -> Just (back red (chunk t))
+                    First t -> Just (foreOrBack delColour t)
                     Second _ -> Nothing
-                    Both t _ -> Just (fore red (chunk t))
+                    Both t _ -> Just (chunk t)
                 )
                 charDiff
           addChunks =
-            fore green (chunk (T.singleton '+'))
+            fore addColour (chunk (T.singleton '+'))
               : mapMaybe
                 ( \case
                     First _ -> Nothing
-                    Second t -> Just (back green (chunk t))
-                    Both t _ -> Just (fore green (chunk t))
+                    Second t -> Just (foreOrBack addColour t)
+                    Both t _ -> Just (chunk t)
                 )
                 charDiff
        in (delChunks, addChunks)

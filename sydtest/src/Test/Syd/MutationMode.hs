@@ -672,14 +672,14 @@ runMutationMode settings failFast mutParent _spec = do
         -- Only run suites that have at least one covering test for this mutation.
         let coveringBySuite =
               Map.filter (not . null) (augmentedMutationRecordCoveringTests record)
-        if Map.null coveringBySuite
-          then pure (MutationUncovered (UncoveredMutation record))
-          else do
+        case NE.nonEmpty (Map.keys coveringBySuite) of
+          Nothing -> pure (MutationUncovered (UncoveredMutation record))
+          Just suiteNames -> do
             -- Run one child per covering suite. The mutation is killed if any
             -- child exits non-zero; timed out (counted as killed) if any
             -- child exceeded its budget without any other child killing it
             -- first; otherwise survived.
-            outcomes <- mapM (runOneSuite defaultExe augDir record mid) (Map.keys coveringBySuite)
+            outcomes <- mapM (runOneSuite defaultExe augDir record mid) suiteNames
             pure $ classifyOutcomes record outcomes
 
     classifyOutcomes record outcomes
@@ -697,16 +697,15 @@ runMutationMode settings failFast mutParent _spec = do
               SurvivedMutation
                 { survivedMutationRecord = record,
                   -- Prefer a survivor suite that produced a log file; fall back
-                  -- to no log otherwise.  We are guaranteed at least one
-                  -- 'SuiteSurvived' here because we fell through both prior
-                  -- branches.
+                  -- to no log otherwise.  By non-emptiness of @outcomes@ and the
+                  -- branches above, at least one element is 'SuiteSurvived'.
                   survivedMutationLogFile =
-                    listToMaybe [rf | SuiteSurvived (Just rf) <- outcomes]
+                    listToMaybe [rf | SuiteSurvived (Just rf) <- NE.toList outcomes]
                 }
       where
         isKilled SuiteKilled = True
         isKilled _ = False
-        mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- outcomes]
+        mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- NE.toList outcomes]
 
     runOneSuite defaultExe augDir record mid suiteName = do
       let suiteExes = mutationParentSuiteExes mutParent

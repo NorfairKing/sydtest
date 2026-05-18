@@ -14,7 +14,6 @@ import Control.Applicative
 import Control.Concurrent (getNumCapabilities)
 import Control.Monad
 import Control.Monad.IO.Class
-import Data.List (intercalate)
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Map.Strict as Map
 import Data.Maybe
@@ -286,77 +285,75 @@ instance HasParser Settings where
                   }
         pure combined
 
--- | Pick at most one 'MutationMode' from the parsed flags.  The four modes
--- are mutually exclusive: 'flagMutationCoverageOne' selects coverage-child,
--- 'flagMutationCoverage' selects coverage-parent, 'flagMutationOne' selects
--- mutation-child, and 'flagMutation' selects mutation-parent.  Returns
--- @Right Nothing@ when no mode flag is set; returns @Left@ if more than
--- one mode is requested simultaneously.
+-- | Pick at most one 'MutationMode' from the parsed flags.
+--
+-- The four flags are dispatched in priority order:
+--
+-- 1. 'flagMutationCoverageOne' selects coverage-child.
+-- 2. 'flagMutationCoverage'    selects coverage-parent.
+-- 3. 'flagMutationOne'         selects mutation-child.
+-- 4. 'flagMutation'            selects mutation-parent.
+--
+-- This is intentionally a priority order, not a mutual-exclusion check:
+-- the coverage parent spawns its children with BOTH @--mutation-coverage@
+-- and @--mutation-coverage-one@ set, so that the child can locate the
+-- manifest directory while still dispatching to the single-test coverage
+-- runner.  Likewise, the mutation parent spawns children with both
+-- @--mutation@ and @--mutation-one@.
 resolveMutationSettings :: Flags -> Either String (Maybe MutationSettings)
-resolveMutationSettings Flags {..} = do
+resolveMutationSettings Flags {..} =
   let failFast = fromMaybe defaultMutationFailFast flagMutationFailFast
       retry = fromMaybe defaultCoverageParentRetry flagMutationCoverageRetry
       mkMutation mode = Just MutationSettings {mutationFailFast = failFast, mutationMode = mode}
-      hasCoverageOne = isJust flagMutationCoverageOne
-      hasCoverage = not (null flagMutationCoverage)
-      hasMutationOne = isJust flagMutationOne
-      hasMutation = not (null flagMutation)
-      modesSet =
-        [flagName | (True, flagName) <- [(hasCoverageOne, "--mutation-coverage-one"), (hasCoverage, "--mutation-coverage"), (hasMutationOne, "--mutation-one"), (hasMutation, "--mutation")]]
-  case modesSet of
-    _ : _ : _ ->
-      Left $
-        "mutation modes are mutually exclusive but multiple were set: "
-          ++ intercalate ", " modesSet
-    _ -> case (flagMutationCoverageOne, flagMutationCoverage, flagMutationOne, flagMutation) of
-      (Just tid, _, _, _) -> do
-        outputFile <- case flagMutationCoverageOutput of
-          Just f -> Right f
-          Nothing -> Left "--mutation-coverage-one requires --mutation-coverage-output"
-        baselineFile <- case flagMutationCoverageBaselineOutput of
-          Just f -> Right f
-          Nothing -> Left "--mutation-coverage-one requires --mutation-coverage-baseline-output"
-        pure $
-          mkMutation $
-            MutationModeCoverageChild
-              CoverageChildSettings
-                { coverageChildTestId = tid,
-                  coverageChildOutput = outputFile,
-                  coverageChildBaselineOutput = baselineFile,
-                  coverageChildSuiteName = flagMutationSuiteName
-                }
-      (Nothing, d1 : ds, _, _) ->
-        pure $
-          mkMutation $
-            MutationModeCoverage
-              CoverageParentSettings
-                { coverageParentManifestDirs = d1 :| ds,
-                  coverageParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
-                  coverageParentJobs = flagMutationCoverageJobs,
-                  coverageParentRetry = retry,
-                  coverageParentSuiteName = flagMutationSuiteName
-                }
-      (Nothing, [], Just mid, _) ->
-        pure $
-          mkMutation $
-            MutationModeMutateChild
-              MutationChildSettings
-                { mutationChildId = mid,
-                  mutationChildAugmentedManifestDir = flagMutationAugmentedManifestDir,
-                  mutationChildSuiteName = flagMutationSuiteName
-                }
-      (Nothing, [], Nothing, d1 : ds) ->
-        pure $
-          mkMutation $
-            MutationModeMutate
-              MutationParentSettings
-                { mutationParentManifestDirs = d1 :| ds,
-                  mutationParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
-                  mutationParentReportDir = flagMutationReportDir,
-                  mutationParentChildMemLimit = flagMutationChildMemLimit,
-                  mutationParentSuiteExes = flagMutationSuiteExes
-                }
-      (Nothing, [], Nothing, []) -> pure Nothing
+   in case (flagMutationCoverageOne, flagMutationCoverage, flagMutationOne, flagMutation) of
+        (Just tid, _, _, _) -> do
+          outputFile <- case flagMutationCoverageOutput of
+            Just f -> Right f
+            Nothing -> Left "--mutation-coverage-one requires --mutation-coverage-output"
+          baselineFile <- case flagMutationCoverageBaselineOutput of
+            Just f -> Right f
+            Nothing -> Left "--mutation-coverage-one requires --mutation-coverage-baseline-output"
+          pure $
+            mkMutation $
+              MutationModeCoverageChild
+                CoverageChildSettings
+                  { coverageChildTestId = tid,
+                    coverageChildOutput = outputFile,
+                    coverageChildBaselineOutput = baselineFile,
+                    coverageChildSuiteName = flagMutationSuiteName
+                  }
+        (Nothing, d1 : ds, _, _) ->
+          pure $
+            mkMutation $
+              MutationModeCoverage
+                CoverageParentSettings
+                  { coverageParentManifestDirs = d1 :| ds,
+                    coverageParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                    coverageParentJobs = flagMutationCoverageJobs,
+                    coverageParentRetry = retry,
+                    coverageParentSuiteName = flagMutationSuiteName
+                  }
+        (Nothing, [], Just mid, _) ->
+          pure $
+            mkMutation $
+              MutationModeMutateChild
+                MutationChildSettings
+                  { mutationChildId = mid,
+                    mutationChildAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                    mutationChildSuiteName = flagMutationSuiteName
+                  }
+        (Nothing, [], Nothing, d1 : ds) ->
+          pure $
+            mkMutation $
+              MutationModeMutate
+                MutationParentSettings
+                  { mutationParentManifestDirs = d1 :| ds,
+                    mutationParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                    mutationParentReportDir = flagMutationReportDir,
+                    mutationParentChildMemLimit = flagMutationChildMemLimit,
+                    mutationParentSuiteExes = flagMutationSuiteExes
+                  }
+        (Nothing, [], Nothing, []) -> pure Nothing
 
 -- | Default value of 'mutationFailFast'.  True suits CI so a single
 -- survivor aborts the run; flip to False locally for the full report.

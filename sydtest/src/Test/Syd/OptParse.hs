@@ -122,7 +122,11 @@ data Settings = Settings
     -- | File path where a coverage child process writes its 'TestBaselineMap'
     -- (one-entry: the elapsed wall-clock time of its single test).  Required
     -- in coverage-child mode (paired with 'settingMutationCoverageOne').
-    settingMutationCoverageBaselineOutput :: !(Maybe FilePath)
+    settingMutationCoverageBaselineOutput :: !(Maybe FilePath),
+    -- | In mutation mode, stop the run as soon as a surviving or uncovered
+    -- mutation is observed.  True for CI so CI can fail fast, set this to
+    -- false for iterated development.
+    settingMutationFailFast :: !Bool
   }
   deriving (Show, Eq, Generic)
 
@@ -260,7 +264,9 @@ instance HasParser Settings where
                 settingMutationSuiteExes = flagMutationSuiteExes,
                 settingMutationCoverageOne = flagMutationCoverageOne,
                 settingMutationCoverageOutput = flagMutationCoverageOutput,
-                settingMutationCoverageBaselineOutput = flagMutationCoverageBaselineOutput
+                settingMutationCoverageBaselineOutput = flagMutationCoverageBaselineOutput,
+                settingMutationFailFast =
+                  fromMaybe (d settingMutationFailFast) flagMutationFailFast
               }
 
 defaultSettings :: Settings
@@ -300,7 +306,9 @@ defaultSettings =
           settingMutationSuiteExes = Map.empty,
           settingMutationCoverageOne = Nothing,
           settingMutationCoverageOutput = Nothing,
-          settingMutationCoverageBaselineOutput = Nothing
+          settingMutationCoverageBaselineOutput = Nothing,
+          -- True for CI so CI can fail fast, set this to false for iterated development
+          settingMutationFailFast = True
         }
 
 -- 60 seconds
@@ -361,7 +369,8 @@ data Flags = Flags
     flagMutationSuiteExes :: !(Map.Map Text FilePath),
     flagMutationCoverageOne :: !(Maybe Text),
     flagMutationCoverageOutput :: !(Maybe FilePath),
-    flagMutationCoverageBaselineOutput :: !(Maybe FilePath)
+    flagMutationCoverageBaselineOutput :: !(Maybe FilePath),
+    flagMutationFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
 
@@ -651,6 +660,12 @@ instance HasParser Flags where
             long "mutation-coverage-baseline-output",
             metavar "FILE",
             hidden
+          ]
+    flagMutationFailFast <-
+      optional $
+        yesNoSwitch
+          [ help "Stop the mutation run as soon as a surviving or uncovered mutation is observed",
+            name "mutation-fail-fast"
           ]
     pure Flags {..}
 

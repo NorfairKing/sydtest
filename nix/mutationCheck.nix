@@ -60,6 +60,11 @@
 , ghcMemLimit ? "16g"
 , coverageJobs ? null
 , coverageRetry ? null
+  # Whether to enable fail-fast in the harness run. Defaults to false because
+  # e2e checks want the full report (driven by assertMutationScore), and
+  # fail-fast aborts the run on the first surviving/uncovered mutation which
+  # discards report.json before the installPhase runs.
+, failFast ? false
 }:
 
 let
@@ -123,6 +128,10 @@ let
     "--mutation-coverage-jobs ${toString coverageJobs}";
   coverageRetryFlag = pkgs.lib.optionalString (coverageRetry != null)
     "--mutation-coverage-retry ${toString coverageRetry}";
+  failFastFlag =
+    if failFast
+    then "--mutation-fail-fast"
+    else "--no-mutation-fail-fast";
   mutationFlags = pkgs.lib.concatMapStringsSep " "
     (m: "--mutation ${m}")
     manifests;
@@ -208,6 +217,7 @@ let
             --mutation-augmented-manifest-dir augmented \
             ${allSuiteExeFlags} \
             --mutation-child-mem-limit 4g \
+            ${failFastFlag} \
             --mutation-report-dir "$report" | tee $report/report.txt
         '';
         # Suppress the default postCheck phase so it does not re-run the test

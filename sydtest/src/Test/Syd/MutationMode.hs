@@ -61,8 +61,10 @@ where
 
 import Control.Concurrent (newQSem, signalQSem, threadDelay, waitQSem)
 import Control.Concurrent.Async (mapConcurrently, race)
-import Control.Exception (IOException, bracket, bracket_)
+import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
+import Control.Exception (Exception, IOException, bracket, bracket_)
 import qualified Control.Exception as Exception
+import Control.Monad (when)
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
@@ -445,6 +447,24 @@ retryingIO retriesLeft onRetry action = do
 -- Prints @Killed: N@, @Survived: M@, and @Uncovered: K@ so the Nix report
 -- derivation can parse them.  Also writes @report.json@ to
 -- 'settingMutationReportDir' when set.
+-- | Thrown inside a 'mapConcurrently' worker to abort the mutation run when
+-- fail-fast is on and a surviving or uncovered mutation is observed.  The
+-- sibling workers are cancelled by 'mapConcurrently' on the first exception.
+data FailFast = FailFast
+  deriving (Show)
+
+instance Exception FailFast
+
+-- | A mutation result that should trip fail-fast: the test suite did not
+-- detect the mutation (survivor) or no test reaches the mutation site
+-- (uncovered).  A timeout is counted as killed, so it does not trip.
+isMutationFailure :: MutationResult -> Bool
+isMutationFailure = \case
+  MutationSurvived _ -> True
+  MutationUncovered _ -> True
+  MutationKilled -> False
+  MutationTimedOut _ -> False
+
 runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runMutationMode settings _manifestDirs _spec = do
   hSetBuffering stderr (BlockBuffering Nothing)
@@ -453,7 +473,20 @@ runMutationMode settings _manifestDirs _spec = do
   defaultExe <- getExecutablePath
   n <- getNumCapabilities
   sem <- newQSem n
-  results <- mapConcurrently (runOne defaultExe augDir sem) records
+  -- Accumulate results as workers complete so we can produce a partial report
+  -- even when fail-fast aborts the run by throwing 'FailFast' (which cancels
+  -- the sibling 'mapConcurrently' workers).
+  resultsVar <- newTVarIO []
+  let failFast = settingMutationFailFast settings
+      runOne' record = do
+        r <- runOne defaultExe augDir sem record
+        atomically $ modifyTVar' resultsVar (r :)
+        when (failFast && isMutationFailure r) $ Exception.throwIO FailFast
+        pure r
+  Exception.handle (\FailFast -> pure ()) $ do
+    _ <- mapConcurrently runOne' records
+    pure ()
+  results <- readTVarIO resultsVar
   let (killed, survived, timedOut, survivors, timedOuts, uncoveredMutations) =
         foldr tally (0 :: Word, 0, 0, [], [], []) results
       uncovered = fromIntegral (length uncoveredMutations) :: Word
@@ -469,6 +502,7 @@ runMutationMode settings _manifestDirs _spec = do
           }
   mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
   putChunksLocaleWith (settingTerminalCapabilities settings) (unlinesChunks (renderMutationRunReport jsonReport))
+  when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
   where
     -- Timed-out mutations are counted as killed; the timedOut count and
     -- list are reported separately for visibility.
@@ -663,7 +697,8 @@ renderMutationRunReport
       mutationRunReportTimedOut,
       mutationRunReportUncovered,
       mutationRunReportSurvivors,
-      mutationRunReportTimedOutMutations
+      mutationRunReportTimedOutMutations,
+      mutationRunReportUncoveredMutations
     } =
     [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationRunReportKilled)))],
       [chunk "  (of which timed out: ", fore yellow (chunk (T.pack (show mutationRunReportTimedOut))), chunk ")"],
@@ -681,6 +716,16 @@ renderMutationRunReport
              else
                [[], [chunk "Surviving mutations:"]]
                  ++ concatMap renderSurvivor mutationRunReportSurvivors
+                 ++ [[], remediationHeader "To resolve a surviving mutation:"]
+                 ++ remediationSurvivorBody
+         )
+      ++ ( if null mutationRunReportUncoveredMutations
+             then []
+             else
+               [[], [chunk "Uncovered mutations:"]]
+                 ++ concatMap renderUncovered mutationRunReportUncoveredMutations
+                 ++ [[], remediationHeader "To resolve an uncovered mutation:"]
+                 ++ remediationUncoveredBody
          )
     where
       renderSurvivor sm =
@@ -697,6 +742,31 @@ renderMutationRunReport
                 chunk "s]"
               ]
          in [] : header : formatMutationLog mid rec
+      renderUncovered um =
+        let rec = uncoveredMutationRecord um
+            mid = augmentedMutationRecordId rec
+         in [] : formatMutationLog mid rec
+      remediationHeader t = [fore cyan (chunk t)]
+      -- Kept in sync with the disable-annotation syntax in
+      -- sydtest-mutation-plugin (Test.Syd.Mutation.Plugin.Instrument:
+      -- 'parseFunMutationAnns') and the global
+      -- 'mutationPluginConfigDisabledMutations' / 'exceptions' fields in
+      -- Test.Syd.Mutation.Plugin.OptParse.
+      remediationSurvivorBody =
+        [ [chunk "  1. Kill it: add or strengthen a test so the mutation causes a test failure."],
+          [chunk "  2. Disable it on this binding:"],
+          [chunk "       {-# ANN funName (\"DisableMutation: <Operator>\" :: String) #-}"],
+          [chunk "     or for every operator on a binding:"],
+          [chunk "       {-# ANN funName (\"DisableMutations\" :: String) #-}"],
+          [chunk "     or for the whole module:"],
+          [chunk "       {-# ANN module (\"DisableMutations\" :: String) #-}"],
+          [chunk "     or globally in the plugin config (sydtest-mutation-plugin.yaml):"],
+          [chunk "       disabled-mutations: [<Operator>]"]
+        ]
+      remediationUncoveredBody =
+        [ [chunk "  1. Cover it: add a test that exercises the mutation site so the coverage phase records a covering test."],
+          [chunk "  2. Disable it: same annotations and config keys as for survivors above."]
+        ]
 
 renderMutationProgressEvent :: MutationProgressEvent -> [[Chunk]]
 renderMutationProgressEvent (MutationProgressEvent rec) =

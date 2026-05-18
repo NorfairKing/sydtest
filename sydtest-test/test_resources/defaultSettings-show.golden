@@ -33,4 +33,5 @@ Settings
   , settingMutationCoverageOne = Nothing
   , settingMutationCoverageOutput = Nothing
   , settingMutationCoverageBaselineOutput = Nothing
+  , settingMutationFailFast = True
   }

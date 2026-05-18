@@ -14,11 +14,20 @@
 , manifests # list of 'manifest' outputs from addManifest-wrapped packages
 , testPackages # list of instrumented Haskell package derivations with test suite executables in bin/
 , testResourcesDir ? null # optional path to cd into before running (needed when test suites reference golden files by relative path)
+  # Whether to enable fail-fast in the harness run. Defaults to false because
+  # this wrapper promises to always succeed so the report can be inspected;
+  # fail-fast would abort the run on the first surviving/uncovered mutation,
+  # discarding report.json before the installPhase runs.
+, failFast ? false
 }:
 
 let
   coverageFlags = lib.concatMapStringsSep " " (m: "--mutation-coverage ${m}") manifests;
   mutationFlags = lib.concatMapStringsSep " " (m: "--mutation ${m}") manifests;
+  failFastFlag =
+    if failFast
+    then "--mutation-fail-fast"
+    else "--no-mutation-fail-fast";
 
   suiteExeFlags = lib.concatMapStringsSep " "
     (pkg: "--mutation-suite-exe ${pkg.pname}=$(find ${pkg}/test -maxdepth 1 -type f | head -1)")
@@ -62,6 +71,7 @@ stdenv.mkDerivation {
         ${mutationFlags} \
         --mutation-augmented-manifest-dir augmented \
         ${suiteExeFlags} \
+        ${failFastFlag} \
         --mutation-report-dir augmented
     ) | tee report.txt
   '';

@@ -1,4 +1,3 @@
-{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.Mutation.TestCoverageMap
@@ -9,7 +8,6 @@ module Test.Syd.Mutation.TestCoverageMap
 where
 
 import Autodocodec
-import qualified Data.Aeson as Aeson
 import Data.Bifunctor (second)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
@@ -22,8 +20,7 @@ import Test.Syd.Mutation.TestId (TestId)
 -- | Coverage result for one or more tests: maps each 'TestId' to the set of
 -- 'MutationId's reached during that test's execution.
 newtype TestCoverageMap = TestCoverageMap (Map.Map TestId (Set MutationId))
-  deriving stock (Show)
-  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec TestCoverageMap)
+  deriving (Show)
 
 -- Encoded as a JSON array of {test_id, mutations} objects because TestId is
 -- not a valid JSON object key.
@@ -48,15 +45,16 @@ instance Monoid TestCoverageMap where
 -- | Write a 'TestCoverageMap' to the given file path.
 writeTestCoverageMapFile :: FilePath -> TestCoverageMap -> IO ()
 writeTestCoverageMapFile path m =
-  LB.writeFile path (Aeson.encode m)
+  LB.writeFile path (encodeJSONViaCodec m)
 
 -- | Read a 'TestCoverageMap' from the given file path.
 -- Returns 'Nothing' on parse failure.
 --
--- Reads strictly (via 'B.readFile' + 'Aeson.decodeStrict') so the file
+-- Reads strictly (via 'B.readFile' + 'eitherDecodeJSONViaCodec') so the file
 -- handle is closed before this function returns.  Defensive against a
 -- suspected (but unproven) contributor to 'BlockedIndefinitelyOnMVar'
 -- loops at the coverage/mutation phase boundary on large projects.
 readTestCoverageMapFile :: FilePath -> IO (Maybe TestCoverageMap)
 readTestCoverageMapFile path =
-  Aeson.decodeStrict <$> B.readFile path
+  either (const Nothing) Just . eitherDecodeJSONViaCodec . LB.fromStrict
+    <$> B.readFile path

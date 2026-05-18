@@ -2,6 +2,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
@@ -15,6 +16,7 @@ module Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFileIfExists,
     lookupAugmentedMutationRecord,
     fromMutationRecord,
+    defaultTimeoutMicros,
     SurvivedMutation (..),
     TimedOutMutation (..),
     UncoveredMutation (..),
@@ -148,6 +150,13 @@ instance Monoid AugmentedManifest where
 
 augmentedManifestRelFile :: Path Rel File
 augmentedManifestRelFile = [relfile|manifest-augmented.json|]
+
+-- | 30 seconds, used as the floor for per-mutation wall-clock budgets and as
+-- the initial value when a record is constructed without baseline timing
+-- (i.e. before the coverage phase has annotated it).  The actual budget is
+-- @max defaultTimeoutMicros (10 * sum baselines_of_covering_tests)@.
+defaultTimeoutMicros :: Word
+defaultTimeoutMicros = 30_000_000
 
 -- | Write to @<dir>/manifest-augmented.json@.
 writeAugmentedManifestFile :: Path Abs Dir -> AugmentedManifest -> IO ()
@@ -497,9 +506,9 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             augmentedMutationRecordCoveringTests = ts,
             -- Filled in later by 'annotateRecord' in runCoverageMode; this
             -- code path constructs the record from a raw MutationRecord
-            -- that has no baseline info, so we use the 30s floor as a
-            -- safe initial value.
-            augmentedMutationRecordTimeoutMicros = 30000000
+            -- that has no baseline info, so we use the floor as a safe
+            -- initial value.
+            augmentedMutationRecordTimeoutMicros = defaultTimeoutMicros
           }
 
 -- | A mutation that is about to be tested, used as the progress log event.

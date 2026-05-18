@@ -100,6 +100,7 @@ import Test.Syd.Mutation.AugmentedManifest
     SurvivedMutation (..),
     TimedOutMutation (..),
     UncoveredMutation (..),
+    defaultTimeoutMicros,
     fromMutationRecord,
     mergeAugmentedManifests,
     readAugmentedManifestFile,
@@ -324,7 +325,7 @@ runCoverageMode settings failFast covParent spec = do
           coveringBaselineSum :: Word
           coveringBaselineSum =
             sum [Map.findWithDefault 0 t baselineMap | t <- coveringTests]
-          timeoutMicros = max 30000000 (10 * coveringBaselineSum)
+          timeoutMicros = max defaultTimeoutMicros (10 * coveringBaselineSum)
           annotated =
             rec
               { mutRecCoveringTests =

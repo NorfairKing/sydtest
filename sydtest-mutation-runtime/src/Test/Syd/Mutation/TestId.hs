@@ -58,7 +58,9 @@ unescapeDesc t = T.pack (go (T.unpack t))
 parseTestIdFilterArg :: Text -> Maybe TestId
 parseTestIdFilterArg t
   | T.null t = Nothing
-  | otherwise = TestId . NE.fromList <$> parseSteps (T.unpack t)
+  | otherwise = do
+      steps <- parseSteps (T.unpack t)
+      TestId <$> NE.nonEmpty steps
 
 -- | Split on unescaped dots and parse each raw (still-escaped) step.
 parseSteps :: String -> Maybe [(Text, Word)]

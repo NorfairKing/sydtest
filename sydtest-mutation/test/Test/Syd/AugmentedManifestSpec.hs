@@ -56,10 +56,18 @@ spec = do
       pureGoldenLazyByteStringFile "test_resources/mutation-manifest.json" $
         encodePretty exampleMutationManifest
 
-  describe "AugmentedManifest" $
+  describe "AugmentedManifest" $ do
+    genValidSpec @AugmentedManifest
+    jsonSpec @AugmentedManifest
+
     it "golden JSON" $
       pureGoldenLazyByteStringFile "test_resources/augmented-manifest.json" $
         encodePretty exampleAugmentedManifest
+
+  describe "mergeAugmentedManifests" $ do
+    it "is idempotent" $
+      forAllValid $ \m ->
+        mergeAugmentedManifests m m `shouldBe` m
 
   describe "MutationRunReport" $
     it "golden JSON" $

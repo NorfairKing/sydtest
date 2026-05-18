@@ -37,6 +37,7 @@ import Data.GenValidity.Path ()
 import Data.GenValidity.Text ()
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Path
@@ -114,15 +115,27 @@ instance GenValid AugmentedMutationRecord where
 -- group sequentially; the first failing record in a group skips the
 -- remaining records (within-group fail-fast).
 newtype AugmentedMutationGroup = AugmentedMutationGroup [AugmentedMutationRecord]
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec AugmentedMutationGroup)
+
+instance Validity AugmentedMutationGroup
+
+instance GenValid AugmentedMutationGroup where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec AugmentedMutationGroup where
   codec = dimapCodec AugmentedMutationGroup (\(AugmentedMutationGroup rs) -> rs) codec
 
 newtype AugmentedManifest = AugmentedManifest [AugmentedMutationGroup]
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec AugmentedManifest)
+
+instance Validity AugmentedManifest
+
+instance GenValid AugmentedManifest where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec AugmentedManifest where
   codec = dimapCodec AugmentedManifest (\(AugmentedManifest gs) -> gs) codec
@@ -211,7 +224,7 @@ mergeAugmentedManifests (AugmentedManifest base) (AugmentedManifest new) =
           r
             { augmentedMutationRecordCoveringTests =
                 Map.unionWith
-                  (++)
+                  mergeCoveringTests
                   (augmentedMutationRecordCoveringTests r)
                   (augmentedMutationRecordCoveringTests r'),
               -- Take the larger of the two timeouts so a generously-budgeted
@@ -221,6 +234,13 @@ mergeAugmentedManifests (AugmentedManifest base) (AugmentedManifest new) =
                   (augmentedMutationRecordTimeoutMicros r)
                   (augmentedMutationRecordTimeoutMicros r')
             }
+    -- Concatenate covering-test lists from two manifests, but drop any
+    -- 'TestId' that already appears in the base list.  Treating the lists
+    -- as sets makes the merge idempotent: @mergeAugmentedManifests m m@
+    -- equals @m@.
+    mergeCoveringTests baseTids newTids =
+      let baseSet = Set.fromList baseTids
+       in baseTids ++ filter (`Set.notMember` baseSet) newTids
 
 -- | O(n) lookup by 'MutationId' across every group.
 lookupAugmentedMutationRecord :: MutationId -> AugmentedManifest -> Maybe AugmentedMutationRecord

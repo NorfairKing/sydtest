@@ -128,6 +128,12 @@ import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, putCh
 -- multiple suites can be run sequentially.
 runCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
 runCoverageMode settings manifestDirs spec = do
+  -- LineBuffering on stderr so our writes hit the fd at line boundaries,
+  -- not when the buffer happens to fill. Coverage children inherit this fd
+  -- and write to it directly (bypassing our Handle's MVar lock); if our own
+  -- bytes sit in a block buffer waiting to be flushed, they can interleave
+  -- with whatever the children write in the meantime.
+  hSetBuffering stderr LineBuffering
   -- Short-circuit: if the mutation manifest has no records at all (every
   -- module is disabled, e.g. via {-# ANN module ("DisableMutations" ...) #-},
   -- or the library has no instrumentable expressions), there is no work to

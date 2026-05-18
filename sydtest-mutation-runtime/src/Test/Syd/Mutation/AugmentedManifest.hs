@@ -30,6 +30,7 @@ module Test.Syd.Mutation.AugmentedManifest
 where
 
 import Autodocodec
+import Control.Exception (Exception, throwIO)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
@@ -44,8 +45,6 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Path
 import Path.IO (doesFileExist, ensureDir)
-import System.Exit (exitFailure)
-import System.IO (hPutStrLn, stderr)
 import Test.Syd.Mutation.Manifest (MutationRecord (..), relFileCodec)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId)
@@ -172,14 +171,19 @@ writeAugmentedManifestFile dir manifest = do
 -- 'Aeson.decode' path was a suspected (but unproven) contributor to a
 -- non-deterministic 'BlockedIndefinitelyOnMVar' / @<<loop>>@ at the
 -- coverage/mutation phase boundary on large projects.
+-- | Thrown by 'readAugmentedManifestFile' when the file cannot be decoded.
+newtype AugmentedManifestDecodeException
+  = AugmentedManifestDecodeException FilePath
+  deriving (Show)
+
+instance Exception AugmentedManifestDecodeException
+
 readAugmentedManifestFile :: Path Abs Dir -> IO AugmentedManifest
 readAugmentedManifestFile dir = do
   let path = dir </> augmentedManifestRelFile
   result <- Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
   case result of
-    Nothing -> do
-      hPutStrLn stderr $ "mutation: failed to decode augmented manifest " ++ fromAbsFile path
-      exitFailure
+    Nothing -> throwIO (AugmentedManifestDecodeException (fromAbsFile path))
     Just m -> pure m
 
 -- | Read from @<dir>/manifest-augmented.json@, returning 'Nothing' if the file

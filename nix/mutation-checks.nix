@@ -30,25 +30,6 @@ let
       ({ inherit config; } // args);
 in
 {
-  # TODO: autodocodec mutation check takes too long to run, investigate
-  # mutation-autodocodec = mutationCheck {
-  #   name = "autodocodec";
-  #   packages = [
-  #     "autodocodec"
-  #     "autodocodec-api-usage"
-  #   ];
-  #   libraries = [
-  #     "autodocodec-exact"
-  #     "autodocodec-nix"
-  #     "autodocodec-openapi3"
-  #     "autodocodec-schema"
-  #     "autodocodec-servant-multipart"
-  #     "autodocodec-swagger2"
-  #     "autodocodec-yaml"
-  #   ];
-  #   assertAllKilled = false;
-  # };
-
   mutation-opt-env-conf = mutationCheck {
     name = "opt-env-conf";
     packages = [ "opt-env-conf-test" ];

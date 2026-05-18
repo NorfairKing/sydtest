@@ -23,6 +23,8 @@ library:
   - mtl
   - path
   - path-io
+  - stm
+  - stm-containers
   - sydtest-mutation-runtime
   - template-haskell
   - text

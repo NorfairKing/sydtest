@@ -3,13 +3,13 @@
 
 module Test.Syd.Mutation.Plugin (plugin) where
 
+import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Data (Data, cast, gmapQ)
-import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
 import Data.List (isPrefixOf, stripPrefix)
-import qualified Data.Map.Strict as Map
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, mapMaybe)
 import GHC
 import GHC.Data.FastString (unpackFS)
 import GHC.Driver.Env (Hsc, HscEnv (..))
@@ -20,6 +20,7 @@ import GHC.Tc.Types
 import GHC.Types.Annotations (AnnTarget (..), findAnns)
 import Path
 import Path.IO (resolveDir')
+import qualified StmContainers.Map as StmMap
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), writeManifestFile)
@@ -148,8 +149,7 @@ mutationAddRuntimeImport opts ms pr = do
       liftIO $
         when (skipThSplices && not disabled) $ do
           let spliceRanges = collectSpliceSpans lm
-          atomicModifyIORef' spliceSpansRef $ \m ->
-            (Map.insert mn spliceRanges m, ())
+          atomically $ StmMap.insert spliceRanges mn spliceSpansMap
       let runtimeImport = noLocA (simpleImportDecl (mkModuleName "Test.Syd.Mutation.Plugin.Runtime"))
           lm' = fmap (\m -> m {hsmodImports = runtimeImport : hsmodImports m}) lm
       pure pr {parsedResultModule = pm {hpm_module = lm'}}
@@ -183,19 +183,21 @@ hasDisableMutationsAnn m = any isDisableMutationsDecl (hsmodDecls m)
 
 -- | Per-module splice spans collected by 'mutationAddRuntimeImport' when
 -- @--skip-th-splices@ is set, read back by 'mutationTypeCheckAction' and
--- threaded through 'InstrumentEnv'.  Lives in a process-global IORef
+-- threaded through 'InstrumentEnv'.  Lives in a process-global STM map
 -- because 'Hsc' and 'TcM' don't share state cleanly across compilation
 -- units, and GHC may compile many modules in one process.
-{-# NOINLINE spliceSpansRef #-}
-spliceSpansRef :: IORef (Map.Map String [RealSrcSpan])
-spliceSpansRef = unsafePerformIO (newIORef Map.empty)
+{-# NOINLINE spliceSpansMap #-}
+spliceSpansMap :: StmMap.Map String [RealSrcSpan]
+spliceSpansMap = unsafePerformIO StmMap.newIO
 
--- | Cache the decoded 'MutationPluginConfig' keyed by config file path, so we
--- only read and parse the YAML once per GHC invocation even though every
--- module compiled in that invocation calls 'resolveConfig'.
-{-# NOINLINE configCacheRef #-}
-configCacheRef :: IORef (Map.Map FilePath MutationPluginConfig)
-configCacheRef = unsafePerformIO (newIORef Map.empty)
+-- | Cache the decoded 'MutationPluginConfig' for the lifetime of the GHC
+-- invocation.  Every module compiled in that invocation calls 'resolveConfig'
+-- and we want to read and parse the YAML only once.  All modules in a single
+-- invocation are passed the same @--config=PATH@ flag, so a single slot
+-- suffices.
+{-# NOINLINE configCacheVar #-}
+configCacheVar :: TVar (Maybe (FilePath, MutationPluginConfig))
+configCacheVar = unsafePerformIO (newTVarIO Nothing)
 
 -- | Resolve the 'MutationPluginConfig' for a plugin action.  If
 -- @--config=PATH@ is present in @opts@, read and cache the YAML; otherwise
@@ -204,12 +206,12 @@ resolveConfig :: [CommandLineOption] -> IO MutationPluginConfig
 resolveConfig opts = case mapMaybe (stripPrefix "--config=") opts of
   [] -> pure defaultMutationPluginConfig
   (path : _) -> do
-    cache <- readIORef configCacheRef
-    case Map.lookup path cache of
-      Just cfg -> pure cfg
-      Nothing -> do
+    cached <- readTVarIO configCacheVar
+    case cached of
+      Just (p, cfg) | p == path -> pure cfg
+      _ -> do
         cfg <- readMutationPluginConfigFile path
-        atomicModifyIORef' configCacheRef $ \m -> (Map.insert path cfg m, ())
+        atomically $ writeTVar configCacheVar (Just (path, cfg))
         pure cfg
 
 -- | Generic traversal that collects 'RealSrcSpan's of all parsed-AST
@@ -280,7 +282,10 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           let mSrcPath = ml_hs_file (ms_location ms)
           spliceSpans <-
             if skipThSplices
-              then liftIO $ Map.findWithDefault [] mn <$> readIORef spliceSpansRef
+              then
+                liftIO $
+                  atomically $
+                    fromMaybe [] <$> StmMap.lookup mn spliceSpansMap
               else pure []
           (binds', groups) <-
             runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices spliceSpans $

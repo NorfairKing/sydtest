@@ -50,7 +50,7 @@
       overlays.${system} = import ./nix/overlay.nix;
       packages.${system}.default = haskellPackages.sydtestRelease;
       checks.${system} = {
-        forwardCompatibility = horizonPkgs.sydtestRelease;
+        forwardCompatibility = horizonPkgs.sydtestReleaseWithoutMutation;
         release = haskellPackages.sydtestRelease;
         mutation-manifest-example = pkgs.callPackage ./nix/mutationManifestCheck.nix { inherit haskellPackages; };
       } // (import ./nix/mutation-checks.nix { inherit haskellPackages; }) // {

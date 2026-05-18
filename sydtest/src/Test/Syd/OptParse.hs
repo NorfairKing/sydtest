@@ -293,8 +293,8 @@ instance HasParser Settings where
 -- mode flags set).
 resolveMutationSettings :: Flags -> Either String (Maybe MutationSettings)
 resolveMutationSettings Flags {..} =
-  let failFast = fromMaybe (mutationFailFast defaultMutationSettings) flagMutationFailFast
-      retry = fromMaybe (coverageParentRetry defaultCoverageParentSettings) flagMutationCoverageRetry
+  let failFast = fromMaybe defaultMutationFailFast flagMutationFailFast
+      retry = fromMaybe defaultCoverageParentRetry flagMutationCoverageRetry
       mkMutation mode = Just MutationSettings {mutationFailFast = failFast, mutationMode = mode}
    in case (flagMutationCoverageOne, flagMutationCoverage, flagMutationOne, flagMutation) of
         (Just tid, _, _, _) -> do
@@ -346,36 +346,15 @@ resolveMutationSettings Flags {..} =
                   }
         (Nothing, [], Nothing, []) -> pure Nothing
 
--- | Defaults for the cross-mode 'MutationSettings'.  Used both by
--- 'resolveMutationSettings' (to default 'mutationFailFast' when no flag is
--- given) and by callers building 'MutationSettings' values directly.
-defaultMutationSettings :: MutationSettings
-defaultMutationSettings =
-  MutationSettings
-    { -- True suits CI so a single survivor aborts the run; flip to False
-      -- locally for the full report.
-      mutationFailFast = True,
-      -- Placeholder; concrete callers always overwrite this.
-      mutationMode =
-        MutationModeMutate
-          MutationParentSettings
-            { mutationParentManifestDirs = error "defaultMutationSettings: mutationMode is a placeholder",
-              mutationParentAugmentedManifestDir = Nothing,
-              mutationParentReportDir = Nothing,
-              mutationParentChildMemLimit = Nothing,
-              mutationParentSuiteExes = Map.empty
-            }
-    }
+-- | Default value of 'mutationFailFast'.  True suits CI so a single
+-- survivor aborts the run; flip to False locally for the full report.
+defaultMutationFailFast :: Bool
+defaultMutationFailFast = True
 
-defaultCoverageParentSettings :: CoverageParentSettings
-defaultCoverageParentSettings =
-  CoverageParentSettings
-    { coverageParentManifestDirs = error "defaultCoverageParentSettings: manifest dirs are caller-supplied",
-      coverageParentAugmentedManifestDir = Nothing,
-      coverageParentJobs = Nothing,
-      coverageParentRetry = 3,
-      coverageParentSuiteName = Nothing
-    }
+-- | Default coverage retry budget.  Set conservatively so a flaky coverage
+-- child does not lose the entire run.
+defaultCoverageParentRetry :: Word
+defaultCoverageParentRetry = 3
 
 defaultSettings :: Settings
 defaultSettings =

@@ -77,7 +77,6 @@ library
     , dlist
     , fast-myers-diff >=0.0.1
     , filepath
-    , list-t
     , mtl
     , opt-env-conf >=0.10
     , path
@@ -89,7 +88,6 @@ library
     , safe
     , safe-coloured-text
     , stm
-    , stm-containers
     , svg-builder
     , sydtest-mutation-runtime
     , text

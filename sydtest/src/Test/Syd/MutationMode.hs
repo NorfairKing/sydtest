@@ -66,7 +66,7 @@ where
 
 import Control.Concurrent (newQSem, signalQSem, threadDelay, waitQSem)
 import Control.Concurrent.Async (mapConcurrently, race)
-import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
 import Control.Exception (Exception, IOException, bracket, bracket_)
 import qualified Control.Exception as Exception
 import Control.Monad (when)
@@ -81,11 +81,9 @@ import qualified Data.Text as T
 import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
 import qualified Data.Vector as V
 import GHC.Conc (getNumCapabilities)
-import qualified ListT
 import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
-import qualified StmContainers.Map as StmMap
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO (BufferMode (..), IOMode (..), hClose, hSetBuffering, openFile, stderr)
@@ -616,22 +614,20 @@ runMutationMode settings failFast mutParent _spec = do
   sem <- newQSem n
   -- Each group's per-mutation results, accumulated in source order so a
   -- partial report (after a global fail-fast abort) reflects the work done.
-  groupResultsMap <- StmMap.newIO :: IO (StmMap.Map Int [MutationResult])
+  groupResultsVar <- newTVarIO (Map.empty :: Map.Map Int [MutationResult])
   let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
           (runOne defaultExe augDir sem)
           ( \r ->
-              atomically $ do
-                existing <- fromMaybe [] <$> StmMap.lookup gix groupResultsMap
-                StmMap.insert (r : existing) gix groupResultsMap
+              atomically $
+                modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
           )
           recs
   Exception.handle (\MutationFailFast -> pure ()) $ do
     _ <- mapConcurrently runGroup' (zip [0 :: Int ..] groups)
     pure ()
-  finalGroupResults <-
-    Map.fromList <$> atomically (ListT.toList (StmMap.listT groupResultsMap))
+  finalGroupResults <- readTVarIO groupResultsVar
   -- Preserve original group order; reverse each group's results because they
   -- were accumulated cons-style.
   let groupReports =

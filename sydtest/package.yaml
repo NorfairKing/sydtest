@@ -42,9 +42,7 @@ library:
     - random-shuffle
     - safe
     - safe-coloured-text
-    - list-t
     - stm
-    - stm-containers
     - svg-builder
     - sydtest-mutation-runtime
     - text

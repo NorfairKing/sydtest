@@ -827,7 +827,7 @@ instance HasParser Threads where
             w -> Asynchronous w
         )
           <$> setting
-            [ help "How many threads to use to execute tests in asynchrnously",
+            [ help "How many threads to use to execute tests in asynchronously",
               reader auto,
               option,
               long "jobs",

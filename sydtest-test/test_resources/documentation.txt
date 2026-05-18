@@ -36,7 +36,7 @@
     [37mrandomize-execution-order[m: # [32mor null[m
       [33m<boolean>[m
 
-  [34mHow many threads to use to execute tests in asynchrnously[m
+  [34mHow many threads to use to execute tests in asynchronously[m
   option: [37m--jobs[m[36m|[m[37m--threads[m [33mINT[m
   env: [37mSYDTEST_JOBS[m[36m|[m[37mSYDTEST_THREADS[m [33mINT[m
 
@@ -234,7 +234,7 @@
   [37m--random-seed[m                                                     [34mUse a random seed for pseudo-randomness[m                                                                                                                                  
   [37m--seed[m                                                            [34mSeed for pseudo-randomness[m                                                                                                                                               
   [37m--[no-]randomise-execution-order[m[36m|[m[37m--[no-]randomize-execution-order[m [34mRun test suite in a random order[m                                                                                                                                         
-  [37m--jobs[m[36m|[m[37m--threads[m                                                  [34mHow many threads to use to execute tests in asynchrnously[m                                                                                                                
+  [37m--jobs[m[36m|[m[37m--threads[m                                                  [34mHow many threads to use to execute tests in asynchronously[m                                                                                                               
   [37m--synchronous[m                                                     [34mUse only one thread, to execute tests synchronously[m                                                                                                                      
   [37m--max-size[m                                                        [34mMaximum size parameter to pass to generators[m                                                                                                            default: [33m100[m     
   [37m--max-success[m                                                     [34mNumber of property test examples to run[m                                                                                                                 default: [33m100[m     
@@ -278,7 +278,7 @@ Note that you have to run with this flag once before it can activate.
   [37mSYDTEST_RANDOM_SEED[m [33mANY[m                                                    [34mUse a random seed for pseudo-randomness[m                                                                                                                                    
   [37mSYDTEST_SEED[m [33mINT[m                                                           [34mSeed for pseudo-randomness[m                                                                                                                                                 
   [37mSYDTEST_RANDOMISE_EXECUTION_ORDER[m[36m|[m[37mSYDTEST_RANDOMIZE_EXECUTION_ORDER[m [33mBOOL[m   [34mRun test suite in a random order[m                                                                                                                                           
-  [37mSYDTEST_JOBS[m[36m|[m[37mSYDTEST_THREADS[m [33mINT[m                                           [34mHow many threads to use to execute tests in asynchrnously[m                                                                                                                  
+  [37mSYDTEST_JOBS[m[36m|[m[37mSYDTEST_THREADS[m [33mINT[m                                           [34mHow many threads to use to execute tests in asynchronously[m                                                                                                                 
   [37mSYDTEST_SYNCHRONOUS[m [33mANY[m                                                    [34mUse only one thread, to execute tests synchronously[m                                                                                                                        
   [37mSYDTEST_MAX_SIZE[m [33mInt[m                                                       [34mMaximum size parameter to pass to generators[m                                                                                                              default: [33m100[m     
   [37mSYDTEST_MAX_SUCCESS[m [33mInt[m                                                    [34mNumber of property test examples to run[m                                                                                                                   default: [33m100[m     

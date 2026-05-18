@@ -149,7 +149,9 @@ spec = describe "runOneGroup" $ do
     map isSurvived results `shouldBe` [False, True, False]
     map isSkipped results `shouldBe` [False, False, True]
     map augmentedMutationRecordId ran `shouldBe` [MutationId ["a"], MutationId ["b"]]
-    skippedCauseId (results !! 2) `shouldBe` Just "b"
+    case results of
+      [_, _, r] -> skippedCauseId r `shouldBe` Just "b"
+      _ -> expectationFailure $ "expected 3 results, got " <> show (length results)
 
   it "skips remaining records after an uncovered mutation" $ do
     (results, ran) <- runScripted False [(a, SUncovered), (b, SKilled)]

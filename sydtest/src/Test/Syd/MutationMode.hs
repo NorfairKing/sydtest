@@ -78,8 +78,9 @@ import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
 import qualified Data.Vector as V
+import Data.Word (Word64)
+import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Conc (getNumCapabilities)
 import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
@@ -369,12 +370,12 @@ runSingleCoverageMode settings failFast covChild spec = do
       trie = testIdTrieFromList [tid]
       filtered = filterTestForestByTrie trie specForest
   ref <- newIORef Set.empty
-  startTime <- getCurrentTime
+  startTime <- getMonotonicTimeNSec
   resultForest <- withCoverageSlot ref $ runSpecForestSynchronously coverageSettings filtered
-  endTime <- getCurrentTime
+  endTime <- getMonotonicTimeNSec
   covered <- readIORef ref
   let coverageMap = TestCoverageMap (Map.singleton tid covered)
-      elapsedMicros = diffUTCTimeMicros endTime startTime
+      elapsedMicros = diffMonotonicMicros endTime startTime
   writeTestCoverageMapFile outputFile coverageMap
   writeTestBaselineMapFile baselineFile (TestBaselineMap (Map.singleton tid elapsedMicros))
   -- Mutation testing only makes sense against a passing baseline: if a test
@@ -393,13 +394,17 @@ runSingleCoverageMode settings failFast covChild spec = do
         ]
     when failFast $ exitWith (ExitFailure 2)
 
--- | Convert a 'NominalDiffTime' difference to microseconds as a 'Word',
--- clamping negative results (clock skew) to zero.
-diffUTCTimeMicros :: UTCTime -> UTCTime -> Word
-diffUTCTimeMicros end start =
-  let secs = realToFrac (diffUTCTime end start) :: Double
-      micros = secs * 1000000
-   in if micros <= 0 then 0 else ceiling micros
+-- | Difference of two 'getMonotonicTimeNSec' readings expressed in
+-- microseconds.  The monotonic clock is not affected by NTP slew or
+-- step, so timing comparisons here are robust against system-clock
+-- changes that 'getCurrentTime' would have observed.
+diffMonotonicMicros :: Word64 -> Word64 -> Word
+diffMonotonicMicros end start =
+  -- 'getMonotonicTimeNSec' is monotonically non-decreasing, so @end >=
+  -- start@ holds whenever they were measured in this order.  Guard
+  -- with a defensive max anyway, in case a future change captures the
+  -- two times across an unexpected boundary.
+  fromIntegral ((max end start - start) `div` 1000)
 
 -- | Resolve the augmented manifest directory, falling back to the current
 -- working directory when not specified.
@@ -756,10 +761,10 @@ runMutationMode settings failFast mutParent _spec = do
                     if timeoutMicros >= fromIntegral (maxBound :: Int)
                       then maxBound :: Int
                       else fromIntegral timeoutMicros
-              startTime <- getCurrentTime
+              startTime <- getMonotonicTimeNSec
               raw <- startProcessAndWait childProc micros
-              endTime <- getCurrentTime
-              pure (raw, diffUTCTimeMicros endTime startTime)
+              endTime <- getMonotonicTimeNSec
+              pure (raw, diffMonotonicMicros endTime startTime)
           case outcomeRaw of
             Left () -> do
               -- Timed out: parent killed the child. Preserve whatever the

@@ -19,6 +19,9 @@
   # fail-fast would abort the run on the first surviving/uncovered mutation,
   # discarding report.json before the installPhase runs.
 , failFast ? false
+  # RTS heap cap (-M flag value) for both the coverage and the mutation
+  # parent. Mutation children get the same cap via --mutation-child-mem-limit.
+, testProcessMemLimit ? "4g"
 }:
 
 let
@@ -39,8 +42,9 @@ let
       (
         ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
         exe=$(find ${pkg}/test -maxdepth 1 -type f | head -1)
-        # +RTS -M4g -RTS: cap the heap to 4 GB to avoid OOM in the Nix sandbox.
-        "$exe" +RTS -M4g -RTS \
+        # +RTS -M${testProcessMemLimit} -RTS: cap the heap to avoid OOM in the
+        # Nix sandbox.
+        "$exe" +RTS -M${testProcessMemLimit} -RTS \
           ${coverageFlags} \
           --mutation-suite-name ${pkg.pname} \
           --mutation-augmented-manifest-dir augmented
@@ -67,7 +71,7 @@ stdenv.mkDerivation {
     (
       ${lib.optionalString (testResourcesDir != null) "cd ${testResourcesDir}"}
       firstExe=$(find ${firstPkg}/bin -maxdepth 1 -type f | head -1)
-      "$firstExe" +RTS -M4g -RTS \
+      "$firstExe" +RTS -M${testProcessMemLimit} -RTS \
         ${mutationFlags} \
         --mutation-augmented-manifest-dir augmented \
         ${suiteExeFlags} \

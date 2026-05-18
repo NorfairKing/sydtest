@@ -42,6 +42,7 @@ library
       Test.Syd.Modify
       Test.Syd.Mutation.Forest
       Test.Syd.MutationMode
+      Test.Syd.MutationMode.Single
       Test.Syd.OptParse
       Test.Syd.Output
       Test.Syd.Output.Common

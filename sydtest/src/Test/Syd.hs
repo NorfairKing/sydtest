@@ -263,7 +263,8 @@ import Test.Syd.Def
 import Test.Syd.Expectation
 import Test.Syd.HList
 import Test.Syd.Modify
-import Test.Syd.MutationMode (runCoverageMode, runMutationMode, runSingleCoverageMode, runSingleMutationMode)
+import Test.Syd.MutationMode (runCoverageMode, runMutationMode, runSingleCoverageMode)
+import Test.Syd.MutationMode.Single (runSingleMutationMode)
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.ReRun

@@ -38,11 +38,11 @@
 --    parent runs up to N children concurrently where N = 'getNumCapabilities'.
 module Test.Syd.MutationMode
   ( runMutationMode,
-    runSingleMutationMode,
     runCoverageMode,
     runSingleCoverageMode,
     renderMutationRunReport,
     renderMutationProgressEvent,
+    resolveAugmentedManifestDir,
     CoverageProgressEvent (..),
     CoverageProgressTestEvent (..),
     CoverageProgressPhase (..),
@@ -84,7 +84,7 @@ import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
 import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
-import System.Exit (ExitCode (..), exitSuccess, exitWith)
+import System.Exit (ExitCode (..), exitWith)
 import System.IO (BufferMode (..), IOMode (..), hClose, hSetBuffering, openFile, stderr)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Def
@@ -101,7 +101,6 @@ import Test.Syd.Mutation.AugmentedManifest
     TimedOutMutation (..),
     UncoveredMutation (..),
     fromMutationRecord,
-    lookupAugmentedMutationRecord,
     mergeAugmentedManifests,
     readAugmentedManifestFile,
     readAugmentedManifestFileIfExists,
@@ -116,7 +115,7 @@ import Test.Syd.Mutation.Manifest
     MutationRecord (..),
     readManifestDir,
   )
-import Test.Syd.Mutation.Runtime (MutationId (..), parseMutationId, renderMutationId, setActiveMutation, withCoverageSlot)
+import Test.Syd.Mutation.Runtime (MutationId (..), renderMutationId, withCoverageSlot)
 import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap (..), readTestBaselineMapFile, writeTestBaselineMapFile)
 import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverageMapFile, writeTestCoverageMapFile)
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
@@ -803,43 +802,6 @@ runMutationMode settings _manifestDirs _spec = do
         cleanup p =
           stopProcess p
             `Exception.catch` (\(_ :: IOException) -> pure ())
-
--- | Child process: run only the tests covering a single mutation and exit
--- with the appropriate exit code.
---
--- When @settingMutationSuiteName@ is set, only the covering tests for that
--- suite are run.  Otherwise the union of all suites' covering tests is used
--- (single-suite / backward-compatible behaviour).
-runSingleMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
-runSingleMutationMode settings _manifestDirs spec = do
-  mid <- case settingMutationOne settings >>= parseMutationId of
-    Nothing -> fail "runSingleMutationMode: no valid --mutation-one id"
-    Just m -> pure m
-  augDir <- resolveAugmentedManifestDir settings
-  augmented <- readAugmentedManifestFile augDir
-  specForest <- execTestDefM settings spec
-  let coveringTestsMap =
-        maybe
-          Map.empty
-          augmentedMutationRecordCoveringTests
-          (lookupAugmentedMutationRecord mid augmented)
-      coveringTests :: [TestId]
-      coveringTests = case settingMutationSuiteName settings of
-        Just suiteName ->
-          fromMaybe [] (Map.lookup suiteName coveringTestsMap)
-        Nothing ->
-          -- single-suite / backward-compat: union of all suites
-          concatMap snd (Map.toList coveringTestsMap)
-      forest = case coveringTests of
-        [] -> specForest
-        ts -> filterTestForestByTrie (testIdTrieFromList ts) specForest
-  setActiveMutation (Just mid)
-  timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous, settingFailFast = True}) forest
-  setActiveMutation Nothing
-  printOutputSpecForest settings timedResult
-  if shouldExitFail settings (timedValue timedResult)
-    then exitWith (ExitFailure 1)
-    else exitSuccess
 
 renderMutationRunReport :: MutationRunReport -> [[Chunk]]
 renderMutationRunReport

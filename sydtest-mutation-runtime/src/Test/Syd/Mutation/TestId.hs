@@ -17,7 +17,6 @@ import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import Test.QuickCheck (Gen, listOf, suchThat)
 
 -- | An opaque identifier for a single test in a 'Spec'.
 --
@@ -111,27 +110,12 @@ instance HasCodec TestId where
       renderTestId
       codec
 
+-- | Description text for each step must be non-empty so that 'renderTestId'
+-- and 'parseTestIdFilterArg' round-trip: an empty description would render
+-- to an unparseable token.
 instance Validity TestId where
-  validate = trivialValidation
+  validate (TestId steps) = mconcat [declare "step description is non-empty" (not (T.null t)) | (t, _) <- NE.toList steps]
 
 instance GenValid TestId where
-  genValid = TestId <$> ((:|) <$> genStep <*> genValidSteps)
-  shrinkValid (TestId (step :| rest)) =
-    [TestId (s :| rest) | s <- shrinkStep step]
-      ++ [TestId (step :| r) | r <- shrinkValidSteps rest]
-
-genStep :: Gen (Text, Word)
-genStep = (,) <$> suchThat genValid (not . T.null) <*> genValid
-
-shrinkStep :: (Text, Word) -> [(Text, Word)]
-shrinkStep (t, n) = [(t', n) | t' <- shrinkValid t, not (T.null t')] ++ [(t, n') | n' <- shrinkValid n]
-
-shrinkValidSteps :: [(Text, Word)] -> [[(Text, Word)]]
-shrinkValidSteps [] = [[]]
-shrinkValidSteps (s : ss) =
-  [ss]
-    ++ [s' : ss | s' <- shrinkStep s]
-    ++ [s : ss' | ss' <- shrinkValidSteps ss]
-
-genValidSteps :: Gen [(Text, Word)]
-genValidSteps = listOf genStep
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally

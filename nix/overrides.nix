@@ -134,9 +134,19 @@ let
   # plugin, which the forward-compatibility build (horizon-advance) does not
   # ship.  Keep them out of the forward-compat release so it only exercises
   # the non-mutation surface against newer GHCs.
-  isMutationPkgName = n: lib.hasPrefix "sydtest-mutation" n;
+  #
+  # This is an explicit list rather than a prefix filter so that a future
+  # non-mutation package whose name happens to start with `sydtest-mutation`
+  # is not silently excluded.
+  mutationPkgNames = [
+    "sydtest-mutation"
+    "sydtest-mutation-example"
+    "sydtest-mutation-example-gen"
+    "sydtest-mutation-plugin"
+    "sydtest-mutation-runtime"
+  ];
   sydtestPackagesWithoutMutation =
-    lib.filterAttrs (n: _: !(isMutationPkgName n)) sydtestPackages;
+    removeAttrs sydtestPackages mutationPkgNames;
 in
 {
   inherit sydtestPackages;

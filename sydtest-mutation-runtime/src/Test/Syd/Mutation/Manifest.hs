@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -20,9 +21,14 @@ import Autodocodec
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+import Data.GenValidity
+import Data.GenValidity.Containers ()
+import Data.GenValidity.Path ()
+import Data.GenValidity.Text ()
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
+import GHC.Generics (Generic)
 import Path
 import Path.IO (ensureDir, listDirRel)
 import System.IO (hPutStrLn, stderr)
@@ -65,8 +71,14 @@ data MutationRecord = MutationRecord
     -- 'Nothing' means coverage has not been collected yet.
     mutRecCoveringTests :: Maybe (Map.Map Text [TestId])
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationRecord)
+
+instance Validity MutationRecord
+
+instance GenValid MutationRecord where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 -- | Codec for 'Map Text [TestId]': a JSON object keyed by suite name.
 coveringTestsMapCodec :: JSONCodec (Map.Map Text [TestId])
@@ -108,16 +120,28 @@ relFileCodec =
 -- Within-group fail-fast (in the runner) skips remaining mutations in a
 -- group once one of them survives or is uncovered.
 newtype MutationGroup = MutationGroup [MutationRecord]
-  deriving stock (Show)
+  deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationGroup)
+
+instance Validity MutationGroup
+
+instance GenValid MutationGroup where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec MutationGroup where
   codec = dimapCodec MutationGroup (\(MutationGroup rs) -> rs) codec
 
 -- | All mutation groups discovered in one or more modules by the plugin.
 newtype MutationManifest = MutationManifest [MutationGroup]
-  deriving stock (Show)
+  deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationManifest)
+
+instance Validity MutationManifest
+
+instance GenValid MutationManifest where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec MutationManifest where
   codec = dimapCodec MutationManifest (\(MutationManifest gs) -> gs) codec

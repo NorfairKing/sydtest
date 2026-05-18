@@ -102,106 +102,106 @@ FAIL output-test/Spec.hs:70 Property tests.pure.should fail to show that sorting
 FAIL output-test/Spec.hs:78 Property tests.impure.should fail to show that sorting does nothing
   Expected these values to be equal:
   [34mActual:   [m
-  [ -[31m1[m[31m8[m
-  , [31m-[m1[31m3[m
-  , -[31m1[m3
-  , -1[31m2[m
-  , [31m-1[m0
-  , [31m-[m9
-  , -[31m6[m
-  , [31m-[m5
-  , -3
-  , [31m-[m[31m3[m
-  , -2
-  , 0
-  , 1
-  , 3
-  , [31m6[m
-  , [31m1[m[31m0[m
-  , [31m11[m
-  [31m, 1[m[31m5[m
-  , [31m1[m[31m9[m
-  ]
+  [31m[ -[m[1;91m1[m[1;91m8[m[31m[m
+  [31m, [m[1;91m-[m[31m1[m[1;91m3[m[31m[m
+  [31m, -[m[1;91m1[m[31m3[m
+  [31m, -1[m[1;91m2[m[31m[m
+  [31m, [m[1;91m-1[m[31m0[m
+  [31m, [m[1;91m-[m[31m9[m
+  [31m, -[m[1;91m6[m[31m[m
+  [31m, [m[1;91m-[m[31m5[m
+  [31m, -[m[31m3[m
+  [31m, [m[1;91m-[m[1;91m3[m[31m[m
+  [31m, -[m[31m2[m
+  [31m, [m[31m0[m
+  [31m, [m[31m1[m[31m[m
+  [31m, [m[31m3[m
+  [31m, [m[1;91m6[m[31m[m
+  [31m, [m[1;91m1[m[1;91m0[m[31m[m
+  [31m, [m[1;91m11[m
+  [1;91m, 1[m[1;91m5[m[31m[m
+  [31m, [m[1;91m1[m[1;91m9[m[31m[m
+  [31m][m
   [34mExpected: [m
-  [ -[32m5[m[42m[m
-  [42m[m[32m, [m[32m3[m
-  , 1[32m1[m
-  , -3
-  , -1[32m3[m
-  , 0
-  , [32m1[m9
-  , -[32m1[m[32m0[m
-  , [32m1[m5
-  , -[32m1[m3
-  , [32m1[m
-  , -[32m1[m2
-  , [32m1[m0
-  , [32m-[m1[32m8[m
-  , [32m-[m3
-  , [32m-[m[32m2[m
-  , [32m6[m
-  , [32m-[m[32m9[m
-  , [32m-6[m
-  ]
+  [32m[ -[m[1;92m5[m[42m[m
+  [42m[m[1;92m, [m[1;92m3[m[32m[m
+  [32m, [m[32m1[m[1;92m1[m[32m[m
+  [32m, -[m[32m3[m
+  [32m, -1[m[1;92m3[m[32m[m
+  [32m, [m[32m0[m
+  [32m, [m[1;92m1[m[32m9[m
+  [32m, -[m[1;92m1[m[1;92m0[m[32m[m
+  [32m, [m[1;92m1[m[32m5[m
+  [32m, -[m[1;92m1[m[32m3[m
+  [32m, [m[1;92m1[m[32m[m
+  [32m, -[m[1;92m1[m[32m2[m
+  [32m, [m[1;92m1[m[32m0[m
+  [32m, [m[1;92m-[m[32m1[m[1;92m8[m[32m[m
+  [32m, [m[1;92m-[m[32m3[m
+  [32m, [m[1;92m-[m[1;92m2[m[32m[m
+  [32m, [m[1;92m6[m[32m[m
+  [32m, [m[1;92m-[m[1;92m9[m[32m[m
+  [32m, [m[1;92m-6[m[32m[m
+  [32m][m
   [34mInline diff: [m
-  [ -[32m5[m[42m[m
-  [42m[m[32m, [m[31m1[m[32m3[m[31m8[m
-  , [31m-[m1[32m1[m[31m3[m
-  , -[31m1[m3
-  , -1[32m3[m[31m2[m
-  , [31m-1[m0
-  , [31m-[m[32m1[m9
-  , -[32m1[m[31m6[m[32m0[m
-  , [32m1[m[31m-[m5
-  , -[32m1[m3
-  , [31m-[m[31m3[m[32m1[m
-  , -[32m1[m2
-  , [32m1[m0
-  , [32m-[m1[32m8[m
-  , [32m-[m3
-  , [32m-[m[31m6[m[32m2[m
-  , [31m1[m[31m0[m[32m6[m
-  , [32m-[m[31m11[m
-  [31m, 1[m[31m5[m[32m9[m
-  , [31m1[m[32m-6[m[31m9[m
+  [ -[1;92m5[m[42m[m
+  [42m[m[1;92m, [m[1;91m1[m[1;92m3[m[1;91m8[m
+  , [1;91m-[m1[1;92m1[m[1;91m3[m
+  , -[1;91m1[m3
+  , -1[1;92m3[m[1;91m2[m
+  , [1;91m-1[m0
+  , [1;91m-[m[1;92m1[m9
+  , -[1;92m1[m[1;91m6[m[1;92m0[m
+  , [1;92m1[m[1;91m-[m5
+  , -[1;92m1[m3
+  , [1;91m-[m[1;91m3[m[1;92m1[m
+  , -[1;92m1[m2
+  , [1;92m1[m0
+  , [1;92m-[m1[1;92m8[m
+  , [1;92m-[m3
+  , [1;92m-[m[1;91m6[m[1;92m2[m
+  , [1;91m1[m[1;91m0[m[1;92m6[m
+  , [1;92m-[m[1;91m11[m
+  [1;91m, 1[m[1;91m5[m[1;92m9[m
+  , [1;91m1[m[1;92m-6[m[1;91m9[m
   ]
 
 FAIL output-test/Spec.hs:88 Diff.shows nice multi-line diffs
   Expected these values to be equal:
   [34mActual:   [m
-  ( "foo"
-  , [[41m [m[31m"qu[m[31mux[m[31m"[m [31m,[m[41m [m"quux" , "quux" , "quux" , "quux" , "quux" , "quux" ]
-  , "ba[31mr[m"
-  )
+  [31m( "[m[31mfoo"[m
+  [31m, [[m[41m [m[1;91m"qu[m[1;91mux[m[1;91m"[m[31m [m[1;91m,[m[41m [m[31m"quux" , "quux" , "quux" , "quux" , "quux" , "quux" ][m
+  [31m, "ba[m[1;91mr[m[31m"[m
+  [31m)[m
   [34mExpected: [m
-  ( "[32mf[m[32mo[m[32mo[mfoo"
-  , [ "quux" , "quux" , "quux" , "quux" , "quux" , "quux" ]
-  , "ba[32mz[m"
-  )
+  [32m( "[m[1;92mf[m[1;92mo[m[1;92mo[m[32mfoo"[m
+  [32m, [[m[32m [m[32m"quux" , "quux" , "quux" , "quux" , "quux" , "quux" ][m
+  [32m, "ba[m[1;92mz[m[32m"[m
+  [32m)[m
   [34mInline diff: [m
-  ( "[32mf[m[32mo[m[32mo[mfoo"
-  , [[41m [m[31m"qu[m[31mux[m[31m"[m [31m,[m[41m [m"quux" , "quux" , "quux" , "quux" , "quux" , "quux" ]
-  , "ba[32mz[m[31mr[m"
+  ( "[1;92mf[m[1;92mo[m[1;92mo[mfoo"
+  , [[41m [m[1;91m"qu[m[1;91mux[m[1;91m"[m [1;91m,[m[41m [m"quux" , "quux" , "quux" , "quux" , "quux" , "quux" ]
+  , "ba[1;92mz[m[1;91mr[m"
   )
 
 FAIL output-test/Spec.hs:90 Diff.shows nice multi-line diffs
   Expected these values to be equal:
-  [34mActual:   [m( "foo"[41m [m, [[31m][m , "ba[31mr[m"[41m [m)
+  [34mActual:   [m[31m( "[m[31mfoo"[m[41m [m[31m, [[m[1;91m][m[31m [m[31m, "ba[m[1;91mr[m[31m"[m[41m [m[31m)[m
   [34mExpected: [m
-  ( "[32mf[m[32mo[m[32mo[mfoo"[42m[m
-  [42m[m, [[32m "[m[32mquux" , [m[32m"quux" , "quux" [m[32m, "quux" , "quux[m[32m" , "quu[m[32mx"[m [32m][m
-  [32m[m, "ba[32mz[m"[42m[m
-  [42m[m)
+  [32m( "[m[1;92mf[m[1;92mo[m[1;92mo[m[32mfoo"[m[42m[m
+  [42m[m[32m, [[m[1;92m "[m[1;92mquux" , [m[1;92m"quux" , "quux" [m[1;92m, "quux" , "quux[m[1;92m" , "quu[m[1;92mx"[m[32m [m[1;92m][m
+  [1;92m[m[32m, "ba[m[1;92mz[m[32m"[m[42m[m
+  [42m[m[32m)[m
   [34mInline diff: [m
-  ( "[32mf[m[32mo[m[32mo[mfoo"[41m [m[42m[m
-  [42m[m, [[31m][m[32m "[m[32mquux" , [m[32m"quux" , "quux" [m[32m, "quux" , "quux[m[32m" , "quu[m[32mx"[m [32m][m
-  [32m[m, "ba[31mr[m[32mz[m"[41m [m[42m[m
+  ( "[1;92mf[m[1;92mo[m[1;92mo[mfoo"[41m [m[42m[m
+  [42m[m, [[1;91m][m[1;92m "[m[1;92mquux" , [m[1;92m"quux" , "quux" [m[1;92m, "quux" , "quux[m[1;92m" , "quu[m[1;92mx"[m [1;92m][m
+  [1;92m[m, "ba[1;91mr[m[1;92mz[m"[41m [m[42m[m
   [42m[m)
 
 FAIL output-test/Spec.hs:93 assertions.shouldBe
   Expected these values to be equal:
-  [34mActual:   [m[31m3[m
-  [34mExpected: [m[32m4[m
+  [34mActual:   [m[1;91m3[m
+  [34mExpected: [m[1;92m4[m
 
 FAIL output-test/Spec.hs:94 assertions.shouldNotBe
   Did not expect equality of the values but both were:
@@ -269,53 +269,53 @@ FAIL output-test/Spec.hs:197 expectationFailure
 
 FAIL output-test/Spec.hs:200 String.compares strings
   Expected these values to be equal:
-  [34mActual:   [m"f[31mo[mo\nba[31mr[m\tq[31muu[mx[41m [m"
-  [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
+  [34mActual:   [m[31m"f[m[1;91mo[m[31mo[m[31m\nba[m[1;91mr[m[31m\tq[m[1;91muu[m[31mx[m[41m [m[31m"[m
+  [34mExpected: [m[32m"f[m[32mo[m[1;92mq[m[32m\nba[m[1;92mz[m[32m\tq[m[1;92me[m[32mx[m[32m"[m
 
 FAIL output-test/Spec.hs:201 String.compares strings
   Expected these values to be equal:
   [34mActual:   [m
-  f[31mo[mo
-  ba[31mr[m	q[31muu[mx[41m [m
+  [31mf[m[1;91mo[m[31mo[m[31m[m
+  [31mba[m[1;91mr[m[31m	q[m[1;91muu[m[31mx[m[41m [m
   [34mExpected: [m
-  fo[32mq[m
-  ba[32mz[m	q[32me[mx
+  [32mf[m[32mo[m[1;92mq[m[32m[m
+  [32mba[m[1;92mz[m[32m	q[m[1;92me[m[32mx[m
   [34mInline diff: [m
-  f[31mo[mo[32mq[m
-  ba[31mr[m[32mz[m	q[31muu[m[32me[mx[41m [m
+  f[1;91mo[mo[1;92mq[m
+  ba[1;91mr[m[1;92mz[m	q[1;91muu[m[1;92me[mx[41m [m
 
 FAIL output-test/Spec.hs:202 String.compares texts
   Expected these values to be equal:
-  [34mActual:   [m"f[31mo[mo\nba[31mr[m\tq[31muu[mx[41m [m"
-  [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
+  [34mActual:   [m[31m"f[m[1;91mo[m[31mo[m[31m\nba[m[1;91mr[m[31m\tq[m[1;91muu[m[31mx[m[41m [m[31m"[m
+  [34mExpected: [m[32m"f[m[32mo[m[1;92mq[m[32m\nba[m[1;92mz[m[32m\tq[m[1;92me[m[32mx[m[32m"[m
 
 FAIL output-test/Spec.hs:203 String.compares texts
   Expected these values to be equal:
   [34mActual:   [m
-  f[31mo[mo
-  ba[31mr[m	q[31muu[mx[41m [m
+  [31mf[m[1;91mo[m[31mo[m[31m[m
+  [31mba[m[1;91mr[m[31m	q[m[1;91muu[m[31mx[m[41m [m
   [34mExpected: [m
-  fo[32mq[m
-  ba[32mz[m	q[32me[mx
+  [32mf[m[32mo[m[1;92mq[m[32m[m
+  [32mba[m[1;92mz[m[32m	q[m[1;92me[m[32mx[m
   [34mInline diff: [m
-  f[31mo[mo[32mq[m
-  ba[31mr[m[32mz[m	q[31muu[m[32me[mx[41m [m
+  f[1;91mo[mo[1;92mq[m
+  ba[1;91mr[m[1;92mz[m	q[1;91muu[m[1;92me[mx[41m [m
 
 FAIL output-test/Spec.hs:204 String.compares bytestrings
   Expected these values to be equal:
-  [34mActual:   [m"f[31mo[mo\nba[31mr[m\tq[31muu[mx[41m [m"
-  [34mExpected: [m"fo[32mq[m\nba[32mz[m\tq[32me[mx"
+  [34mActual:   [m[31m"f[m[1;91mo[m[31mo[m[31m\nba[m[1;91mr[m[31m\tq[m[1;91muu[m[31mx[m[41m [m[31m"[m
+  [34mExpected: [m[32m"f[m[32mo[m[1;92mq[m[32m\nba[m[1;92mz[m[32m\tq[m[1;92me[m[32mx[m[32m"[m
 
 FAIL output-test/Spec.hs:207 Context.shows a nice context
   Expected these values to be equal:
-  [34mActual:   [m[31mTr[m[31mu[me
-  [34mExpected: [m[32mFals[me
+  [34mActual:   [m[1;91mTr[m[1;91mu[m[31me[m
+  [34mExpected: [m[1;92mFals[m[32me[m
   Context
 
 FAIL output-test/Spec.hs:208 Context.shows a nice context multiple levels deep
   Expected these values to be equal:
-  [34mActual:   [m[31mTr[m[31mu[me
-  [34mExpected: [m[32mFals[me
+  [34mActual:   [m[1;91mTr[m[1;91mu[m[31me[m
+  [34mExpected: [m[1;92mFals[m[32me[m
   Context3
   Context2
   Context1
@@ -326,18 +326,18 @@ FAIL output-test/Spec.hs:213 Context.shows a context when an exception is thrown
 
 FAIL output-test/Spec.hs:220 Property.generated values.shows many generated values too
   Expected these values to be equal:
-  [34mActual:   [m[31m0[m
-  [34mExpected: [m[32m1[m
+  [34mActual:   [m[1;91m0[m
+  [34mExpected: [m[1;92m1[m
 
 FAIL output-test/Spec.hs:239 Property.labels.shows the labels in use on failure
   Expected these values to be equal:
-  [34mActual:   [m[]
-  [34mExpected: [m[[42m [m[32m0[m[42m [m]
+  [34mActual:   [m[31m[[m[31m][m
+  [34mExpected: [m[32m[[m[42m [m[1;92m0[m[42m [m[32m][m
 
 FAIL output-test/Spec.hs:256 Property.classes.shows the classes in use on failure
   Expected these values to be equal:
-  [34mActual:   [m[]
-  [34mExpected: [m[[42m [m[32m0[m[42m [m]
+  [34mActual:   [m[31m[[m[31m][m
+  [34mExpected: [m[32m[[m[42m [m[1;92m0[m[42m [m[32m][m
 
 FAIL output-test/Spec.hs:279 Shrinking.can grab the mvar during shrinking
   Predicate failed, but should have succeeded, on this value:
@@ -351,8 +351,8 @@ FAIL output-test/Spec.hs:293 Flakiness.Allows flakiness on False eventhough ther
 
 FAIL output-test/Spec.hs:302 Flakiness.Does not allow flakiness if flakiness is not allowed even if retries happen
   Expected these values to be equal:
-  [34mActual:   [m[31m1[m
-  [34mExpected: [m[32m2[m
+  [34mActual:   [m[1;91m1[m
+  [34mExpected: [m[1;92m2[m
 
 FAIL output-test/Spec.hs:306 Flakiness.Allows flakiness in this boolean five times (should fail with 5 retries)
 

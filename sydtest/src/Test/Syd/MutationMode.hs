@@ -66,7 +66,7 @@ import qualified Control.Exception as Exception
 import Data.IORef
 import Data.List (intercalate)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -110,11 +110,11 @@ import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverage
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
-import Test.Syd.Output.Common (addColour, delColour)
+import Test.Syd.Output.Common (addColour, delColour, renderAddSide, renderDelSide)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour (Chunk, Colour, back, bold, brightGreen, brightRed, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
 -- subprocess per test (up to N concurrently, N defaults to
@@ -885,32 +885,6 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
     renderPair :: Text -> Text -> ([Chunk], [Chunk])
     renderPair delLine addLine =
       let charDiff = V.toList (getTextDiff delLine addLine)
-          -- Whole paired line is foreground-coloured so the reader sees
-          -- "this line was deleted/added".  Non-whitespace intra-line
-          -- changes get the brighter shade so they stand out *within* the
-          -- already-coloured line; whitespace-only changes have no glyph
-          -- to colour, so fill the background instead.
-          emphasise :: Colour -> Colour -> Text -> Chunk
-          emphasise lineCol brightCol t =
-            if T.null (T.strip t)
-              then back lineCol (chunk t)
-              else bold (fore brightCol (chunk t))
-          delChunks =
-            fore delColour (chunk (T.singleton '-'))
-              : mapMaybe
-                ( \case
-                    First t -> Just (emphasise delColour brightRed t)
-                    Second _ -> Nothing
-                    Both t _ -> Just (fore delColour (chunk t))
-                )
-                charDiff
-          addChunks =
-            fore addColour (chunk (T.singleton '+'))
-              : mapMaybe
-                ( \case
-                    First _ -> Nothing
-                    Second t -> Just (emphasise addColour brightGreen t)
-                    Both t _ -> Just (fore addColour (chunk t))
-                )
-                charDiff
+          delChunks = fore delColour (chunk (T.singleton '-')) : renderDelSide charDiff
+          addChunks = fore addColour (chunk (T.singleton '+')) : renderAddSide charDiff
        in (delChunks, addChunks)

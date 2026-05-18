@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.23.1.0] - 2026-05-18
+
+### Added
+
+* `delColour`, `addColour`, `emphasiseIntraLine`, `renderDelSide`,
+  `renderAddSide` in `Test.Syd.Output.Common` for diff rendering.
+
+### Changed
+
+* Equality-assertion diff output (`formatDiff`) now uses the same colour
+  scheme as the mutation-mode unified diff: paired-line foregrounds are
+  dull red/green, intra-line changes are bold + bright red/green, and
+  whitespace-only changes get a background fill.
+
 ## [0.23.0.2] - 2026-02-26
 
 ### Changed

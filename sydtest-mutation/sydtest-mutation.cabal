@@ -41,6 +41,7 @@ test-suite sydtest-mutation-test
   main-is: Spec.hs
   other-modules:
       Test.Syd.AugmentedManifestSpec
+      Test.Syd.CoverageBaselineSpec
       Test.Syd.ManifestSpec
       Test.Syd.MutationIdSpec
       Test.Syd.MutationSpec

@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.Mutation.TestCoverageMap
@@ -8,19 +10,30 @@ module Test.Syd.Mutation.TestCoverageMap
 where
 
 import Autodocodec
+import qualified Data.Aeson as Aeson
 import Data.Bifunctor (second)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+import Data.GenValidity
+import Data.GenValidity.Containers ()
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
+import GHC.Generics (Generic)
 import Test.Syd.Mutation.Runtime (MutationId)
 import Test.Syd.Mutation.TestId (TestId)
 
 -- | Coverage result for one or more tests: maps each 'TestId' to the set of
 -- 'MutationId's reached during that test's execution.
 newtype TestCoverageMap = TestCoverageMap (Map.Map TestId (Set MutationId))
-  deriving (Show)
+  deriving (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec TestCoverageMap)
+
+instance Validity TestCoverageMap
+
+instance GenValid TestCoverageMap where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 -- Encoded as a JSON array of {test_id, mutations} objects because TestId is
 -- not a valid JSON object key.

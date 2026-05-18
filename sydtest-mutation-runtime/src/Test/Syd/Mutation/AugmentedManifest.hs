@@ -519,3 +519,10 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
 newtype MutationProgressEvent = MutationProgressEvent
   { mutationProgressRecord :: AugmentedMutationRecord
   }
+  deriving stock (Show, Eq, Generic)
+
+instance Validity MutationProgressEvent
+
+instance GenValid MutationProgressEvent where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally

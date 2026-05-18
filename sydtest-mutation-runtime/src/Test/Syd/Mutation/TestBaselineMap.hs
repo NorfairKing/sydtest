@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.Mutation.TestBaselineMap
@@ -8,16 +10,27 @@ module Test.Syd.Mutation.TestBaselineMap
 where
 
 import Autodocodec
+import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+import Data.GenValidity
+import Data.GenValidity.Containers ()
 import qualified Data.Map.Strict as Map
+import GHC.Generics (Generic)
 import Test.Syd.Mutation.TestId (TestId)
 
 -- | Per-test wall-clock baselines (microseconds) collected during the
 -- coverage phase.  Used to derive per-mutation timeouts in the mutation
 -- phase.
 newtype TestBaselineMap = TestBaselineMap (Map.Map TestId Word)
-  deriving (Show)
+  deriving (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec TestBaselineMap)
+
+instance Validity TestBaselineMap
+
+instance GenValid TestBaselineMap where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 -- Encoded as a JSON array of {test_id, elapsed_micros} objects because
 -- TestId is not a valid JSON object key.

@@ -2,4 +2,4 @@
 [31m-[m[31malpha = 1[m
 [31m-beta = 2[m
 [31m-gamma = 3[m
-[32m+[m[32malpha = 1[m[92m1[m
+[32m+[m[32malpha = 1[m[1;92m1[m

@@ -1,7 +1,7 @@
 [36m@@ -8,5 +8,5 @@[m
  add :: Int -> Int -> Int
  add x y =
-[31m-[m[31m  let result = x [m[91m+[m[31m y in result[m
-[32m+[m[32m  let result = x [m[92m-[m[32m y in result[m
+[31m-[m[31m  let result = x [m[1;91m+[m[31m y in result[m
+[32m+[m[32m  let result = x [m[1;92m-[m[32m y in result[m
  
  -- end

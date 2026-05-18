@@ -114,7 +114,7 @@ import Test.Syd.Output.Common (addColour, delColour)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour (Chunk, Colour, back, brightGreen, brightRed, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (Chunk, Colour, back, bold, brightGreen, brightRed, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
 -- subprocess per test (up to N concurrently, N defaults to
@@ -894,7 +894,7 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
           emphasise lineCol brightCol t =
             if T.null (T.strip t)
               then back lineCol (chunk t)
-              else fore brightCol (chunk t)
+              else bold (fore brightCol (chunk t))
           delChunks =
             fore delColour (chunk (T.singleton '-'))
               : mapMaybe

@@ -89,21 +89,19 @@ parseSteps = fmap reverse . go [] []
         _ -> Just (unescapeDesc (T.pack s), 0)
 
     splitAtLastUnescapedColon :: String -> Maybe (String, String)
-    splitAtLastUnescapedColon s =
-      case findUnescapedColons s of
-        [] -> Nothing
-        is ->
-          let i = last is
-           in Just (take i s, drop (i + 1) s)
+    splitAtLastUnescapedColon s = case lastUnescapedColon s of
+      Nothing -> Nothing
+      Just i -> Just (take i s, drop (i + 1) s)
 
-    findUnescapedColons :: String -> [Int]
-    findUnescapedColons = go2 0 False
+    -- \| Index of the last unescaped @:@ in @s@, or 'Nothing' if there is none.
+    lastUnescapedColon :: String -> Maybe Int
+    lastUnescapedColon = scan 0 Nothing False
       where
-        go2 _ _ [] = []
-        go2 i True (_ : rest) = go2 (i + 1) False rest
-        go2 i False ('\\' : rest) = go2 (i + 1) True rest
-        go2 i False (':' : rest) = i : go2 (i + 1) False rest
-        go2 i False (_ : rest) = go2 (i + 1) False rest
+        scan _ acc _ [] = acc
+        scan i acc True (_ : rest) = scan (i + 1) acc False rest
+        scan i acc False ('\\' : rest) = scan (i + 1) acc True rest
+        scan i _ False (':' : rest) = scan (i + 1) (Just i) False rest
+        scan i acc False (_ : rest) = scan (i + 1) acc False rest
 
 instance HasCodec TestId where
   codec =

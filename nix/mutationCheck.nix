@@ -162,7 +162,7 @@ let
     (pkg: ''
       echo "mutation-nix: collecting coverage for suite ${pkg}"
       storeExe=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)
-      "$storeExe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} \
+      "$storeExe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
         --mutation-suite-name ${pkg} \
         --mutation-augmented-manifest-dir augmented
     '')
@@ -207,7 +207,12 @@ let
           echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
           # +RTS -M4g -RTS: cap the test process heap to 4 GB to avoid OOM in
           # the Nix sandbox, where memory is shared with the builder.
-          "$exe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} \
+          # ${failFastFlag} is forwarded so the coverage phase mirrors the
+          # caller's fail-fast intent. With fail-fast on, a baseline test
+          # failure exits code 2 and aborts the run; with fail-fast off, the
+          # coverage phase still warns loudly but continues so the report
+          # derivation can be produced.
+          "$exe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
             --mutation-suite-name ${firstTestPkg} \
             --mutation-augmented-manifest-dir augmented
           ${extraCoverageScript}

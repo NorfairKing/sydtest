@@ -1,0 +1,61 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.3.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-mutation-driver
+version:        0.0.0.0
+synopsis:       Out-of-process mutation testing driver for sydtest.
+description:    Standalone driver executable that orchestrates the coverage and mutation phases of sydtest's mutation testing infrastructure. Reads its configuration from a YAML file and spawns instrumented sydtest test suite executables as children.
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+license:        MIT
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd.Mutation.Driver
+      Test.Syd.Mutation.Driver.Coverage
+      Test.Syd.Mutation.Driver.Mutate
+      Test.Syd.Mutation.Driver.OptParse
+  other-modules:
+      Paths_sydtest_mutation_driver
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , async
+    , autodocodec
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , opt-env-conf >=0.10
+    , path
+    , path-io
+    , safe-coloured-text
+    , stm
+    , sydtest
+    , sydtest-mutation-runtime
+    , text
+    , typed-process
+  default-language: Haskell2010
+
+executable sydtest-mutation-driver
+  main-is: Main.hs
+  other-modules:
+      Paths_sydtest_mutation_driver
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , sydtest-mutation-driver
+  default-language: Haskell2010

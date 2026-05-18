@@ -15,10 +15,8 @@ import Control.Concurrent (getNumCapabilities)
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.List.NonEmpty (NonEmpty (..))
-import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import OptEnvConf
@@ -89,41 +87,32 @@ data Settings = Settings
   deriving (Show, Eq, Generic)
 
 -- | Top-level mutation-testing configuration.  The 'mutationMode' selects
--- which of the four mutation entry points runs, and 'mutationFailFast' is a
--- cross-mode flag.  All other mutation-related options live on the mode-
--- specific records to make it impossible to set "child" fields in "parent"
--- mode (and vice versa).
+-- which of the three child mutation entry points runs, and
+-- 'mutationFailFast' is a cross-mode flag.  All other mutation-related
+-- options live on the mode-specific records.
+--
+-- Parent-side orchestration (coverage collection, mutation dispatch) is
+-- handled by the @sydtest-mutation-driver@ executable, which spawns
+-- sydtest test suites as children using these child modes.
 data MutationSettings = MutationSettings
-  { -- | Stop the mutation/coverage run as soon as a surviving, uncovered, or
-    -- failing test is observed.  True suits CI; set to false for iterated
-    -- development where the full report is wanted.
+  { -- | Stop the mutation/coverage run as soon as a surviving, uncovered,
+    -- or failing test is observed.  True suits CI; set to false for
+    -- iterated development where the full report is wanted.
     mutationFailFast :: !Bool,
     mutationMode :: !MutationMode
   }
   deriving (Show, Eq, Generic)
 
--- | One of the four mutation entry points, with the options it needs.
+-- | One of the three child-side mutation entry points, with the options
+-- it needs.  Parent-side modes live in @sydtest-mutation-driver@.
 data MutationMode
-  = -- | Parent process that orchestrates coverage collection.
-    MutationModeCoverage !CoverageParentSettings
+  = -- | Child process: print every leaf test's id on stdout and exit.
+    -- Used by the driver to enumerate tests for the coverage phase.
+    MutationModeCoverageList
   | -- | Child process that collects coverage for one test.
     MutationModeCoverageChild !CoverageChildSettings
-  | -- | Parent process that runs mutations against the augmented manifest.
-    MutationModeMutate !MutationParentSettings
   | -- | Child process that runs only the tests covering one mutation.
     MutationModeMutateChild !MutationChildSettings
-  deriving (Show, Eq, Generic)
-
--- | Options for the coverage-parent process: instrumented manifests to
--- scan, where to write @manifest-augmented.json@, parallelism, retry, and
--- the optional suite name used as the covered-tests key.
-data CoverageParentSettings = CoverageParentSettings
-  { coverageParentManifestDirs :: !(NonEmpty (Path Abs Dir)),
-    coverageParentAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
-    coverageParentJobs :: !(Maybe Int),
-    coverageParentRetry :: !Word,
-    coverageParentSuiteName :: !(Maybe Text)
-  }
   deriving (Show, Eq, Generic)
 
 -- | Options for the coverage-child process: the single test to run, plus
@@ -133,18 +122,6 @@ data CoverageChildSettings = CoverageChildSettings
     coverageChildOutput :: !FilePath,
     coverageChildBaselineOutput :: !FilePath,
     coverageChildSuiteName :: !(Maybe Text)
-  }
-  deriving (Show, Eq, Generic)
-
--- | Options for the mutation-parent process: instrumented manifests,
--- where the augmented manifest sits, where to write @report.json@, the
--- RTS heap cap for spawned children, and the suite name → executable map.
-data MutationParentSettings = MutationParentSettings
-  { mutationParentManifestDirs :: !(NonEmpty (Path Abs Dir)),
-    mutationParentAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
-    mutationParentReportDir :: !(Maybe (Path Abs Dir)),
-    mutationParentChildMemLimit :: !(Maybe String),
-    mutationParentSuiteExes :: !(Map.Map Text FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -285,28 +262,23 @@ instance HasParser Settings where
                   }
         pure combined
 
--- | Pick at most one 'MutationMode' from the parsed flags.
+-- | Pick at most one child-side 'MutationMode' from the parsed flags.
 --
--- The four flags are dispatched in priority order:
+-- The three flags are dispatched in priority order:
 --
--- 1. 'flagMutationCoverageOne' selects coverage-child.
--- 2. 'flagMutationCoverage'    selects coverage-parent.
--- 3. 'flagMutationOne'         selects mutation-child.
--- 4. 'flagMutation'            selects mutation-parent.
+-- 1. 'flagMutationCoverageList' selects coverage-list (enumerate tests).
+-- 2. 'flagMutationCoverageOne'  selects coverage-child.
+-- 3. 'flagMutationOne'          selects mutation-child.
 --
--- This is intentionally a priority order, not a mutual-exclusion check:
--- the coverage parent spawns its children with BOTH @--mutation-coverage@
--- and @--mutation-coverage-one@ set, so that the child can locate the
--- manifest directory while still dispatching to the single-test coverage
--- runner.  Likewise, the mutation parent spawns children with both
--- @--mutation@ and @--mutation-one@.
+-- Parent-side orchestration is the job of @sydtest-mutation-driver@.
 resolveMutationSettings :: Flags -> Either String (Maybe MutationSettings)
 resolveMutationSettings Flags {..} =
   let failFast = fromMaybe defaultMutationFailFast flagMutationFailFast
-      retry = fromMaybe defaultCoverageParentRetry flagMutationCoverageRetry
       mkMutation mode = Just MutationSettings {mutationFailFast = failFast, mutationMode = mode}
-   in case (flagMutationCoverageOne, flagMutationCoverage, flagMutationOne, flagMutation) of
-        (Just tid, _, _, _) -> do
+   in case (flagMutationCoverageList, flagMutationCoverageOne, flagMutationOne) of
+        (True, _, _) ->
+          pure $ mkMutation MutationModeCoverageList
+        (False, Just tid, _) -> do
           outputFile <- case flagMutationCoverageOutput of
             Just f -> Right f
             Nothing -> Left "--mutation-coverage-one requires --mutation-coverage-output"
@@ -322,18 +294,7 @@ resolveMutationSettings Flags {..} =
                     coverageChildBaselineOutput = baselineFile,
                     coverageChildSuiteName = flagMutationSuiteName
                   }
-        (Nothing, d1 : ds, _, _) ->
-          pure $
-            mkMutation $
-              MutationModeCoverage
-                CoverageParentSettings
-                  { coverageParentManifestDirs = d1 :| ds,
-                    coverageParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
-                    coverageParentJobs = flagMutationCoverageJobs,
-                    coverageParentRetry = retry,
-                    coverageParentSuiteName = flagMutationSuiteName
-                  }
-        (Nothing, [], Just mid, _) ->
+        (False, Nothing, Just mid) ->
           pure $
             mkMutation $
               MutationModeMutateChild
@@ -342,28 +303,12 @@ resolveMutationSettings Flags {..} =
                     mutationChildAugmentedManifestDir = flagMutationAugmentedManifestDir,
                     mutationChildSuiteName = flagMutationSuiteName
                   }
-        (Nothing, [], Nothing, d1 : ds) ->
-          pure $
-            mkMutation $
-              MutationModeMutate
-                MutationParentSettings
-                  { mutationParentManifestDirs = d1 :| ds,
-                    mutationParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
-                    mutationParentReportDir = flagMutationReportDir,
-                    mutationParentChildMemLimit = flagMutationChildMemLimit,
-                    mutationParentSuiteExes = flagMutationSuiteExes
-                  }
-        (Nothing, [], Nothing, []) -> pure Nothing
+        (False, Nothing, Nothing) -> pure Nothing
 
 -- | Default value of 'mutationFailFast'.  True suits CI so a single
 -- survivor aborts the run; flip to False locally for the full report.
 defaultMutationFailFast :: Bool
 defaultMutationFailFast = True
-
--- | Default coverage retry budget.  Set conservatively so a flaky coverage
--- child does not lose the entire run.
-defaultCoverageParentRetry :: Word
-defaultCoverageParentRetry = 3
 
 defaultSettings :: Settings
 defaultSettings =
@@ -439,19 +384,13 @@ data Flags = Flags
     flagProfile :: !Bool,
     flagAiExecutor :: !(Maybe Bool),
     flagOutputFormat :: !(Maybe OutputFormat),
-    flagMutation :: ![Path Abs Dir],
-    flagMutationCoverage :: ![Path Abs Dir],
     flagMutationAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
     flagMutationOne :: !(Maybe String),
-    flagMutationChildMemLimit :: !(Maybe String),
-    flagMutationCoverageJobs :: !(Maybe Int),
-    flagMutationCoverageRetry :: !(Maybe Word),
-    flagMutationReportDir :: !(Maybe (Path Abs Dir)),
     flagMutationSuiteName :: !(Maybe Text),
-    flagMutationSuiteExes :: !(Map.Map Text FilePath),
     flagMutationCoverageOne :: !(Maybe Text),
     flagMutationCoverageOutput :: !(Maybe FilePath),
     flagMutationCoverageBaselineOutput :: !(Maybe FilePath),
+    flagMutationCoverageList :: !Bool,
     flagMutationFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -626,20 +565,6 @@ instance HasParser Flags where
                 long "pretty"
               ]
           ]
-    flagMutation <-
-      many $
-        directoryPathSetting
-          [ help "Path to mutation manifest directory; run in mutation testing mode",
-            option,
-            long "mutation"
-          ]
-    flagMutationCoverage <-
-      many $
-        directoryPathSetting
-          [ help "Path to mutation manifest directory; collect per-test coverage and write .coverage.json files",
-            option,
-            long "mutation-coverage"
-          ]
     flagMutationAugmentedManifestDir <-
       optional $
         directoryPathSetting
@@ -657,41 +582,6 @@ instance HasParser Flags where
             metavar "MUTATION_ID",
             hidden
           ]
-    flagMutationChildMemLimit <-
-      optional $
-        setting
-          [ help "RTS heap limit for each mutation child process, e.g. 4g (passed as +RTS -M<limit> -RTS)",
-            reader str,
-            option,
-            long "mutation-child-mem-limit",
-            metavar "SIZE"
-          ]
-    flagMutationCoverageJobs <-
-      optional $
-        setting
-          [ help "Maximum number of coverage child processes to run concurrently. Defaults to the RTS capability count.",
-            reader auto,
-            option,
-            long "mutation-coverage-jobs",
-            metavar "INTEGER"
-          ]
-    flagMutationCoverageRetry <-
-      optional $
-        setting
-          [ help "Retry a failing coverage child up to N times before failing the run. Defaults to 3.",
-            reader auto,
-            option,
-            long "mutation-coverage-retry",
-            metavar "INTEGER"
-          ]
-    flagMutationReportDir <-
-      optional $
-        directoryPathSetting
-          [ help "Directory where report.json is written by the parent mutation process",
-            option,
-            long "mutation-report-dir",
-            hidden
-          ]
     flagMutationSuiteName <-
       optional $
         setting
@@ -702,17 +592,6 @@ instance HasParser Flags where
             metavar "NAME",
             hidden
           ]
-    flagMutationSuiteExes <-
-      fmap Map.fromList $
-        many $
-          setting
-            [ help "Suite name and executable path for multi-suite mutation testing, as name=path",
-              reader (eitherReader parseSuiteExe),
-              option,
-              long "mutation-suite-exe",
-              metavar "NAME=PATH",
-              hidden
-            ]
     flagMutationCoverageOne <-
       optional $
         setting
@@ -743,6 +622,14 @@ instance HasParser Flags where
             metavar "FILE",
             hidden
           ]
+    flagMutationCoverageList <-
+      setting
+        [ help "List every leaf test id on stdout and exit (used internally by the mutation driver to enumerate tests)",
+          switch True,
+          long "mutation-coverage-list",
+          hidden,
+          value False
+        ]
     flagMutationFailFast <-
       optional $
         yesNoSwitch
@@ -750,17 +637,6 @@ instance HasParser Flags where
             name "mutation-fail-fast"
           ]
     pure Flags {..}
-
--- | Parse a @name=path@ string from @--mutation-suite-exe@.  Rejects
--- inputs missing the @=@ separator and inputs with an empty name or path.
-parseSuiteExe :: String -> Either String (Text, FilePath)
-parseSuiteExe s =
-  case break (== '=') s of
-    (suiteName, '=' : exePath)
-      | null suiteName -> Left "--mutation-suite-exe: empty suite name before '='"
-      | null exePath -> Left "--mutation-suite-exe: empty executable path after '='"
-      | otherwise -> Right (T.pack suiteName, exePath)
-    _ -> Left $ "--mutation-suite-exe: expected NAME=PATH, got " ++ show s
 
 data Timeout
   = DoNotTimeout

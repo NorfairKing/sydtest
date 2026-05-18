@@ -1,0 +1,38 @@
+name: sydtest-mutation-driver-gen
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: MIT
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+synopsis: Generators and tests for sydtest-mutation-driver's config types.
+description: GenValid instances and roundtrip tests for the data types in sydtest-mutation-driver, ensuring the YAML/JSON encoding round-trips and that defaults are valid.
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - QuickCheck
+  - genvalidity
+  - genvalidity-containers
+  - genvalidity-path
+  - genvalidity-text
+  - sydtest-mutation-driver
+
+tests:
+  sydtest-mutation-driver-gen-test:
+    main: Spec.hs
+    source-dirs: test
+    build-tools: sydtest-discover
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - genvalidity-sydtest
+    - genvalidity-sydtest-aeson
+    - sydtest
+    - sydtest-mutation-driver
+    - sydtest-mutation-driver-gen

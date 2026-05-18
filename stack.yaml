@@ -25,6 +25,8 @@ packages:
 - sydtest-mutation-runtime
 - sydtest-mutation-plugin
 - sydtest-mutation
+- sydtest-mutation-driver
+- sydtest-mutation-driver-gen
 - sydtest-mutation-example
 - sydtest-mutation-example-gen
 

@@ -26,9 +26,8 @@
 # - assertAllKilled: return a check derivation that fails if any mutations survive (default: true)
 # - assertNoneUncovered: also fail the check derivation if any mutations are uncovered (default: true)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
-# - testProcessMemLimit: RTS heap limit for the test process during the
-#       coverage phase and for each mutation child during the mutation phase
-#       (default: "4g")
+# - testProcessMemLimit: RTS heap limit for each mutation child during the
+#       mutation phase (default: "4g")
 # - coverageJobs: maximum number of coverage children to run concurrently.
 #       Defaults to 4, a conservative cap that keeps mutation checks from
 #       OOM-ing on hosts where 'getNumCapabilities' is high but test suites
@@ -40,17 +39,12 @@
 #       so the whole coverage phase doesn't get lost to a transient failure.
 #       'null' leaves the harness default in place.
 #
-# The mutations are run inside the Cabal build's checkPhase of the first test
-# package, so test resources (golden files, data files) are available at
-# relative paths. All other test suite executables are referenced by Nix store
-# paths baked in at evaluation time.
-#
-# The harness pulls testToolDepends from every test package automatically and
-# puts them on PATH for its own checkPhase. This is necessary because the
-# harness runs every test executable in turn from one checkPhase, so the
-# per-package testToolDepends (which only fire during that package's own
-# checkPhase, which the harness clears) are not otherwise visible to spawned
-# test exes.
+# The mutation driver runs out-of-tree in this build's checkPhase. Test
+# resource directories are point-of-reference for each suite — the driver
+# 'cd's into each suite's source-tree path before spawning it as a child
+# so golden files and data files resolve via the same relative paths Cabal
+# would use during a 'checkPhase'. All test suite executables are
+# referenced by Nix store paths baked in at evaluation time.
 
 { name
 , packages ? [ ]
@@ -68,9 +62,8 @@
 , assertAllKilled ? true
 , assertNoneUncovered ? true
 , ghcMemLimit ? "16g"
-  # RTS heap cap for the test process during the coverage phase and for each
-  # mutation child during the mutation phase.  Passed as '+RTS -M<limit> -RTS'
-  # to the test exe and as '--mutation-child-mem-limit' to the harness.
+  # RTS heap cap for each mutation child during the mutation phase.
+  # Passed to the driver via the YAML config's 'childMemLimit'.
 , testProcessMemLimit ? "4g"
 , coverageJobs ? 4
 , coverageRetry ? null
@@ -83,6 +76,7 @@
 
 let
   inherit (haskellPackages.sydtest) addManifest assertMutationScore;
+  driver = haskellPackages.sydtest-mutation-driver;
 
   libraryPackages = packages ++ libraries;
   testPackages = packages ++ tests;
@@ -136,9 +130,9 @@ let
   # only installs library and executable components, not test suites, so
   # we copy them manually from their predictable paths under dist/build/.
   # checkPhase is cleared so the tests are not run during this build;
-  # they are run later in the mutation checkPhase of the first
-  # test-suite.  dontBenchmark: avoid building benchmark executables
-  # that would also end up under dist/build/.
+  # they are run later in the driver derivation.  dontBenchmark: avoid
+  # building benchmark executables that would also end up under
+  # dist/build/.
   builtTestPkg = pkgName:
     let suites = testSuiteNamesOf pkgName;
     in
@@ -165,78 +159,52 @@ let
   # Expand the caller's @testPackages@ list to a flat list of
   # @{ pkg, suite }@ records, one per declared test-suite. The harness
   # treats each test-suite as an independent "suite" with its own
-  # --mutation-suite-name / --mutation-suite-exe flags.
+  # name and exe.
   allTestSuites =
     pkgs.lib.concatMap
       (pkgName: map (suite: { pkg = pkgName; inherit suite; }) (testSuiteNamesOf pkgName))
       testPackages;
 
   manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
-  coverageFlags = pkgs.lib.concatMapStringsSep " "
-    (m: "--mutation-coverage ${m}")
-    manifests;
-  coverageJobsFlag = pkgs.lib.optionalString (coverageJobs != null)
-    "--mutation-coverage-jobs ${toString coverageJobs}";
-  coverageRetryFlag = pkgs.lib.optionalString (coverageRetry != null)
-    "--mutation-coverage-retry ${toString coverageRetry}";
-  failFastFlag =
-    if failFast
-    then "--mutation-fail-fast"
-    else "--no-mutation-fail-fast";
-  mutationFlags = pkgs.lib.concatMapStringsSep " "
-    (m: "--mutation ${m}")
-    manifests;
-
-  # The first test-suite is the one whose Cabal checkPhase we hijack to
-  # run the mutation harness.  Its executable lives at a predictable path
-  # inside the in-place Cabal build tree, so golden files and other
-  # relative paths resolve as Cabal expects.
-  firstSuite =
-    if allTestSuites == [ ]
-    then throw "sydtest.mutationCheck '${name}': no test-suites declared by any of packages = ${toString testPackages} or tests = ${toString tests}. Provide at least one package that declares a test-suite."
-    else builtins.head allTestSuites;
-  # Every other declared test-suite is built separately and referenced by
-  # its Nix store path; the executable path is baked into the checkPhase
-  # script at eval time.
-  extraSuites = builtins.tail allTestSuites;
 
   # On-disk path of a test exe inside a built test package.
   storeTestExePath = s: "${builtTestPkg s.pkg}/test/${s.suite}";
 
-  extraSuiteExeFlags = pkgs.lib.concatMapStringsSep " "
-    (s: "--mutation-suite-exe ${s.suite}=${storeTestExePath s}")
-    extraSuites;
+  # Resource directory for one suite: the unpacked source tree of its
+  # owning package.  Used by the driver to 'cd' into the suite's source
+  # tree before spawning it (so golden files and data files resolve via
+  # relative paths just as they would during a Cabal 'checkPhase').
+  #
+  # The instrumented package's 'src' is an sdist tarball
+  # (haskellPackages.buildFromSdist wraps it).  We unpack each tarball
+  # once into a per-package store path that the driver can 'cd' into.
+  unpackedSrc = pkgName:
+    pkgs.stdenv.mkDerivation {
+      name = "${pkgName}-resource-dir";
+      src = instrumentedHaskellPackages.${pkgName}.src;
+      nativeBuildInputs = [ pkgs.gnutar pkgs.gzip ];
+      dontConfigure = true;
+      dontBuild = true;
+      installPhase = ''
+        mkdir -p $out
+        cp -r ./. $out/
+      '';
+    };
+  resourceDirFor = s: unpackedSrc s.pkg;
 
-  firstSuiteExeFlag = "--mutation-suite-exe ${firstSuite.suite}=$(realpath \"$exe\")";
-
-  allSuiteExeFlags = "${firstSuiteExeFlag} ${extraSuiteExeFlags}";
-
-  extraCoverageScript = pkgs.lib.concatMapStringsSep "\n"
-    (s: ''
-      echo "mutation-nix: collecting coverage for suite ${s.suite}"
-      "${storeTestExePath s}" +RTS -M${testProcessMemLimit} -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
-        --mutation-suite-name ${s.suite} \
-        --mutation-augmented-manifest-dir augmented
-    '')
-    extraSuites;
-
-  # Distinct packages needed on buildInputs.  Multiple extra suites from
-  # the same package share a single derivation.
-  extraInputs =
-    let pkgsNeeded = pkgs.lib.unique (map (s: s.pkg) extraSuites);
+  # Distinct test-package derivations needed on buildInputs.  Multiple
+  # suites from the same package share a single derivation.
+  testPkgInputs =
+    let pkgsNeeded = pkgs.lib.unique (map (s: s.pkg) allTestSuites);
     in map builtTestPkg pkgsNeeded;
 
-  # Pull testToolDepends from every test package (first and extras) so they
-  # are visible to the harness's checkPhase. Each package's own checkPhase is
-  # cleared, so we cannot rely on per-package testToolDepends — they only fire
-  # during that package's own check. We need them on PATH for the harness.
-  # 'getCabalDeps.testToolDepends' is provided by haskellPackages.generic-builder
-  # whenever doCheck = true; we apply doCheck before reading it.
-  #
-  # We assert that getCabalDeps is present rather than defaulting silently:
-  # if a future caller substitutes a derivation that does not go through
-  # generic-builder, the eval fails loudly here rather than producing a
-  # build whose test exes silently lack their runtime PATH dependencies.
+  # Pull testToolDepends from every test package so they are visible to
+  # the driver's child processes. Each package's own checkPhase is
+  # cleared, so we cannot rely on per-package testToolDepends — they only
+  # fire during that package's own check. We need them on PATH here.
+  # 'getCabalDeps.testToolDepends' is provided by
+  # haskellPackages.generic-builder whenever doCheck = true; we apply
+  # doCheck before reading it.
   collectedTestToolDepends = pkgs.lib.concatMap
     (pkg:
       let
@@ -248,65 +216,86 @@ let
     )
     testPackages;
 
-  drv =
-    (pkgs.haskell.lib.overrideCabal
-      # dontBenchmark: benchmarks are not relevant here and would waste build time.
-      # doCheck: needed so Cabal compiles the test suite executable.
-      (pkgs.haskell.lib.dontBenchmark
-        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${firstSuite.pkg}))
-      (_old: {
-        checkPhase = ''
-          # The first test-suite's executable lives at a predictable path
-          # inside Cabal's in-place build tree.  Fail loudly if it is not
-          # there rather than silently picking some other binary.
-          exe="dist/build/${firstSuite.suite}/${firstSuite.suite}"
-          if [ ! -x "$exe" ]; then
-            echo "mutation-nix: expected test executable at $exe but it is not executable" >&2
-            exit 1
-          fi
-          mkdir -p augmented
-          echo "mutation-nix: collecting coverage for suite ${firstSuite.suite}"
-          # +RTS -M${testProcessMemLimit} -RTS: cap the test process heap to
-          # avoid OOM in the Nix sandbox, where memory is shared with the
-          # builder.
-          # ${failFastFlag} is forwarded so the coverage phase mirrors the
-          # caller's fail-fast intent. With fail-fast on, a baseline test
-          # failure exits code 2 and aborts the run; with fail-fast off, the
-          # coverage phase still warns loudly but continues so the report
-          # derivation can be produced.
-          "$exe" +RTS -M${testProcessMemLimit} -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
-            --mutation-suite-name ${firstSuite.suite} \
-            --mutation-augmented-manifest-dir augmented
-          ${extraCoverageScript}
-          echo "mutation-nix: running mutations"
-          mkdir -p $report
-          "$exe" ${mutationFlags} \
-            --mutation-augmented-manifest-dir augmented \
-            ${allSuiteExeFlags} \
-            --mutation-child-mem-limit ${testProcessMemLimit} \
-            ${failFastFlag} \
-            --mutation-report-dir "$report" | tee $report/report.txt
-        '';
-        # Suppress the default postCheck phase so it does not re-run the test
-        # suite after our mutation checkPhase has already finished.
-        postCheck = "";
-      })).overrideAttrs (old: {
-      # extraInputs are the extra test package derivations; adding them to
-      # buildInputs ensures they are present in the sandbox PATH during checkPhase.
-      buildInputs = (old.buildInputs or [ ]) ++ extraInputs;
-      # Test executables spawn tools (postgresql, git, nix, ...) at runtime
-      # via testToolDepends. The harness runs every test exe from a single
-      # checkPhase, so we put the union of those deps from every test package
-      # on PATH here — per-package testToolDepends only fire during that
-      # package's own checkPhase, which the harness clears.
-      nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ collectedTestToolDepends;
-      # Add a 'report' output so callers can access report.txt and report.json
-      # without having to build the full 'out' derivation.
-      outputs = (old.outputs or [ "out" ]) ++ [ "report" ];
-    });
+  # Build a YAML config file for the driver.  JSON is valid YAML so we
+  # render the attrset via 'builtins.toJSON'.  Suites are keyed by
+  # test-suite name (which is unique across all packages in this check).
+  driverConfigValue =
+    {
+      manifests = map toString manifests;
+      suites =
+        builtins.listToAttrs
+          (map
+            (s: {
+              name = s.suite;
+              value = {
+                exe = storeTestExePath s;
+                resourceDir = toString (resourceDirFor s);
+              };
+            })
+            allTestSuites);
+      childMemLimit = testProcessMemLimit;
+      augmentedManifestDir = null;
+      reportDir = null;
+      failFast = failFast;
+    }
+    // pkgs.lib.optionalAttrs (coverageJobs != null) { coverageJobs = coverageJobs; }
+    // pkgs.lib.optionalAttrs (coverageRetry != null) { coverageRetry = coverageRetry; };
 
-  report = drv.report;
-  check = assertMutationScore { inherit name assertNoneUncovered; report = drv.report; };
+  driverConfigFile =
+    pkgs.writeText "${name}-mutation-driver-config.yaml"
+      (builtins.toJSON driverConfigValue);
+
+  drv =
+    if allTestSuites == [ ]
+    then throw "sydtest.mutationCheck '${name}': no test-suites declared by any of packages = ${toString testPackages} or tests = ${toString tests}. Provide at least one package that declares a test-suite."
+    else
+      pkgs.stdenv.mkDerivation {
+        name = "${name}-mutation-report";
+        dontUnpack = true;
+        buildInputs = testPkgInputs ++ [ driver ];
+        # Test executables spawn tools (postgresql, git, nix, ...) at
+        # runtime via testToolDepends. Put the union of those deps on
+        # PATH so children can find them.
+        nativeBuildInputs = collectedTestToolDepends;
+        buildPhase = ''
+          runHook preBuild
+
+          mkdir -p augmented report
+
+          # The driver writes report.json into the directory passed via
+          # '--mutation-report-dir' (which overrides the config file's
+          # 'reportDir').  We point that at a workdir-local directory
+          # and copy the results to '$out' in installPhase.
+          # 'set -o pipefail' so the driver's exit code propagates
+          # through 'tee' and aborts the build on a survivor or crash.
+          set -o pipefail
+          ${driver}/bin/sydtest-mutation-driver \
+            --config-file=${driverConfigFile} \
+            --mutation-augmented-manifest-dir augmented \
+            --mutation-report-dir report \
+              2>&1 | tee report/report.txt
+
+          runHook postBuild
+        '';
+        installPhase = ''
+          runHook preInstall
+
+          mkdir -p $out
+          cp report/report.txt $out/report.txt
+          cp report/report.json $out/report.json
+          # Also copy any per-suite child log files the driver wrote.
+          for f in report/*.log; do
+            if [ -e "$f" ]; then
+              cp "$f" "$out/"
+            fi
+          done
+
+          runHook postInstall
+        '';
+      };
+
+  report = drv;
+  check = assertMutationScore { inherit name assertNoneUncovered report; };
 in
 if assertAllKilled
 then check

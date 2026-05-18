@@ -42,7 +42,9 @@ library
       Test.Syd.Modify
       Test.Syd.Mutation.Forest
       Test.Syd.MutationMode
+      Test.Syd.MutationMode.Common
       Test.Syd.MutationMode.Single
+      Test.Syd.MutationMode.SingleCoverage
       Test.Syd.OptParse
       Test.Syd.Output
       Test.Syd.Output.Common
@@ -92,7 +94,6 @@ library
     , sydtest-mutation-runtime
     , text
     , transformers
-    , typed-process
     , vector
   default-language: Haskell2010
   if os(windows)

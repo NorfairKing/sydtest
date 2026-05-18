@@ -256,6 +256,7 @@ where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import qualified Data.Text as T
 import Path
 import Path.IO
 import System.Exit
@@ -264,8 +265,10 @@ import Test.Syd.Def
 import Test.Syd.Expectation
 import Test.Syd.HList
 import Test.Syd.Modify
-import Test.Syd.MutationMode (runCoverageMode, runMutationMode, runSingleCoverageMode)
+import Test.Syd.Mutation.Forest (flattenTestForestWithIds)
+import Test.Syd.Mutation.TestId (renderTestId)
 import Test.Syd.MutationMode.Single (runSingleMutationMode)
+import Test.Syd.MutationMode.SingleCoverage (runSingleCoverageMode)
 import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.ReRun
@@ -284,11 +287,19 @@ sydTest spec = do
   sets <- getSettings
   case settingMutation sets of
     Just MutationSettings {mutationFailFast, mutationMode} -> case mutationMode of
-      MutationModeCoverage cov -> runCoverageMode sets mutationFailFast cov spec
+      MutationModeCoverageList -> runCoverageListMode sets spec
       MutationModeCoverageChild ch -> runSingleCoverageMode sets mutationFailFast ch spec
-      MutationModeMutate mut -> runMutationMode sets mutationFailFast mut spec
       MutationModeMutateChild ch -> runSingleMutationMode sets ch spec
     Nothing -> sydTestWith sets spec
+
+-- | Child-side entry point that prints every leaf test id on stdout and
+-- exits.  Used by 'sydtest-mutation-driver' to enumerate tests for the
+-- coverage phase.
+runCoverageListMode :: Settings -> Spec -> IO ()
+runCoverageListMode sets spec = do
+  specForest <- execTestDefM sets spec
+  let leafIds = map fst (flattenTestForestWithIds specForest)
+  mapM_ (putStrLn . T.unpack . renderTestId) leafIds
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'
 --

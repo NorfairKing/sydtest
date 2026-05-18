@@ -3,8 +3,7 @@
 , opt-env-conf, path, path-io, pretty-show, QuickCheck
 , quickcheck-io, random, random-shuffle, safe, safe-coloured-text
 , safe-coloured-text-terminfo, stm, svg-builder
-, sydtest-mutation-runtime, text, transformers, typed-process
-, vector
+, sydtest-mutation-runtime, text, transformers, vector
 }:
 mkDerivation {
   pname = "sydtest";
@@ -15,7 +14,7 @@ mkDerivation {
     fast-myers-diff filepath MonadRandom mtl opt-env-conf path path-io
     pretty-show QuickCheck quickcheck-io random random-shuffle safe
     safe-coloured-text safe-coloured-text-terminfo stm svg-builder
-    sydtest-mutation-runtime text transformers typed-process vector
+    sydtest-mutation-runtime text transformers vector
   ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   description = "A modern testing framework for Haskell with good defaults and advanced testing features";

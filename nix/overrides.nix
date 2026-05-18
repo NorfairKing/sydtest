@@ -69,14 +69,7 @@ let
         addMutationRuntimeDependency = callPackage ./addMutationRuntimeDependency.nix {
           haskellPackages = self;
         };
-        compileMutationReport = callPackage ./compileMutationReport.nix { };
         assertMutationScore = callPackage ./assertMutationScore.nix { };
-        runMutations = callPackage ./runMutations.nix { inherit compileMutationReport assertMutationScore; };
-        makeMutationReport = callPackage ./makeMutationReport.nix {
-          addManifest' = addManifest;
-          haskellPackages = self;
-          inherit compileMutationReport assertMutationScore;
-        };
         mutationCheck = callPackage ./mutationCheck.nix {
           inherit addMutationRuntimeDependency cabalComponents;
           haskellPackages = self;
@@ -84,7 +77,7 @@ let
       in
       {
         passthru = (old.passthru or { }) // {
-          inherit addManifest addMutationRuntimeDependency cabalComponents compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck;
+          inherit addManifest addMutationRuntimeDependency cabalComponents assertMutationScore mutationCheck;
         };
       });
     "sydtest-aeson" = sydtestPkg "sydtest-aeson";
@@ -93,6 +86,8 @@ let
     "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
     "sydtest-hspec" = sydtestPkg "sydtest-hspec";
     "sydtest-mutation" = sydtestPkg "sydtest-mutation";
+    "sydtest-mutation-driver" = sydtestPkg "sydtest-mutation-driver";
+    "sydtest-mutation-driver-gen" = sydtestPkg "sydtest-mutation-driver-gen";
     "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
     "sydtest-mutation-example-gen" = sydtestPkg "sydtest-mutation-example-gen";
     "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
@@ -141,6 +136,8 @@ let
   # is not silently excluded.
   mutationPkgNames = [
     "sydtest-mutation"
+    "sydtest-mutation-driver"
+    "sydtest-mutation-driver-gen"
     "sydtest-mutation-example"
     "sydtest-mutation-example-gen"
     "sydtest-mutation-plugin"

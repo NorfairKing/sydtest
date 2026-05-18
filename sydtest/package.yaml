@@ -47,7 +47,6 @@ library:
     - sydtest-mutation-runtime
     - text
     - transformers
-    - typed-process
     - vector
   when:
     - condition: 'os(windows)'

@@ -21,7 +21,7 @@ import Test.Syd.Mutation.AugmentedManifest
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, testIdTrieFromList)
 import Test.Syd.Mutation.Runtime (parseMutationId, setActiveMutation)
 import Test.Syd.Mutation.TestId (TestId)
-import Test.Syd.MutationMode (resolveAugmentedManifestDir)
+import Test.Syd.MutationMode.Common (resolveAugmentedManifestDir)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run (Timed (..))

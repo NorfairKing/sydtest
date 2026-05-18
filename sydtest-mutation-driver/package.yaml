@@ -1,0 +1,41 @@
+name: sydtest-mutation-driver
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: MIT
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+synopsis: Out-of-process mutation testing driver for sydtest.
+description: Standalone driver executable that orchestrates the coverage and mutation phases of sydtest's mutation testing infrastructure. Reads its configuration from a YAML file and spawns instrumented sydtest test suite executables as children.
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - aeson
+  - async
+  - autodocodec
+  - bytestring
+  - containers
+  - opt-env-conf >=0.10
+  - path
+  - path-io
+  - safe-coloured-text
+  - stm
+  - sydtest
+  - sydtest-mutation-runtime
+  - text
+  - typed-process
+
+executables:
+  sydtest-mutation-driver:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest-mutation-driver

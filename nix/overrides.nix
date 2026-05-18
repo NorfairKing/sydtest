@@ -91,6 +91,11 @@ let
     "sydtest-discover" = sydtestPkg "sydtest-discover";
     "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
     "sydtest-hspec" = sydtestPkg "sydtest-hspec";
+    "sydtest-mutation" = sydtestPkg "sydtest-mutation";
+    "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
+    "sydtest-mutation-example-gen" = sydtestPkg "sydtest-mutation-example-gen";
+    "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
+    "sydtest-mutation-runtime" = sydtestPkg "sydtest-mutation-runtime";
     "sydtest-persistent" = sydtestPkg "sydtest-persistent";
     "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
     "sydtest-process" = sydtestPkg "sydtest-process";
@@ -125,18 +130,9 @@ let
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
   };
 
-  sydtestMutationPackages = {
-    "sydtest-mutation-runtime" = sydtestPkg "sydtest-mutation-runtime";
-    "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
-    "sydtest-mutation" = sydtestPkg "sydtest-mutation";
-    "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
-    "sydtest-mutation-example-gen" = sydtestPkg "sydtest-mutation-example-gen";
-  };
-
 in
 {
   inherit sydtestPackages;
-  inherit sydtestMutationPackages;
 
   sydtestRelease = symlinkJoin {
     name = "sydtest-release";
@@ -144,11 +140,6 @@ in
     passthru = self.sydtestPackages;
   };
 
-  sydtestMutationRelease = symlinkJoin {
-    name = "sydtest-mutation-release";
-    paths = attrValues self.sydtestMutationPackages;
-    passthru = self.sydtestMutationPackages;
-  };
   # Until https://github.com/jfischoff/tmp-postgres/issues/281
   tmp-postgres =
     dontCheck (self.callCabal2nix "tmp-postgres"
@@ -158,4 +149,4 @@ in
           rev = "7f2467a6d6d5f6db7eed59919a6773fe006cf22b";
         })
       { });
-} // sydtestPackages // sydtestMutationPackages
+} // sydtestPackages

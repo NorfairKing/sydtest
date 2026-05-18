@@ -67,7 +67,7 @@ where
 import Control.Concurrent (newQSem, signalQSem, threadDelay, waitQSem)
 import Control.Concurrent.Async (mapConcurrently, race)
 import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
-import Control.Exception (Exception, IOException, bracket, bracket_)
+import Control.Exception (Exception, bracket, bracket_)
 import qualified Control.Exception as Exception
 import Control.Monad (when)
 import Data.IORef
@@ -83,11 +83,10 @@ import qualified Data.Vector as V
 import GHC.Conc (getNumCapabilities)
 import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
-import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
+import Path.IO (copyFile, getCurrentDir, ignoringAbsence, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO (BufferMode (..), IOMode (..), hSetBuffering, stderr, withFile)
-import System.IO.Error (isDoesNotExistError)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -786,23 +785,14 @@ runMutationMode settings failFast mutParent _spec = do
     -- and on async exceptions propagating into this thread.  When the inner
     -- branch wins, the child has already been reaped by 'waitExitCode'; the
     -- cleanup's 'stopProcess' then calls 'waitForProcess' on an already-reaped
-    -- pid and throws ECHILD.  Swallow that — the only reason we hold the
-    -- bracket is to guarantee cleanup, which has already happened.  Any
-    -- other IOException is unexpected and is rethrown.
+    -- pid and throws ECHILD.  'ignoringAbsence' silences exactly that
+    -- not-found case and rethrows anything else.
     startProcessAndWait childProc micros =
-      bracket (startProcess childProc) cleanup $ \p -> do
+      bracket (startProcess childProc) (ignoringAbsence . stopProcess) $ \p -> do
         result <- race (threadDelay micros) (waitExitCode p)
         case result of
           Left () -> pure (Left ())
           Right ec -> pure (Right ec)
-      where
-        cleanup p =
-          stopProcess p
-            `Exception.catch` ( \(e :: IOException) ->
-                                  if isDoesNotExistError e
-                                    then pure ()
-                                    else Exception.throwIO e
-                              )
 
 renderMutationRunReport :: MutationRunReport -> [[Chunk]]
 renderMutationRunReport

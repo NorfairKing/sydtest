@@ -87,7 +87,7 @@ spec = do
 
     describe "with full source context" $
       it "produces git-diff style output with real source path" $
-        goldenStringFile "test_resources/mutation-log-with-context.txt" $
+        goldenStringFile "test_resources/diff/mutation-log-with-context.txt" $
           pure $
             chunksToString $
               formatMutationLog
@@ -118,7 +118,7 @@ spec = do
 
   describe "renderUnifiedDiff" $ do
     it "colours the differing characters within a paired line" $
-      goldenStringFile "test_resources/intra-line-diff-simple.txt" $
+      goldenStringFile "test_resources/diff/simple.txt" $
         pure $
           colouredChunksToString $
             renderUnifiedDiff
@@ -129,7 +129,7 @@ spec = do
               []
 
     it "colours intra-line diff with surrounding context" $
-      goldenStringFile "test_resources/intra-line-diff-with-context.txt" $
+      goldenStringFile "test_resources/diff/with-context.txt" $
         pure $
           colouredChunksToString $
             renderUnifiedDiff
@@ -140,7 +140,7 @@ spec = do
               ["", "-- end"]
 
     it "renders unequal-size groups: deletes paired with adds plus extra deletes" $
-      goldenStringFile "test_resources/intra-line-diff-unequal-more-deletes.txt" $
+      goldenStringFile "test_resources/diff/unequal-more-deletes.txt" $
         pure $
           colouredChunksToString $
             renderUnifiedDiff
@@ -151,7 +151,7 @@ spec = do
               []
 
     it "renders unequal-size groups: extra adds after paired lines" $
-      goldenStringFile "test_resources/intra-line-diff-unequal-more-adds.txt" $
+      goldenStringFile "test_resources/diff/unequal-more-adds.txt" $
         pure $
           colouredChunksToString $
             renderUnifiedDiff
@@ -162,7 +162,7 @@ spec = do
               []
 
     it "renders lines with no common characters using plain First/Second colours" $
-      goldenStringFile "test_resources/intra-line-diff-no-common.txt" $
+      goldenStringFile "test_resources/diff/no-common.txt" $
         pure $
           colouredChunksToString $
             renderUnifiedDiff
@@ -173,7 +173,7 @@ spec = do
               []
 
     it "highlights only differing whitespace within otherwise-identical lines" $
-      goldenStringFile "test_resources/intra-line-diff-whitespace.txt" $
+      goldenStringFile "test_resources/diff/whitespace.txt" $
         pure $
           colouredChunksToString $
             renderUnifiedDiff

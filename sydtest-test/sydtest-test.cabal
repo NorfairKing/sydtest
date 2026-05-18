@@ -15,17 +15,17 @@ license:        OtherLicense
 build-type:     Simple
 extra-source-files:
     test_resources/defaultSettings-show.golden
+    test_resources/diff/mutation-log-with-context.txt
+    test_resources/diff/no-common.txt
+    test_resources/diff/simple.txt
+    test_resources/diff/unequal-more-adds.txt
+    test_resources/diff/unequal-more-deletes.txt
+    test_resources/diff/whitespace.txt
+    test_resources/diff/with-context.txt
     test_resources/documentation.txt
     test_resources/even/2
     test_resources/even/4
     test_resources/even/odd/3
-    test_resources/intra-line-diff-no-common.txt
-    test_resources/intra-line-diff-simple.txt
-    test_resources/intra-line-diff-unequal-more-adds.txt
-    test_resources/intra-line-diff-unequal-more-deletes.txt
-    test_resources/intra-line-diff-whitespace.txt
-    test_resources/intra-line-diff-with-context.txt
-    test_resources/mutation-log-with-context.txt
     test_resources/odd/3
     test_resources/odd/deep/5
     test_resources/output-test-terse.txt

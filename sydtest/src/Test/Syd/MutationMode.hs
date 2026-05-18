@@ -165,10 +165,18 @@ runCoverageMode settings manifestDirs spec = do
             Just j | j > 0 -> pure j
             _ -> getNumCapabilities
           sem <- newQSem n
+          -- A coverage child that observes a test failure (and was launched
+          -- with --mutation-fail-fast) throws 'CoverageFailFast' from its
+          -- worker thread.  'mapConcurrently' cancels the remaining workers
+          -- and re-raises the exception, which we catch here so we can exit
+          -- non-zero rather than crashing with an unhandled exception.
+          -- Mutation testing only makes sense against a passing baseline,
+          -- so we do not write a partial augmented manifest.
           childResults <-
-            mapConcurrently
-              (runCoverageChild defaultExe settings manifestDirs sem total)
-              (zip [1 :: Int ..] leafIds)
+            Exception.handle (\CoverageFailFast -> exitWith (ExitFailure 1)) $
+              mapConcurrently
+                (runCoverageChild defaultExe settings manifestDirs sem total)
+                (zip [1 :: Int ..] leafIds)
           let (coverageMaps, baselineMaps) = unzip childResults
               TestCoverageMap coverageMap = mconcat coverageMaps
               TestBaselineMap baselineMap = mconcat baselineMaps
@@ -221,6 +229,10 @@ runCoverageMode settings manifestDirs spec = do
     -- One coverage-child attempt: returns @Left reason@ on transient
     -- failure (non-zero exit or unreadable output), @Right (cov, base)@
     -- on success.
+    --
+    -- Exit code 2 is reserved by 'runSingleCoverageMode' to mean "the test
+    -- itself failed under fail-fast" — that is not a transient failure, so
+    -- we throw 'CoverageFailFast' to abort the run without retrying.
     runOneCoverageChild defaultExe settings' manifestDirs' tid =
       withSystemTempDir "coverage-child" $ \tmpDir -> do
         let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
@@ -230,6 +242,10 @@ runCoverageMode settings manifestDirs spec = do
             -- test runner. The child ignores the manifest content; only
             -- the flag's presence matters for dispatch.
             coverageDirArgs = concatMap (\d -> ["--mutation-coverage", fromAbsDir d]) manifestDirs'
+            failFastArg =
+              if settingMutationFailFast settings'
+                then "--mutation-fail-fast"
+                else "--no-mutation-fail-fast"
             args =
               coverageDirArgs
                 ++ [ "--mutation-coverage-one",
@@ -237,7 +253,8 @@ runCoverageMode settings manifestDirs spec = do
                      "--mutation-coverage-output",
                      outputFile,
                      "--mutation-coverage-baseline-output",
-                     baselineFile
+                     baselineFile,
+                     failFastArg
                    ]
                 ++ case settingMutationSuiteName settings' of
                   Nothing -> []
@@ -245,6 +262,15 @@ runCoverageMode settings manifestDirs spec = do
             childProc = proc defaultExe args
         ec <- runProcess childProc
         case ec of
+          ExitFailure 2 | settingMutationFailFast settings' -> do
+            hPutChunksLocaleWith (settingTerminalCapabilities settings') stderr $
+              unlinesChunks
+                [ [ fore red (chunk "coverage: test failed during baseline run for "),
+                    chunk (renderTestId tid),
+                    chunk " — aborting (fail-fast)"
+                  ]
+                ]
+            Exception.throwIO CoverageFailFast
           ExitFailure code -> pure $ Left ("exited with code " ++ show code)
           ExitSuccess -> do
             mMap <- readTestCoverageMapFile outputFile
@@ -333,13 +359,28 @@ runSingleCoverageMode settings _manifestDirs spec = do
       filtered = filterTestForestByTrie trie specForest
   ref <- newIORef Set.empty
   startTime <- getCurrentTime
-  _ <- withCoverageSlot ref $ runSpecForestSynchronously coverageSettings filtered
+  resultForest <- withCoverageSlot ref $ runSpecForestSynchronously coverageSettings filtered
   endTime <- getCurrentTime
   covered <- readIORef ref
   let coverageMap = TestCoverageMap (Map.singleton tid covered)
       elapsedMicros = diffUTCTimeMicros endTime startTime
   writeTestCoverageMapFile outputFile coverageMap
   writeTestBaselineMapFile baselineFile (TestBaselineMap (Map.singleton tid elapsedMicros))
+  -- Mutation testing only makes sense against a passing baseline: if a test
+  -- is red before any mutation is applied, its mutation scores are
+  -- meaningless.  Print the offending test's output and a loud warning in
+  -- both fail-fast and non-fail-fast cases.  Under fail-fast, also exit with
+  -- code 2 so the parent aborts the run (see 'runCoverageMode').
+  when (shouldExitFail settings (timedValue resultForest)) $ do
+    printOutputSpecForest settings resultForest
+    hPutChunksLocaleWith (settingTerminalCapabilities settings) stderr $
+      unlinesChunks
+        [ [ fore red $ chunk "coverage: WARNING: test failed during baseline run for ",
+            fore red $ chunk (renderTestId tid),
+            fore red $ chunk " — mutation scores against this baseline are unreliable"
+          ]
+        ]
+    when (settingMutationFailFast settings) $ exitWith (ExitFailure 2)
 
 -- | Convert a 'NominalDiffTime' difference to microseconds as a 'Word',
 -- clamping negative results (clock skew) to zero.
@@ -450,10 +491,20 @@ retryingIO retriesLeft onRetry action = do
 -- | Thrown inside a 'mapConcurrently' worker to abort the mutation run when
 -- fail-fast is on and a surviving or uncovered mutation is observed.  The
 -- sibling workers are cancelled by 'mapConcurrently' on the first exception.
-data FailFast = FailFast
+data MutationFailFast = MutationFailFast
   deriving (Show)
 
-instance Exception FailFast
+instance Exception MutationFailFast
+
+-- | Thrown inside a coverage 'mapConcurrently' worker to abort the run when
+-- a coverage child reports that its baseline test failed (exit code 2) and
+-- fail-fast is on.  Distinct from 'MutationFailFast' because the cause is
+-- different — the suite was already red before any mutation ran, so the
+-- mutation scores would be meaningless.
+data CoverageFailFast = CoverageFailFast
+  deriving (Show)
+
+instance Exception CoverageFailFast
 
 -- | A mutation result that should trip fail-fast: the test suite did not
 -- detect the mutation (survivor) or no test reaches the mutation site
@@ -474,16 +525,16 @@ runMutationMode settings _manifestDirs _spec = do
   n <- getNumCapabilities
   sem <- newQSem n
   -- Accumulate results as workers complete so we can produce a partial report
-  -- even when fail-fast aborts the run by throwing 'FailFast' (which cancels
-  -- the sibling 'mapConcurrently' workers).
+  -- even when fail-fast aborts the run by throwing 'MutationFailFast' (which
+  -- cancels the sibling 'mapConcurrently' workers).
   resultsVar <- newTVarIO []
   let failFast = settingMutationFailFast settings
       runOne' record = do
         r <- runOne defaultExe augDir sem record
         atomically $ modifyTVar' resultsVar (r :)
-        when (failFast && isMutationFailure r) $ Exception.throwIO FailFast
+        when (failFast && isMutationFailure r) $ Exception.throwIO MutationFailFast
         pure r
-  Exception.handle (\FailFast -> pure ()) $ do
+  Exception.handle (\MutationFailFast -> pure ()) $ do
     _ <- mapConcurrently runOne' records
     pure ()
   results <- readTVarIO resultsVar

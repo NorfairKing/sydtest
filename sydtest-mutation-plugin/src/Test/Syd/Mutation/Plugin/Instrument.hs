@@ -589,8 +589,9 @@ instrumentExpr _sp = \case
 -- quasi-quote.  GHC stores the pre-expansion node in 'ExpandedThingTc' so we
 -- can recognise these without falling back to source-line heuristics.
 isSpliceThing :: HsThingRn -> Bool
-isSpliceThing (OrigExpr e) = isSpliceHsExpr e
-isSpliceThing _ = False
+isSpliceThing = \case
+  OrigExpr e -> isSpliceHsExpr e
+  _ -> False
 
 -- | If the original (pre-expansion) thing was a 'BindStmt' in a @do@-block,
 -- return its pattern's binders.  GHC 9.10+ expands @do@-blocks in the

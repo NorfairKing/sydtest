@@ -1,4 +1,4 @@
-{ haskellPackages }:
+{ haskellPackages, self, optEnvConfSrc, safeColouredTextSrc }:
 
 # End-to-end mutation testing checks for packages that sydtest itself depends on.
 #
@@ -25,9 +25,14 @@ let
     debug = true;
   };
 
+  # Source roots searched (in order) by 'cabalComponents.forPackage' so each
+  # mutation check can discover its packages' executable and test-suite
+  # stanza names directly from the on-disk cabal files at evaluation time.
+  defaultSources = [ self optEnvConfSrc safeColouredTextSrc ];
+
   mutationCheck = args:
     haskellPackages.sydtest.mutationCheck
-      ({ inherit config; } // args);
+      ({ inherit config; sources = defaultSources; } // args);
 in
 {
   mutation-opt-env-conf = mutationCheck {

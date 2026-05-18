@@ -1,4 +1,4 @@
-{ haskellPackages, pkgs, addMutationRuntimeDependency }:
+{ haskellPackages, pkgs, addMutationRuntimeDependency, cabalComponents }:
 
 # Build one mutation check.
 #
@@ -57,6 +57,13 @@
 , libraries ? [ ]
 , tests ? [ ]
 , needToBeLinkedAgainstMutationRuntime ? [ ]
+  # Source directory roots searched (in order) by 'cabalComponents.forPackage'
+  # to locate each listed package's <pname>.cabal at Nix evaluation time.
+  # The cabal files are read to discover executable and test-suite stanza
+  # names; those names drive what addManifest builds and how the harness
+  # invokes test executables.  Common roots: the flake itself and any
+  # input flakes that provide source-tree subdirectories.
+, sources ? [ ]
 , config ? { }
 , assertAllKilled ? true
 , assertNoneUncovered ? true
@@ -80,6 +87,16 @@ let
   libraryPackages = packages ++ libraries;
   testPackages = packages ++ tests;
 
+  # Cabal-discovered components for every package this check touches.
+  # Looked up once at eval time from the configured 'sources' roots so
+  # nothing here depends on the (tarballed) haskellPackages source
+  # derivations.
+  components =
+    cabalComponents.forPackages sources
+      (pkgs.lib.unique (libraryPackages ++ testPackages));
+  executablesOf = pkgName: components.${pkgName}.executables;
+  testSuiteNamesOf = pkgName: components.${pkgName}.testSuites;
+
   # First, inject the sydtest-mutation-runtime build-dep into every package
   # the caller has listed. This ensures their executables link successfully
   # against any instrumented library they (transitively) depend on.
@@ -92,40 +109,65 @@ let
       needToBeLinkedAgainstMutationRuntime);
 
   # Then wrap the library packages with the mutation plugin so that
-  # compilation emits ifMutation calls and writes a manifest.
+  # compilation emits ifMutation calls and writes a manifest.  Each
+  # package's declared 'executable' components are also built (silenced)
+  # and installed; see nix/addManifest.nix.
   addManifestOverride = _: super:
     builtins.listToAttrs (map
       (pkg: {
         name = pkg;
-        value = addManifest { inherit config ghcMemLimit; } super.${pkg};
+        value = addManifest
+          {
+            inherit config ghcMemLimit;
+            executables = executablesOf pkg;
+          }
+          super.${pkg};
       })
       libraryPackages);
 
   instrumentedHaskellPackages = haskellPackages.extend
     (pkgs.lib.composeExtensions addRuntimeOverride addManifestOverride);
 
-  # Build a test package with doCheck=true so Cabal compiles the test
-  # executable, then copy it to $out/test/ in postInstall. Cabal's 'copy'
-  # command only installs library and executable components, not test suites,
-  # so we copy them manually from dist/build/.
-  # checkPhase is cleared so the tests are not run during this build; they are
-  # run later in the mutation checkPhase of the first test package.
-  # dontBenchmark: avoid building benchmark executables that would also end up
-  # under dist/build/ and risk being picked up by the mutation harness's `find`.
-  builtTestPkg = pkg:
+  # Build a test package with doCheck=true so Cabal compiles every
+  # test-suite, then copy each test executable to
+  # @$out/test/<test-suite-name>@ in postInstall.  Cabal's 'copy' command
+  # only installs library and executable components, not test suites, so
+  # we copy them manually from their predictable paths under dist/build/.
+  # checkPhase is cleared so the tests are not run during this build;
+  # they are run later in the mutation checkPhase of the first
+  # test-suite.  dontBenchmark: avoid building benchmark executables
+  # that would also end up under dist/build/.
+  builtTestPkg = pkgName:
+    let suites = testSuiteNamesOf pkgName;
+    in
     pkgs.haskell.lib.overrideCabal
       (pkgs.haskell.lib.dontBenchmark
-        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkg}))
+        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkgName}))
       (_: {
         checkPhase = "";
         postInstall = ''
-          for exe in dist/build/*/*; do
-            [ -f "$exe" ] && [ -x "$exe" ] || continue
-            mkdir -p $out/test
-            cp "$exe" $out/test/
-          done
-        '';
+          mkdir -p $out/test
+        '' + pkgs.lib.concatMapStringsSep "\n"
+          (suite: ''
+            src="dist/build/${suite}/${suite}"
+            if [ -f "$src" ] && [ -x "$src" ]; then
+              cp "$src" "$out/test/${suite}"
+            else
+              echo "mutation-nix: expected test executable at $src but it is missing" >&2
+              exit 1
+            fi
+          '')
+          suites;
       });
+
+  # Expand the caller's @testPackages@ list to a flat list of
+  # @{ pkg, suite }@ records, one per declared test-suite. The harness
+  # treats each test-suite as an independent "suite" with its own
+  # --mutation-suite-name / --mutation-suite-exe flags.
+  allTestSuites =
+    pkgs.lib.concatMap
+      (pkgName: map (suite: { pkg = pkgName; inherit suite; }) (testSuiteNamesOf pkgName))
+      testPackages;
 
   manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
   coverageFlags = pkgs.lib.concatMapStringsSep " "
@@ -143,39 +185,44 @@ let
     (m: "--mutation ${m}")
     manifests;
 
-  # The first test package is the one whose Cabal checkPhase we hijack to run
-  # the mutation harness. Its executable is found at runtime via `find dist`
-  # inside the build sandbox, so golden files and other relative paths work.
-  firstTestPkg =
-    if testPackages == [ ]
-    then throw "sydtest.mutationCheck '${name}': no test suites configured. Provide at least one package under 'packages' or 'tests'."
-    else builtins.head testPackages;
-  # Extra test packages are built separately and referenced by their Nix store
-  # paths; their executables are baked into the checkPhase script at eval time.
-  extraTestPkgs = builtins.tail testPackages;
+  # The first test-suite is the one whose Cabal checkPhase we hijack to
+  # run the mutation harness.  Its executable lives at a predictable path
+  # inside the in-place Cabal build tree, so golden files and other
+  # relative paths resolve as Cabal expects.
+  firstSuite =
+    if allTestSuites == [ ]
+    then throw "sydtest.mutationCheck '${name}': no test-suites declared by any of packages = ${toString testPackages} or tests = ${toString tests}. Provide at least one package that declares a test-suite."
+    else builtins.head allTestSuites;
+  # Every other declared test-suite is built separately and referenced by
+  # its Nix store path; the executable path is baked into the checkPhase
+  # script at eval time.
+  extraSuites = builtins.tail allTestSuites;
 
-  # Path to the test executable directory for an extra (store-built) test package.
-  storeTestDirOf = pkg: "${builtTestPkg pkg}/test";
+  # On-disk path of a test exe inside a built test package.
+  storeTestExePath = s: "${builtTestPkg s.pkg}/test/${s.suite}";
 
   extraSuiteExeFlags = pkgs.lib.concatMapStringsSep " "
-    (pkg: "--mutation-suite-exe ${pkg}=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)")
-    extraTestPkgs;
+    (s: "--mutation-suite-exe ${s.suite}=${storeTestExePath s}")
+    extraSuites;
 
-  firstSuiteExeFlag = "--mutation-suite-exe ${firstTestPkg}=$(realpath \"$exe\")";
+  firstSuiteExeFlag = "--mutation-suite-exe ${firstSuite.suite}=$(realpath \"$exe\")";
 
   allSuiteExeFlags = "${firstSuiteExeFlag} ${extraSuiteExeFlags}";
 
   extraCoverageScript = pkgs.lib.concatMapStringsSep "\n"
-    (pkg: ''
-      echo "mutation-nix: collecting coverage for suite ${pkg}"
-      storeExe=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)
-      "$storeExe" +RTS -M${testProcessMemLimit} -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
-        --mutation-suite-name ${pkg} \
+    (s: ''
+      echo "mutation-nix: collecting coverage for suite ${s.suite}"
+      "${storeTestExePath s}" +RTS -M${testProcessMemLimit} -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
+        --mutation-suite-name ${s.suite} \
         --mutation-augmented-manifest-dir augmented
     '')
-    extraTestPkgs;
+    extraSuites;
 
-  extraInputs = map builtTestPkg extraTestPkgs;
+  # Distinct packages needed on buildInputs.  Multiple extra suites from
+  # the same package share a single derivation.
+  extraInputs =
+    let pkgsNeeded = pkgs.lib.unique (map (s: s.pkg) extraSuites);
+    in map builtTestPkg pkgsNeeded;
 
   # Pull testToolDepends from every test package (first and extras) so they
   # are visible to the harness's checkPhase. Each package's own checkPhase is
@@ -184,17 +231,18 @@ let
   # 'getCabalDeps.testToolDepends' is provided by haskellPackages.generic-builder
   # whenever doCheck = true; we apply doCheck before reading it.
   #
-  # Caveat: this only works because we apply pkgs.haskell.lib.doCheck below
-  # before reading getCabalDeps.testToolDepends. If a future caller pre-builds
-  # the package without doCheck=true (or substitutes a derivation that does not
-  # go through generic-builder), getCabalDeps will not be present and the
-  # testToolDepends propagation will silently degrade to the empty list.
+  # We assert that getCabalDeps is present rather than defaulting silently:
+  # if a future caller substitutes a derivation that does not go through
+  # generic-builder, the eval fails loudly here rather than producing a
+  # build whose test exes silently lack their runtime PATH dependencies.
   collectedTestToolDepends = pkgs.lib.concatMap
     (pkg:
       let
         p = pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkg};
       in
-        p.getCabalDeps.testToolDepends or [ ]
+      assert pkgs.lib.assertMsg (p ? getCabalDeps)
+        "sydtest.mutationCheck '${name}': package '${pkg}' has no getCabalDeps attribute; it must go through haskellPackages.generic-builder.";
+      p.getCabalDeps.testToolDepends
     )
     testPackages;
 
@@ -203,15 +251,19 @@ let
       # dontBenchmark: benchmarks are not relevant here and would waste build time.
       # doCheck: needed so Cabal compiles the test suite executable.
       (pkgs.haskell.lib.dontBenchmark
-        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${firstTestPkg}))
+        (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${firstSuite.pkg}))
       (_old: {
         checkPhase = ''
-          # Find the test executable inside the Cabal build tree. Filtering .so
-          # files excludes Haskell shared libraries that Cabal also places under
-          # dist/build/ and would otherwise be mistaken for executables.
-          exe=$(find dist -type f -executable | grep -v '\.so' | head -1)
+          # The first test-suite's executable lives at a predictable path
+          # inside Cabal's in-place build tree.  Fail loudly if it is not
+          # there rather than silently picking some other binary.
+          exe="dist/build/${firstSuite.suite}/${firstSuite.suite}"
+          if [ ! -x "$exe" ]; then
+            echo "mutation-nix: expected test executable at $exe but it is not executable" >&2
+            exit 1
+          fi
           mkdir -p augmented
-          echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
+          echo "mutation-nix: collecting coverage for suite ${firstSuite.suite}"
           # +RTS -M${testProcessMemLimit} -RTS: cap the test process heap to
           # avoid OOM in the Nix sandbox, where memory is shared with the
           # builder.
@@ -221,7 +273,7 @@ let
           # coverage phase still warns loudly but continues so the report
           # derivation can be produced.
           "$exe" +RTS -M${testProcessMemLimit} -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
-            --mutation-suite-name ${firstTestPkg} \
+            --mutation-suite-name ${firstSuite.suite} \
             --mutation-augmented-manifest-dir augmented
           ${extraCoverageScript}
           echo "mutation-nix: running mutations"

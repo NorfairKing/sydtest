@@ -62,6 +62,7 @@ let
   sydtestPackages = {
     "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old:
       let
+        cabalComponents = callPackage ./cabalComponents.nix { };
         addManifest = callPackage ./addManifest.nix {
           mutationPlugin = self.sydtest-mutation-plugin;
         };
@@ -77,13 +78,13 @@ let
           inherit compileMutationReport assertMutationScore;
         };
         mutationCheck = callPackage ./mutationCheck.nix {
-          inherit addMutationRuntimeDependency;
+          inherit addMutationRuntimeDependency cabalComponents;
           haskellPackages = self;
         };
       in
       {
         passthru = (old.passthru or { }) // {
-          inherit addManifest addMutationRuntimeDependency compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck;
+          inherit addManifest addMutationRuntimeDependency cabalComponents compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck;
         };
       });
     "sydtest-aeson" = sydtestPkg "sydtest-aeson";

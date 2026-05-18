@@ -6,7 +6,7 @@
 , addManifest'
 , compileMutationReport
 , assertMutationScore
-}:
+}@callArgs:
 
 # High-level helper: instrument a single library package with the mutation
 # plugin and run its companion test suite with --mutation against the manifest.
@@ -24,6 +24,10 @@
 , testPackage ? "${package}-gen" # attr name of the package whose test suite to run; defaults to <package>-gen
 , config ? { } # attrset rendered to a YAML config file for the plugin (schema: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig)
 , mustKillAll ? true # if true (default), wrap result in assertMutationScore and fail if any mutations survive
+, # Haskell package set to instrument against.  Defaults to the value supplied
+  # at callPackage time, which is the default haskellPackages.  Override when
+  # building against a different package set (e.g. an extended overlay).
+  haskellPackages ? callArgs.haskellPackages
 }:
 
 let

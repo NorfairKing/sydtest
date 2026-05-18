@@ -85,7 +85,7 @@ import Path
 import Path.IO (copyFile, getCurrentDir, ignoringAbsence, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitWith)
-import System.IO (BufferMode (..), IOMode (..), hSetBuffering, stderr, withFile)
+import System.IO (BufferMode (..), IOMode (..), hFlush, hSetBuffering, stderr, withFile)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -183,7 +183,7 @@ runCoverageMode settings failFast covParent spec = do
           -- Mutation testing only makes sense against a passing baseline,
           -- so we do not write a partial augmented manifest.
           childResults <-
-            Exception.handle (\CoverageFailFast -> exitWith (ExitFailure 1)) $
+            Exception.handle (\CoverageFailFast -> hFlush stderr >> exitWith (ExitFailure 1)) $
               mapConcurrently
                 (runCoverageChild defaultExe settings manifestDirs sem total)
                 (zip [1 :: Int ..] leafIds)
@@ -651,6 +651,10 @@ runMutationMode settings failFast mutParent _spec = do
           }
   mapM_ (`writeMutationRunReport` jsonReport) (mutationParentReportDir mutParent)
   putChunksLocaleWith (settingTerminalCapabilities settings) (unlinesChunks (renderMutationRunReport jsonReport))
+  -- Force out any block-buffered progress events before we either return
+  -- normally or exit non-zero. Without this, the last few lines of
+  -- progress can be dropped when 'exitWith' tears down the runtime.
+  hFlush stderr
   when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
   where
     tallyGroups :: [MutationGroupReport] -> OutcomeTally

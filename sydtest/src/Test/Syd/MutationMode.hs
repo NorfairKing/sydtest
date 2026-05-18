@@ -110,11 +110,11 @@ import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverage
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
-import Test.Syd.Output.Common (addColour, delColour, foreOrBack)
+import Test.Syd.Output.Common (addColour, delColour)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (Chunk, Colour, back, brightGreen, brightRed, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
 -- subprocess per test (up to N concurrently, N defaults to
@@ -885,13 +885,23 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
     renderPair :: Text -> Text -> ([Chunk], [Chunk])
     renderPair delLine addLine =
       let charDiff = V.toList (getTextDiff delLine addLine)
+          -- Whole paired line is foreground-coloured so the reader sees
+          -- "this line was deleted/added".  Non-whitespace intra-line
+          -- changes get the brighter shade so they stand out *within* the
+          -- already-coloured line; whitespace-only changes have no glyph
+          -- to colour, so fill the background instead.
+          emphasise :: Colour -> Colour -> Text -> Chunk
+          emphasise lineCol brightCol t =
+            if T.null (T.strip t)
+              then back lineCol (chunk t)
+              else fore brightCol (chunk t)
           delChunks =
             fore delColour (chunk (T.singleton '-'))
               : mapMaybe
                 ( \case
-                    First t -> Just (foreOrBack delColour t)
+                    First t -> Just (emphasise delColour brightRed t)
                     Second _ -> Nothing
-                    Both t _ -> Just (chunk t)
+                    Both t _ -> Just (fore delColour (chunk t))
                 )
                 charDiff
           addChunks =
@@ -899,8 +909,8 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
               : mapMaybe
                 ( \case
                     First _ -> Nothing
-                    Second t -> Just (foreOrBack addColour t)
-                    Both t _ -> Just (chunk t)
+                    Second t -> Just (emphasise addColour brightGreen t)
+                    Both t _ -> Just (fore addColour (chunk t))
                 )
                 charDiff
        in (delChunks, addChunks)

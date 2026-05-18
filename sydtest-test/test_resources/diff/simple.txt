@@ -1,4 +1,4 @@
 [36m@@ -4,2 +4,2 @@[m
  bothPositive :: Int -> Int -> Bool
-[31m-[mbothPositive a b = a [31m>[m 0 && b > 0
-[32m+[mbothPositive a b = a [32m<[m[32m=[m 0 && b > 0
+[31m-[m[31mbothPositive a b = a [m[91m>[m[31m 0 && b > 0[m
+[32m+[m[32mbothPositive a b = a [m[92m<[m[92m=[m[32m 0 && b > 0[m

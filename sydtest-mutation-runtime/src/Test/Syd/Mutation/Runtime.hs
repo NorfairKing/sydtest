@@ -25,20 +25,41 @@ import qualified Data.Text as T
 import GHC.Generics (Generic)
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
-import Test.QuickCheck (listOf)
+import Test.QuickCheck (listOf1, suchThat)
 
 -- | Identifies a single mutation site. The format of the strings is chosen by
 -- the plugin; the runtime treats this as an opaque key.
+--
+-- Parts must be non-empty and contain no @\'/\'@: a 'MutationId' is rendered
+-- as the slash-separated concatenation of its parts and parsed back by
+-- splitting on @\'/\'@. The empty list and empty parts would render to a
+-- string that 'parseMutationId' cannot round-trip; @\'/\'@ in a part would
+-- be split on parse.
 newtype MutationId = MutationId [String]
   deriving (Eq, Ord, Show, Generic)
 
 instance Validity MutationId where
-  validate = trivialValidation
+  validate (MutationId parts) =
+    mconcat
+      [ declare "the parts list is non-empty" (not (null parts)),
+        decorateList parts $ \part ->
+          mconcat
+            [ declare "the part is non-empty" (not (null part)),
+              declare "the part contains no '/'" ('/' `notElem` part)
+            ]
+      ]
 
 instance GenValid MutationId where
-  genValid = MutationId <$> listOf (T.unpack <$> genValid)
+  genValid =
+    MutationId
+      <$> listOf1 (T.unpack <$> genValidPart)
+    where
+      genValidPart =
+        genValid `suchThat` \t ->
+          not (T.null t) && not (T.any (== '/') t)
   shrinkValid (MutationId parts) =
-    map (MutationId . map T.unpack) (shrinkValid (map T.pack parts))
+    filter isValid $
+      map (MutationId . map T.unpack) (shrinkValid (map T.pack parts))
 
 instance HasCodec MutationId where
   codec = dimapCodec MutationId (\(MutationId parts) -> parts) codec
@@ -54,10 +75,13 @@ activeMutation = unsafePerformIO $ do
   newIORef (parseMutationId =<< env)
 
 -- | Parse a mutation id from the MUTATION_ACTIVE env var format (slash-separated).
+--
+-- Rejects inputs that would produce an invalid 'MutationId' (e.g. the empty
+-- string, or strings containing empty segments).
 parseMutationId :: String -> Maybe MutationId
-parseMutationId s
-  | null s = Nothing
-  | otherwise = Just (MutationId (splitOn '/' s))
+parseMutationId s =
+  let mid_ = MutationId (splitOn '/' s)
+   in if isValid mid_ then Just mid_ else Nothing
   where
     splitOn _ [] = [""]
     splitOn sep (c : cs)

@@ -28,7 +28,7 @@ defaultMutationPluginConfig =
   MutationPluginConfig
     { mutationPluginConfigExceptions = [],
       mutationPluginConfigDisabledMutations = [],
-      mutationPluginConfigSkipThSplices = False,
+      mutationPluginConfigSkipThSplices = True,
       mutationPluginConfigDebug = False
     }
 

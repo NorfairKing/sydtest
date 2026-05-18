@@ -20,18 +20,5 @@ Settings
   , settingReportProgress = ReportNoProgress
   , settingProfile = False
   , settingOutputFormat = OutputFormatPretty
-  , settingMutation = []
-  , settingMutationCoverage = []
-  , settingMutationAugmentedManifestDir = Nothing
-  , settingMutationOne = Nothing
-  , settingMutationChildMemLimit = Nothing
-  , settingMutationCoverageJobs = Nothing
-  , settingMutationCoverageRetry = 3
-  , settingMutationReportDir = Nothing
-  , settingMutationSuiteName = Nothing
-  , settingMutationSuiteExes = fromList []
-  , settingMutationCoverageOne = Nothing
-  , settingMutationCoverageOutput = Nothing
-  , settingMutationCoverageBaselineOutput = Nothing
-  , settingMutationFailFast = True
+  , settingMutation = Nothing
   }

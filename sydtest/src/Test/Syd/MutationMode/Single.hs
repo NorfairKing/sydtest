@@ -11,7 +11,6 @@ where
 
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
-import Path
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -32,15 +31,15 @@ import Test.Syd.SpecDef (shouldExitFail)
 -- | Child process: run only the tests covering a single mutation and exit
 -- with the appropriate exit code.
 --
--- When @settingMutationSuiteName@ is set, only the covering tests for that
+-- When @mutationChildSuiteName@ is set, only the covering tests for that
 -- suite are run.  Otherwise the union of all suites' covering tests is used
 -- (single-suite / backward-compatible behaviour).
-runSingleMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
-runSingleMutationMode settings _manifestDirs spec = do
-  mid <- case settingMutationOne settings >>= parseMutationId of
-    Nothing -> fail "runSingleMutationMode: no valid --mutation-one id"
+runSingleMutationMode :: Settings -> MutationChildSettings -> Spec -> IO ()
+runSingleMutationMode settings mutChild spec = do
+  mid <- case parseMutationId (mutationChildId mutChild) of
+    Nothing -> fail "runSingleMutationMode: no valid mutation-child id"
     Just m -> pure m
-  augDir <- resolveAugmentedManifestDir settings
+  augDir <- resolveAugmentedManifestDir (mutationChildAugmentedManifestDir mutChild)
   augmented <- readAugmentedManifestFile augDir
   specForest <- execTestDefM settings spec
   let coveringTestsMap =
@@ -49,7 +48,7 @@ runSingleMutationMode settings _manifestDirs spec = do
           augmentedMutationRecordCoveringTests
           (lookupAugmentedMutationRecord mid augmented)
       coveringTests :: [TestId]
-      coveringTests = case settingMutationSuiteName settings of
+      coveringTests = case mutationChildSuiteName mutChild of
         Just suiteName ->
           fromMaybe [] (Map.lookup suiteName coveringTestsMap)
         Nothing ->

@@ -72,6 +72,7 @@ import qualified Control.Exception as Exception
 import Control.Monad (when)
 import Data.IORef
 import Data.List (intercalate)
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Set as Set
@@ -133,14 +134,15 @@ import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, putCh
 -- subprocess per test (up to N concurrently, N defaults to
 -- 'getNumCapabilities' but can be overridden with @--mutation-coverage-jobs@),
 -- merge the resulting 'TestCoverageMap's, and write (or merge into)
--- @manifest-augmented.json@ in @settingMutationAugmentedManifestDir@.
+-- @manifest-augmented.json@ at the resolved augmented-manifest directory.
 --
--- When @settingMutationSuiteName@ is set, covering tests are recorded under
+-- When 'coverageParentSuiteName' is set, covering tests are recorded under
 -- that suite name key.  If @manifest-augmented.json@ already exists (from a
 -- prior suite's coverage pass), this run's results are merged in so that
 -- multiple suites can be run sequentially.
-runCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
-runCoverageMode settings manifestDirs spec = do
+runCoverageMode :: Settings -> Bool -> CoverageParentSettings -> Spec -> IO ()
+runCoverageMode settings failFast covParent spec = do
+  let manifestDirs = NE.toList (coverageParentManifestDirs covParent)
   -- LineBuffering on stderr so our writes hit the fd at line boundaries,
   -- not when the buffer happens to fill. Coverage children inherit this fd
   -- and write to it directly (bypassing our Handle's MVar lock); if our own
@@ -153,8 +155,8 @@ runCoverageMode settings manifestDirs spec = do
   -- do. Spawning one coverage child per leaf test would still run every
   -- test once — wasted setup cost when no mutation can possibly be covered.
   allRecords@(MutationManifest groups) <- mconcat <$> mapM readManifestDir manifestDirs
-  augDir <- resolveAugmentedManifestDir settings
-  let suiteName = fromMaybe "" (settingMutationSuiteName settings)
+  augDir <- resolveAugmentedManifestDir (coverageParentAugmentedManifestDir covParent)
+  let suiteName = fromMaybe "" (coverageParentSuiteName covParent)
       writeEmptyAugmented = do
         existing <- readAugmentedManifestFileIfExists augDir
         writeAugmentedManifestFile augDir (fromMaybe (AugmentedManifest []) existing)
@@ -172,7 +174,7 @@ runCoverageMode settings manifestDirs spec = do
           writeEmptyAugmented
         else do
           defaultExe <- getExecutablePath
-          n <- case settingMutationCoverageJobs settings of
+          n <- case coverageParentJobs covParent of
             Just j | j > 0 -> pure j
             _ -> getNumCapabilities
           sem <- newQSem n
@@ -209,7 +211,7 @@ runCoverageMode settings manifestDirs spec = do
                 coverageProgressTestId = tid,
                 coverageProgressTestPhase = CoverageProgressStarting
               }
-        result <- runCoverageChildAttempt defaultExe settings' manifestDirs' tid (settingMutationCoverageRetry settings')
+        result <- runCoverageChildAttempt defaultExe settings' manifestDirs' tid (coverageParentRetry covParent)
         let TestCoverageMap m = fst result
             covered = fromMaybe Set.empty (Map.lookup tid m)
         emitCoverageEvent settings' $
@@ -254,7 +256,7 @@ runCoverageMode settings manifestDirs spec = do
             -- the flag's presence matters for dispatch.
             coverageDirArgs = concatMap (\d -> ["--mutation-coverage", fromAbsDir d]) manifestDirs'
             failFastArg =
-              if settingMutationFailFast settings'
+              if failFast
                 then "--mutation-fail-fast"
                 else "--no-mutation-fail-fast"
             args =
@@ -267,13 +269,13 @@ runCoverageMode settings manifestDirs spec = do
                      baselineFile,
                      failFastArg
                    ]
-                ++ case settingMutationSuiteName settings' of
+                ++ case coverageParentSuiteName covParent of
                   Nothing -> []
                   Just name -> ["--mutation-suite-name", T.unpack name]
             childProc = proc defaultExe args
         ec <- runProcess childProc
         case ec of
-          ExitFailure 2 | settingMutationFailFast settings' -> do
+          ExitFailure 2 | failFast -> do
             hPutChunksLocaleWith (settingTerminalCapabilities settings') stderr $
               unlinesChunks
                 [ [ fore red (chunk "coverage: test failed during baseline run for "),
@@ -353,17 +355,13 @@ invertCoverageMap =
 -- | Child process: run the single test identified by @--mutation-coverage-one@,
 -- write its 'TestCoverageMap' to @--mutation-coverage-output@, write its
 -- wall-clock baseline to @--mutation-coverage-baseline-output@, and exit.
-runSingleCoverageMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
-runSingleCoverageMode settings _manifestDirs spec = do
-  tid <- case settingMutationCoverageOne settings >>= parseTestIdFilterArg of
-    Nothing -> fail "runSingleCoverageMode: no valid --mutation-coverage-one id"
+runSingleCoverageMode :: Settings -> Bool -> CoverageChildSettings -> Spec -> IO ()
+runSingleCoverageMode settings failFast covChild spec = do
+  tid <- case parseTestIdFilterArg (coverageChildTestId covChild) of
+    Nothing -> fail "runSingleCoverageMode: no valid coverage-child test id"
     Just t -> pure t
-  outputFile <- case settingMutationCoverageOutput settings of
-    Nothing -> fail "runSingleCoverageMode: no --mutation-coverage-output file"
-    Just f -> pure f
-  baselineFile <- case settingMutationCoverageBaselineOutput settings of
-    Nothing -> fail "runSingleCoverageMode: no --mutation-coverage-baseline-output file"
-    Just f -> pure f
+  let outputFile = coverageChildOutput covChild
+      baselineFile = coverageChildBaselineOutput covChild
   specForest <- execTestDefM settings spec
   let coverageSettings =
         settings
@@ -395,7 +393,7 @@ runSingleCoverageMode settings _manifestDirs spec = do
             fore red $ chunk " — mutation scores against this baseline are unreliable"
           ]
         ]
-    when (settingMutationFailFast settings) $ exitWith (ExitFailure 2)
+    when failFast $ exitWith (ExitFailure 2)
 
 -- | Convert a 'NominalDiffTime' difference to microseconds as a 'Word',
 -- clamping negative results (clock skew) to zero.
@@ -405,11 +403,10 @@ diffUTCTimeMicros end start =
       micros = secs * 1000000
    in if micros <= 0 then 0 else ceiling micros
 
--- | Resolve the augmented manifest directory from settings,
--- falling back to the current working directory.
-resolveAugmentedManifestDir :: Settings -> IO (Path Abs Dir)
-resolveAugmentedManifestDir settings =
-  maybe getCurrentDir pure (settingMutationAugmentedManifestDir settings)
+-- | Resolve the augmented manifest directory, falling back to the current
+-- working directory when not specified.
+resolveAugmentedManifestDir :: Maybe (Path Abs Dir) -> IO (Path Abs Dir)
+resolveAugmentedManifestDir = maybe getCurrentDir pure
 
 data MutationResult
   = MutationUncovered UncoveredMutation
@@ -609,10 +606,10 @@ runOneGroup globalFailFast runOne onResult = loop Nothing
         Exception.throwIO MutationFailFast
       loop (mutationResultId r) rest
 
-runMutationMode :: Settings -> [Path Abs Dir] -> Spec -> IO ()
-runMutationMode settings _manifestDirs _spec = do
+runMutationMode :: Settings -> Bool -> MutationParentSettings -> Spec -> IO ()
+runMutationMode settings failFast mutParent _spec = do
   hSetBuffering stderr (BlockBuffering Nothing)
-  augDir <- resolveAugmentedManifestDir settings
+  augDir <- resolveAugmentedManifestDir (mutationParentAugmentedManifestDir mutParent)
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   defaultExe <- getExecutablePath
   n <- getNumCapabilities
@@ -620,8 +617,7 @@ runMutationMode settings _manifestDirs _spec = do
   -- Each group's per-mutation results, accumulated in source order so a
   -- partial report (after a global fail-fast abort) reflects the work done.
   groupResultsMap <- StmMap.newIO :: IO (StmMap.Map Int [MutationResult])
-  let failFast = settingMutationFailFast settings
-      runGroup' (gix, AugmentedMutationGroup recs) =
+  let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
           (runOne defaultExe augDir sem)
@@ -658,7 +654,7 @@ runMutationMode settings _manifestDirs _spec = do
             mutationRunReportSkipped = skipped,
             mutationRunReportGroups = groupReports
           }
-  mapM_ (`writeMutationRunReport` jsonReport) (settingMutationReportDir settings)
+  mapM_ (`writeMutationRunReport` jsonReport) (mutationParentReportDir mutParent)
   putChunksLocaleWith (settingTerminalCapabilities settings) (unlinesChunks (renderMutationRunReport jsonReport))
   when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
   where
@@ -716,9 +712,9 @@ runMutationMode settings _manifestDirs _spec = do
         mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- outcomes]
 
     runOneSuite defaultExe augDir record mid suiteName = do
-      let suiteExes = settingMutationSuiteExes settings
+      let suiteExes = mutationParentSuiteExes mutParent
           exe = fromMaybe defaultExe (Map.lookup suiteName suiteExes)
-          rtsArgs = case settingMutationChildMemLimit settings of
+          rtsArgs = case mutationParentChildMemLimit mutParent of
             Nothing -> []
             Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
           suiteNameStr = T.unpack suiteName
@@ -768,7 +764,7 @@ runMutationMode settings _manifestDirs _spec = do
                 pure (SuiteSurvived mRelFile)
 
     copyChildLog prefix mid suiteName logPath =
-      case settingMutationReportDir settings of
+      case mutationParentReportDir mutParent of
         Nothing -> pure Nothing
         Just reportDir -> do
           let suiteNameStr = T.unpack suiteName

@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
@@ -281,12 +282,13 @@ import Text.Show.Pretty (pPrint, ppShow)
 sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
-  case (settingMutationCoverage sets, settingMutationCoverageOne sets, settingMutation sets, settingMutationOne sets) of
-    (coverageDirs, Just _, _, _) | not (null coverageDirs) -> runSingleCoverageMode sets coverageDirs spec
-    (coverageDirs, _, _, _) | not (null coverageDirs) -> runCoverageMode sets coverageDirs spec
-    (_, _, mutDirs, Just _) | not (null mutDirs) -> runSingleMutationMode sets mutDirs spec
-    (_, _, mutDirs, _) | not (null mutDirs) -> runMutationMode sets mutDirs spec
-    _ -> sydTestWith sets spec
+  case settingMutation sets of
+    Just MutationSettings {mutationFailFast, mutationMode} -> case mutationMode of
+      MutationModeCoverage cov -> runCoverageMode sets mutationFailFast cov spec
+      MutationModeCoverageChild ch -> runSingleCoverageMode sets mutationFailFast ch spec
+      MutationModeMutate mut -> runMutationMode sets mutationFailFast mut spec
+      MutationModeMutateChild ch -> runSingleMutationMode sets ch spec
+    Nothing -> sydTestWith sets spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'
 --

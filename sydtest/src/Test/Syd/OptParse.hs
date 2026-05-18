@@ -82,51 +82,79 @@ data Settings = Settings
     settingProfile :: !Bool,
     -- | Output format
     settingOutputFormat :: !OutputFormat,
-    -- | Paths to mutation manifest directories; when non-empty, run in mutation testing mode
-    settingMutation :: ![Path Abs Dir],
-    -- | Paths to mutation manifest directories for coverage collection;
-    -- when non-empty, run coverage collection and write @.coverage.json@ files
-    settingMutationCoverage :: ![Path Abs Dir],
-    -- | Directory where @manifest-augmented.json@ is written (coverage mode)
-    -- or read from (mutation mode). 'Nothing' means the current working directory.
-    settingMutationAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
-    -- | When set, run only this single mutation (used by child processes).
-    settingMutationOne :: !(Maybe String),
-    -- | RTS heap limit to pass to each mutation child process (e.g. @"4g"@).
-    -- 'Nothing' means no limit is passed.
-    settingMutationChildMemLimit :: !(Maybe String),
-    -- | Maximum number of coverage children to run concurrently.
-    -- 'Nothing' means use 'getNumCapabilities'.
-    settingMutationCoverageJobs :: !(Maybe Int),
-    -- | Number of times to retry a failing coverage child before giving up.
-    -- A coverage child may fail for flaky reasons (e.g. tmp-postgres failing
-    -- to bind a port under resource contention); we retry @N@ times so that
-    -- transient failures don't lose the entire coverage phase.
-    settingMutationCoverageRetry :: !Word,
-    -- | Directory where @report.json@ is written by the parent mutation process.
-    -- 'Nothing' means no JSON report is written.
-    settingMutationReportDir :: !(Maybe (Path Abs Dir)),
-    -- | Name of the current test suite executable.  Used in coverage mode to
-    -- tag covered tests, and in child mode to select the right covering tests.
-    -- 'Nothing' means anonymous\/single-suite (backward-compatible).
-    settingMutationSuiteName :: !(Maybe Text),
-    -- | Map from suite name to executable path, used by the parent mutation
-    -- process to spawn the right binary for each suite.
-    settingMutationSuiteExes :: !(Map.Map Text FilePath),
-    -- | When set, collect coverage for only this single test id (used by
-    -- coverage child processes spawned by the parent).
-    settingMutationCoverageOne :: !(Maybe Text),
-    -- | File path where a coverage child process writes its 'TestCoverageMap'
-    -- result. Only used when 'settingMutationCoverageOne' is set.
-    settingMutationCoverageOutput :: !(Maybe FilePath),
-    -- | File path where a coverage child process writes its 'TestBaselineMap'
-    -- (one-entry: the elapsed wall-clock time of its single test).  Required
-    -- in coverage-child mode (paired with 'settingMutationCoverageOne').
-    settingMutationCoverageBaselineOutput :: !(Maybe FilePath),
-    -- | In mutation mode, stop the run as soon as a surviving or uncovered
-    -- mutation is observed.  True for CI so CI can fail fast, set this to
-    -- false for iterated development.
-    settingMutationFailFast :: !Bool
+    -- | When 'Just', run in mutation testing mode under the selected
+    -- sub-mode.  'Nothing' means normal test execution.
+    settingMutation :: !(Maybe MutationSettings)
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Top-level mutation-testing configuration.  The 'mutationMode' selects
+-- which of the four mutation entry points runs, and 'mutationFailFast' is a
+-- cross-mode flag.  All other mutation-related options live on the mode-
+-- specific records to make it impossible to set "child" fields in "parent"
+-- mode (and vice versa).
+data MutationSettings = MutationSettings
+  { -- | Stop the mutation/coverage run as soon as a surviving, uncovered, or
+    -- failing test is observed.  True suits CI; set to false for iterated
+    -- development where the full report is wanted.
+    mutationFailFast :: !Bool,
+    mutationMode :: !MutationMode
+  }
+  deriving (Show, Eq, Generic)
+
+-- | One of the four mutation entry points, with the options it needs.
+data MutationMode
+  = -- | Parent process that orchestrates coverage collection.
+    MutationModeCoverage !CoverageParentSettings
+  | -- | Child process that collects coverage for one test.
+    MutationModeCoverageChild !CoverageChildSettings
+  | -- | Parent process that runs mutations against the augmented manifest.
+    MutationModeMutate !MutationParentSettings
+  | -- | Child process that runs only the tests covering one mutation.
+    MutationModeMutateChild !MutationChildSettings
+  deriving (Show, Eq, Generic)
+
+-- | Options for the coverage-parent process: instrumented manifests to
+-- scan, where to write @manifest-augmented.json@, parallelism, retry, and
+-- the optional suite name used as the covered-tests key.
+data CoverageParentSettings = CoverageParentSettings
+  { coverageParentManifestDirs :: !(NonEmpty (Path Abs Dir)),
+    coverageParentAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
+    coverageParentJobs :: !(Maybe Int),
+    coverageParentRetry :: !Word,
+    coverageParentSuiteName :: !(Maybe Text)
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Options for the coverage-child process: the single test to run, plus
+-- the two output files for its coverage map and wall-clock baseline.
+data CoverageChildSettings = CoverageChildSettings
+  { coverageChildTestId :: !Text,
+    coverageChildOutput :: !FilePath,
+    coverageChildBaselineOutput :: !FilePath,
+    coverageChildSuiteName :: !(Maybe Text)
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Options for the mutation-parent process: instrumented manifests,
+-- where the augmented manifest sits, where to write @report.json@, the
+-- RTS heap cap for spawned children, and the suite name → executable map.
+data MutationParentSettings = MutationParentSettings
+  { mutationParentManifestDirs :: !(NonEmpty (Path Abs Dir)),
+    mutationParentAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
+    mutationParentReportDir :: !(Maybe (Path Abs Dir)),
+    mutationParentChildMemLimit :: !(Maybe String),
+    mutationParentSuiteExes :: !(Map.Map Text FilePath)
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Options for the mutation-child process: the mutation id to evaluate,
+-- the augmented-manifest directory to read it from, and the suite name
+-- whose covering tests should be selected.
+data MutationChildSettings = MutationChildSettings
+  { mutationChildId :: !String,
+    mutationChildAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
+    mutationChildSuiteName :: !(Maybe Text)
   }
   deriving (Show, Eq, Generic)
 
@@ -202,72 +230,152 @@ instance HasParser Settings where
             if threads /= Synchronous
               then pure $ Left "Reporting progress in asynchronous runners is not supported. You can use --synchronous or --debug to use a synchronous runner."
               else pure $ Right ReportProgress
-        forM errOrProgress $ \progress ->
+        let combined = do
+              progress <- errOrProgress
+              mMutation <- resolveMutationSettings Flags {..}
+              pure
+                Settings
+                  { settingSeed = flagSeed,
+                    settingRandomiseExecutionOrder =
+                      fromMaybe
+                        ( if flagDebug
+                            then False
+                            else d settingRandomiseExecutionOrder
+                        )
+                        flagRandomiseExecutionOrder,
+                    settingThreads = threads,
+                    settingMaxSuccess = flagMaxSuccess,
+                    settingMaxSize = flagMaxSize,
+                    settingMaxDiscard = flagMaxDiscard,
+                    settingMaxShrinks = flagMaxShrinks,
+                    settingGoldenStart = flagGoldenStart,
+                    settingGoldenReset = flagGoldenReset,
+                    settingTerminalCapabilities = terminalCapabilities,
+                    settingFilters = flagFilters,
+                    settingFailFast =
+                      fromMaybe
+                        ( if flagDebug
+                            then True
+                            else d settingFailFast
+                        )
+                        flagFailFast,
+                    settingIterations = flagIterations,
+                    settingTimeout = flagTimeout,
+                    settingRetries =
+                      fromMaybe
+                        ( if flagDebug
+                            then 0
+                            else d settingRetries
+                        )
+                        flagRetries,
+                    settingFailOnFlaky = flagFailOnFlaky,
+                    settingSkipPassed = flagSkipPassed,
+                    settingReportFile = flagReportFile,
+                    settingReportProgress = progress,
+                    settingProfile = flagProfile,
+                    settingOutputFormat =
+                      fromMaybe
+                        ( case flagAiExecutor of
+                            Nothing -> OutputFormatPretty
+                            Just False -> OutputFormatPretty
+                            Just True -> OutputFormatTerse
+                        )
+                        flagOutputFormat,
+                    settingMutation = mMutation
+                  }
+        pure combined
+
+-- | Pick at most one 'MutationMode' from the parsed flags.  The four modes
+-- are mutually exclusive: presence of any 'flagMutationCoverageOne' selects
+-- coverage-child, any 'flagMutationCoverage' selects coverage-parent, any
+-- 'flagMutationOne' selects mutation-child, any 'flagMutation' selects
+-- mutation-parent.  Returns 'Right Nothing' for the default (no mutation
+-- mode flags set).
+resolveMutationSettings :: Flags -> Either String (Maybe MutationSettings)
+resolveMutationSettings Flags {..} =
+  let failFast = fromMaybe (mutationFailFast defaultMutationSettings) flagMutationFailFast
+      retry = fromMaybe (coverageParentRetry defaultCoverageParentSettings) flagMutationCoverageRetry
+      mkMutation mode = Just MutationSettings {mutationFailFast = failFast, mutationMode = mode}
+   in case (flagMutationCoverageOne, flagMutationCoverage, flagMutationOne, flagMutation) of
+        (Just tid, _, _, _) -> do
+          outputFile <- case flagMutationCoverageOutput of
+            Just f -> Right f
+            Nothing -> Left "--mutation-coverage-one requires --mutation-coverage-output"
+          baselineFile <- case flagMutationCoverageBaselineOutput of
+            Just f -> Right f
+            Nothing -> Left "--mutation-coverage-one requires --mutation-coverage-baseline-output"
           pure $
-            Settings
-              { settingSeed = flagSeed,
-                settingRandomiseExecutionOrder =
-                  fromMaybe
-                    ( if flagDebug
-                        then False
-                        else d settingRandomiseExecutionOrder
-                    )
-                    flagRandomiseExecutionOrder,
-                settingThreads = threads,
-                settingMaxSuccess = flagMaxSuccess,
-                settingMaxSize = flagMaxSize,
-                settingMaxDiscard = flagMaxDiscard,
-                settingMaxShrinks = flagMaxShrinks,
-                settingGoldenStart = flagGoldenStart,
-                settingGoldenReset = flagGoldenReset,
-                settingTerminalCapabilities = terminalCapabilities,
-                settingFilters = flagFilters,
-                settingFailFast =
-                  fromMaybe
-                    ( if flagDebug
-                        then True
-                        else d settingFailFast
-                    )
-                    flagFailFast,
-                settingIterations = flagIterations,
-                settingTimeout = flagTimeout,
-                settingRetries =
-                  fromMaybe
-                    ( if flagDebug
-                        then 0
-                        else d settingRetries
-                    )
-                    flagRetries,
-                settingFailOnFlaky = flagFailOnFlaky,
-                settingSkipPassed = flagSkipPassed,
-                settingReportFile = flagReportFile,
-                settingReportProgress = progress,
-                settingProfile = flagProfile,
-                settingOutputFormat =
-                  fromMaybe
-                    ( case flagAiExecutor of
-                        Nothing -> OutputFormatPretty
-                        Just False -> OutputFormatPretty
-                        Just True -> OutputFormatTerse
-                    )
-                    flagOutputFormat,
-                settingMutation = flagMutation,
-                settingMutationCoverage = flagMutationCoverage,
-                settingMutationAugmentedManifestDir = flagMutationAugmentedManifestDir,
-                settingMutationOne = flagMutationOne,
-                settingMutationChildMemLimit = flagMutationChildMemLimit,
-                settingMutationCoverageJobs = flagMutationCoverageJobs,
-                settingMutationCoverageRetry =
-                  fromMaybe (d settingMutationCoverageRetry) flagMutationCoverageRetry,
-                settingMutationReportDir = flagMutationReportDir,
-                settingMutationSuiteName = flagMutationSuiteName,
-                settingMutationSuiteExes = flagMutationSuiteExes,
-                settingMutationCoverageOne = flagMutationCoverageOne,
-                settingMutationCoverageOutput = flagMutationCoverageOutput,
-                settingMutationCoverageBaselineOutput = flagMutationCoverageBaselineOutput,
-                settingMutationFailFast =
-                  fromMaybe (d settingMutationFailFast) flagMutationFailFast
-              }
+            mkMutation $
+              MutationModeCoverageChild
+                CoverageChildSettings
+                  { coverageChildTestId = tid,
+                    coverageChildOutput = outputFile,
+                    coverageChildBaselineOutput = baselineFile,
+                    coverageChildSuiteName = flagMutationSuiteName
+                  }
+        (Nothing, d1 : ds, _, _) ->
+          pure $
+            mkMutation $
+              MutationModeCoverage
+                CoverageParentSettings
+                  { coverageParentManifestDirs = d1 :| ds,
+                    coverageParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                    coverageParentJobs = flagMutationCoverageJobs,
+                    coverageParentRetry = retry,
+                    coverageParentSuiteName = flagMutationSuiteName
+                  }
+        (Nothing, [], Just mid, _) ->
+          pure $
+            mkMutation $
+              MutationModeMutateChild
+                MutationChildSettings
+                  { mutationChildId = mid,
+                    mutationChildAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                    mutationChildSuiteName = flagMutationSuiteName
+                  }
+        (Nothing, [], Nothing, d1 : ds) ->
+          pure $
+            mkMutation $
+              MutationModeMutate
+                MutationParentSettings
+                  { mutationParentManifestDirs = d1 :| ds,
+                    mutationParentAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                    mutationParentReportDir = flagMutationReportDir,
+                    mutationParentChildMemLimit = flagMutationChildMemLimit,
+                    mutationParentSuiteExes = flagMutationSuiteExes
+                  }
+        (Nothing, [], Nothing, []) -> pure Nothing
+
+-- | Defaults for the cross-mode 'MutationSettings'.  Used both by
+-- 'resolveMutationSettings' (to default 'mutationFailFast' when no flag is
+-- given) and by callers building 'MutationSettings' values directly.
+defaultMutationSettings :: MutationSettings
+defaultMutationSettings =
+  MutationSettings
+    { -- True suits CI so a single survivor aborts the run; flip to False
+      -- locally for the full report.
+      mutationFailFast = True,
+      -- Placeholder; concrete callers always overwrite this.
+      mutationMode =
+        MutationModeMutate
+          MutationParentSettings
+            { mutationParentManifestDirs = error "defaultMutationSettings: mutationMode is a placeholder",
+              mutationParentAugmentedManifestDir = Nothing,
+              mutationParentReportDir = Nothing,
+              mutationParentChildMemLimit = Nothing,
+              mutationParentSuiteExes = Map.empty
+            }
+    }
+
+defaultCoverageParentSettings :: CoverageParentSettings
+defaultCoverageParentSettings =
+  CoverageParentSettings
+    { coverageParentManifestDirs = error "defaultCoverageParentSettings: manifest dirs are caller-supplied",
+      coverageParentAugmentedManifestDir = Nothing,
+      coverageParentJobs = Nothing,
+      coverageParentRetry = 3,
+      coverageParentSuiteName = Nothing
+    }
 
 defaultSettings :: Settings
 defaultSettings =
@@ -294,21 +402,7 @@ defaultSettings =
           settingReportFile = Nothing,
           settingProfile = False,
           settingOutputFormat = OutputFormatPretty,
-          settingMutation = [],
-          settingMutationCoverage = [],
-          settingMutationAugmentedManifestDir = Nothing,
-          settingMutationOne = Nothing,
-          settingMutationChildMemLimit = Nothing,
-          settingMutationCoverageJobs = Nothing,
-          settingMutationCoverageRetry = 3,
-          settingMutationReportDir = Nothing,
-          settingMutationSuiteName = Nothing,
-          settingMutationSuiteExes = Map.empty,
-          settingMutationCoverageOne = Nothing,
-          settingMutationCoverageOutput = Nothing,
-          settingMutationCoverageBaselineOutput = Nothing,
-          -- True for CI so CI can fail fast, set this to false for iterated development
-          settingMutationFailFast = True
+          settingMutation = Nothing
         }
 
 -- 60 seconds

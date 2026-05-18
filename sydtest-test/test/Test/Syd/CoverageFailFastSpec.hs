@@ -20,7 +20,7 @@ import System.Exit (ExitCode (..))
 import Test.Syd
 import Test.Syd.MutationMode (runSingleCoverageMode)
 import Test.Syd.OptParse
-  ( Settings (..),
+  ( CoverageChildSettings (..),
     defaultSettings,
   )
 
@@ -30,16 +30,16 @@ spec = describe "runSingleCoverageMode fail-fast" $ do
     withSystemTempDir "coverage-fail-fast" $ \tmpDir -> do
       let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
           baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
-          settings =
-            defaultSettings
-              { settingMutationCoverageOne = Just "always-fails",
-                settingMutationCoverageOutput = Just outputFile,
-                settingMutationCoverageBaselineOutput = Just baselineFile,
-                settingMutationFailFast = True
+          covChild =
+            CoverageChildSettings
+              { coverageChildTestId = "always-fails",
+                coverageChildOutput = outputFile,
+                coverageChildBaselineOutput = baselineFile,
+                coverageChildSuiteName = Nothing
               }
           failingSpec :: Spec
           failingSpec = it "always-fails" (expectationFailure "intentional" :: IO ())
-      result <- try (runSingleCoverageMode settings [] failingSpec)
+      result <- try (runSingleCoverageMode defaultSettings True covChild failingSpec)
       case result of
         Left (ExitFailure 2) -> pure ()
         Left ec -> expectationFailure ("expected ExitFailure 2, got " <> show ec)
@@ -49,16 +49,16 @@ spec = describe "runSingleCoverageMode fail-fast" $ do
     withSystemTempDir "coverage-fail-fast" $ \tmpDir -> do
       let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
           baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
-          settings =
-            defaultSettings
-              { settingMutationCoverageOne = Just "always-passes",
-                settingMutationCoverageOutput = Just outputFile,
-                settingMutationCoverageBaselineOutput = Just baselineFile,
-                settingMutationFailFast = True
+          covChild =
+            CoverageChildSettings
+              { coverageChildTestId = "always-passes",
+                coverageChildOutput = outputFile,
+                coverageChildBaselineOutput = baselineFile,
+                coverageChildSuiteName = Nothing
               }
           passingSpec :: Spec
           passingSpec = it "always-passes" (pure () :: IO ())
-      result <- try (runSingleCoverageMode settings [] passingSpec)
+      result <- try (runSingleCoverageMode defaultSettings True covChild passingSpec)
       case result of
         Left (ec :: ExitCode) ->
           expectationFailure ("expected normal return, got " <> show ec)
@@ -68,16 +68,16 @@ spec = describe "runSingleCoverageMode fail-fast" $ do
     withSystemTempDir "coverage-fail-fast" $ \tmpDir -> do
       let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
           baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
-          settings =
-            defaultSettings
-              { settingMutationCoverageOne = Just "always-fails",
-                settingMutationCoverageOutput = Just outputFile,
-                settingMutationCoverageBaselineOutput = Just baselineFile,
-                settingMutationFailFast = False
+          covChild =
+            CoverageChildSettings
+              { coverageChildTestId = "always-fails",
+                coverageChildOutput = outputFile,
+                coverageChildBaselineOutput = baselineFile,
+                coverageChildSuiteName = Nothing
               }
           failingSpec :: Spec
           failingSpec = it "always-fails" (expectationFailure "intentional" :: IO ())
-      result <- try (runSingleCoverageMode settings [] failingSpec)
+      result <- try (runSingleCoverageMode defaultSettings False covChild failingSpec)
       case result of
         Left (ec :: ExitCode) ->
           expectationFailure ("expected normal return, got " <> show ec)

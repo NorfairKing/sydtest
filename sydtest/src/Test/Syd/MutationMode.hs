@@ -113,7 +113,7 @@ import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run
 import Test.Syd.Runner.Synchronous
 import Test.Syd.SpecDef
-import Text.Colour (Chunk, back, chunk, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (Chunk, Colour, back, chunk, colour256, cyan, fore, green, hPutChunksLocaleWith, putChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate all leaf tests, spawn one coverage child
 -- subprocess per test (up to N concurrently, N defaults to
@@ -828,6 +828,17 @@ renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
                   headerLine : renderUnifiedDiff (fromIntegral mutRecLine) mutRecContextBefore mutRecSourceLines mutRecMutatedLines mutRecContextAfter
         _ -> [[chunk (T.pack $ "added mutation " ++ intercalate "/" parts)]]
 
+-- | Foreground colour for whole-line deletions in a unified diff.  Picked
+-- noticeably darker than 'red' so paired-line intra-character highlights
+-- (which use 'back red') visually dominate over surrounding whole-line
+-- markers.
+interLineDelColour :: Colour
+interLineDelColour = colour256 88
+
+-- | Foreground colour for whole-line additions.  See 'interLineDelColour'.
+interLineAddColour :: Colour
+interLineAddColour = colour256 22
+
 renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> [[Chunk]]
 renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
   let allBefore = ctxBefore ++ srcLines ++ ctxAfter
@@ -868,10 +879,10 @@ renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
         go ds as rest = (ds, as, rest)
 
     renderDelLine :: Text -> [Chunk]
-    renderDelLine l = [fore red (chunk (T.cons '-' l))]
+    renderDelLine l = [fore interLineDelColour (chunk (T.cons '-' l))]
 
     renderAddLine :: Text -> [Chunk]
-    renderAddLine l = [fore green (chunk (T.cons '+' l))]
+    renderAddLine l = [fore interLineAddColour (chunk (T.cons '+' l))]
 
     renderPaired :: [Text] -> [Text] -> [[Chunk]]
     renderPaired dels adds =

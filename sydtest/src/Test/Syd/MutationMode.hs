@@ -87,6 +87,7 @@ import Path.IO (copyFile, getCurrentDir, withSystemTempDir)
 import System.Environment (getExecutablePath)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO (BufferMode (..), IOMode (..), hSetBuffering, stderr, withFile)
+import System.IO.Error (isDoesNotExistError)
 import System.Process.Typed (proc, runProcess, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -787,7 +788,8 @@ runMutationMode settings failFast mutParent _spec = do
     -- branch wins, the child has already been reaped by 'waitExitCode'; the
     -- cleanup's 'stopProcess' then calls 'waitForProcess' on an already-reaped
     -- pid and throws ECHILD.  Swallow that — the only reason we hold the
-    -- bracket is to guarantee cleanup, which has already happened.
+    -- bracket is to guarantee cleanup, which has already happened.  Any
+    -- other IOException is unexpected and is rethrown.
     startProcessAndWait childProc micros =
       bracket (startProcess childProc) cleanup $ \p -> do
         result <- race (threadDelay micros) (waitExitCode p)
@@ -797,7 +799,11 @@ runMutationMode settings failFast mutParent _spec = do
       where
         cleanup p =
           stopProcess p
-            `Exception.catch` (\(_ :: IOException) -> pure ())
+            `Exception.catch` ( \(e :: IOException) ->
+                                  if isDoesNotExistError e
+                                    then pure ()
+                                    else Exception.throwIO e
+                              )
 
 renderMutationRunReport :: MutationRunReport -> [[Chunk]]
 renderMutationRunReport

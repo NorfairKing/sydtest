@@ -3,6 +3,7 @@
 
 module Test.Syd.Mutation.Plugin (plugin) where
 
+import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Data (Data, cast, gmapQ)
 import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
@@ -210,10 +211,6 @@ resolveConfig opts = case mapMaybe (stripPrefix "--config=") opts of
         cfg <- readMutationPluginConfigFile path
         atomicModifyIORef' configCacheRef $ \m -> (Map.insert path cfg m, ())
         pure cfg
-
-when :: (Monad m) => Bool -> m () -> m ()
-when True m = m
-when False _ = pure ()
 
 -- | Generic traversal that collects 'RealSrcSpan's of all parsed-AST
 -- splice and quasi-quote nodes.  Uses 'Data' generics so we don't have

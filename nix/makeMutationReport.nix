@@ -22,13 +22,12 @@
 { name ? "mutation-report" # name for the report derivation
 , package # attr name of the library to instrument (string, must exist in haskellPackages)
 , testPackage ? "${package}-gen" # attr name of the package whose test suite to run; defaults to <package>-gen
-, exceptions ? [ ] # list of module names to exclude from instrumentation
-, disabledMutations ? [ ] # list of mutation type names to disable globally
+, config ? { } # attrset rendered to a YAML config file for the plugin (schema: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig)
 , mustKillAll ? true # if true (default), wrap result in assertMutationScore and fail if any mutations survive
 }:
 
 let
-  addManifest = addManifest' { inherit exceptions disabledMutations; };
+  addManifest = addManifest' { inherit config; };
 
   addManifestOverride = _: super: {
     ${package} = addManifest super.${package};

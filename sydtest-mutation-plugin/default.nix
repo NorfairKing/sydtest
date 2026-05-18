@@ -1,14 +1,16 @@
-{ mkDerivation, base, bytestring, containers, directory, filepath
-, ghc, ghc-boot, lib, mtl, path, path-io, sydtest, sydtest-discover
-, sydtest-mutation-runtime, template-haskell, text
+{ mkDerivation, aeson, autodocodec, base, bytestring, containers
+, directory, filepath, ghc, ghc-boot, lib, mtl, path, path-io
+, sydtest, sydtest-discover, sydtest-mutation-runtime
+, template-haskell, text, yaml
 }:
 mkDerivation {
   pname = "sydtest-mutation-plugin";
   version = "0.0.0.0";
   src = ./.;
   libraryHaskellDepends = [
-    base bytestring containers directory filepath ghc ghc-boot mtl path
-    path-io sydtest-mutation-runtime template-haskell text
+    aeson autodocodec base bytestring containers directory filepath ghc
+    ghc-boot mtl path path-io sydtest-mutation-runtime template-haskell
+    text yaml
   ];
   testHaskellDepends = [ base containers ghc sydtest text ];
   testToolDepends = [ sydtest-discover ];

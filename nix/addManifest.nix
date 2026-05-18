@@ -1,11 +1,11 @@
-{ haskell, mutationPlugin }:
+{ haskell, mutationPlugin, writeText }:
 
 # Wrap a Haskell package so that the mutation plugin runs during compilation
 # and writes the mutation manifest to a separate 'manifest' output.
 #
 # This function is curried: first call it with options, then with the package.
 # Example:
-#   addManifest { exceptions = [ "Foo.Internal" ]; } haskellPackages.mylib
+#   addManifest { config = { debug = true; }; } haskellPackages.mylib
 #
 # The plugin flag and sydtest-mutation-plugin dependency are injected
 # automatically via GHC flags and Nix buildDepends, so the wrapped package does
@@ -15,22 +15,25 @@
 # MUTATION_MANIFEST_DIR environment variable (set in preBuild), because Nix
 # output store paths are not available as Nix strings at evaluation time and
 # cannot be interpolated into configureFlags or buildFlags.
+#
+# All plugin-instrumentation tunables (exceptions, disabled mutation types,
+# skip-th-splices, debug) live in the YAML config file rendered from the
+# 'config' attrset. When 'config' is {}, the plugin uses its built-in
+# defaults (instrument everything, no debug output).
+#
+# Schema for 'config': Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig.
 
-{ exceptions ? [ ] # list of module names to skip during instrumentation
-, disabledMutations ? [ ] # list of mutation type names to disable globally (e.g. [ "Arith" "BoolLit" ])
-, debug ? false # print each mutation site as it is recorded (for debugging the plugin)
+{ config ? { } # Plugin configuration; rendered to YAML and passed via --config=PATH
 , ghcMemLimit ? "16g" # RTS heap limit for GHC during instrumented compilation (e.g. "8g", "16g")
-, skipThSplices ? false # skip mutations inside Template Haskell splices and quasi-quotes
 }:
 pkg: # the Haskell package derivation to wrap
 
 let
-  pluginOpts = builtins.map (e: "--exception=" + e) exceptions
-    ++ builtins.map (m: "--disable-mutation=" + m) disabledMutations
-    ++ (if debug then [ "--debug" ] else [ ])
-    ++ (if skipThSplices then [ "--skip-th-splices" ] else [ ]);
-  stringOpt = arg: "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:${arg}";
-  exceptionConfigureFlags = builtins.map stringOpt pluginOpts;
+  configFile = writeText "mutation-config.yaml" (builtins.toJSON config);
+  configConfigureFlags =
+    if config == { }
+    then [ ]
+    else [ "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:--config=${configFile}" ];
 in
 (haskell.lib.overrideCabal pkg (old: {
   # Disable haddock: the haddock pass runs GHC with the plugin but without
@@ -60,7 +63,7 @@ in
     # used at compile time; -package makes the runtime module visible at build time.
     "--ghc-option=-package=sydtest-mutation-plugin"
   ];
-  configureFlags = (old.configureFlags or [ ]) ++ exceptionConfigureFlags
+  configureFlags = (old.configureFlags or [ ]) ++ configConfigureFlags
     # Disable optimization so GHC doesn't spend superlinear time/memory
     # simplifying the nested ifMutation case expressions the plugin generates.
     ++ [ "--disable-optimization" ]

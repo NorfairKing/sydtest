@@ -18,10 +18,19 @@
 # `assertAllKilled = true`, so `mutationCheck` returns the check derivation.
 
 let
-  mutationCheck = pkgs.callPackage ./mutationCheck.nix {
-    inherit haskellPackages;
-    inherit (haskellPackages.sydtest) addMutationRuntimeDependency;
+  # Single source of truth for plugin-instrumentation tunables. Rendered to
+  # YAML and passed to every mutation check via '--config=PATH'.
+  # Schema: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig
+  config = {
+    debug = true;
   };
+
+  mutationCheck = args: pkgs.callPackage ./mutationCheck.nix
+    {
+      inherit haskellPackages;
+      inherit (haskellPackages.sydtest) addMutationRuntimeDependency;
+    }
+    ({ inherit config; } // args);
 in
 {
   # TODO: autodocodec mutation check takes too long to run, investigate
@@ -40,7 +49,6 @@ in
   #     "autodocodec-swagger2"
   #     "autodocodec-yaml"
   #   ];
-  #   debug = true;
   #   assertAllKilled = false;
   # };
 
@@ -48,7 +56,6 @@ in
     name = "opt-env-conf";
     packages = [ "opt-env-conf-test" ];
     libraries = [ "opt-env-conf" ];
-    debug = true;
     assertAllKilled = false;
   };
 
@@ -65,7 +72,6 @@ in
       "safe-coloured-text-layout-gen"
       "safe-coloured-text-parsing-gen"
     ];
-    debug = true;
     assertAllKilled = false;
   };
 

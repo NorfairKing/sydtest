@@ -24,6 +24,11 @@ import System.IO.Unsafe (unsafePerformIO)
 import Test.Syd.Mutation.Manifest (MutationManifest (..), writeManifestFile)
 import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Plugin.Operators (allOperators)
+import Test.Syd.Mutation.Plugin.OptParse
+  ( MutationPluginConfig (..),
+    defaultMutationPluginConfig,
+    readMutationPluginConfigFile,
+  )
 
 data DisabledMutation
   = DisableAll
@@ -121,8 +126,11 @@ mutationAddRuntimeImport ::
   Hsc ParsedResult
 mutationAddRuntimeImport opts ms pr = do
   let mn = moduleNameString (moduleName (ms_mod ms))
-  let exceptions = mapMaybe (stripPrefix "--exception=") opts
-  let skipThSplices = "--skip-th-splices" `elem` opts
+  MutationPluginConfig
+    { mutationPluginConfigExceptions = exceptions,
+      mutationPluginConfigSkipThSplices = skipThSplices
+    } <-
+    liftIO $ resolveConfig opts
   if "Paths_" `isPrefixOf` mn || mn `elem` exceptions
     then pure pr
     else do
@@ -181,6 +189,28 @@ hasDisableMutationsAnn m = any isDisableMutationsDecl (hsmodDecls m)
 spliceSpansRef :: IORef (Map.Map String [RealSrcSpan])
 spliceSpansRef = unsafePerformIO (newIORef Map.empty)
 
+-- | Cache the decoded 'MutationPluginConfig' keyed by config file path, so we
+-- only read and parse the YAML once per GHC invocation even though every
+-- module compiled in that invocation calls 'resolveConfig'.
+{-# NOINLINE configCacheRef #-}
+configCacheRef :: IORef (Map.Map FilePath MutationPluginConfig)
+configCacheRef = unsafePerformIO (newIORef Map.empty)
+
+-- | Resolve the 'MutationPluginConfig' for a plugin action.  If
+-- @--config=PATH@ is present in @opts@, read and cache the YAML; otherwise
+-- return 'defaultMutationPluginConfig'.
+resolveConfig :: [CommandLineOption] -> IO MutationPluginConfig
+resolveConfig opts = case mapMaybe (stripPrefix "--config=") opts of
+  [] -> pure defaultMutationPluginConfig
+  (path : _) -> do
+    cache <- readIORef configCacheRef
+    case Map.lookup path cache of
+      Just cfg -> pure cfg
+      Nothing -> do
+        cfg <- readMutationPluginConfigFile path
+        atomicModifyIORef' configCacheRef $ \m -> (Map.insert path cfg m, ())
+        pure cfg
+
 when :: (Monad m) => Bool -> m () -> m ()
 when True m = m
 when False _ = pure ()
@@ -219,7 +249,13 @@ mutationTypeCheckAction ::
   TcM TcGblEnv
 mutationTypeCheckAction opts ms tcGblEnv = do
   let mn = moduleNameString (moduleName (tcg_mod tcGblEnv))
-  let exceptions = mapMaybe (stripPrefix "--exception=") opts
+  MutationPluginConfig
+    { mutationPluginConfigExceptions = exceptions,
+      mutationPluginConfigDisabledMutations = disabledFromConfig,
+      mutationPluginConfigSkipThSplices = skipThSplices,
+      mutationPluginConfigDebug = debug
+    } <-
+    liftIO $ resolveConfig opts
   let manifestDirOpt = mapMaybe (stripPrefix "--manifest=") opts
   -- Runtime kill switch: when MUTATION_PLUGIN_SKIP is set, the plugin loads
   -- but instruments nothing. The Nix build sets this when re-invoking
@@ -231,9 +267,6 @@ mutationTypeCheckAction opts ms tcGblEnv = do
   if "Paths_" `isPrefixOf` mn || mn `elem` exceptions || skip == Just "1"
     then pure tcGblEnv
     else do
-      let debug = "--debug" `elem` opts
-      let skipThSplices = "--skip-th-splices" `elem` opts
-      let disabledFromOpts = mapMaybe (stripPrefix "--disable-mutation=") opts
       let annEnv = tcg_ann_env tcGblEnv
       let modAnns = findAnns deserializeWithData annEnv (ModuleTarget (tcg_mod tcGblEnv)) :: [String]
       let disabledFromModAnns = parseMutationAnnStrings modAnns
@@ -245,7 +278,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           liftIO $ putStrLn $ "mutation: skipping " ++ mn ++ " (DisableMutations)"
           pure tcGblEnv
         else do
-          let disabledNames = disabledFromOpts ++ [n | DisableNamed n <- disabledFromModAnns]
+          let disabledNames = disabledFromConfig ++ [n | DisableNamed n <- disabledFromModAnns]
           liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
           let mSrcPath = ml_hs_file (ms_location ms)
           spliceSpans <-

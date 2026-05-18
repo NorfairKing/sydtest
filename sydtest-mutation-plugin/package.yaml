@@ -12,6 +12,8 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - aeson
+  - autodocodec
   - bytestring
   - containers
   - directory
@@ -24,6 +26,7 @@ library:
   - sydtest-mutation-runtime
   - template-haskell
   - text
+  - yaml
 
 tests:
   sydtest-mutation-plugin-test:

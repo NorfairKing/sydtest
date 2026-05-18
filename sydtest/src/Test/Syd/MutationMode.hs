@@ -49,7 +49,6 @@ module Test.Syd.MutationMode
     CoverageProgressSkipReason (..),
     renderCoverageProgressEvent,
     formatMutationLog,
-    renderMutationAddedEvent,
     renderUnifiedDiff,
 
     -- * Exposed for testing
@@ -110,8 +109,7 @@ import Test.Syd.Mutation.AugmentedManifest
   )
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, flattenTestForestWithIds, testIdTrieFromList)
 import Test.Syd.Mutation.Manifest
-  ( MutationAddedEvent (..),
-    MutationGroup (..),
+  ( MutationGroup (..),
     MutationManifest (..),
     MutationRecord (..),
     readManifestDir,
@@ -996,40 +994,6 @@ formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationR
       [[chunk (T.pack $ intercalate "/" parts)]]
   where
     moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"
-
-renderMutationAddedEvent :: MutationAddedEvent -> [[Chunk]]
-renderMutationAddedEvent MutationAddedEvent {mutationAddedRecord} =
-  let MutationRecord
-        { mutRecId = MutationId parts,
-          mutRecOperator,
-          mutRecOriginal,
-          mutRecReplacement,
-          mutRecSourceFile,
-          mutRecSourceLines,
-          mutRecMutatedLines,
-          mutRecContextBefore,
-          mutRecContextAfter,
-          mutRecLine
-        } = mutationAddedRecord
-   in case parts of
-        (modName : _op : lineStr : colStartStr : colEndStr : _) ->
-          let filePath = case mutRecSourceFile of
-                Just p -> fromRelFile p
-                Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
-              variantSuffix = case parts of
-                [_, _, _, _, _, _, altIdx] -> " #" ++ altIdx
-                _ -> ""
-              headerText = T.pack $ "added mutation " ++ T.unpack mutRecOperator ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
-              headerLine = [chunk headerText]
-           in case mutRecSourceLines of
-                [] ->
-                  [ headerLine,
-                    [fore red (chunk ("    - " <> mutRecOriginal))],
-                    [fore green (chunk ("    + " <> mutRecReplacement))]
-                  ]
-                _ ->
-                  headerLine : renderUnifiedDiff (fromIntegral mutRecLine) mutRecContextBefore mutRecSourceLines mutRecMutatedLines mutRecContextAfter
-        _ -> [[chunk (T.pack $ "added mutation " ++ intercalate "/" parts)]]
 
 renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> [[Chunk]]
 renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =

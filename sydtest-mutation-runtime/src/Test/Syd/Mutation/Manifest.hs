@@ -13,7 +13,6 @@ module Test.Syd.Mutation.Manifest
     readCoverageDir,
     writeCoverageFile,
     relFileCodec,
-    MutationAddedEvent (..),
   )
 where
 
@@ -214,8 +213,3 @@ isCoverageFile f = case splitExtension f of
     Just (_, ".coverage") -> True
     _ -> False
   _ -> False
-
--- | A mutation site that was just recorded by the plugin.
-newtype MutationAddedEvent = MutationAddedEvent
-  { mutationAddedRecord :: MutationRecord
-  }

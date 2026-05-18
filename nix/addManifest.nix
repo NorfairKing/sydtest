@@ -1,4 +1,4 @@
-{ haskell, mutationPlugin, writeText }:
+{ haskell, lib, mutationPlugin, writeText }:
 
 # Wrap a Haskell package so that the mutation plugin runs during compilation
 # and writes the mutation manifest to a separate 'manifest' output.
@@ -34,6 +34,25 @@ let
     if config == { }
     then [ ]
     else [ "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:--config=${configFile}" ];
+
+  # Extract the names of top-level `executable <name>` stanzas from a Cabal
+  # file.  Stanza keywords are case-insensitive; only top-level (column-0)
+  # stanzas are considered, which is enough for the packages this is used
+  # against.  Returns a list of strings.
+  cabalExecutableNames = cabalText:
+    let
+      lines = lib.splitString "\n" cabalText;
+      matchExe = l: builtins.match "[Ee][Xx][Ee][Cc][Uu][Tt][Aa][Bb][Ll][Ee][[:space:]]+([^[:space:]]+).*" l;
+      hits = builtins.filter (m: m != null) (map matchExe lines);
+    in
+    map (m: builtins.head m) hits;
+
+  cabalFile = "${pkg.src}/${pkg.pname}.cabal";
+  cabalText =
+    if builtins.pathExists cabalFile
+    then builtins.readFile cabalFile
+    else "";
+  executableNames = cabalExecutableNames cabalText;
 in
 (haskell.lib.overrideCabal pkg (old: {
   # Disable haddock: the haddock pass runs GHC with the plugin but without
@@ -83,37 +102,45 @@ in
   '';
   # The main 'Setup build' invocation (driven by buildFlags above) has
   # 'lib:${old.pname}' as its buildTarget so only the library is compiled
-  # with the plugin. Remaining components (test-suites, executables,
-  # benchmarks) are built in postBuild with the plugin still loaded but
-  # silenced via MUTATION_PLUGIN_SKIP=1. We can NOT just drop the plugin
-  # flags in the second build: Cabal sees the package set change
-  # ('[sydtest-mutation-plugin removed]') and rebuilds the library
-  # un-instrumented. Keeping the same flags and using a runtime kill switch
-  # lets the library's compiled artefacts survive intact.
+  # with the plugin.  When the package also declares 'executable' stanzas,
+  # we build each of those in postBuild with the plugin loaded but silenced
+  # via MUTATION_PLUGIN_SKIP=1.  Test-suites and benchmarks are deliberately
+  # NOT built here: 'mutationCheck.nix' wraps test packages with doCheck=true
+  # in its own overlay and copies the test executables to $out/test; this
+  # avoids duplicating that work and avoids polluting $out/bin with test
+  # exes.  We cannot drop the plugin flags from the second build because
+  # Cabal would see the package set change and rebuild the library
+  # un-instrumented; the runtime kill switch keeps the library's compiled
+  # artefacts intact.
   postBuild = (old.postBuild or "") + ''
     echo "mutation-nix: manifest output at $manifest:"
     ls -la "$manifest/" || echo "(empty)"
-    echo "mutation-nix: building remaining components with plugin silenced"
+  '' + lib.optionalString (executableNames != [ ]) ''
+    echo "mutation-nix: building executables with plugin silenced: ${lib.concatStringsSep " " executableNames}"
     MUTATION_PLUGIN_SKIP=1 ./Setup build \
       --ghc-option=-fplugin=Test.Syd.Mutation.Plugin \
       --ghc-option=-plugin-package=sydtest-mutation-plugin \
-      --ghc-option=-package=sydtest-mutation-plugin
+      --ghc-option=-package=sydtest-mutation-plugin \
+      ${lib.concatMapStringsSep " " (n: "exe:${n}") executableNames}
   '';
   # The library is installed by nixpkgs's default installPhase (which runs
-  # 'Setup copy lib:${pname}'). Executables built in postBuild are not copied
-  # by that command, so we install them manually here. Downstream wrappers
-  # such as opt-env-conf's installManpagesAndCompletions expect $out/bin/<exe>
-  # to exist when their postInstall hooks run, so this must run BEFORE any
-  # existing postInstall hooks the caller has already attached.
-  postInstall = ''
+  # 'Setup copy lib:${pname}').  Executables built in postBuild are not
+  # copied by that command, so we install them manually here.  Downstream
+  # wrappers such as opt-env-conf's installManpagesAndCompletions expect
+  # $out/bin/<exe> to exist when their postInstall hooks run, so this must
+  # run BEFORE any existing postInstall hooks the caller has already
+  # attached.
+  postInstall = lib.optionalString (executableNames != [ ]) ''
     mkdir -p $out/bin
-    for exeDir in dist/build/*/; do
-      exeName=$(basename "$exeDir")
-      exePath="$exeDir$exeName"
-      if [ -f "$exePath" ] && [ -x "$exePath" ]; then
-        cp "$exePath" $out/bin/
+    ${lib.concatMapStringsSep "\n" (n: ''
+      src="dist/build/${n}/${n}"
+      if [ -f "$src" ] && [ -x "$src" ]; then
+        cp "$src" "$out/bin/${n}"
+      else
+        echo "mutation-nix: expected executable at $src but it is missing" >&2
+        exit 1
       fi
-    done
+    '') executableNames}
   '' + (old.postInstall or "");
 })).overrideAttrs (old: {
   outputs = (old.outputs or [ "out" ]) ++ [ "manifest" ];

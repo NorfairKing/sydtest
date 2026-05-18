@@ -1,4 +1,4 @@
-{ haskell, lib, mutationPlugin, writeText }:
+{ haskell, mutationPlugin, sydtest-cabal-components, writeText }:
 
 # Wrap a Haskell package so that the mutation plugin runs during compilation
 # and writes the mutation manifest to a separate 'manifest' output.
@@ -25,13 +25,6 @@
 
 { config ? { } # Plugin configuration; rendered to YAML and passed via --config=PATH
 , ghcMemLimit ? "16g" # RTS heap limit for GHC during instrumented compilation (e.g. "8g", "16g")
-, # Names of executable components declared in @pkg@'s cabal file.  Each is
-  # built with MUTATION_PLUGIN_SKIP=1 after the instrumented library and
-  # installed to @$out/bin/<name>@. The default '[]' is right for
-  # library-only packages: nothing extra to install.  Test-suites are not
-  # built here -- the outer @doCheck=true@ wrapper in
-  # @mutationCheck.nix@ takes care of that.
-  executables ? [ ]
 }:
 pkg: # the Haskell package derivation to wrap
 
@@ -118,17 +111,35 @@ in
   # $out/bin/<exe> to exist when their postInstall hooks run, so this must
   # run BEFORE any existing postInstall hooks the caller has already
   # attached.
-  postInstall = lib.optionalString (executables != [ ]) ''
-    mkdir -p $out/bin
-    ${lib.concatMapStringsSep "\n" (n: ''
-      src="dist/build/${n}/${n}"
-      if [ -f "$src" ] && [ -x "$src" ]; then
-        cp "$src" "$out/bin/${n}"
-      else
-        echo "mutation-nix: expected executable at $src but it is missing" >&2
-        exit 1
-      fi
-    '') executables}
+  #
+  # Executable component names are discovered at build time by parsing the
+  # package's cabal file with the 'sydtest-cabal-components' helper (which
+  # uses the 'Cabal' library), so the caller does not have to enumerate
+  # them at Nix evaluation time.
+  postInstall = ''
+    if [ -f "${old.pname}.cabal" ]; then
+      cabalFile="${old.pname}.cabal"
+    else
+      cabalFile=$(ls -1 ./*.cabal 2>/dev/null | head -n1)
+    fi
+    if [ -z "$cabalFile" ] || [ ! -f "$cabalFile" ]; then
+      echo "mutation-nix: no cabal file found in $PWD" >&2
+      exit 1
+    fi
+    exes=$(${sydtest-cabal-components}/bin/sydtest-cabal-components executables "$cabalFile")
+    if [ -n "$exes" ]; then
+      mkdir -p $out/bin
+      while IFS= read -r n; do
+        [ -z "$n" ] && continue
+        src="dist/build/$n/$n"
+        if [ -f "$src" ] && [ -x "$src" ]; then
+          cp "$src" "$out/bin/$n"
+        else
+          echo "mutation-nix: expected executable at $src but it is missing" >&2
+          exit 1
+        fi
+      done <<< "$exes"
+    fi
   '' + (old.postInstall or "");
 })).overrideAttrs (old: {
   outputs = (old.outputs or [ "out" ]) ++ [ "manifest" ];

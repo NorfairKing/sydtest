@@ -1,4 +1,4 @@
-{ haskellPackages, pkgs, addMutationRuntimeDependency, cabalComponents }:
+{ haskellPackages, pkgs, addMutationRuntimeDependency }:
 
 # Build one mutation check.
 #
@@ -45,19 +45,19 @@
 # so golden files and data files resolve via the same relative paths Cabal
 # would use during a 'checkPhase'. All test suite executables are
 # referenced by Nix store paths baked in at evaluation time.
+#
+# Executable and test-suite component names are NOT enumerated by the
+# caller, nor discovered from the source tree at evaluation time. Instead,
+# they are discovered at build time inside each derivation by running the
+# 'sydtest-cabal-components' helper executable (which uses the 'Cabal'
+# library) against the package's <pname>.cabal file. The driver's YAML
+# config is likewise assembled at build time via 'jq'.
 
 { name
 , packages ? [ ]
 , libraries ? [ ]
 , tests ? [ ]
 , needToBeLinkedAgainstMutationRuntime ? [ ]
-  # Source directory roots searched (in order) by 'cabalComponents.forPackage'
-  # to locate each listed package's <pname>.cabal at Nix evaluation time.
-  # The cabal files are read to discover executable and test-suite stanza
-  # names; those names drive what addManifest builds and how the harness
-  # invokes test executables.  Common roots: the flake itself and any
-  # input flakes that provide source-tree subdirectories.
-, sources ? [ ]
 , config ? { }
 , assertAllKilled ? true
 , assertNoneUncovered ? true
@@ -77,19 +77,10 @@
 let
   inherit (haskellPackages.sydtest) addManifest assertMutationScore;
   driver = haskellPackages.sydtest-mutation-driver;
+  cabalComponentsHelper = haskellPackages.sydtest-cabal-components;
 
   libraryPackages = packages ++ libraries;
   testPackages = packages ++ tests;
-
-  # Cabal-discovered components for every package this check touches.
-  # Looked up once at eval time from the configured 'sources' roots so
-  # nothing here depends on the (tarballed) haskellPackages source
-  # derivations.
-  components =
-    cabalComponents.forPackages sources
-      (pkgs.lib.unique (libraryPackages ++ testPackages));
-  executablesOf = pkgName: components.${pkgName}.executables;
-  testSuiteNamesOf = pkgName: components.${pkgName}.testSuites;
 
   # First, inject the sydtest-mutation-runtime build-dep into every package
   # the caller has listed. This ensures their executables link successfully
@@ -115,7 +106,6 @@ let
         value = addManifest
           {
             inherit config ghcMemLimit;
-            executables = executablesOf pkg;
           }
           super.${pkg};
       })
@@ -133,52 +123,53 @@ let
   # they are run later in the driver derivation.  dontBenchmark: avoid
   # building benchmark executables that would also end up under
   # dist/build/.
+  #
+  # Test-suite component names are discovered at build time by parsing the
+  # package's cabal file with sydtest-cabal-components.
   builtTestPkg = pkgName:
-    let suites = testSuiteNamesOf pkgName;
-    in
     pkgs.haskell.lib.overrideCabal
       (pkgs.haskell.lib.dontBenchmark
         (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkgName}))
-      (_: {
+      (old: {
         checkPhase = "";
         postInstall = ''
+          if [ -f "${old.pname}.cabal" ]; then
+            cabalFile="${old.pname}.cabal"
+          else
+            cabalFile=$(ls -1 ./*.cabal 2>/dev/null | head -n1)
+          fi
+          if [ -z "$cabalFile" ] || [ ! -f "$cabalFile" ]; then
+            echo "mutation-nix: no cabal file found in $PWD" >&2
+            exit 1
+          fi
+          suites=$(${cabalComponentsHelper}/bin/sydtest-cabal-components test-suites "$cabalFile")
           mkdir -p $out/test
-        '' + pkgs.lib.concatMapStringsSep "\n"
-          (suite: ''
-            src="dist/build/${suite}/${suite}"
-            if [ -f "$src" ] && [ -x "$src" ]; then
-              cp "$src" "$out/test/${suite}"
-            else
-              echo "mutation-nix: expected test executable at $src but it is missing" >&2
-              exit 1
-            fi
-          '')
-          suites;
+          if [ -n "$suites" ]; then
+            while IFS= read -r suite; do
+              [ -z "$suite" ] && continue
+              src="dist/build/$suite/$suite"
+              if [ -f "$src" ] && [ -x "$src" ]; then
+                cp "$src" "$out/test/$suite"
+              else
+                echo "mutation-nix: expected test executable at $src but it is missing" >&2
+                exit 1
+              fi
+            done <<< "$suites"
+          fi
+        '';
       });
-
-  # Expand the caller's @testPackages@ list to a flat list of
-  # @{ pkg, suite }@ records, one per declared test-suite. The harness
-  # treats each test-suite as an independent "suite" with its own
-  # name and exe.
-  allTestSuites =
-    pkgs.lib.concatMap
-      (pkgName: map (suite: { pkg = pkgName; inherit suite; }) (testSuiteNamesOf pkgName))
-      testPackages;
 
   manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
 
-  # On-disk path of a test exe inside a built test package.
-  storeTestExePath = s: "${builtTestPkg s.pkg}/test/${s.suite}";
-
-  # Resource directory for one suite: the unpacked source tree of its
-  # owning package.  Used by the driver to 'cd' into the suite's source
-  # tree before spawning it (so golden files and data files resolve via
-  # relative paths just as they would during a Cabal 'checkPhase').
+  # Resource directory for one package: the unpacked source tree of that
+  # package.  Used by the driver to 'cd' into a suite's source tree before
+  # spawning it (so golden files and data files resolve via relative paths
+  # just as they would during a Cabal 'checkPhase').
   #
   # The instrumented package's 'src' is an sdist tarball
   # (haskellPackages.buildFromSdist wraps it).  We unpack each tarball
   # once into a per-package store path that the driver can 'cd' into.
-  unpackedSrc = pkgName:
+  unpackedSrcFor = pkgName:
     pkgs.stdenv.mkDerivation {
       name = "${pkgName}-resource-dir";
       src = instrumentedHaskellPackages.${pkgName}.src;
@@ -190,13 +181,10 @@ let
         cp -r ./. $out/
       '';
     };
-  resourceDirFor = s: unpackedSrc s.pkg;
 
-  # Distinct test-package derivations needed on buildInputs.  Multiple
-  # suites from the same package share a single derivation.
-  testPkgInputs =
-    let pkgsNeeded = pkgs.lib.unique (map (s: s.pkg) allTestSuites);
-    in map builtTestPkg pkgsNeeded;
+  # One built test-package derivation per test-package the caller asked
+  # for. Each contributes zero-or-more test executables under @$out/test@.
+  testPkgInputs = map builtTestPkg testPackages;
 
   # Pull testToolDepends from every test package so they are visible to
   # the driver's child processes. Each package's own checkPhase is
@@ -216,83 +204,112 @@ let
     )
     testPackages;
 
-  # Build a YAML config file for the driver.  JSON is valid YAML so we
-  # render the attrset via 'builtins.toJSON'.  Suites are keyed by
-  # test-suite name (which is unique across all packages in this check).
-  driverConfigValue =
-    {
-      manifests = map toString manifests;
-      suites =
-        builtins.listToAttrs
-          (map
-            (s: {
-              name = s.suite;
-              value = {
-                exe = storeTestExePath s;
-                resourceDir = toString (resourceDirFor s);
-              };
-            })
-            allTestSuites);
-      childMemLimit = testProcessMemLimit;
-      augmentedManifestDir = null;
-      reportDir = null;
-      failFast = failFast;
-    }
-    // pkgs.lib.optionalAttrs (coverageJobs != null) { coverageJobs = coverageJobs; }
-    // pkgs.lib.optionalAttrs (coverageRetry != null) { coverageRetry = coverageRetry; };
+  # Shell snippet that walks each requested test-package, lists the
+  # installed test executables under @<builtTestPkg>/test@, and
+  # accumulates a JSON object @{ "<suite>": { exe, resourceDir }, ... }@
+  # into the shell variable @suites_json@.  Run inside @buildPhase@.
+  suitesJsonScript = pkgs.lib.concatMapStringsSep "\n"
+    (pkg: ''
+      resource="${unpackedSrcFor pkg}"
+      pkgTestDir="${builtTestPkg pkg}/test"
+      for exe in "$pkgTestDir"/*; do
+        [ -e "$exe" ] || continue
+        suite=$(basename "$exe")
+        suites_json=$(jq --arg name "$suite" --arg exe "$exe" --arg rd "$resource" \
+          '.[$name] = {exe: $exe, resourceDir: $rd}' <<< "$suites_json")
+      done
+    '')
+    testPackages;
 
-  driverConfigFile =
-    pkgs.writeText "${name}-mutation-driver-config.yaml"
-      (builtins.toJSON driverConfigValue);
+  # JSON array literal containing the manifest store paths.  Safe to
+  # interpolate into a shell heredoc because every element is a Nix store
+  # path (no embedded quotes, backslashes, or shell metacharacters).
+  manifestsJson =
+    "[" + pkgs.lib.concatStringsSep ","
+      (map (m: "\"${toString m}\"") manifests) + "]";
+
+  coverageJobsExpr =
+    pkgs.lib.optionalString (coverageJobs != null)
+      "+ {coverageJobs: ${toString coverageJobs}}";
+  coverageRetryExpr =
+    pkgs.lib.optionalString (coverageRetry != null)
+      "+ {coverageRetry: ${toString coverageRetry}}";
+  failFastJson = if failFast then "true" else "false";
 
   drv =
-    if allTestSuites == [ ]
-    then throw "sydtest.mutationCheck '${name}': no test-suites declared by any of packages = ${toString testPackages} or tests = ${toString tests}. Provide at least one package that declares a test-suite."
-    else
-      pkgs.stdenv.mkDerivation {
-        name = "${name}-mutation-report";
-        dontUnpack = true;
-        buildInputs = testPkgInputs ++ [ driver ];
-        # Test executables spawn tools (postgresql, git, nix, ...) at
-        # runtime via testToolDepends. Put the union of those deps on
-        # PATH so children can find them.
-        nativeBuildInputs = collectedTestToolDepends;
-        buildPhase = ''
-          runHook preBuild
+    pkgs.stdenv.mkDerivation {
+      name = "${name}-mutation-report";
+      dontUnpack = true;
+      buildInputs = testPkgInputs ++ [ driver ];
+      # Test executables spawn tools (postgresql, git, nix, ...) at
+      # runtime via testToolDepends. Put the union of those deps on
+      # PATH so children can find them. 'jq' is used at build time to
+      # assemble the driver's YAML (JSON) config file.
+      nativeBuildInputs = collectedTestToolDepends ++ [ pkgs.jq ];
+      buildPhase = ''
+        runHook preBuild
 
-          mkdir -p augmented report
+        mkdir -p augmented report
 
-          # The driver writes report.json into the directory passed via
-          # '--mutation-report-dir' (which overrides the config file's
-          # 'reportDir').  We point that at a workdir-local directory
-          # and copy the results to '$out' in installPhase.
-          # 'set -o pipefail' so the driver's exit code propagates
-          # through 'tee' and aborts the build on a survivor or crash.
-          set -o pipefail
-          ${driver}/bin/sydtest-mutation-driver \
-            --config-file=${driverConfigFile} \
-            --mutation-augmented-manifest-dir augmented \
-            --mutation-report-dir report \
-              2>&1 | tee report/report.txt
+        # Walk each test-package's installed test executables and build
+        # the suites JSON object. Test-suite component names are
+        # discovered at build time (each package's builtTestPkg copies
+        # its declared test-suite exes to $out/test).
+        suites_json='{}'
+        ${suitesJsonScript}
 
-          runHook postBuild
-        '';
-        installPhase = ''
-          runHook preInstall
+        nSuites=$(jq 'length' <<< "$suites_json")
+        if [ "$nSuites" -eq 0 ]; then
+          echo "sydtest.mutationCheck '${name}': no test-suites declared by any of packages = ${toString testPackages} or tests = ${toString tests}. Provide at least one package that declares a test-suite." >&2
+          exit 1
+        fi
 
-          mkdir -p $out
-          cp report/report.txt $out/report.txt
-          cp report/report.json $out/report.json
-          # Also copy any per-suite child log files the driver wrote.
-          for f in report/*.log; do
-            if [ -e "$f" ]; then
-              cp "$f" "$out/"
-            fi
-          done
+        # Assemble the full driver config. JSON is valid YAML, so we
+        # write JSON.
+        jq -n \
+          --argjson manifests '${manifestsJson}' \
+          --argjson suites "$suites_json" \
+          --arg childMemLimit '${testProcessMemLimit}' \
+          --argjson failFast ${failFastJson} \
+          '{
+            manifests: $manifests,
+            suites: $suites,
+            childMemLimit: $childMemLimit,
+            failFast: $failFast
+          } ${coverageJobsExpr} ${coverageRetryExpr}' \
+          > driver-config.json
 
-          runHook postInstall
-        '';
-      };
+        # The driver writes report.json into the directory passed via
+        # '--mutation-report-dir' (which overrides the config file's
+        # 'reportDir').  We point that at a workdir-local directory
+        # and copy the results to '$out' in installPhase.
+        # 'set -o pipefail' so the driver's exit code propagates
+        # through 'tee' and aborts the build on a survivor or crash.
+        set -o pipefail
+        ${driver}/bin/sydtest-mutation-driver \
+          --config-file=./driver-config.json \
+          --mutation-augmented-manifest-dir augmented \
+          --mutation-report-dir report \
+            2>&1 | tee report/report.txt
+
+        runHook postBuild
+      '';
+      installPhase = ''
+        runHook preInstall
+
+        mkdir -p $out
+        cp report/report.txt $out/report.txt
+        cp report/report.json $out/report.json
+        # Also copy any per-suite child log files the driver wrote.
+        for f in report/*.log; do
+          if [ -e "$f" ]; then
+            cp "$f" "$out/"
+          fi
+        done
+
+        runHook postInstall
+      '';
+    };
 
   report = drv;
   check = assertMutationScore { inherit name assertNoneUncovered report; };

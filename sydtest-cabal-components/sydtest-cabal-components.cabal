@@ -1,0 +1,32 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.3.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-cabal-components
+version:        0.0.0.0
+synopsis:       Print executable or test-suite component names declared in a Cabal file.
+description:    Helper executable used by sydtest's mutation Nix harness to discover declared executable and test-suite component names at build time, replacing eval-time regex parsing of cabal files.
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+license:        MIT
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+executable sydtest-cabal-components
+  main-is: Main.hs
+  other-modules:
+      Paths_sydtest_cabal_components
+  hs-source-dirs:
+      app
+  build-depends:
+      Cabal
+    , base >=4.7 && <5
+  default-language: Haskell2010

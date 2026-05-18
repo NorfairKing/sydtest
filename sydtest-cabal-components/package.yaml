@@ -1,0 +1,19 @@
+name: sydtest-cabal-components
+version: 0.0.0.0
+github: "NorfairKing/sydtest"
+license: MIT
+author: "Tom Sydney Kerckhove"
+maintainer: "syd@cs-syd.eu"
+category: Testing
+synopsis: Print executable or test-suite component names declared in a Cabal file.
+description: Helper executable used by sydtest's mutation Nix harness to discover declared executable and test-suite component names at build time, replacing eval-time regex parsing of cabal files.
+
+dependencies:
+- base >= 4.7 && < 5
+
+executables:
+  sydtest-cabal-components:
+    main: Main.hs
+    source-dirs: app
+    dependencies:
+    - Cabal

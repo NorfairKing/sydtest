@@ -26,6 +26,9 @@
 # - assertAllKilled: return a check derivation that fails if any mutations survive (default: true)
 # - assertNoneUncovered: also fail the check derivation if any mutations are uncovered (default: true)
 # - ghcMemLimit: RTS heap limit for GHC during instrumented compilation
+# - testProcessMemLimit: RTS heap limit for the test process during the
+#       coverage phase and for each mutation child during the mutation phase
+#       (default: "4g")
 # - coverageJobs: maximum number of coverage children to run concurrently.
 #       Defaults to the build-sandbox's RTS capability count, which is too
 #       aggressive for test suites that spawn expensive per-test resources
@@ -58,6 +61,10 @@
 , assertAllKilled ? true
 , assertNoneUncovered ? true
 , ghcMemLimit ? "16g"
+  # RTS heap cap for the test process during the coverage phase and for each
+  # mutation child during the mutation phase.  Passed as '+RTS -M<limit> -RTS'
+  # to the test exe and as '--mutation-child-mem-limit' to the harness.
+, testProcessMemLimit ? "4g"
 , coverageJobs ? null
 , coverageRetry ? null
   # Whether to enable fail-fast in the harness run. Defaults to false because
@@ -162,7 +169,7 @@ let
     (pkg: ''
       echo "mutation-nix: collecting coverage for suite ${pkg}"
       storeExe=$(find ${storeTestDirOf pkg} -maxdepth 1 -type f | head -1)
-      "$storeExe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
+      "$storeExe" +RTS -M${testProcessMemLimit} -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
         --mutation-suite-name ${pkg} \
         --mutation-augmented-manifest-dir augmented
     '')
@@ -205,14 +212,15 @@ let
           exe=$(find dist -type f -executable | grep -v '\.so' | head -1)
           mkdir -p augmented
           echo "mutation-nix: collecting coverage for suite ${firstTestPkg}"
-          # +RTS -M4g -RTS: cap the test process heap to 4 GB to avoid OOM in
-          # the Nix sandbox, where memory is shared with the builder.
+          # +RTS -M${testProcessMemLimit} -RTS: cap the test process heap to
+          # avoid OOM in the Nix sandbox, where memory is shared with the
+          # builder.
           # ${failFastFlag} is forwarded so the coverage phase mirrors the
           # caller's fail-fast intent. With fail-fast on, a baseline test
           # failure exits code 2 and aborts the run; with fail-fast off, the
           # coverage phase still warns loudly but continues so the report
           # derivation can be produced.
-          "$exe" +RTS -M4g -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
+          "$exe" +RTS -M${testProcessMemLimit} -RTS ${coverageFlags} ${coverageJobsFlag} ${coverageRetryFlag} ${failFastFlag} \
             --mutation-suite-name ${firstTestPkg} \
             --mutation-augmented-manifest-dir augmented
           ${extraCoverageScript}
@@ -221,7 +229,7 @@ let
           "$exe" ${mutationFlags} \
             --mutation-augmented-manifest-dir augmented \
             ${allSuiteExeFlags} \
-            --mutation-child-mem-limit 4g \
+            --mutation-child-mem-limit ${testProcessMemLimit} \
             ${failFastFlag} \
             --mutation-report-dir "$report" | tee $report/report.txt
         '';

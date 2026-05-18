@@ -1,4 +1,4 @@
-{ haskellPackages, pkgs }:
+{ haskellPackages }:
 
 # End-to-end mutation testing checks for packages that sydtest itself depends on.
 #
@@ -25,12 +25,9 @@ let
     debug = true;
   };
 
-  mutationCheck = args: pkgs.callPackage ./mutationCheck.nix
-    {
-      inherit haskellPackages;
-      inherit (haskellPackages.sydtest) addMutationRuntimeDependency;
-    }
-    ({ inherit config; } // args);
+  mutationCheck = args:
+    haskellPackages.sydtest.mutationCheck
+      ({ inherit config; } // args);
 in
 {
   # TODO: autodocodec mutation check takes too long to run, investigate

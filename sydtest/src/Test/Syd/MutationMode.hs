@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | This module provides four entry points for mutation testing:
 --
@@ -623,9 +624,14 @@ runMutationMode settings failFast mutParent _spec = do
                 modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
           )
           recs
-  Exception.handle (\MutationFailFast -> pure ()) $ do
-    _ <- mapConcurrently runGroup' (zip [0 :: Int ..] groups)
-    pure ()
+  -- Catch every exception so the partial report (whatever results have
+  -- already landed in 'groupResultsVar') is still written out. Re-throw
+  -- after the report write unless the exception is the expected
+  -- 'MutationFailFast' fast-path.
+  mWorkerException <-
+    Exception.try @Exception.SomeException $ do
+      _ <- mapConcurrently runGroup' (zip [0 :: Int ..] groups)
+      pure ()
   finalGroupResults <- readTVarIO groupResultsVar
   -- Preserve original group order; reverse each group's results because they
   -- were accumulated cons-style.
@@ -655,6 +661,11 @@ runMutationMode settings failFast mutParent _spec = do
   -- normally or exit non-zero. Without this, the last few lines of
   -- progress can be dropped when 'exitWith' tears down the runtime.
   hFlush stderr
+  case mWorkerException of
+    Left e -> case Exception.fromException e of
+      Just MutationFailFast -> pure ()
+      Nothing -> Exception.throwIO e
+    Right () -> pure ()
   when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
   where
     tallyGroups :: [MutationGroupReport] -> OutcomeTally

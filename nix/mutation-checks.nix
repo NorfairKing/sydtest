@@ -52,19 +52,6 @@ in
     assertAllKilled = false;
   };
 
-  mutation-really-safe-money = mutationCheck {
-    name = "really-safe-money";
-    libraries = [
-      "really-safe-money"
-      "really-safe-money-autodocodec"
-    ];
-    tests = [
-      "really-safe-money-gen"
-    ];
-    debug = true;
-    assertAllKilled = false;
-  };
-
   mutation-safe-coloured-text = mutationCheck {
     name = "safe-coloured-text";
     libraries = [

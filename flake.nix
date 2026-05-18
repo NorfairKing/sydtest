@@ -18,8 +18,6 @@
     fast-myers-diff.flake = false;
     opt-env-conf.url = "github:NorfairKing/opt-env-conf";
     opt-env-conf.flake = false;
-    really-safe-money.url = "github:NorfairKing/really-safe-money";
-    really-safe-money.flake = false;
   };
 
   outputs =
@@ -32,7 +30,6 @@
     , safe-coloured-text
     , fast-myers-diff
     , opt-env-conf
-    , really-safe-money
     }:
     let
       system = "x86_64-linux";
@@ -43,7 +40,6 @@
         (pkgs.callPackage (safe-coloured-text + "/nix/overrides.nix") { })
         (pkgs.callPackage (validity + "/nix/overrides.nix") { })
         (pkgs.callPackage (opt-env-conf + "/nix/overrides.nix") { })
-        (pkgs.callPackage (really-safe-money + "/nix/overrides.nix") { })
         self.overrides.${system}
       ];
       horizonPkgs = horizon-advance.legacyPackages.${system}.extend allOverrides;

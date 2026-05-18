@@ -41,8 +41,7 @@ runCommand "mutation-manifest-example"
 } ''
   if diff -ruN ${expected} ${actual}; then
     echo "PASS: mutation manifest matches the committed goldens"
-    mkdir -p $out
-    cp -r ${actual}/. $out/
+    ln -s ${actual} $out
   else
     echo ""
     echo "FAIL: mutation manifest differs from the committed goldens."

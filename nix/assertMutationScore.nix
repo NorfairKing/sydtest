@@ -57,8 +57,8 @@ stdenv.mkDerivation {
       echo "PASS: All $total mutation(s) accounted for."
 
       mkdir -p $out
-      cp ${report}/report.txt $out/report.txt
-      cp ${report}/report.json $out/report.json
+      ln -s ${report}/report.txt $out/report.txt
+      ln -s ${report}/report.json $out/report.json
     fi
   '';
 }

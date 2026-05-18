@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -7,6 +8,7 @@ import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
+import Data.Char (toLower)
 import Data.Data (Data, cast, gmapQ)
 import Data.List (isPrefixOf, stripPrefix)
 import Data.Maybe (fromMaybe, mapMaybe)
@@ -63,6 +65,13 @@ splitOnComma :: String -> [String]
 splitOnComma s = case break (== ',') s of
   (w, []) -> [w]
   (w, _ : rest) -> w : splitOnComma rest
+
+-- | Treat the common truthy spellings as "enabled".  Used for env-var kill
+-- switches so users don't have to remember an exact magic value.
+isTruthyEnv :: Maybe String -> Bool
+isTruthyEnv = \case
+  Just s -> map toLower s `elem` ["1", "true", "yes", "on"]
+  Nothing -> False
 
 plugin :: Plugin
 plugin =
@@ -263,7 +272,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
   -- plugin flags from that invocation without making Cabal rebuild the
   -- already-instrumented library un-instrumented.
   skip <- liftIO $ lookupEnv "MUTATION_PLUGIN_SKIP"
-  if "Paths_" `isPrefixOf` mn || mn `elem` exceptions || skip == Just "1"
+  if "Paths_" `isPrefixOf` mn || mn `elem` exceptions || isTruthyEnv skip
     then pure tcGblEnv
     else do
       let annEnv = tcg_ann_env tcGblEnv

@@ -24,6 +24,10 @@
 , testPackage ? "${package}-gen" # attr name of the package whose test suite to run; defaults to <package>-gen
 , config ? { } # attrset rendered to a YAML config file for the plugin (schema: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig)
 , mustKillAll ? true # if true (default), wrap result in assertMutationScore and fail if any mutations survive
+  # Names of executable components declared in @package@'s cabal file.
+  # See nix/addManifest.nix for details.  Defaults to [] which is correct
+  # for library-only packages.
+, executables ? [ ]
 , # Haskell package set to instrument against.  Defaults to the value supplied
   # at callPackage time, which is the default haskellPackages.  Override when
   # building against a different package set (e.g. an extended overlay).
@@ -31,7 +35,7 @@
 }:
 
 let
-  addManifest = addManifest' { inherit config; };
+  addManifest = addManifest' { inherit config executables; };
 
   addManifestOverride = _: super: {
     ${package} = addManifest super.${package};

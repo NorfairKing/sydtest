@@ -15,6 +15,7 @@ license:        MIT
 build-type:     Simple
 extra-source-files:
     test_resources/augmented-manifest.json
+    test_resources/legacy-mutation-manifest.json
     test_resources/mutation-manifest.json
     test_resources/mutation-run-report.json
 
@@ -51,9 +52,11 @@ test-suite sydtest-mutation-test
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      aeson-pretty
+      aeson
+    , aeson-pretty
     , async
     , base >=4.7 && <5
+    , bytestring
     , containers
     , genvalidity-sydtest
     , genvalidity-sydtest-aeson

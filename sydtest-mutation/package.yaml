@@ -28,8 +28,10 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - aeson
     - aeson-pretty
     - async
+    - bytestring
     - containers
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson

@@ -1,7 +1,4 @@
-# stdenv and lib are not used directly here; they are passed through so callers
-# can use callPackage without knowing which dependencies compileMutationReport
-# and assertMutationScore need.
-{ stdenv, lib, compileMutationReport, assertMutationScore }:
+{ compileMutationReport, assertMutationScore }:
 
 # Run one or more test suite packages in mutation mode and fail if any mutation
 # survives. Thin composition of compileMutationReport and assertMutationScore.

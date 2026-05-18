@@ -553,6 +553,28 @@ resultToOutcome = \case
   MutationUncovered um -> OutcomeUncovered um
   MutationSkipped sk -> OutcomeSkipped sk
 
+-- | Per-outcome-kind counts produced by 'tallyGroups'.  Each 'OutcomeTimedOut'
+-- bumps both 'tallyKilled' and 'tallyTimedOut' because a timed-out mutation is
+-- treated as killed for scoring; 'tallyTimedOut' carries the separate count
+-- for visibility.
+data OutcomeTally = OutcomeTally
+  { tallyKilled :: !Word,
+    tallySurvived :: !Word,
+    tallyTimedOut :: !Word,
+    tallyUncovered :: !Word,
+    tallySkipped :: !Word
+  }
+
+emptyOutcomeTally :: OutcomeTally
+emptyOutcomeTally =
+  OutcomeTally
+    { tallyKilled = 0,
+      tallySurvived = 0,
+      tallyTimedOut = 0,
+      tallyUncovered = 0,
+      tallySkipped = 0
+    }
+
 -- | Run one mutation group: walk records sequentially, calling the supplied
 -- @run@ for each record, and once one record's result is 'isMutationFailure'
 -- record every remaining record as 'MutationSkipped' instead of running it.
@@ -617,7 +639,13 @@ runMutationMode settings _manifestDirs _spec = do
         [ MutationGroupReport (map resultToOutcome (reverse (Map.findWithDefault [] gix finalGroupResults)))
         | gix <- [0 .. length groups - 1]
         ]
-      (killed, survived, timedOut, uncovered, skipped) = tallyGroups groupReports
+      OutcomeTally
+        { tallyKilled = killed,
+          tallySurvived = survived,
+          tallyTimedOut = timedOut,
+          tallyUncovered = uncovered,
+          tallySkipped = skipped
+        } = tallyGroups groupReports
       jsonReport =
         MutationRunReport
           { mutationRunReportKilled = killed,
@@ -631,15 +659,15 @@ runMutationMode settings _manifestDirs _spec = do
   putChunksLocaleWith (settingTerminalCapabilities settings) (unlinesChunks (renderMutationRunReport jsonReport))
   when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
   where
-    tallyGroups :: [MutationGroupReport] -> (Word, Word, Word, Word, Word)
-    tallyGroups = foldr (\(MutationGroupReport os) acc -> foldr step acc os) (0, 0, 0, 0, 0)
+    tallyGroups :: [MutationGroupReport] -> OutcomeTally
+    tallyGroups = foldr (\(MutationGroupReport os) acc -> foldr step acc os) emptyOutcomeTally
       where
-        step o (k, s, t, u, sk) = case o of
-          OutcomeKilled _ -> (k + 1, s, t, u, sk)
-          OutcomeTimedOut _ -> (k + 1, s, t + 1, u, sk)
-          OutcomeSurvived _ -> (k, s + 1, t, u, sk)
-          OutcomeUncovered _ -> (k, s, t, u + 1, sk)
-          OutcomeSkipped _ -> (k, s, t, u, sk + 1)
+        step = \case
+          OutcomeKilled _ -> \t -> t {tallyKilled = tallyKilled t + 1}
+          OutcomeTimedOut _ -> \t -> t {tallyKilled = tallyKilled t + 1, tallyTimedOut = tallyTimedOut t + 1}
+          OutcomeSurvived _ -> \t -> t {tallySurvived = tallySurvived t + 1}
+          OutcomeUncovered _ -> \t -> t {tallyUncovered = tallyUncovered t + 1}
+          OutcomeSkipped _ -> \t -> t {tallySkipped = tallySkipped t + 1}
 
     runOne defaultExe augDir sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do

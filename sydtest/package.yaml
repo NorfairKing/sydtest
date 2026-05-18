@@ -47,6 +47,7 @@ library:
     - sydtest-mutation-runtime
     - text
     - time
+    - transformers
     - typed-process
     - vector
   when:

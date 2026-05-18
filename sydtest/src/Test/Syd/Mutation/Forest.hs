@@ -17,6 +17,8 @@ module Test.Syd.Mutation.Forest
   )
 where
 
+import Control.Monad.State.Strict (State, evalState, gets, modify')
+import Control.Monad.Trans.Writer.CPS (WriterT, execWriterT, tell)
 import qualified Data.List.NonEmpty as NE
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -73,48 +75,57 @@ testIdTrieFromList = foldr insertId (TrieNode Map.empty)
 -- with the same description text receive a zero-based per-description index
 -- so that duplicate descriptions are still uniquely identified.
 flattenTestForestWithIds :: SpecDefForest '[] () result -> [(TestId, result)]
-flattenTestForestWithIds = goForest []
+flattenTestForestWithIds f = evalState (execWriterT (goForest [] f)) Map.empty
   where
-    goForest :: [(Text, Word)] -> SpecDefForest outers inner c -> [(TestId, c)]
-    goForest path = snd . foldl (goTree path) (Map.empty, [])
+    -- Each call to 'goForest' establishes its own fresh sibling-index counter
+    -- and restores the caller's counter on the way out.  Both 'DefDescribeNode'
+    -- and the wrapper nodes (setup, before-all, ...) descend via 'goForest',
+    -- so each wrapped sub-forest gets its own counter, matching the
+    -- accumulator-style implementation this replaces.
+    goForest :: [(Text, Word)] -> SpecDefForest outers inner c -> WriterT [(TestId, c)] (State (Map Text Word)) ()
+    goForest path sub = do
+      saved <- gets id
+      modify' (const Map.empty)
+      mapM_ (goTree path) sub
+      modify' (const saved)
 
     goTree ::
       [(Text, Word)] ->
-      (Map Text Word, [(TestId, c)]) ->
       SpecDefTree outers inner c ->
-      (Map Text Word, [(TestId, c)])
-    goTree path (seen, acc) tree =
-      let (mkey, seen') = nextKey seen tree
-       in case tree of
-            DefSpecifyNode _ _ e ->
-              case mkey of
-                Nothing -> (seen', acc)
-                Just key -> (seen', acc ++ [(TestId (NE.fromList (reverse (key : path))), e)])
-            DefPendingNode _ _ -> (seen', acc)
-            DefDescribeNode _ sub ->
-              case mkey of
-                Nothing -> (seen', acc)
-                Just key -> (seen', acc ++ goForest (key : path) sub)
-            DefSetupNode _ sub -> (seen', acc ++ goForest path sub)
-            DefBeforeAllNode _ sub -> (seen', acc ++ goForest path sub)
-            DefBeforeAllWithNode _ sub -> (seen', acc ++ goForest path sub)
-            DefWrapNode _ sub -> (seen', acc ++ goForest path sub)
-            DefAroundAllNode _ sub -> (seen', acc ++ goForest path sub)
-            DefAroundAllWithNode _ sub -> (seen', acc ++ goForest path sub)
-            DefAfterAllNode _ sub -> (seen', acc ++ goForest path sub)
-            DefParallelismNode _ sub -> (seen', acc ++ goForest path sub)
-            DefRandomisationNode _ sub -> (seen', acc ++ goForest path sub)
-            DefTimeoutNode _ sub -> (seen', acc ++ goForest path sub)
-            DefRetriesNode _ sub -> (seen', acc ++ goForest path sub)
-            DefFlakinessNode _ sub -> (seen', acc ++ goForest path sub)
-            DefExpectationNode _ sub -> (seen', acc ++ goForest path sub)
+      WriterT [(TestId, c)] (State (Map Text Word)) ()
+    goTree path tree = do
+      mkey <- nextKey tree
+      case tree of
+        DefSpecifyNode _ _ e ->
+          case mkey of
+            Nothing -> pure ()
+            Just key -> tell [(TestId (NE.fromList (reverse (key : path))), e)]
+        DefPendingNode _ _ -> pure ()
+        DefDescribeNode _ sub ->
+          case mkey of
+            Nothing -> pure ()
+            Just key -> goForest (key : path) sub
+        DefSetupNode _ sub -> goForest path sub
+        DefBeforeAllNode _ sub -> goForest path sub
+        DefBeforeAllWithNode _ sub -> goForest path sub
+        DefWrapNode _ sub -> goForest path sub
+        DefAroundAllNode _ sub -> goForest path sub
+        DefAroundAllWithNode _ sub -> goForest path sub
+        DefAfterAllNode _ sub -> goForest path sub
+        DefParallelismNode _ sub -> goForest path sub
+        DefRandomisationNode _ sub -> goForest path sub
+        DefTimeoutNode _ sub -> goForest path sub
+        DefRetriesNode _ sub -> goForest path sub
+        DefFlakinessNode _ sub -> goForest path sub
+        DefExpectationNode _ sub -> goForest path sub
 
-    nextKey :: Map Text Word -> SpecDefTree outers inner c -> (Maybe (Text, Word), Map Text Word)
-    nextKey seen tree = case descriptionOf tree of
-      Nothing -> (Nothing, seen)
-      Just t ->
-        let idx = Map.findWithDefault 0 t seen
-         in (Just (t, idx), Map.insert t (idx + 1) seen)
+    nextKey :: SpecDefTree outers inner c -> WriterT [(TestId, c)] (State (Map Text Word)) (Maybe (Text, Word))
+    nextKey tree = case descriptionOf tree of
+      Nothing -> pure Nothing
+      Just t -> do
+        idx <- gets (Map.findWithDefault 0 t)
+        modify' (Map.insert t (idx + 1))
+        pure (Just (t, idx))
 
     descriptionOf :: SpecDefTree outers inner c -> Maybe Text
     descriptionOf = \case

@@ -91,6 +91,7 @@ library
     , sydtest-mutation-runtime
     , text
     , time
+    , transformers
     , typed-process
     , vector
   default-language: Haskell2010

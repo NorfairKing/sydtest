@@ -158,11 +158,12 @@ writeManifestFile dir moduleName manifest = do
   fileName <- parseRelFile (moduleName ++ ".json")
   LB.writeFile (fromAbsFile (dir </> fileName)) (Aeson.encode manifest)
 
--- | Read a 'MutationManifest' from a file, returning 'Nothing' on parse failure.
+-- | Read a 'MutationManifest' from a file, returning the aeson error on
+-- parse failure.
 --
 -- Reads strictly so the file handle is closed before this function returns.
-readManifestFile :: Path Abs File -> IO (Maybe MutationManifest)
-readManifestFile path = Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
+readManifestFile :: Path Abs File -> IO (Either String MutationManifest)
+readManifestFile path = Aeson.eitherDecodeStrict <$> B.readFile (fromAbsFile path)
 
 -- | Read and concatenate all per-module manifests from a directory.
 -- Files that fail to parse are skipped with a warning to stderr.
@@ -179,10 +180,10 @@ readManifestDir dir = do
     readOneWith label relFile = do
       result <- readManifestFile (dir </> relFile)
       case result of
-        Nothing -> do
-          hPutStrLn stderr $ "mutation: failed to decode " ++ label ++ " " ++ fromRelFile relFile
+        Left err -> do
+          hPutStrLn stderr $ "mutation: failed to decode " ++ label ++ " " ++ fromRelFile relFile ++ ": " ++ err
           pure mempty
-        Just m -> pure m
+        Right m -> pure m
 
 -- | Write a coverage manifest to @<dir>/<moduleName>.coverage.json@.
 writeCoverageFile :: Path Abs Dir -> String -> MutationManifest -> IO ()
@@ -202,10 +203,10 @@ readCoverageDir dir = do
     readOne relFile = do
       result <- readManifestFile (dir </> relFile)
       case result of
-        Nothing -> do
-          hPutStrLn stderr $ "mutation: failed to decode coverage file " ++ fromRelFile relFile
+        Left err -> do
+          hPutStrLn stderr $ "mutation: failed to decode coverage file " ++ fromRelFile relFile ++ ": " ++ err
           pure mempty
-        Just m -> pure m
+        Right m -> pure m
 
 isCoverageFile :: Path Rel File -> Bool
 isCoverageFile f = case splitExtension f of

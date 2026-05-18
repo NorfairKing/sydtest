@@ -72,6 +72,7 @@ let
       runMutations = callPackage ./runMutations.nix { inherit compileMutationReport assertMutationScore; };
       makeMutationReport = callPackage ./makeMutationReport.nix {
         addManifest' = addManifest;
+        haskellPackages = self;
         inherit compileMutationReport assertMutationScore;
       };
       mutationCheck = callPackage ./mutationCheck.nix {

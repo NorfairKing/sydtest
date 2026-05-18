@@ -1,5 +1,5 @@
 { haskell
-, callPackage
+, haskellPackages
   # addManifest' is the partially-applied addManifest function exported from
   # nix/addManifest.nix; the prime suffix signals that it still needs an
   # options attrset before it can be applied to a package.
@@ -33,11 +33,7 @@ let
     ${package} = addManifest super.${package};
   };
 
-  # ghc910 is the GHC version sydtest-mutation-plugin is compiled against.
-  # Using haskell.packages.ghc910 directly (rather than the top-level
-  # haskellPackages alias) pins the compiler version explicitly so external
-  # callers always get a compatible plugin, regardless of the nixpkgs default.
-  newHaskellPackages = haskell.packages.ghc910.extend addManifestOverride;
+  newHaskellPackages = haskellPackages.extend addManifestOverride;
   instrumentedPkg = newHaskellPackages.${package};
 
   builtTestPkg =

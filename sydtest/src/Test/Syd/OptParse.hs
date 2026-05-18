@@ -706,11 +706,11 @@ instance HasParser Flags where
             hidden
           ]
     flagMutationSuiteExes <-
-      fmap (Map.fromList . map parseSuiteExe) $
+      fmap Map.fromList $
         many $
           setting
             [ help "Suite name and executable path for multi-suite mutation testing, as name=path",
-              reader str,
+              reader (eitherReader parseSuiteExe),
               option,
               long "mutation-suite-exe",
               metavar "NAME=PATH",
@@ -754,12 +754,16 @@ instance HasParser Flags where
           ]
     pure Flags {..}
 
--- | Parse a @name=path@ string from @--mutation-suite-exe@.
-parseSuiteExe :: String -> (Text, FilePath)
+-- | Parse a @name=path@ string from @--mutation-suite-exe@.  Rejects
+-- inputs missing the @=@ separator and inputs with an empty name or path.
+parseSuiteExe :: String -> Either String (Text, FilePath)
 parseSuiteExe s =
   case break (== '=') s of
-    (suiteName, '=' : exePath) -> (T.pack suiteName, exePath)
-    _ -> (T.pack s, s)
+    (suiteName, '=' : exePath)
+      | null suiteName -> Left "--mutation-suite-exe: empty suite name before '='"
+      | null exePath -> Left "--mutation-suite-exe: empty executable path after '='"
+      | otherwise -> Right (T.pack suiteName, exePath)
+    _ -> Left $ "--mutation-suite-exe: expected NAME=PATH, got " ++ show s
 
 data Timeout
   = DoNotTimeout

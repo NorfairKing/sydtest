@@ -59,33 +59,33 @@ let
       passthru = (old.passthru or { }) // { inherit webdriverDeps; };
     });
 
-  mutationNixFunctions =
-    let
-      addManifest = callPackage ./addManifest.nix {
-        mutationPlugin = self.sydtest-mutation-plugin;
-      };
-      addMutationRuntimeDependency = callPackage ./addMutationRuntimeDependency.nix {
-        haskellPackages = self;
-      };
-      compileMutationReport = callPackage ./compileMutationReport.nix { };
-      assertMutationScore = callPackage ./assertMutationScore.nix { };
-      runMutations = callPackage ./runMutations.nix { inherit compileMutationReport assertMutationScore; };
-      makeMutationReport = callPackage ./makeMutationReport.nix {
-        addManifest' = addManifest;
-        haskellPackages = self;
-        inherit compileMutationReport assertMutationScore;
-      };
-      mutationCheck = callPackage ./mutationCheck.nix {
-        inherit addMutationRuntimeDependency;
-        haskellPackages = self;
-      };
-    in
-    { inherit addManifest addMutationRuntimeDependency compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck; };
-
   sydtestPackages = {
-    "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old: {
-      passthru = (old.passthru or { }) // mutationNixFunctions;
-    });
+    "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old:
+      let
+        addManifest = callPackage ./addManifest.nix {
+          mutationPlugin = self.sydtest-mutation-plugin;
+        };
+        addMutationRuntimeDependency = callPackage ./addMutationRuntimeDependency.nix {
+          haskellPackages = self;
+        };
+        compileMutationReport = callPackage ./compileMutationReport.nix { };
+        assertMutationScore = callPackage ./assertMutationScore.nix { };
+        runMutations = callPackage ./runMutations.nix { inherit compileMutationReport assertMutationScore; };
+        makeMutationReport = callPackage ./makeMutationReport.nix {
+          addManifest' = addManifest;
+          haskellPackages = self;
+          inherit compileMutationReport assertMutationScore;
+        };
+        mutationCheck = callPackage ./mutationCheck.nix {
+          inherit addMutationRuntimeDependency;
+          haskellPackages = self;
+        };
+      in
+      {
+        passthru = (old.passthru or { }) // {
+          inherit addManifest addMutationRuntimeDependency compileMutationReport assertMutationScore runMutations makeMutationReport mutationCheck;
+        };
+      });
     "sydtest-aeson" = sydtestPkg "sydtest-aeson";
     "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
     "sydtest-discover" = sydtestPkg "sydtest-discover";

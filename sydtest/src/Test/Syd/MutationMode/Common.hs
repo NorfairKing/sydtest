@@ -10,10 +10,7 @@
 -- Everything in this module is parent-vs-child neutral: it lives in
 -- @sydtest@ because both the child entry points and the driver need it.
 module Test.Syd.MutationMode.Common
-  ( -- * Augmented-manifest directory
-    resolveAugmentedManifestDir,
-
-    -- * Mutation outcomes
+  ( -- * Mutation outcomes
     MutationResult (..),
     SuiteOutcome (..),
     OutcomeTally (..),
@@ -59,7 +56,6 @@ import qualified Data.Vector as V
 import Data.Word (Word64)
 import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
-import Path.IO (getCurrentDir)
 import System.IO (stderr)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedMutationRecord (..),
@@ -78,11 +74,6 @@ import Test.Syd.Mutation.TestId (TestId, renderTestId)
 import Test.Syd.OptParse (Settings, settingTerminalCapabilities)
 import Test.Syd.Output.Common (addColour, delColour, renderAddSide, renderDelSide)
 import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, red, unlinesChunks, yellow)
-
--- | Resolve the augmented manifest directory, falling back to the current
--- working directory when not specified.
-resolveAugmentedManifestDir :: Maybe (Path Abs Dir) -> IO (Path Abs Dir)
-resolveAugmentedManifestDir = maybe getCurrentDir pure
 
 -- | Difference of two 'getMonotonicTimeNSec' readings expressed in
 -- microseconds.  The monotonic clock is not affected by NTP slew or

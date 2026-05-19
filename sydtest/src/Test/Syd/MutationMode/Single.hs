@@ -21,7 +21,6 @@ import Test.Syd.Mutation.AugmentedManifest
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, testIdTrieFromList)
 import Test.Syd.Mutation.Runtime (parseMutationId, setActiveMutation)
 import Test.Syd.Mutation.TestId (TestId)
-import Test.Syd.MutationMode.Common (resolveAugmentedManifestDir)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run (Timed (..))
@@ -39,8 +38,7 @@ runSingleMutationMode settings mutChild spec = do
   mid <- case parseMutationId (mutationChildId mutChild) of
     Nothing -> fail "runSingleMutationMode: no valid mutation-child id"
     Just m -> pure m
-  augDir <- resolveAugmentedManifestDir (mutationChildAugmentedManifestDir mutChild)
-  augmented <- readAugmentedManifestFile augDir
+  augmented <- readAugmentedManifestFile (mutationChildAugmentedManifestDir mutChild)
   specForest <- execTestDefM settings spec
   let coveringTestsMap =
         maybe

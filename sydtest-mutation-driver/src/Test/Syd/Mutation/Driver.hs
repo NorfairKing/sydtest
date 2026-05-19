@@ -96,7 +96,7 @@ runDriver MutationDriverSettings {..} = do
 -- resource directory beforehand.
 runOneSuiteCoverage ::
   [Path Abs Dir] ->
-  Maybe (Path Abs Dir) ->
+  Path Abs Dir ->
   Maybe Int ->
   Word ->
   Bool ->

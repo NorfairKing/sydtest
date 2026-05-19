@@ -59,7 +59,6 @@ import Test.Syd.MutationMode.Common
     CoverageProgressSkipReason (..),
     CoverageProgressTestEvent (..),
     renderCoverageProgressEvent,
-    resolveAugmentedManifestDir,
     retryingIO,
   )
 import Text.Colour (TerminalCapabilities (..), chunk, fore, hPutChunksLocaleWith, red, unlinesChunks, yellow)
@@ -77,8 +76,8 @@ runCoverageMode ::
   Bool ->
   -- | Mutation manifest directories.
   [Path Abs Dir] ->
-  -- | Optional augmented-manifest directory.  'Nothing' means CWD.
-  Maybe (Path Abs Dir) ->
+  -- | Augmented-manifest directory.
+  Path Abs Dir ->
   -- | Maximum coverage-child concurrency.  'Nothing' means
   -- 'getNumCapabilities'.
   Maybe Int ->
@@ -89,7 +88,7 @@ runCoverageMode ::
   -- | Path to the suite executable to invoke as a coverage child.
   Path Abs File ->
   IO ()
-runCoverageMode failFast manifestDirs augmentedManifestDirM coverageJobs coverageRetry suiteName childExe = do
+runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteName childExe = do
   -- LineBuffering on stderr so our writes hit the fd at line boundaries,
   -- not when the buffer happens to fill. Coverage children inherit this
   -- fd and write to it directly (bypassing our Handle's MVar lock); if
@@ -97,7 +96,6 @@ runCoverageMode failFast manifestDirs augmentedManifestDirM coverageJobs coverag
   -- interleave with whatever the children write in the meantime.
   hSetBuffering stderr LineBuffering
   allRecords@(MutationManifest groups) <- mconcat <$> mapM readManifestDir manifestDirs
-  augDir <- resolveAugmentedManifestDir augmentedManifestDirM
   let writeEmptyAugmented = do
         existing <- readAugmentedManifestFileIfExists augDir
         writeAugmentedManifestFile augDir (fromMaybe (AugmentedManifest []) existing)

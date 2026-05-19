@@ -60,7 +60,6 @@ import Test.Syd.MutationMode.Common
     diffMonotonicMicros,
     renderMutationProgressEvent,
     renderMutationRunReport,
-    resolveAugmentedManifestDir,
     resultToOutcome,
     runOneGroup,
     tallyGroups,
@@ -103,8 +102,8 @@ writeReportTxt renderedChunks outDir =
 runMutationMode ::
   -- | Whether to abort on the first surviving or uncovered mutation.
   Bool ->
-  -- | Optional augmented-manifest directory.  'Nothing' means CWD.
-  Maybe (Path Abs Dir) ->
+  -- | Augmented-manifest directory.
+  Path Abs Dir ->
   -- | Optional report directory.  'Nothing' skips writing report files.
   Maybe (Path Abs Dir) ->
   -- | Optional RTS heap cap to apply to each mutation child.
@@ -113,9 +112,8 @@ runMutationMode ::
   -- exe when spawning a mutation child.
   Map.Map Text (Path Abs File) ->
   IO MutationRunReport
-runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExes = do
+runMutationMode failFast augDir reportDirM childMemLimit suiteExes = do
   hSetBuffering stderr (BlockBuffering Nothing)
-  augDir <- resolveAugmentedManifestDir augmentedManifestDirM
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
   -- 'suiteExes' before any worker spawns.  An unknown name would otherwise
@@ -145,7 +143,7 @@ runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExe
   let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
-          (runOne augDir sem)
+          (runOne sem)
           ( \r ->
               atomically $
                 modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
@@ -203,7 +201,7 @@ runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExe
   when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
   pure jsonReport
   where
-    runOne augDir sem record =
+    runOne sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
         hPutChunksLocaleWith With8BitColours stderr (unlinesChunks (renderMutationProgressEvent (MutationProgressEvent record)))
@@ -218,7 +216,7 @@ runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExe
             -- if any child exits non-zero; timed out (counted as killed)
             -- if any child exceeded its budget without any other child
             -- killing it first; otherwise survived.
-            outcomes <- mapM (runOneSuite augDir record mid) suiteNames
+            outcomes <- mapM (runOneSuite record mid) suiteNames
             pure $ classifyOutcomes record outcomes
 
     classifyOutcomes record outcomes
@@ -247,7 +245,7 @@ runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExe
         isKilled _ = False
         mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- NE.toList outcomes]
 
-    runOneSuite augDir record mid suiteName = do
+    runOneSuite record mid suiteName = do
       exe <- case Map.lookup suiteName suiteExes of
         Just e -> pure (fromAbsFile e)
         Nothing ->

@@ -103,7 +103,7 @@ data MutationDriverSettings = MutationDriverSettings
     mutationDriverSettingChildMemLimit :: !(Maybe String),
     mutationDriverSettingCoverageJobs :: !(Maybe Int),
     mutationDriverSettingCoverageRetry :: !Word,
-    mutationDriverSettingAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
+    mutationDriverSettingAugmentedManifestDir :: !(Path Abs Dir),
     mutationDriverSettingOutDir :: !(Maybe (Path Abs Dir)),
     mutationDriverSettingFailFast :: !Bool
   }
@@ -157,12 +157,11 @@ mutationDriverSettingsParser = do
         value defaultCoverageRetry
       ]
   mutationDriverSettingAugmentedManifestDir <-
-    optional $
-      directoryPathSetting
-        [ help "Directory for manifest-augmented.json (defaults to CWD)",
-          option,
-          long "mutation-augmented-manifest-dir"
-        ]
+    directoryPathSetting
+      [ help "Directory for manifest-augmented.json (required)",
+        option,
+        long "mutation-augmented-manifest-dir"
+      ]
   mutationDriverSettingOutDir <-
     optional $
       directoryPathSetting

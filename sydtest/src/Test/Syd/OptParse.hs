@@ -130,7 +130,7 @@ data CoverageChildSettings = CoverageChildSettings
 -- whose covering tests should be selected.
 data MutationChildSettings = MutationChildSettings
   { mutationChildId :: !String,
-    mutationChildAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
+    mutationChildAugmentedManifestDir :: !(Path Abs Dir),
     mutationChildSuiteName :: !(Maybe Text)
   }
   deriving (Show, Eq, Generic)
@@ -294,13 +294,16 @@ resolveMutationSettings Flags {..} =
                     coverageChildBaselineOutput = baselineFile,
                     coverageChildSuiteName = flagMutationSuiteName
                   }
-        (False, Nothing, Just mid) ->
+        (False, Nothing, Just mid) -> do
+          augDir <- case flagMutationAugmentedManifestDir of
+            Just d -> Right d
+            Nothing -> Left "--mutation-one requires --mutation-augmented-manifest-dir"
           pure $
             mkMutation $
               MutationModeMutateChild
                 MutationChildSettings
                   { mutationChildId = mid,
-                    mutationChildAugmentedManifestDir = flagMutationAugmentedManifestDir,
+                    mutationChildAugmentedManifestDir = augDir,
                     mutationChildSuiteName = flagMutationSuiteName
                   }
         (False, Nothing, Nothing) -> pure Nothing

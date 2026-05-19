@@ -182,37 +182,21 @@ let
     )
     testPackages;
 
-  # Shell snippet that walks each requested test-package, lists the
-  # installed test executables under @<builtTestPkg>/test@, and
-  # accumulates a JSON object @{ "<suite>": { exe, resourceDir }, ... }@
-  # into the shell variable @suites_json@.  Run inside @buildPhase@.
-  suitesJsonScript = pkgs.lib.concatMapStringsSep "\n"
-    (pkg: ''
-      resource="${unpackedSrcFor pkg}"
-      pkgTestDir="${builtTestPkg pkg}/test"
-      for exe in "$pkgTestDir"/*; do
-        [ -e "$exe" ] || continue
-        suite=$(basename "$exe")
-        suites_json=$(jq --arg name "$suite" --arg exe "$exe" --arg rd "$resource" \
-          '.[$name] = {exe: $exe, resourceDir: $rd}' <<< "$suites_json")
-      done
-    '')
+  # Flag arrays passed to the driver: one --manifest per instrumented
+  # library manifest, and one --suite-pkg per declared test-package.
+  # The driver walks each --suite-pkg's <root>/test/* at run time to
+  # discover installed test-suite executables.
+  manifestFlags = map (m: "--manifest=${toString m}") manifests;
+  suitePkgFlags = map
+    (pkg: "--suite-pkg=${pkg}=${builtTestPkg pkg}=${unpackedSrcFor pkg}")
     testPackages;
-
-  # JSON array literal containing the manifest store paths.  Safe to
-  # interpolate into a shell heredoc because every element is a Nix store
-  # path (no embedded quotes, backslashes, or shell metacharacters).
-  manifestsJson =
-    "[" + pkgs.lib.concatStringsSep ","
-      (map (m: "\"${toString m}\"") manifests) + "]";
-
-  coverageJobsExpr =
+  coverageJobsFlag =
     pkgs.lib.optionalString (coverageJobs != null)
-      "+ {coverageJobs: ${toString coverageJobs}}";
-  coverageRetryExpr =
+      "--coverage-jobs=${toString coverageJobs}";
+  coverageRetryFlag =
     pkgs.lib.optionalString (coverageRetry != null)
-      "+ {coverageRetry: ${toString coverageRetry}}";
-  failFastJson = if failFast then "true" else "false";
+      "--coverage-retry=${toString coverageRetry}";
+  failFastFlag = if failFast then "--fail-fast" else "--no-fail-fast";
 
   drv =
     pkgs.stdenv.mkDerivation {
@@ -221,53 +205,28 @@ let
       buildInputs = testPkgInputs ++ [ driver ];
       # Test executables spawn tools (postgresql, git, nix, ...) at
       # runtime via testToolDepends. Put the union of those deps on
-      # PATH so children can find them. 'jq' is used at build time to
-      # assemble the driver's YAML (JSON) config file.
-      nativeBuildInputs = collectedTestToolDepends ++ [ pkgs.jq ];
+      # PATH so children can find them.
+      nativeBuildInputs = collectedTestToolDepends;
       buildPhase = ''
         runHook preBuild
 
         mkdir -p augmented report
 
-        # Walk each test-package's installed test executables and build
-        # the suites JSON object. Test-suite component names are
-        # discovered at build time (each package's builtTestPkg copies
-        # its declared test-suite exes to $out/test).
-        suites_json='{}'
-        ${suitesJsonScript}
-
-        nSuites=$(jq 'length' <<< "$suites_json")
-        if [ "$nSuites" -eq 0 ]; then
-          echo "sydtest.mutationCheck '${name}': no test-suites declared by any of packages = ${toString testPackages} or tests = ${toString tests}. Provide at least one package that declares a test-suite." >&2
-          exit 1
-        fi
-
-        # Assemble the full driver config. JSON is valid YAML, so we
-        # write JSON.
-        jq -n \
-          --argjson manifests '${manifestsJson}' \
-          --argjson suites "$suites_json" \
-          --arg childMemLimit '${testProcessMemLimit}' \
-          --argjson failFast ${failFastJson} \
-          '{
-            manifests: $manifests,
-            suites: $suites,
-            childMemLimit: $childMemLimit,
-            failFast: $failFast
-          } ${coverageJobsExpr} ${coverageRetryExpr}' \
-          > driver-config.json
-
         # The driver writes report.json into the directory passed via
-        # '--mutation-report-dir' (which overrides the config file's
-        # 'reportDir').  We point that at a workdir-local directory
-        # and copy the results to '$out' in installPhase.
+        # '--mutation-report-dir'.  We point that at a workdir-local
+        # directory and copy the results to '$out' in installPhase.
         # 'set -o pipefail' so the driver's exit code propagates
         # through 'tee' and aborts the build on a survivor or crash.
         set -o pipefail
-        ${driver}/bin/sydtest-mutation-driver \
-          --config-file=./driver-config.json \
-          --mutation-augmented-manifest-dir augmented \
-          --mutation-report-dir report \
+        ${driver}/bin/sydtest-mutation-driver run \
+          ${pkgs.lib.concatStringsSep " " manifestFlags} \
+          ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
+          --child-mem-limit=${testProcessMemLimit} \
+          ${failFastFlag} \
+          ${coverageJobsFlag} \
+          ${coverageRetryFlag} \
+          --mutation-augmented-manifest-dir=augmented \
+          --mutation-report-dir=report \
             2>&1 | tee report/report.txt
 
         runHook postBuild

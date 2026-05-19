@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module Test.Syd.Mutation.TestId
   ( TestId (..),
@@ -46,12 +47,21 @@ escapeDesc = T.concatMap $ \case
   ':' -> "\\:"
   c -> T.singleton c
 
-unescapeDesc :: Text -> Text
-unescapeDesc t = T.pack (go (T.unpack t))
+-- | Reverse the escape table used by 'escapeDesc'.  Only @\\\\@, @\\.@, and
+-- @\\:@ are valid escape sequences: 'escapeDesc' never produces anything
+-- else, so accepting other @\\<c>@ sequences would make the parser accept
+-- inputs that no 'renderTestId' call can produce — a forward
+-- round-trip violation.  Returns 'Nothing' on an unknown escape or a
+-- trailing lone backslash.
+unescapeDesc :: Text -> Maybe Text
+unescapeDesc t = T.pack <$> go (T.unpack t)
   where
-    go [] = []
-    go ('\\' : c : rest) = c : go rest
-    go (c : rest) = c : go rest
+    go [] = Just []
+    go ('\\' : c : rest)
+      | c == '\\' || c == '.' || c == ':' = (c :) <$> go rest
+      | otherwise = Nothing
+    go ['\\'] = Nothing
+    go (c : rest) = (c :) <$> go rest
 
 -- | Parse the output of 'renderTestId' back into a 'TestId'.
 -- Returns 'Nothing' if the input is malformed or empty.
@@ -84,9 +94,9 @@ parseSteps = fmap reverse . go [] []
         Just (rawName, idxStr)
           | not (null idxStr) ->
               case reads idxStr of
-                [(n, "")] -> Just (unescapeDesc (T.pack rawName), n)
-                _ -> Just (unescapeDesc (T.pack s), 0)
-        _ -> Just (unescapeDesc (T.pack s), 0)
+                [(n, "")] -> (,n) <$> unescapeDesc (T.pack rawName)
+                _ -> (,0) <$> unescapeDesc (T.pack s)
+        _ -> (,0) <$> unescapeDesc (T.pack s)
 
     splitAtLastUnescapedColon :: String -> Maybe (String, String)
     splitAtLastUnescapedColon s = case lastUnescapedColon s of

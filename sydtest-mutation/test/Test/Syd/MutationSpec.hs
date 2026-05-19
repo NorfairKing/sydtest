@@ -79,8 +79,24 @@ spec = do
         `shouldBe` Just (TestId (("foo:bar", 0) :| []))
     it "returns Nothing on a trailing backslash" $
       parseTestIdFilterArg "foo\\" `shouldBe` Nothing
+    -- renderTestId only ever emits @\\\\@, @\\.@, and @\\:@.  Any other
+    -- @\\<c>@ in a parser input would have to come from somewhere other
+    -- than 'renderTestId'; accept it and the parser becomes too
+    -- permissive — 'parseTestIdFilterArg "foo\\x"' used to return
+    -- @Just (TestId [("foox", 0)])@, which then re-renders to @"foox"@,
+    -- a forward-roundtrip violation.
+    it "returns Nothing on an unknown escape sequence" $
+      parseTestIdFilterArg "foo\\x" `shouldBe` Nothing
 
-  describe "renderTestId / parseTestIdFilterArg roundtrip" $
+  describe "renderTestId / parseTestIdFilterArg roundtrip" $ do
     it "roundtrips valid TestIds" $
       forAllValid $ \tid ->
         parseTestIdFilterArg (renderTestId tid) `shouldBe` Just tid
+    -- Forward direction: if parseTestIdFilterArg accepts a string, it
+    -- should be one that 'renderTestId' could have produced.
+    it "parsed inputs round-trip back to the same string" $
+      forAllValid $ \tid ->
+        let s = renderTestId tid
+         in case parseTestIdFilterArg s of
+              Nothing -> expectationFailure ("parser rejected " ++ show s)
+              Just tid' -> renderTestId tid' `shouldBe` s

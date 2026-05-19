@@ -41,6 +41,7 @@ test-suite sydtest-mutation-driver-gen-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.Syd.Mutation.Driver.MutateSpec
       Test.Syd.Mutation.Driver.OptParseSpec
       Paths_sydtest_mutation_driver_gen
   hs-source-dirs:
@@ -50,9 +51,13 @@ test-suite sydtest-mutation-driver-gen-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
+    , containers
     , genvalidity-sydtest
     , genvalidity-sydtest-aeson
+    , path
+    , path-io
     , sydtest
     , sydtest-mutation-driver
     , sydtest-mutation-driver-gen
+    , sydtest-mutation-runtime
   default-language: Haskell2010

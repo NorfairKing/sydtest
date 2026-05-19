@@ -13,6 +13,7 @@
 -- otherwise it is a survivor (or timed-out).
 module Test.Syd.Mutation.Driver.Mutate
   ( runMutationMode,
+    UnknownCoveringSuite (..),
   )
 where
 
@@ -64,6 +65,19 @@ import Test.Syd.MutationMode.Common
   )
 import Text.Colour (TerminalCapabilities (..), hPutChunksLocaleWith, putChunksLocaleWith, unlinesChunks)
 
+-- | Thrown when the augmented manifest references a covering suite that is
+-- not present in the driver's suite-exe map.  Validated up-front in
+-- 'runMutationMode' so the failure surfaces before any mutation child is
+-- spawned, instead of as an 'ErrorCall' from inside a 'mapConcurrently'
+-- worker.
+data UnknownCoveringSuite = UnknownCoveringSuite
+  { unknownCoveringSuiteName :: !Text,
+    unknownCoveringSuiteDeclared :: ![Text]
+  }
+  deriving (Show)
+
+instance Exception.Exception UnknownCoveringSuite
+
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.
 --
@@ -92,6 +106,25 @@ runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExe
   hSetBuffering stderr (BlockBuffering Nothing)
   augDir <- resolveAugmentedManifestDir augmentedManifestDirM
   AugmentedManifest groups <- readAugmentedManifestFile augDir
+  -- Validate that every covering-suite name in the manifest is in
+  -- 'suiteExes' before any worker spawns.  An unknown name would otherwise
+  -- surface as an 'ErrorCall' from inside a 'mapConcurrently' worker, which
+  -- is harder to attribute.
+  let referenced =
+        Map.unions
+          [ augmentedMutationRecordCoveringTests r
+          | AugmentedMutationGroup rs <- groups,
+            r <- rs
+          ]
+      missing = Map.difference referenced suiteExes
+  case Map.keys missing of
+    [] -> pure ()
+    (name : _) ->
+      Exception.throwIO
+        UnknownCoveringSuite
+          { unknownCoveringSuiteName = name,
+            unknownCoveringSuiteDeclared = Map.keys suiteExes
+          }
   n <- getNumCapabilities
   sem <- newQSem n
   -- Each group's per-mutation results, accumulated in source order so a
@@ -197,15 +230,21 @@ runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExe
         mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- NE.toList outcomes]
 
     runOneSuite augDir record mid suiteName = do
-      let exe = case Map.lookup suiteName suiteExes of
-            Just e -> fromAbsFile e
-            Nothing ->
-              error $
-                "sydtest-mutation-driver: no exe configured for suite "
-                  ++ T.unpack suiteName
-                  ++ "; declared suites are: "
-                  ++ show (Map.keys suiteExes)
-          rtsArgs = case childMemLimit of
+      exe <- case Map.lookup suiteName suiteExes of
+        Just e -> pure (fromAbsFile e)
+        Nothing ->
+          -- Should be unreachable: 'runMutationMode' validates up-front
+          -- that every covering-suite name in the manifest is in
+          -- 'suiteExes'.  If this fires, the manifest is being mutated
+          -- between that check and this lookup, or the validation has a
+          -- bug — either way, throw an attributable exception rather
+          -- than 'error'.
+          Exception.throwIO
+            UnknownCoveringSuite
+              { unknownCoveringSuiteName = suiteName,
+                unknownCoveringSuiteDeclared = Map.keys suiteExes
+              }
+      let rtsArgs = case childMemLimit of
             Nothing -> []
             Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
           suiteNameStr = T.unpack suiteName

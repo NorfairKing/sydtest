@@ -31,8 +31,12 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - containers
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
+    - path
+    - path-io
     - sydtest
     - sydtest-mutation-driver
     - sydtest-mutation-driver-gen
+    - sydtest-mutation-runtime

@@ -109,6 +109,7 @@ data MutationResult
     -- fail-fast records every remaining alternative as 'MutationSkipped'
     -- without spawning a child.
     MutationSkipped SkippedMutation
+  deriving (Eq, Show)
 
 -- | Per-suite outcome of running a single mutation child.
 data SuiteOutcome

@@ -1,64 +1,37 @@
-{ stdenv, jq }:
+{ stdenv, mutationDriver }:
 
-# Fail if any mutation in the report survived, and optionally if any were uncovered.
-# Takes a report derivation produced by compileMutationReport and exits
-# non-zero when the report shows surviving (or uncovered) mutations.
+# Fail if any mutation in the report survived, and optionally if any were
+# uncovered.  Takes a report derivation produced by mutationCheck (must
+# contain report.json and report.txt) and exits non-zero when the report
+# shows surviving (or uncovered) mutations.
+#
+# All decision logic and rendering live in
+# 'sydtest-mutation-driver assert-score'.  This file is just the
+# Nix-level boilerplate: invoke the subcommand, and on success symlink
+# the report files into $out.
 
 { name ? "assert-mutation-score" # name for the derivation
-, report # a derivation produced by compileMutationReport; must contain report.json
+, report # a derivation produced by mutationCheck; must contain report.json and report.txt
 , assertNoneUncovered ? true # if true, also fail when any mutations are uncovered
 }:
 
 stdenv.mkDerivation {
   inherit name;
-  nativeBuildInputs = [ jq ];
   # srcs = [] suppresses stdenv's default unpack phase without disabling the
   # rest of the generic build, so buildCommand runs in a clean empty sandbox.
   srcs = [ ];
   passthru = { inherit report; };
   buildCommand = ''
-    survived=$(jq '.survived' ${report}/report.json)
-    killed=$(jq '.killed' ${report}/report.json)
-    uncovered=$(jq '.uncovered' ${report}/report.json)
-    total=$(( killed + survived + uncovered ))
+    ${mutationDriver}/bin/sydtest-mutation-driver assert-score \
+      ${if assertNoneUncovered then "--assert-none-uncovered" else "--no-assert-none-uncovered"} \
+      ${report}
 
-    echo "Results: $killed killed, $survived survived, $uncovered uncovered out of $total total"
-
-    fail=0
-
-    if [ "$survived" != "0" ]; then
-      echo ""
-      echo "FAIL: $survived mutation(s) survived — not all mutations were killed."
-      echo "Add or strengthen tests to kill the surviving mutations."
-      fail=1
-    fi
-
-    ${if assertNoneUncovered then ''
-    if [ "$uncovered" != "0" ]; then
-      echo ""
-      echo "FAIL: $uncovered mutation(s) uncovered — not all mutations are reached by any test."
-      echo "Add tests to cover the uncovered mutations."
-      fail=1
-    fi
-    '' else ""}
-
-    echo ""
-    cat ${report}/report.txt
-
-    echo "Full report:               ${report}/report.txt"
-    echo "Machine-readable report:   ${report}/report.json"
-    echo ""
-
-    if [ "$fail" != "0" ]; then
-      echo "FAIL: $survived Surviving, $uncovered uncovered mutations."
-
-      exit 1
-    else
-      echo "PASS: All $total mutation(s) accounted for."
-
-      mkdir -p $out
-      ln -s ${report}/report.txt $out/report.txt
-      ln -s ${report}/report.json $out/report.json
-    fi
+    # The subcommand exits non-zero on a failed assertion, which aborts
+    # this build before we reach the symlink step below.  On success we
+    # link the two report files into $out so downstream consumers can
+    # reach them via this derivation.
+    mkdir -p $out
+    ln -s ${report}/report.txt $out/report.txt
+    ln -s ${report}/report.json $out/report.json
   '';
 }

@@ -69,7 +69,9 @@ let
         addMutationRuntimeDependency = callPackage ./addMutationRuntimeDependency.nix {
           haskellPackages = self;
         };
-        assertMutationScore = callPackage ./assertMutationScore.nix { };
+        assertMutationScore = callPackage ./assertMutationScore.nix {
+          mutationDriver = self.sydtest-mutation-driver;
+        };
         mutationCheck = callPackage ./mutationCheck.nix {
           inherit addMutationRuntimeDependency;
           haskellPackages = self;

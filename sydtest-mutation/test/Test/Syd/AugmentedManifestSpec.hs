@@ -54,7 +54,53 @@ spec = do
   describe "MutationManifest" $
     it "golden JSON" $
       pureGoldenLazyByteStringFile "test_resources/mutation-manifest.json" $
-        encodePretty exampleMutationManifest
+        encodePretty $
+          MutationManifest
+            [ MutationGroup
+                [ MutationRecord
+                    { mutRecId = MutationId ["Foo.Bar", "ArithOp", "5", "14", "15"],
+                      mutRecOperator = "ArithOp",
+                      mutRecOriginal = "+",
+                      mutRecReplacement = "-",
+                      mutRecModule = "Foo.Bar",
+                      mutRecLine = 5,
+                      mutRecEndLine = 5,
+                      mutRecColStart = 14,
+                      mutRecColEnd = 15,
+                      mutRecSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
+                      mutRecSourceLines = ["  result = x + y"],
+                      mutRecMutatedLines = ["  result = x - y"],
+                      mutRecContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
+                      mutRecContextAfter = ["  in result"],
+                      mutRecCoveringTests =
+                        Just $
+                          Map.singleton
+                            ""
+                            [ TestId (("add", 0) :| [("adds two numbers", 0)]),
+                              TestId (("add", 0) :| [("commutativity", 1)])
+                            ]
+                    }
+                ],
+              MutationGroup
+                [ MutationRecord
+                    { mutRecId = MutationId ["Foo.Bar", "BoolOp", "12", "8", "10"],
+                      mutRecOperator = "BoolOp",
+                      mutRecOriginal = "&&",
+                      mutRecReplacement = "||",
+                      mutRecModule = "Foo.Bar",
+                      mutRecLine = 12,
+                      mutRecEndLine = 12,
+                      mutRecColStart = 8,
+                      mutRecColEnd = 10,
+                      mutRecSourceFile = Nothing,
+                      mutRecSourceLines = [],
+                      mutRecMutatedLines = [],
+                      mutRecContextBefore = [],
+                      mutRecContextAfter = [],
+                      mutRecCoveringTests = Nothing
+                    }
+                ]
+            ]
 
   describe "AugmentedManifest" $ do
     genValidSpec @AugmentedManifest
@@ -62,7 +108,34 @@ spec = do
 
     it "golden JSON" $
       pureGoldenLazyByteStringFile "test_resources/augmented-manifest.json" $
-        encodePretty exampleAugmentedManifest
+        encodePretty $
+          AugmentedManifest
+            [ AugmentedMutationGroup
+                [ AugmentedMutationRecord
+                    { augmentedMutationRecordId = MutationId ["Foo.Bar", "ArithOp", "5", "14", "15"],
+                      augmentedMutationRecordOperator = "ArithOp",
+                      augmentedMutationRecordOriginal = "+",
+                      augmentedMutationRecordReplacement = "-",
+                      augmentedMutationRecordModule = "Foo.Bar",
+                      augmentedMutationRecordLine = 5,
+                      augmentedMutationRecordEndLine = 5,
+                      augmentedMutationRecordColStart = 14,
+                      augmentedMutationRecordColEnd = 15,
+                      augmentedMutationRecordSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
+                      augmentedMutationRecordSourceLines = ["  result = x + y"],
+                      augmentedMutationRecordMutatedLines = ["  result = x - y"],
+                      augmentedMutationRecordContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
+                      augmentedMutationRecordContextAfter = ["  in result"],
+                      augmentedMutationRecordCoveringTests =
+                        Map.singleton
+                          ""
+                          [ TestId (("add", 0) :| [("adds two numbers", 0)]),
+                            TestId (("add", 0) :| [("commutativity", 1)])
+                          ],
+                      augmentedMutationRecordTimeoutMicros = 30000000
+                    }
+                ]
+            ]
 
   describe "mergeAugmentedManifests" $ do
     it "is idempotent" $
@@ -72,128 +145,69 @@ spec = do
   describe "MutationRunReport" $
     it "golden JSON" $
       pureGoldenLazyByteStringFile "test_resources/mutation-run-report.json" $
-        encodePretty exampleMutationRunReport
-
-exampleMutationManifest :: MutationManifest
-exampleMutationManifest =
-  MutationManifest
-    [ MutationGroup
-        [ MutationRecord
-            { mutRecId = MutationId ["Foo.Bar", "ArithOp", "5", "14", "15"],
-              mutRecOperator = "ArithOp",
-              mutRecOriginal = "+",
-              mutRecReplacement = "-",
-              mutRecModule = "Foo.Bar",
-              mutRecLine = 5,
-              mutRecEndLine = 5,
-              mutRecColStart = 14,
-              mutRecColEnd = 15,
-              mutRecSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
-              mutRecSourceLines = ["  result = x + y"],
-              mutRecMutatedLines = ["  result = x - y"],
-              mutRecContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
-              mutRecContextAfter = ["  in result"],
-              mutRecCoveringTests =
-                Just $
-                  Map.singleton
-                    ""
-                    [ TestId (("add", 0) :| [("adds two numbers", 0)]),
-                      TestId (("add", 0) :| [("commutativity", 1)])
+        let survivor =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["Foo.Bar", "ArithOp", "5", "14", "15"],
+                  augmentedMutationRecordOperator = "ArithOp",
+                  augmentedMutationRecordOriginal = "+",
+                  augmentedMutationRecordReplacement = "-",
+                  augmentedMutationRecordModule = "Foo.Bar",
+                  augmentedMutationRecordLine = 5,
+                  augmentedMutationRecordEndLine = 5,
+                  augmentedMutationRecordColStart = 14,
+                  augmentedMutationRecordColEnd = 15,
+                  augmentedMutationRecordSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
+                  augmentedMutationRecordSourceLines = ["  result = x + y"],
+                  augmentedMutationRecordMutatedLines = ["  result = x - y"],
+                  augmentedMutationRecordContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
+                  augmentedMutationRecordContextAfter = ["  in result"],
+                  augmentedMutationRecordCoveringTests =
+                    Map.singleton
+                      ""
+                      [ TestId (("add", 0) :| [("adds two numbers", 0)]),
+                        TestId (("add", 0) :| [("commutativity", 1)])
+                      ],
+                  augmentedMutationRecordTimeoutMicros = 30000000
+                }
+            uncovered =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["Foo.Bar", "BoolOp", "12", "8", "10"],
+                  augmentedMutationRecordOperator = "BoolOp",
+                  augmentedMutationRecordOriginal = "&&",
+                  augmentedMutationRecordReplacement = "||",
+                  augmentedMutationRecordModule = "Foo.Bar",
+                  augmentedMutationRecordLine = 12,
+                  augmentedMutationRecordEndLine = 12,
+                  augmentedMutationRecordColStart = 8,
+                  augmentedMutationRecordColEnd = 10,
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = [],
+                  augmentedMutationRecordCoveringTests = Map.empty,
+                  augmentedMutationRecordTimeoutMicros = 30000000
+                }
+         in encodePretty
+              MutationRunReport
+                { mutationRunReportKilled = 5,
+                  mutationRunReportSurvived = 1,
+                  mutationRunReportTimedOut = 0,
+                  mutationRunReportUncovered = 1,
+                  mutationRunReportSkipped = 0,
+                  mutationRunReportGroups =
+                    [ MutationGroupReport
+                        [ OutcomeSurvived
+                            SurvivedMutation
+                              { survivedMutationRecord = survivor,
+                                survivedMutationLogFile = Just $(mkRelFile "children/Foo.Bar-ArithOp-5-14-15.txt")
+                              }
+                        ],
+                      MutationGroupReport
+                        [ OutcomeUncovered
+                            UncoveredMutation
+                              { uncoveredMutationRecord = uncovered
+                              }
+                        ]
                     ]
-            }
-        ],
-      MutationGroup
-        [ MutationRecord
-            { mutRecId = MutationId ["Foo.Bar", "BoolOp", "12", "8", "10"],
-              mutRecOperator = "BoolOp",
-              mutRecOriginal = "&&",
-              mutRecReplacement = "||",
-              mutRecModule = "Foo.Bar",
-              mutRecLine = 12,
-              mutRecEndLine = 12,
-              mutRecColStart = 8,
-              mutRecColEnd = 10,
-              mutRecSourceFile = Nothing,
-              mutRecSourceLines = [],
-              mutRecMutatedLines = [],
-              mutRecContextBefore = [],
-              mutRecContextAfter = [],
-              mutRecCoveringTests = Nothing
-            }
-        ]
-    ]
-
-exampleAugmentedRecord :: AugmentedMutationRecord
-exampleAugmentedRecord =
-  AugmentedMutationRecord
-    { augmentedMutationRecordId = MutationId ["Foo.Bar", "ArithOp", "5", "14", "15"],
-      augmentedMutationRecordOperator = "ArithOp",
-      augmentedMutationRecordOriginal = "+",
-      augmentedMutationRecordReplacement = "-",
-      augmentedMutationRecordModule = "Foo.Bar",
-      augmentedMutationRecordLine = 5,
-      augmentedMutationRecordEndLine = 5,
-      augmentedMutationRecordColStart = 14,
-      augmentedMutationRecordColEnd = 15,
-      augmentedMutationRecordSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
-      augmentedMutationRecordSourceLines = ["  result = x + y"],
-      augmentedMutationRecordMutatedLines = ["  result = x - y"],
-      augmentedMutationRecordContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
-      augmentedMutationRecordContextAfter = ["  in result"],
-      augmentedMutationRecordCoveringTests =
-        Map.singleton
-          ""
-          [ TestId (("add", 0) :| [("adds two numbers", 0)]),
-            TestId (("add", 0) :| [("commutativity", 1)])
-          ],
-      augmentedMutationRecordTimeoutMicros = 30000000
-    }
-
-exampleAugmentedManifest :: AugmentedManifest
-exampleAugmentedManifest =
-  AugmentedManifest [AugmentedMutationGroup [exampleAugmentedRecord]]
-
-exampleUncoveredRecord :: AugmentedMutationRecord
-exampleUncoveredRecord =
-  exampleAugmentedRecord
-    { augmentedMutationRecordId = MutationId ["Foo.Bar", "BoolOp", "12", "8", "10"],
-      augmentedMutationRecordOperator = "BoolOp",
-      augmentedMutationRecordOriginal = "&&",
-      augmentedMutationRecordReplacement = "||",
-      augmentedMutationRecordLine = 12,
-      augmentedMutationRecordEndLine = 12,
-      augmentedMutationRecordColStart = 8,
-      augmentedMutationRecordColEnd = 10,
-      augmentedMutationRecordSourceFile = Nothing,
-      augmentedMutationRecordSourceLines = [],
-      augmentedMutationRecordMutatedLines = [],
-      augmentedMutationRecordContextBefore = [],
-      augmentedMutationRecordContextAfter = [],
-      augmentedMutationRecordCoveringTests = Map.empty,
-      augmentedMutationRecordTimeoutMicros = 30000000
-    }
-
-exampleMutationRunReport :: MutationRunReport
-exampleMutationRunReport =
-  MutationRunReport
-    { mutationRunReportKilled = 5,
-      mutationRunReportSurvived = 1,
-      mutationRunReportTimedOut = 0,
-      mutationRunReportUncovered = 1,
-      mutationRunReportSkipped = 0,
-      mutationRunReportGroups =
-        [ MutationGroupReport
-            [ OutcomeSurvived
-                SurvivedMutation
-                  { survivedMutationRecord = exampleAugmentedRecord,
-                    survivedMutationLogFile = Just $(mkRelFile "children/Foo.Bar-ArithOp-5-14-15.txt")
-                  }
-            ],
-          MutationGroupReport
-            [ OutcomeUncovered
-                UncoveredMutation
-                  { uncoveredMutationRecord = exampleUncoveredRecord
-                  }
-            ]
-        ]
-    }
+                }

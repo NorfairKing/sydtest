@@ -41,9 +41,6 @@ import Test.Syd.Mutation.TestCoverageMap
   )
 import Test.Syd.Mutation.TestId (TestId (..))
 
-aTestId :: Int -> TestId
-aTestId i = TestId ((T.pack ('t' : show i), 0) :| [])
-
 spec :: Spec
 spec = describe "phase boundary smoke (bug #1)" $ do
   it "concurrent per-child read-then-teardown of coverage maps preserves data" $ do
@@ -52,7 +49,8 @@ spec = describe "phase boundary smoke (bug #1)" $ do
     let n = 500
         readOne i = withSystemTempDir "phase-boundary-cov" $ \dir -> do
           let path = fromAbsFile (dir </> [relfile|coverage.json|])
-              cm = TestCoverageMap (Map.singleton (aTestId i) (Set.singleton (MutationId ["M", "Op", show i, "1", "5", "r", "1"])))
+              tid = TestId ((T.pack ('t' : show i), 0) :| [])
+              cm = TestCoverageMap (Map.singleton tid (Set.singleton (MutationId ["M", "Op", show i, "1", "5", "r", "1"])))
           writeTestCoverageMapFile path cm
           eRead <- readTestCoverageMapFile path
           case eRead of
@@ -65,7 +63,8 @@ spec = describe "phase boundary smoke (bug #1)" $ do
     let n = 500
         readOne i = withSystemTempDir "phase-boundary-base" $ \dir -> do
           let path = fromAbsFile (dir </> [relfile|baseline.json|])
-              bm = TestBaselineMap (Map.singleton (aTestId i) (fromIntegral i))
+              tid = TestId ((T.pack ('t' : show i), 0) :| [])
+              bm = TestBaselineMap (Map.singleton tid (fromIntegral i))
           writeTestBaselineMapFile path bm
           eRead <- readTestBaselineMapFile path
           case eRead of

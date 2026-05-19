@@ -212,14 +212,14 @@ runCoverageMode failFast manifestDirs augmentedManifestDirM coverageJobs coverag
             Exception.throwIO CoverageFailFast
           ExitFailure code -> pure $ Left ("exited with code " ++ show code)
           ExitSuccess -> do
-            mMap <- readTestCoverageMapFile outputFile
-            case mMap of
-              Nothing -> pure $ Left "wrote an unreadable coverage map"
-              Just coverageMap -> do
-                mBaseline <- readTestBaselineMapFile baselineFile
-                case mBaseline of
-                  Nothing -> pure $ Left "wrote an unreadable baseline map"
-                  Just baselineMap -> pure $ Right (coverageMap, baselineMap)
+            eMap <- readTestCoverageMapFile outputFile
+            case eMap of
+              Left err -> pure $ Left ("unreadable coverage map: " ++ err)
+              Right coverageMap -> do
+                eBaseline <- readTestBaselineMapFile baselineFile
+                case eBaseline of
+                  Left err -> pure $ Left ("unreadable baseline map: " ++ err)
+                  Right baselineMap -> pure $ Right (coverageMap, baselineMap)
 
     logCoverageRetry tid reason retriesAfter =
       hPutChunksLocaleWith With8BitColours stderr $

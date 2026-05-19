@@ -54,10 +54,10 @@ spec = describe "phase boundary smoke (bug #1)" $ do
           let path = fromAbsFile (dir </> [relfile|coverage.json|])
               cm = TestCoverageMap (Map.singleton (aTestId i) (Set.singleton (MutationId ["M", "Op", show i, "1", "5", "r", "1"])))
           writeTestCoverageMapFile path cm
-          mRead <- readTestCoverageMapFile path
-          case mRead of
-            Nothing -> expectationFailure "decode failed"
-            Just (TestCoverageMap m) -> Map.size m `shouldBe` 1
+          eRead <- readTestCoverageMapFile path
+          case eRead of
+            Left err -> expectationFailure ("decode failed: " ++ err)
+            Right (TestCoverageMap m) -> Map.size m `shouldBe` 1
     _ <- mapConcurrently readOne [1 .. n]
     pure ()
 
@@ -67,10 +67,10 @@ spec = describe "phase boundary smoke (bug #1)" $ do
           let path = fromAbsFile (dir </> [relfile|baseline.json|])
               bm = TestBaselineMap (Map.singleton (aTestId i) (fromIntegral i))
           writeTestBaselineMapFile path bm
-          mRead <- readTestBaselineMapFile path
-          case mRead of
-            Nothing -> expectationFailure "decode failed"
-            Just (TestBaselineMap m) -> Map.size m `shouldBe` 1
+          eRead <- readTestBaselineMapFile path
+          case eRead of
+            Left err -> expectationFailure ("decode failed: " ++ err)
+            Right (TestBaselineMap m) -> Map.size m `shouldBe` 1
     _ <- mapConcurrently readOne [1 .. n]
     pure ()
 

@@ -61,13 +61,12 @@ writeTestCoverageMapFile path m =
   LB.writeFile path (encodeJSONViaCodec m)
 
 -- | Read a 'TestCoverageMap' from the given file path.
--- Returns 'Nothing' on parse failure.
+-- Returns the aeson error message on parse failure.
 --
 -- Reads strictly (via 'B.readFile' + 'eitherDecodeJSONViaCodec') so the file
 -- handle is closed before this function returns.  Defensive against a
 -- suspected (but unproven) contributor to 'BlockedIndefinitelyOnMVar'
 -- loops at the coverage/mutation phase boundary on large projects.
-readTestCoverageMapFile :: FilePath -> IO (Maybe TestCoverageMap)
+readTestCoverageMapFile :: FilePath -> IO (Either String TestCoverageMap)
 readTestCoverageMapFile path =
-  either (const Nothing) Just . eitherDecodeJSONViaCodec . LB.fromStrict
-    <$> B.readFile path
+  eitherDecodeJSONViaCodec . LB.fromStrict <$> B.readFile path

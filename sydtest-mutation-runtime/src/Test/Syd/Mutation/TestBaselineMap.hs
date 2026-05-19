@@ -63,8 +63,8 @@ writeTestBaselineMapFile path m =
 -- 'eitherDecodeJSONViaCodec') so the file handle is closed before this
 -- function returns.  Defensive against a suspected (but unproven) contributor
 -- to 'BlockedIndefinitelyOnMVar' loops at the coverage/mutation phase
--- boundary on large projects.
-readTestBaselineMapFile :: FilePath -> IO (Maybe TestBaselineMap)
+-- boundary on large projects.  Returns the aeson error message on parse
+-- failure.
+readTestBaselineMapFile :: FilePath -> IO (Either String TestBaselineMap)
 readTestBaselineMapFile path =
-  either (const Nothing) Just . eitherDecodeJSONViaCodec . LB.fromStrict
-    <$> B.readFile path
+  eitherDecodeJSONViaCodec . LB.fromStrict <$> B.readFile path

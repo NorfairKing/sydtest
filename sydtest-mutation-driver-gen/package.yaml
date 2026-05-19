@@ -31,12 +31,15 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - bytestring
     - containers
     - genvalidity-sydtest
     - genvalidity-sydtest-aeson
     - path
     - path-io
+    - safe-coloured-text
     - sydtest
     - sydtest-mutation-driver
     - sydtest-mutation-driver-gen
     - sydtest-mutation-runtime
+    - text

@@ -12,6 +12,7 @@ module Test.Syd.Mutation.Driver.Components
   ( readComponentNames,
     runListComponents,
     runInstallComponents,
+    runInstallComponentsWithBuildDir,
     MissingBuiltComponent (..),
   )
 where
@@ -57,17 +58,27 @@ data MissingBuiltComponent = MissingBuiltComponent
 
 instance Exception MissingBuiltComponent
 
--- | Top-level entry point for the @install-components@ subcommand: read
--- the declared component names from the cabal file, then for each name
--- copy @dist/build/<name>/<name>@ to @<outDir>/<name>@.  Creates
--- @outDir@ if it does not already exist.  Throws 'MissingBuiltComponent'
--- when a declared component's executable is not present where expected.
+-- | Read the declared component names from the cabal file, then for
+-- each name copy @<buildDir>/<name>/<name>@ to @<outDir>/<name>@.
+-- Creates @outDir@ if it does not already exist.  Throws
+-- 'MissingBuiltComponent' when a declared component's executable is not
+-- present where expected.
 --
--- The @dist/build@ path is resolved relative to the current working
--- directory, which is how Cabal lays out its build artefacts during a
--- @Setup build@.
-runInstallComponents :: ComponentKind -> Path Abs File -> Path Abs Dir -> IO ()
-runInstallComponents kind cabalFile outDir = do
+-- The @buildDir@ is typically @<PWD>/dist/build@ during a Cabal
+-- @Setup build@.  It is taken as an explicit argument (rather than
+-- derived from the current working directory) so this function does not
+-- mutate global process state — tests that exercise it can use
+-- independent tmp dirs in parallel without fighting for CWD.
+runInstallComponentsWithBuildDir ::
+  ComponentKind ->
+  -- | Path to the .cabal file.
+  Path Abs File ->
+  -- | Cabal build directory (e.g. @<pkg>/dist/build@).
+  Path Abs Dir ->
+  -- | Output directory to copy executables into.
+  Path Abs Dir ->
+  IO ()
+runInstallComponentsWithBuildDir kind cabalFile buildDir outDir = do
   names <- readComponentNames kind cabalFile
   case names of
     [] -> pure ()
@@ -79,8 +90,7 @@ runInstallComponents kind cabalFile outDir = do
     installOne destDir name = do
       relSubDir <- parseRelDir name
       relBin <- parseRelFile name
-      cwd <- getCurrentDir
-      let srcFile = cwd </> [reldir|dist/build|] </> relSubDir </> relBin
+      let srcFile = buildDir </> relSubDir </> relBin
           destFile = destDir </> relBin
       exists <- doesFileExist srcFile
       if exists
@@ -91,3 +101,17 @@ runInstallComponents kind cabalFile outDir = do
               { missingBuiltComponentName = name,
                 missingBuiltComponentExpectedAt = srcFile
               }
+
+-- | Top-level entry point for the @install-components@ subcommand.
+--
+-- Resolves the Cabal build directory as @<PWD>/dist/build@ (which is
+-- how Cabal lays out its build artefacts during a @Setup build@), then
+-- delegates to 'runInstallComponentsWithBuildDir'.
+runInstallComponents :: ComponentKind -> Path Abs File -> Path Abs Dir -> IO ()
+runInstallComponents kind cabalFile outDir = do
+  cwd <- getCurrentDir
+  runInstallComponentsWithBuildDir
+    kind
+    cabalFile
+    (cwd </> [reldir|dist/build|])
+    outDir

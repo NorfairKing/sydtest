@@ -117,17 +117,8 @@ in
   # library) against the package's cabal file, so the caller does not
   # have to enumerate them at Nix evaluation time.
   postInstall = ''
-    if [ -f "${old.pname}.cabal" ]; then
-      cabalFile="$PWD/${old.pname}.cabal"
-    else
-      cabalFile=$(ls -1 "$PWD"/*.cabal 2>/dev/null | head -n1)
-    fi
-    if [ -z "$cabalFile" ] || [ ! -f "$cabalFile" ]; then
-      echo "mutation-nix: no cabal file found in $PWD" >&2
-      exit 1
-    fi
     ${mutationDriver}/bin/sydtest-mutation-driver install-components \
-      executables "$cabalFile" "$out/bin"
+      executables "${old.pname}" "$out/bin"
   '' + (old.postInstall or "");
 })).overrideAttrs (old: {
   outputs = (old.outputs or [ "out" ]) ++ [ "manifest" ];

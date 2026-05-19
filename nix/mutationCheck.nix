@@ -132,17 +132,8 @@ let
       (old: {
         checkPhase = "";
         postInstall = ''
-          if [ -f "${old.pname}.cabal" ]; then
-            cabalFile="$PWD/${old.pname}.cabal"
-          else
-            cabalFile=$(ls -1 "$PWD"/*.cabal 2>/dev/null | head -n1)
-          fi
-          if [ -z "$cabalFile" ] || [ ! -f "$cabalFile" ]; then
-            echo "mutation-nix: no cabal file found in $PWD" >&2
-            exit 1
-          fi
           ${driver}/bin/sydtest-mutation-driver install-components \
-            test-suites "$cabalFile" "$out/test"
+            test-suites "${old.pname}" "$out/test"
         '';
       });
 

@@ -1,8 +1,8 @@
 { mkDerivation, base, bytestring, containers, genvalidity
 , genvalidity-containers, genvalidity-path, genvalidity-sydtest
-, genvalidity-sydtest-aeson, genvalidity-text, lib, path, path-io
-, QuickCheck, safe-coloured-text, sydtest, sydtest-discover
-, sydtest-mutation-driver, sydtest-mutation-runtime, text
+, genvalidity-text, lib, path, path-io, safe-coloured-text, sydtest
+, sydtest-discover, sydtest-mutation-driver
+, sydtest-mutation-runtime, text
 }:
 mkDerivation {
   pname = "sydtest-mutation-driver-gen";
@@ -10,12 +10,12 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [
     base genvalidity genvalidity-containers genvalidity-path
-    genvalidity-text QuickCheck sydtest-mutation-driver
+    genvalidity-text sydtest-mutation-driver
   ];
   testHaskellDepends = [
-    base bytestring containers genvalidity-sydtest
-    genvalidity-sydtest-aeson path path-io safe-coloured-text sydtest
-    sydtest-mutation-driver sydtest-mutation-runtime text
+    base bytestring containers genvalidity-sydtest path path-io
+    safe-coloured-text sydtest sydtest-mutation-driver
+    sydtest-mutation-runtime text
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

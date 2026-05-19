@@ -67,8 +67,8 @@ data SuitePkgSpec = SuitePkgSpec
 -- either.
 parseSuitePkgSpec :: String -> Either String SuitePkgSpec
 parseSuitePkgSpec s = case splitOnEq s of
-  [name, root, rd]
-    | null name -> Left ("empty pname in --suite-pkg spec: " ++ show s)
+  [pname, root, rd]
+    | null pname -> Left ("empty pname in --suite-pkg spec: " ++ show s)
     | otherwise -> do
         rootDir <-
           maybe
@@ -82,14 +82,14 @@ parseSuitePkgSpec s = case splitOnEq s of
             (parseAbsDir rd)
         Right
           SuitePkgSpec
-            { suitePkgSpecPname = name,
+            { suitePkgSpecPname = pname,
               suitePkgSpecBuiltTestPkgRoot = rootDir,
               suitePkgSpecResourceDir = rdDir
             }
   _ -> Left ("--suite-pkg expects PNAME=BUILT_TEST_PKG_ROOT=RESOURCE_DIR, got: " ++ show s)
   where
     splitOnEq :: String -> [String]
-    splitOnEq str = case break (== '=') str of
+    splitOnEq input = case break (== '=') input of
       (a, []) -> [a]
       (a, _ : rest) -> a : splitOnEq rest
 

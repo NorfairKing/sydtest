@@ -28,8 +28,7 @@ library
   hs-source-dirs:
       src
   build-depends:
-      QuickCheck
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , genvalidity
     , genvalidity-containers
     , genvalidity-path
@@ -57,7 +56,6 @@ test-suite sydtest-mutation-driver-gen-test
     , bytestring
     , containers
     , genvalidity-sydtest
-    , genvalidity-sydtest-aeson
     , path
     , path-io
     , safe-coloured-text

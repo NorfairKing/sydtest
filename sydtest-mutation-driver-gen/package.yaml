@@ -14,7 +14,6 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - QuickCheck
   - genvalidity
   - genvalidity-containers
   - genvalidity-path
@@ -34,7 +33,6 @@ tests:
     - bytestring
     - containers
     - genvalidity-sydtest
-    - genvalidity-sydtest-aeson
     - path
     - path-io
     - safe-coloured-text

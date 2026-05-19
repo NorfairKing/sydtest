@@ -23,11 +23,13 @@ import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
 import Control.Exception (bracket, bracket_)
 import qualified Control.Exception as Exception
 import Control.Monad (when)
+import qualified Data.ByteString as BS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Conc (getNumCapabilities)
 import Path
@@ -63,7 +65,7 @@ import Test.Syd.MutationMode.Common
     runOneGroup,
     tallyGroups,
   )
-import Text.Colour (TerminalCapabilities (..), hPutChunksLocaleWith, putChunksLocaleWith, unlinesChunks)
+import Text.Colour (Chunk, TerminalCapabilities (..), hPutChunksLocaleWith, putChunksLocaleWith, renderChunksText, unlinesChunks)
 
 -- | Thrown when the augmented manifest references a covering suite that is
 -- not present in the driver's suite-exe map.  Validated up-front in
@@ -77,6 +79,15 @@ data UnknownCoveringSuite = UnknownCoveringSuite
   deriving (Show)
 
 instance Exception.Exception UnknownCoveringSuite
+
+-- | Render @report.txt@ to @<outDir>/report.txt@.  Writes bytes
+-- directly so we don't depend on the locale's encoding being UTF-8
+-- (the report contains em-dashes and box-drawing characters).
+writeReportTxt :: [[Chunk]] -> Path Abs Dir -> IO ()
+writeReportTxt renderedChunks outDir =
+  let renderedText = renderChunksText With8BitColours (unlinesChunks renderedChunks)
+      reportFile = outDir </> [relfile|report.txt|]
+   in BS.writeFile (fromAbsFile reportFile) (TE.encodeUtf8 renderedText)
 
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.
@@ -172,7 +183,14 @@ runMutationMode failFast augmentedManifestDirM reportDirM childMemLimit suiteExe
             mutationRunReportGroups = groupReports
           }
   mapM_ (`writeMutationRunReport` jsonReport) reportDirM
-  putChunksLocaleWith With8BitColours (unlinesChunks (renderMutationRunReport jsonReport))
+  -- Render the report once and write report.txt alongside report.json
+  -- in the out dir.  Done here (rather than in 'runDriver') so that a
+  -- --fail-fast exitWith below still produces report.txt — without
+  -- this, fail-fast would skip the report.txt write because control
+  -- never returns to 'runDriver'.
+  let renderedChunks = renderMutationRunReport jsonReport
+  mapM_ (writeReportTxt renderedChunks) reportDirM
+  putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
   -- Force out any block-buffered progress events before we either return
   -- normally or exit non-zero.  Without this, the last few lines of
   -- progress can be dropped when 'exitWith' tears down the runtime.

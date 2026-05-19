@@ -207,17 +207,13 @@ let
       # runtime via testToolDepends. Put the union of those deps on
       # PATH so children can find them.
       nativeBuildInputs = collectedTestToolDepends;
+      # The driver writes report.txt, report.json, and every per-suite
+      # *.log file directly into --out-dir.  The augmented manifest is
+      # an intermediate artefact that doesn't belong in $out, so it
+      # lives in a workdir-local directory the driver creates itself.
       buildPhase = ''
         runHook preBuild
 
-        mkdir -p augmented report
-
-        # The driver writes report.json into the directory passed via
-        # '--mutation-report-dir'.  We point that at a workdir-local
-        # directory and copy the results to '$out' in installPhase.
-        # 'set -o pipefail' so the driver's exit code propagates
-        # through 'tee' and aborts the build on a survivor or crash.
-        set -o pipefail
         ${driver}/bin/sydtest-mutation-driver run \
           ${pkgs.lib.concatStringsSep " " manifestFlags} \
           ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
@@ -226,24 +222,12 @@ let
           ${coverageJobsFlag} \
           ${coverageRetryFlag} \
           --mutation-augmented-manifest-dir=augmented \
-          --mutation-report-dir=report \
-            2>&1 | tee report/report.txt
+          --out-dir="$out"
 
         runHook postBuild
       '';
       installPhase = ''
         runHook preInstall
-
-        mkdir -p $out
-        cp report/report.txt $out/report.txt
-        cp report/report.json $out/report.json
-        # Also copy any per-suite child log files the driver wrote.
-        for f in report/*.log; do
-          if [ -e "$f" ]; then
-            cp "$f" "$out/"
-          fi
-        done
-
         runHook postInstall
       '';
     };

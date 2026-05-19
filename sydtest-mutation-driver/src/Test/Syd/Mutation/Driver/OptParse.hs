@@ -104,7 +104,7 @@ data MutationDriverSettings = MutationDriverSettings
     mutationDriverSettingCoverageJobs :: !(Maybe Int),
     mutationDriverSettingCoverageRetry :: !Word,
     mutationDriverSettingAugmentedManifestDir :: !(Maybe (Path Abs Dir)),
-    mutationDriverSettingReportDir :: !(Maybe (Path Abs Dir)),
+    mutationDriverSettingOutDir :: !(Maybe (Path Abs Dir)),
     mutationDriverSettingFailFast :: !Bool
   }
   deriving (Show, Eq, Generic)
@@ -163,12 +163,12 @@ mutationDriverSettingsParser = do
           option,
           long "mutation-augmented-manifest-dir"
         ]
-  mutationDriverSettingReportDir <-
+  mutationDriverSettingOutDir <-
     optional $
       directoryPathSetting
-        [ help "Directory for report.txt and report.json (defaults to CWD)",
+        [ help "Output directory: where the driver writes report.txt, report.json, and per-suite *.log files (defaults to CWD)",
           option,
-          long "mutation-report-dir"
+          long "out-dir"
         ]
   mutationDriverSettingFailFast <-
     yesNoSwitch

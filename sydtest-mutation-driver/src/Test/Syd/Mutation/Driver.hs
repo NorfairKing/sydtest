@@ -1,7 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -23,10 +21,8 @@ module Test.Syd.Mutation.Driver
 where
 
 import Control.Exception (bracket)
-import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
-import qualified Data.Text.Encoding as T
 import Path
 import Path.IO (getCurrentDir, setCurrentDir)
 import System.IO (BufferMode (..), hFlush, hSetBuffering, hSetEncoding, stderr, stdout, utf8)
@@ -36,8 +32,6 @@ import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
-import Test.Syd.MutationMode.Common (renderMutationRunReport)
-import Text.Colour (TerminalCapabilities (..), renderChunksText, unlinesChunks)
 
 -- | Top-level entry point: parse the dispatch and run the chosen
 -- subcommand.  The default subcommand is @run@, which runs both mutation
@@ -85,27 +79,17 @@ runDriver MutationDriverSettings {..} = do
         ((_, sc) : _) -> suiteConfigResourceDir sc
         [] -> Nothing
       suiteExesByName = Map.map suiteConfigExe suites
-  reportText <-
+  -- 'runMutationMode' prints the report to stdout, writes
+  -- report.json + report.txt + per-suite *.log files to the out dir,
+  -- and (under --fail-fast) exitWith's directly without returning.
+  _ <-
     withMaybeCurrentDir firstSuiteResourceDir $
       runMutationMode
         mutationDriverSettingFailFast
         mutationDriverSettingAugmentedManifestDir
-        mutationDriverSettingReportDir
+        mutationDriverSettingOutDir
         mutationDriverSettingChildMemLimit
         suiteExesByName
-  -- 'runMutationMode' already prints the report to stdout and writes
-  -- @report.json@ to the report directory.  Also write @report.txt@ to
-  -- the report directory so the Nix harness can install it alongside
-  -- @report.json@.
-  case mutationDriverSettingReportDir of
-    Just reportDir -> do
-      let renderedText = renderChunksText With8BitColours (unlinesChunks (renderMutationRunReport reportText))
-          reportFile = reportDir </> [relfile|report.txt|]
-      -- Write bytes directly so we don't depend on the locale's encoding
-      -- being UTF-8 (the report contains em-dashes and box-drawing
-      -- characters).
-      BS.writeFile (fromAbsFile reportFile) (T.encodeUtf8 renderedText)
-    Nothing -> pure ()
   hFlush stdout
 
 -- | Run the coverage phase for one suite, with optional @cd@ into its

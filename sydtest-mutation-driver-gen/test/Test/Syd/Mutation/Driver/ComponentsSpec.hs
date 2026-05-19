@@ -9,7 +9,9 @@ import Path
 import Path.IO (createDirIfMissing, doesFileExist, withSystemTempDir)
 import Test.Syd
 import Test.Syd.Mutation.Driver.Components
-  ( MissingBuiltComponent (..),
+  ( CabalFileLookupError (..),
+    MissingBuiltComponent (..),
+    findCabalFile,
     readComponentNames,
     runInstallComponentsWithBuildDir,
   )
@@ -161,3 +163,50 @@ spec = do
             ]
         -- Should not throw and should not need <buildDir> to exist.
         runInstallComponentsWithBuildDir ComponentExecutables cabalFile buildDir outDir
+
+  describe "findCabalFile" $ do
+    it "returns <pname>.cabal when it exists" $
+      withSystemTempDir "find-preferred" $ \dir -> do
+        let expected = dir </> [relfile|foo.cabal|]
+        B.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: foo\n"
+        actual <- findCabalFile "foo" dir
+        actual `shouldBe` expected
+
+    it "prefers <pname>.cabal over a differently-named .cabal also in the directory" $
+      withSystemTempDir "find-prefer-over-other" $ \dir -> do
+        let expected = dir </> [relfile|foo.cabal|]
+        B.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: foo\n"
+        B.writeFile (fromAbsFile (dir </> [relfile|other.cabal|])) "cabal-version: 2.0\nname: other\n"
+        actual <- findCabalFile "foo" dir
+        actual `shouldBe` expected
+
+    it "falls back to the single other .cabal file when <pname>.cabal is absent" $
+      withSystemTempDir "find-fallback" $ \dir -> do
+        let expected = dir </> [relfile|differently-named.cabal|]
+        B.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: x\n"
+        actual <- findCabalFile "foo" dir
+        actual `shouldBe` expected
+
+    it "throws NoCabalFileFound when the directory has no .cabal files" $
+      withSystemTempDir "find-empty" $ \dir -> do
+        result <-
+          (Exception.try :: IO (Path Abs File) -> IO (Either CabalFileLookupError (Path Abs File))) $
+            findCabalFile "foo" dir
+        case result of
+          Left (NoCabalFileFound d) -> d `shouldBe` dir
+          Left e -> expectationFailure ("wrong error: " ++ show e)
+          Right p -> expectationFailure ("expected NoCabalFileFound, got " ++ show p)
+
+    it "throws AmbiguousCabalFile when <pname>.cabal is absent and multiple other .cabal files match" $
+      withSystemTempDir "find-ambiguous" $ \dir -> do
+        B.writeFile (fromAbsFile (dir </> [relfile|a.cabal|])) "cabal-version: 2.0\nname: a\n"
+        B.writeFile (fromAbsFile (dir </> [relfile|b.cabal|])) "cabal-version: 2.0\nname: b\n"
+        result <-
+          (Exception.try :: IO (Path Abs File) -> IO (Either CabalFileLookupError (Path Abs File))) $
+            findCabalFile "foo" dir
+        case result of
+          Left (AmbiguousCabalFile d pname _) -> do
+            d `shouldBe` dir
+            pname `shouldBe` "foo"
+          Left e -> expectationFailure ("wrong error: " ++ show e)
+          Right p -> expectationFailure ("expected AmbiguousCabalFile, got " ++ show p)

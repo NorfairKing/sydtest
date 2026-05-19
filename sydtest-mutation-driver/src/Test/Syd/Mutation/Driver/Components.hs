@@ -13,11 +13,14 @@ module Test.Syd.Mutation.Driver.Components
     runListComponents,
     runInstallComponents,
     runInstallComponentsWithBuildDir,
+    findCabalFile,
+    CabalFileLookupError (..),
     MissingBuiltComponent (..),
   )
 where
 
 import Control.Exception (Exception, throwIO)
+import Data.List (sort)
 import Distribution.PackageDescription
   ( GenericPackageDescription (..),
   )
@@ -25,8 +28,56 @@ import Distribution.Simple.PackageDescription (readGenericPackageDescription)
 import Distribution.Types.UnqualComponentName (unUnqualComponentName)
 import Distribution.Verbosity (silent)
 import Path
-import Path.IO (copyFile, doesFileExist, ensureDir, getCurrentDir)
+import Path.IO (copyFile, doesFileExist, ensureDir, getCurrentDir, listDirRel)
 import Test.Syd.Mutation.Driver.OptParse (ComponentKind (..))
+
+-- | Thrown by 'findCabalFile' when the lookup cannot disambiguate the
+-- right cabal file.
+data CabalFileLookupError
+  = -- | The directory contains no @.cabal@ file at all.
+    NoCabalFileFound !(Path Abs Dir)
+  | -- | The directory has multiple @.cabal@ files and none of them
+    -- matches the preferred @<pname>.cabal@ name.  We do not want to
+    -- silently pick one (the previous shell logic did, via @head -n1@,
+    -- which silently masked typos in the cabal-file basename).
+    AmbiguousCabalFile
+      !(Path Abs Dir)
+      !String -- preferred pname (without extension)
+      ![Path Rel File] -- the conflicting candidates
+  deriving (Show)
+
+instance Exception CabalFileLookupError
+
+-- | Locate the @.cabal@ file for a package in a directory.  Prefers
+-- @<pname>.cabal@; falls back to a single other @.cabal@ in the
+-- directory.  Throws 'CabalFileLookupError' on no-match or ambiguous
+-- match.
+--
+-- Mirrors the shell logic the @postInstall@ blocks used to inline:
+--
+-- @
+-- if [ -f "<pname>.cabal" ]; then …
+-- else cabalFile=$(ls -1 *.cabal 2>/dev/null | head -n1); fi
+-- @
+--
+-- with one stricter twist: when the preferred name is not found and
+-- multiple other @.cabal@ files are present, the shell silently picked
+-- the first; we throw 'AmbiguousCabalFile' instead, so a typo in
+-- @<pname>@ is not silently masked.
+findCabalFile :: String -> Path Abs Dir -> IO (Path Abs File)
+findCabalFile pname dir = do
+  preferredRel <- parseRelFile (pname ++ ".cabal")
+  let preferred = dir </> preferredRel
+  preferredExists <- doesFileExist preferred
+  if preferredExists
+    then pure preferred
+    else do
+      (_, files) <- listDirRel dir
+      let cabals = sort (filter ((== Just ".cabal") . fileExtension) files)
+      case cabals of
+        [] -> throwIO (NoCabalFileFound dir)
+        [one] -> pure (dir </> one)
+        _ -> throwIO (AmbiguousCabalFile dir pname cabals)
 
 -- | Read the declared component names of one kind from a .cabal file.
 --

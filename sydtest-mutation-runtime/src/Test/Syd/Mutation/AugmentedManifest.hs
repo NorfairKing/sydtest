@@ -25,6 +25,8 @@ module Test.Syd.Mutation.AugmentedManifest
     MutationGroupReport (..),
     MutationRunReport (..),
     writeMutationRunReport,
+    readMutationRunReport,
+    MutationRunReportDecodeException (..),
     MutationProgressEvent (..),
   )
 where
@@ -475,6 +477,30 @@ writeMutationRunReport :: Path Abs Dir -> MutationRunReport -> IO ()
 writeMutationRunReport dir report = do
   ensureDir dir
   LB.writeFile (fromAbsFile (dir </> mutationRunReportRelFile)) (Aeson.encode report)
+
+-- | Thrown by 'readMutationRunReport' when @report.json@ cannot be
+-- decoded.  Mirrors 'AugmentedManifestDecodeException'.
+newtype MutationRunReportDecodeException
+  = MutationRunReportDecodeException FilePath
+  deriving (Show)
+
+instance Exception MutationRunReportDecodeException
+
+-- | Read @report.json@ from the given directory.
+--
+-- Reads strictly (via 'B.readFile' + 'Aeson.decodeStrict') so the file
+-- handle is closed before this function returns.  Throws
+-- 'MutationRunReportDecodeException' on a decode failure rather than
+-- silently producing a 'Maybe', so a caller that depends on the report
+-- shape (the @assert-score@ subcommand) fails with an attributable
+-- error.
+readMutationRunReport :: Path Abs Dir -> IO MutationRunReport
+readMutationRunReport dir = do
+  let path = dir </> mutationRunReportRelFile
+  result <- Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
+  case result of
+    Nothing -> throwIO (MutationRunReportDecodeException (fromAbsFile path))
+    Just m -> pure m
 
 -- | Convert a 'MutationRecord' with coverage data to an 'AugmentedMutationRecord'.
 -- Records with 'mutRecCoveringTests' = 'Nothing' are dropped.

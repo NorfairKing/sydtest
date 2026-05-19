@@ -141,12 +141,19 @@ flattenTestForestWithIds f = evalState (execWriterT (goForest [] f)) Map.empty
 filterTestForestByTrie :: TestIdTrie -> TestForest '[] () -> TestForest '[] ()
 filterTestForestByTrie trie = snd . filterForest trie Map.empty
   where
+    -- 'filterForestRev' accumulates in reverse so each kept tree is consed
+    -- onto the head of @acc@ in O(1).  We reverse once at the end of
+    -- 'filterForest' to restore source order.  The previous implementation
+    -- used @acc ++ [tree]@ at every step, which is O(N^2) over sibling
+    -- count and visible on large per-test coverage runs.
     filterForest ::
       TestIdTrie ->
       Map Text Word ->
       SpecDefForest outers inner () ->
       (Map Text Word, SpecDefForest outers inner ())
-    filterForest t seen = foldl (filterTree t) (seen, [])
+    filterForest t seen sub =
+      let (seen', revAcc) = foldl (filterTree t) (seen, []) sub
+       in (seen', reverse revAcc)
 
     filterTree ::
       TestIdTrie ->
@@ -161,7 +168,7 @@ filterTestForestByTrie trie = snd . filterForest trie Map.empty
                 Nothing -> (seen', acc)
                 Just key -> case matchLeaf t key of
                   False -> (seen', acc)
-                  True -> (seen', acc ++ [DefSpecifyNode name td e])
+                  True -> (seen', DefSpecifyNode name td e : acc)
             DefPendingNode _ _ -> (seen', acc)
             DefDescribeNode name sub ->
               case mkey of
@@ -170,7 +177,7 @@ filterTestForestByTrie trie = snd . filterForest trie Map.empty
                   Nothing -> (seen', acc)
                   Just subTrie ->
                     let (_, sub') = filterForest subTrie Map.empty sub
-                     in if null sub' then (seen', acc) else (seen', acc ++ [DefDescribeNode name sub'])
+                     in if null sub' then (seen', acc) else (seen', DefDescribeNode name sub' : acc)
             DefSetupNode func sub -> keepWrapper seen' acc (DefSetupNode func) (filterForest t Map.empty sub)
             DefBeforeAllNode func sub -> keepWrapper seen' acc (DefBeforeAllNode func) (filterForest t Map.empty sub)
             DefBeforeAllWithNode func sub -> keepWrapper seen' acc (DefBeforeAllWithNode func) (filterForest t Map.empty sub)
@@ -193,7 +200,7 @@ filterTestForestByTrie trie = snd . filterForest trie Map.empty
       (Map Text Word, SpecDefForest outers inner ())
     keepWrapper seen' acc wrap (_, sub')
       | null sub' = (seen', acc)
-      | otherwise = (seen', acc ++ [wrap sub'])
+      | otherwise = (seen', wrap sub' : acc)
 
     matchLeaf :: TestIdTrie -> (Text, Word) -> Bool
     matchLeaf TrieLeaf _ = True

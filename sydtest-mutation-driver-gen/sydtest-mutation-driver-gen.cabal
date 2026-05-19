@@ -45,6 +45,7 @@ test-suite sydtest-mutation-driver-gen-test
       Test.Syd.Mutation.Driver.ComponentsSpec
       Test.Syd.Mutation.Driver.MutateSpec
       Test.Syd.Mutation.Driver.OptParseSpec
+      Test.Syd.Mutation.Driver.SuitePkgSpec
       Paths_sydtest_mutation_driver_gen
   hs-source-dirs:
       test

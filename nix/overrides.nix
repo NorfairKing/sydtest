@@ -82,7 +82,6 @@ let
       });
     "sydtest-aeson" = sydtestPkg "sydtest-aeson";
     "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
-    "sydtest-cabal-components" = sydtestPkg "sydtest-cabal-components";
     "sydtest-discover" = sydtestPkg "sydtest-discover";
     "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
     "sydtest-hspec" = sydtestPkg "sydtest-hspec";
@@ -128,15 +127,14 @@ let
   };
 
   # Mutation packages depend on stm-containers / list-t / a GHC-API-specific
-  # plugin / a Cabal-version-specific helper, which the forward-compatibility
-  # build (horizon-advance) does not ship.  Keep them out of the forward-compat
-  # release so it only exercises the non-mutation surface against newer GHCs.
+  # plugin, which the forward-compatibility build (horizon-advance) does not
+  # ship.  Keep them out of the forward-compat release so it only exercises
+  # the non-mutation surface against newer GHCs.
   #
   # This is an explicit list rather than a prefix filter so that a future
   # non-mutation package whose name happens to start with `sydtest-mutation`
   # is not silently excluded.
   mutationPkgNames = [
-    "sydtest-cabal-components"
     "sydtest-mutation"
     "sydtest-mutation-driver"
     "sydtest-mutation-driver-gen"

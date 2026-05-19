@@ -22,8 +22,6 @@ packages:
 - sydtest-test
 - sydtest-misbehaved-test-suite
 
-- sydtest-cabal-components
-
 - sydtest-mutation-runtime
 - sydtest-mutation-plugin
 - sydtest-mutation

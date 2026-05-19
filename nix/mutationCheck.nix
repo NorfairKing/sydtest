@@ -153,6 +153,7 @@ let
     pkgs.srcOnly {
       name = "${pkgName}-resource-dir";
       src = instrumentedHaskellPackages.${pkgName}.src;
+      stdenv = pkgs.stdenvNoCC;
     };
 
   # One built test-package derivation per test-package the caller asked

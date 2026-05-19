@@ -1,6 +1,7 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -14,10 +15,15 @@
 -- can override path-shaped values that are not known at config-render
 -- time, e.g. @--mutation-report-dir@.
 module Test.Syd.Mutation.Driver.OptParse
-  ( MutationDriverConfig (..),
+  ( -- * Top-level dispatch
+    Dispatch (..),
+    ComponentKind (..),
+    getDispatch,
+
+    -- * 'run' subcommand
+    MutationDriverConfig (..),
     SuiteConfig (..),
     MutationDriverSettings (..),
-    getMutationDriverSettings,
     resolveMutationDriverSettings,
   )
 where
@@ -218,10 +224,93 @@ mutationDriverConfigParser = do
         ]
   pure MutationDriverConfig {..}
 
-instance HasParser MutationDriverConfig where
-  settingsParser =
-    subEnv_ "sydtest_mutation_driver" $
-      withLocalYamlConfig mutationDriverConfigParser
+-- | Which component kind to enumerate or install: Cabal @executables@ or
+-- @test-suites@.
+data ComponentKind = ComponentExecutables | ComponentTestSuites
+  deriving (Show, Eq, Generic)
+
+componentKindSetting :: Parser ComponentKind
+componentKindSetting =
+  setting
+    [ help "Which component kind to operate on",
+      reader $ eitherReader $ \case
+        "executables" -> Right ComponentExecutables
+        "test-suites" -> Right ComponentTestSuites
+        s -> Left ("expected 'executables' or 'test-suites', got: " ++ s),
+      argument,
+      metavar "KIND"
+    ]
+
+absFileArgument :: String -> Parser (Path Abs File)
+absFileArgument helpText =
+  setting
+    [ help helpText,
+      reader $ eitherReader $ \s ->
+        maybe (Left ("invalid absolute file path: " ++ s)) Right (parseAbsFile s),
+      argument,
+      metavar "FILE"
+    ]
+
+absDirArgument :: String -> Parser (Path Abs Dir)
+absDirArgument helpText =
+  setting
+    [ help helpText,
+      reader $ eitherReader $ \s ->
+        maybe (Left ("invalid absolute directory path: " ++ s)) Right (parseAbsDir s),
+      argument,
+      metavar "DIR"
+    ]
+
+-- | What the driver should do this invocation.  Each constructor corresponds
+-- to one subcommand.  The default (no subcommand) is 'DispatchRun'.
+data Dispatch
+  = -- | Run the coverage and mutation phases (the original driver flow).
+    DispatchRun !MutationDriverSettings
+  | -- | Print the component names of one kind in a cabal file, one per
+    -- line.  Used by the Nix harness to enumerate executables and
+    -- test-suites at build time.
+    DispatchListComponents !ComponentKind !(Path Abs File)
+  | -- | Install (copy) the built executables of one kind from
+    -- @dist/build/<n>/<n>@ into the given output directory.  Used by the
+    -- Nix harness in @postInstall@.
+    DispatchInstallComponents !ComponentKind !(Path Abs File) !(Path Abs Dir)
+  | -- | Check a @report.json@ for survivors and (optionally) uncovered
+    -- mutations.  Exits non-zero on assertion failure.
+    DispatchAssertScore
+      -- | Whether to also fail on uncovered mutations.
+      !Bool
+      -- | Report directory containing @report.json@ and @report.txt@.
+      !(Path Abs Dir)
+  deriving (Show, Eq, Generic)
+
+dispatchParser :: Parser Dispatch
+dispatchParser =
+  commands
+    [ command "run" "Run the coverage and mutation phases" $
+        DispatchRun . resolveMutationDriverSettings
+          <$> subEnv_ "sydtest_mutation_driver" (withLocalYamlConfig mutationDriverConfigParser),
+      command "list-components" "Print the component names of one kind in a cabal file" $
+        withoutConfig $
+          DispatchListComponents
+            <$> componentKindSetting
+            <*> absFileArgument "Path to the .cabal file",
+      command "install-components" "Copy built executables to an install directory" $
+        withoutConfig $
+          DispatchInstallComponents
+            <$> componentKindSetting
+            <*> absFileArgument "Path to the .cabal file"
+            <*> absDirArgument "Output directory to copy executables into",
+      command "assert-score" "Check a mutation-run report for survivors and (optionally) uncovered mutations" $
+        withoutConfig $
+          DispatchAssertScore
+            <$> yesNoSwitch
+              [ help "Also fail on uncovered mutations",
+                long "assert-none-uncovered",
+                value True
+              ]
+            <*> absDirArgument "Directory containing report.json and report.txt",
+      defaultCommand "run"
+    ]
 
 -- | Resolve a 'MutationDriverConfig' into the run settings, filling in
 -- defaults for fields the user did not specify.
@@ -248,8 +337,11 @@ defaultCoverageRetry = 3
 defaultFailFast :: Bool
 defaultFailFast = True
 
--- | Parse the driver's settings from argv, env, and YAML.
-getMutationDriverSettings :: IO MutationDriverSettings
-getMutationDriverSettings = do
-  config <- runSettingsParser version "Out-of-process mutation testing driver for sydtest"
-  pure (resolveMutationDriverSettings config)
+-- | Parse the top-level dispatch from argv, env, and (for the @run@
+-- subcommand only) YAML.
+getDispatch :: IO Dispatch
+getDispatch =
+  runParser
+    version
+    "Out-of-process mutation testing driver for sydtest"
+    dispatchParser

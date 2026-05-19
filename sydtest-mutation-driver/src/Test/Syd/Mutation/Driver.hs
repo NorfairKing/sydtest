@@ -36,8 +36,9 @@ import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.MutationMode.Common (renderMutationRunReport)
 import Text.Colour (TerminalCapabilities (..), renderChunksText, unlinesChunks)
 
--- | Top-level entry point: parse settings, run both phases, write the
--- final reports.
+-- | Top-level entry point: parse the dispatch and run the chosen
+-- subcommand.  The default subcommand is @run@, which runs both mutation
+-- phases (coverage then mutation).
 sydMutationDriver :: IO ()
 sydMutationDriver = do
   -- Set both streams to UTF-8 so the rendered report (which contains
@@ -47,8 +48,15 @@ sydMutationDriver = do
   hSetEncoding stdout utf8
   hSetBuffering stderr LineBuffering
   hSetBuffering stdout LineBuffering
-  settings <- getMutationDriverSettings
-  runDriver settings
+  dispatch <- getDispatch
+  case dispatch of
+    DispatchRun settings -> runDriver settings
+    DispatchListComponents _ _ ->
+      fail "sydtest-mutation-driver: list-components is not implemented yet"
+    DispatchInstallComponents {} ->
+      fail "sydtest-mutation-driver: install-components is not implemented yet"
+    DispatchAssertScore _ _ ->
+      fail "sydtest-mutation-driver: assert-score is not implemented yet"
 
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()

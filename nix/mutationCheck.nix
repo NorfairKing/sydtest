@@ -145,19 +145,14 @@ let
   # just as they would during a Cabal 'checkPhase').
   #
   # The instrumented package's 'src' is an sdist tarball
-  # (haskellPackages.buildFromSdist wraps it).  We unpack each tarball
-  # once into a per-package store path that the driver can 'cd' into.
+  # (haskellPackages.buildFromSdist wraps it), so we have to unpack
+  # it before the driver can cd into the directory.  'pkgs.srcOnly' is
+  # the nixpkgs helper for exactly this: unpack a src to a derivation
+  # whose $out is the resulting directory.
   unpackedSrcFor = pkgName:
-    pkgs.stdenv.mkDerivation {
+    pkgs.srcOnly {
       name = "${pkgName}-resource-dir";
       src = instrumentedHaskellPackages.${pkgName}.src;
-      nativeBuildInputs = [ pkgs.gnutar pkgs.gzip ];
-      dontConfigure = true;
-      dontBuild = true;
-      installPhase = ''
-        mkdir -p $out
-        cp -r ./. $out/
-      '';
     };
 
   # One built test-package derivation per test-package the caller asked

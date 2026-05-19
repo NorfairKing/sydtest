@@ -30,6 +30,7 @@ import qualified Data.Text.Encoding as T
 import Path
 import Path.IO (getCurrentDir, setCurrentDir)
 import System.IO (BufferMode (..), hFlush, hSetBuffering, hSetEncoding, stderr, stdout, utf8)
+import Test.Syd.Mutation.Driver.AssertScore (runAssertScore)
 import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListComponents)
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
@@ -55,8 +56,8 @@ sydMutationDriver = do
     DispatchListComponents kind cabalFile -> runListComponents kind cabalFile
     DispatchInstallComponents kind cabalFile outDir ->
       runInstallComponents kind cabalFile outDir
-    DispatchAssertScore _ _ ->
-      fail "sydtest-mutation-driver: assert-score is not implemented yet"
+    DispatchAssertScore assertNoneUncovered reportDir ->
+      runAssertScore assertNoneUncovered reportDir
 
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()

@@ -23,6 +23,7 @@ source-repository head
 library
   exposed-modules:
       Test.Syd.Mutation.Driver
+      Test.Syd.Mutation.Driver.AssertScore
       Test.Syd.Mutation.Driver.Components
       Test.Syd.Mutation.Driver.Coverage
       Test.Syd.Mutation.Driver.Mutate

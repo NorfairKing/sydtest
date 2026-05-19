@@ -133,28 +133,16 @@ let
         checkPhase = "";
         postInstall = ''
           if [ -f "${old.pname}.cabal" ]; then
-            cabalFile="${old.pname}.cabal"
+            cabalFile="$PWD/${old.pname}.cabal"
           else
-            cabalFile=$(ls -1 ./*.cabal 2>/dev/null | head -n1)
+            cabalFile=$(ls -1 "$PWD"/*.cabal 2>/dev/null | head -n1)
           fi
           if [ -z "$cabalFile" ] || [ ! -f "$cabalFile" ]; then
             echo "mutation-nix: no cabal file found in $PWD" >&2
             exit 1
           fi
-          suites=$(${driver}/bin/sydtest-mutation-driver list-components test-suites "$cabalFile")
-          mkdir -p $out/test
-          if [ -n "$suites" ]; then
-            while IFS= read -r suite; do
-              [ -z "$suite" ] && continue
-              src="dist/build/$suite/$suite"
-              if [ -f "$src" ] && [ -x "$src" ]; then
-                cp "$src" "$out/test/$suite"
-              else
-                echo "mutation-nix: expected test executable at $src but it is missing" >&2
-                exit 1
-              fi
-            done <<< "$suites"
-          fi
+          ${driver}/bin/sydtest-mutation-driver install-components \
+            test-suites "$cabalFile" "$out/test"
         '';
       });
 

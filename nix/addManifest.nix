@@ -118,28 +118,16 @@ in
   # have to enumerate them at Nix evaluation time.
   postInstall = ''
     if [ -f "${old.pname}.cabal" ]; then
-      cabalFile="${old.pname}.cabal"
+      cabalFile="$PWD/${old.pname}.cabal"
     else
-      cabalFile=$(ls -1 ./*.cabal 2>/dev/null | head -n1)
+      cabalFile=$(ls -1 "$PWD"/*.cabal 2>/dev/null | head -n1)
     fi
     if [ -z "$cabalFile" ] || [ ! -f "$cabalFile" ]; then
       echo "mutation-nix: no cabal file found in $PWD" >&2
       exit 1
     fi
-    exes=$(${mutationDriver}/bin/sydtest-mutation-driver list-components executables "$cabalFile")
-    if [ -n "$exes" ]; then
-      mkdir -p $out/bin
-      while IFS= read -r n; do
-        [ -z "$n" ] && continue
-        src="dist/build/$n/$n"
-        if [ -f "$src" ] && [ -x "$src" ]; then
-          cp "$src" "$out/bin/$n"
-        else
-          echo "mutation-nix: expected executable at $src but it is missing" >&2
-          exit 1
-        fi
-      done <<< "$exes"
-    fi
+    ${mutationDriver}/bin/sydtest-mutation-driver install-components \
+      executables "$cabalFile" "$out/bin"
   '' + (old.postInstall or "");
 })).overrideAttrs (old: {
   outputs = (old.outputs or [ "out" ]) ++ [ "manifest" ];

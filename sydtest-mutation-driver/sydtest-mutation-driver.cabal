@@ -28,15 +28,14 @@ library
       Test.Syd.Mutation.Driver.Coverage
       Test.Syd.Mutation.Driver.Mutate
       Test.Syd.Mutation.Driver.OptParse
+      Test.Syd.Mutation.Driver.SuitePkg
   other-modules:
       Paths_sydtest_mutation_driver
   hs-source-dirs:
       src
   build-depends:
       Cabal
-    , aeson
     , async
-    , autodocodec
     , base >=4.7 && <5
     , bytestring
     , containers

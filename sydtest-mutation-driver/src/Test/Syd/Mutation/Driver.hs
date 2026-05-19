@@ -35,6 +35,7 @@ import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListCompone
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
+import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 import Test.Syd.MutationMode.Common (renderMutationRunReport)
 import Text.Colour (TerminalCapabilities (..), renderChunksText, unlinesChunks)
 
@@ -62,10 +63,8 @@ sydMutationDriver = do
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()
 runDriver MutationDriverSettings {..} = do
-  let suitesAsc = Map.toAscList mutationDriverSettingSuites
-  case suitesAsc of
-    [] -> fail "sydtest-mutation-driver: no suites configured"
-    (_ : _) -> pure ()
+  suites <- walkSuitePkgs mutationDriverSettingSuitePkgs
+  let suitesAsc = Map.toAscList suites
   -- Coverage phase: for each suite, cd into its resource directory (if
   -- set) and run the coverage parent against its exe.  The augmented
   -- manifest accumulates across suites: each suite's pass merges into the
@@ -85,7 +84,7 @@ runDriver MutationDriverSettings {..} = do
   let firstSuiteResourceDir = case suitesAsc of
         ((_, sc) : _) -> suiteConfigResourceDir sc
         [] -> Nothing
-      suiteExesByName = Map.map suiteConfigExe mutationDriverSettingSuites
+      suiteExesByName = Map.map suiteConfigExe suites
   reportText <-
     withMaybeCurrentDir firstSuiteResourceDir $
       runMutationMode

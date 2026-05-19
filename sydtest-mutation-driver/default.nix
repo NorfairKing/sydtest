@@ -1,7 +1,6 @@
-{ mkDerivation, aeson, async, autodocodec, base, bytestring, Cabal
-, containers, directory, lib, opt-env-conf, path, path-io
-, safe-coloured-text, stm, sydtest, sydtest-mutation-runtime, text
-, typed-process
+{ mkDerivation, async, base, bytestring, Cabal, containers
+, directory, lib, opt-env-conf, path, path-io, safe-coloured-text
+, stm, sydtest, sydtest-mutation-runtime, text, typed-process
 }:
 mkDerivation {
   pname = "sydtest-mutation-driver";
@@ -10,9 +9,9 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson async autodocodec base bytestring Cabal containers directory
-    opt-env-conf path path-io safe-coloured-text stm sydtest
-    sydtest-mutation-runtime text typed-process
+    async base bytestring Cabal containers directory opt-env-conf path
+    path-io safe-coloured-text stm sydtest sydtest-mutation-runtime
+    text typed-process
   ];
   executableHaskellDepends = [ base ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

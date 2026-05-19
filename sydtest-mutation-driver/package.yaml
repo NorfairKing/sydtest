@@ -15,9 +15,7 @@ library:
   source-dirs: src
   dependencies:
   - Cabal
-  - aeson
   - async
-  - autodocodec
   - bytestring
   - containers
   - directory

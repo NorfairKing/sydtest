@@ -1,4 +1,4 @@
-{ mkDerivation, aeson, async, autodocodec, base, bytestring
+{ mkDerivation, aeson, async, autodocodec, base, bytestring, Cabal
 , containers, lib, opt-env-conf, path, path-io, safe-coloured-text
 , stm, sydtest, sydtest-mutation-runtime, text, typed-process
 }:
@@ -9,8 +9,8 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson async autodocodec base bytestring containers opt-env-conf
-    path path-io safe-coloured-text stm sydtest
+    aeson async autodocodec base bytestring Cabal containers
+    opt-env-conf path path-io safe-coloured-text stm sydtest
     sydtest-mutation-runtime text typed-process
   ];
   executableHaskellDepends = [ base ];

@@ -23,6 +23,7 @@ source-repository head
 library
   exposed-modules:
       Test.Syd.Mutation.Driver
+      Test.Syd.Mutation.Driver.Components
       Test.Syd.Mutation.Driver.Coverage
       Test.Syd.Mutation.Driver.Mutate
       Test.Syd.Mutation.Driver.OptParse
@@ -31,7 +32,8 @@ library
   hs-source-dirs:
       src
   build-depends:
-      aeson
+      Cabal
+    , aeson
     , async
     , autodocodec
     , base >=4.7 && <5

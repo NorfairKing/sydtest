@@ -20,5 +20,5 @@ mkDerivation {
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   description = "Generators and tests for sydtest-mutation-driver's config types";
-  license = lib.licenses.mit;
+  license = "unknown";
 }

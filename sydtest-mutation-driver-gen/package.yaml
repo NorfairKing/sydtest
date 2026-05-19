@@ -1,7 +1,8 @@
 name: sydtest-mutation-driver-gen
 version: 0.0.0.0
 github: "NorfairKing/sydtest"
-license: MIT
+license: OtherLicense
+license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 category: Testing

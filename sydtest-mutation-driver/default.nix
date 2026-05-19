@@ -16,6 +16,6 @@ mkDerivation {
   executableHaskellDepends = [ base ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   description = "Out-of-process mutation testing driver for sydtest";
-  license = lib.licenses.mit;
+  license = "unknown";
   mainProgram = "sydtest-mutation-driver";
 }

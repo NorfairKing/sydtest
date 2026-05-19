@@ -7,13 +7,14 @@ cabal-version: 1.12
 name:           sydtest-mutation-driver
 version:        0.0.0.0
 synopsis:       Out-of-process mutation testing driver for sydtest.
-description:    Standalone driver executable that orchestrates the coverage and mutation phases of sydtest's mutation testing infrastructure. Reads its configuration from a YAML file and spawns instrumented sydtest test suite executables as children.
+description:    Standalone driver executable that orchestrates the coverage and mutation phases of sydtest's mutation testing infrastructure. Spawns instrumented sydtest test suite executables as children.
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
 author:         Tom Sydney Kerckhove
 maintainer:     syd@cs-syd.eu
-license:        MIT
+license:        OtherLicense
+license-file:   LICENSE.md
 build-type:     Simple
 
 source-repository head

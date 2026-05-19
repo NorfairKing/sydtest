@@ -5,5 +5,5 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [ base mtl ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
-  license = lib.licenses.mit;
+  license = "unknown";
 }

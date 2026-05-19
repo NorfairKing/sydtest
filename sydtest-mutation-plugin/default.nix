@@ -15,5 +15,5 @@ mkDerivation {
   testHaskellDepends = [ base containers ghc sydtest text ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
-  license = lib.licenses.mit;
+  license = "unknown";
 }

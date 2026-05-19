@@ -104,12 +104,11 @@ instance HasCodec AugmentedMutationRecord where
         <*> optionalFieldWithDefaultWith' "covering_tests" coveringTestsCodec Map.empty .= augmentedMutationRecordCoveringTests
         <*> requiredField' "timeout_micros" .= augmentedMutationRecordTimeoutMicros
 
-instance Validity AugmentedMutationRecord where
-  validate = trivialValidation
+instance Validity AugmentedMutationRecord
 
 instance GenValid AugmentedMutationRecord where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 -- | A group of augmented mutation records sharing one operator-at-one-location
 -- origin.  The runner walks groups concurrently and walks records within a
@@ -272,12 +271,11 @@ data SurvivedMutation = SurvivedMutation
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec SurvivedMutation)
 
-instance Validity SurvivedMutation where
-  validate = trivialValidation
+instance Validity SurvivedMutation
 
 instance GenValid SurvivedMutation where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec SurvivedMutation where
   codec =
@@ -301,12 +299,11 @@ data TimedOutMutation = TimedOutMutation
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec TimedOutMutation)
 
-instance Validity TimedOutMutation where
-  validate = trivialValidation
+instance Validity TimedOutMutation
 
 instance GenValid TimedOutMutation where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec TimedOutMutation where
   codec =
@@ -323,12 +320,11 @@ newtype UncoveredMutation = UncoveredMutation
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec UncoveredMutation)
 
-instance Validity UncoveredMutation where
-  validate = trivialValidation
+instance Validity UncoveredMutation
 
 instance GenValid UncoveredMutation where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec UncoveredMutation where
   codec =
@@ -346,12 +342,11 @@ data SkippedMutation = SkippedMutation
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec SkippedMutation)
 
-instance Validity SkippedMutation where
-  validate = trivialValidation
+instance Validity SkippedMutation
 
 instance GenValid SkippedMutation where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec SkippedMutation where
   codec =
@@ -370,12 +365,11 @@ data MutationOutcome
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationOutcome)
 
-instance Validity MutationOutcome where
-  validate = trivialValidation
+instance Validity MutationOutcome
 
 instance GenValid MutationOutcome where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec MutationOutcome where
   codec =
@@ -430,12 +424,11 @@ instance HasCodec MutationGroupReport where
   codec =
     dimapCodec MutationGroupReport mutationGroupReportOutcomes codec
 
-instance Validity MutationGroupReport where
-  validate = trivialValidation
+instance Validity MutationGroupReport
 
 instance GenValid MutationGroupReport where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 -- | Full JSON report written by the parent mutation process.
 --
@@ -457,12 +450,11 @@ data MutationRunReport = MutationRunReport
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationRunReport)
 
-instance Validity MutationRunReport where
-  validate = trivialValidation
+instance Validity MutationRunReport
 
 instance GenValid MutationRunReport where
-  genValid = genValidStructurallyWithoutExtraChecking
-  shrinkValid = shrinkValidStructurallyWithoutExtraFiltering
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
 
 instance HasCodec MutationRunReport where
   codec =

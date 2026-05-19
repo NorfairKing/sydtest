@@ -11,6 +11,7 @@
 module Test.Syd.Mutation.Driver.Components
   ( readComponentNames,
     runListComponents,
+    listComponentsFromCabalFile,
     runInstallComponents,
     runInstallComponentsWithBuildDir,
     findCabalFile,
@@ -90,12 +91,22 @@ readComponentNames kind cabalFile = do
     ComponentExecutables -> map (unUnqualComponentName . fst) (condExecutables gpd)
     ComponentTestSuites -> map (unUnqualComponentName . fst) (condTestSuites gpd)
 
--- | Top-level entry point for the @list-components@ subcommand: print
--- each component name on its own line.
-runListComponents :: ComponentKind -> Path Abs File -> IO ()
-runListComponents kind cabalFile = do
+-- | Print the declared component names from a .cabal file, one per
+-- line.  The function used directly by 'runListComponents' once the
+-- cabal file has been resolved.
+listComponentsFromCabalFile :: ComponentKind -> Path Abs File -> IO ()
+listComponentsFromCabalFile kind cabalFile = do
   names <- readComponentNames kind cabalFile
   mapM_ putStrLn names
+
+-- | Top-level entry point for the @list-components@ subcommand.
+-- Resolves @<pname>.cabal@ in the driver's current working directory
+-- via 'findCabalFile' and then delegates to 'listComponentsFromCabalFile'.
+runListComponents :: ComponentKind -> String -> IO ()
+runListComponents kind pname = do
+  cwd <- getCurrentDir
+  cabalFile <- findCabalFile pname cwd
+  listComponentsFromCabalFile kind cabalFile
 
 -- | Thrown by 'runInstallComponents' when a declared component does not
 -- have a built executable at the expected @dist/build/<n>/<n>@ path.
@@ -155,12 +166,16 @@ runInstallComponentsWithBuildDir kind cabalFile buildDir outDir = do
 
 -- | Top-level entry point for the @install-components@ subcommand.
 --
--- Resolves the Cabal build directory as @<PWD>/dist/build@ (which is
--- how Cabal lays out its build artefacts during a @Setup build@), then
--- delegates to 'runInstallComponentsWithBuildDir'.
-runInstallComponents :: ComponentKind -> Path Abs File -> Path Abs Dir -> IO ()
-runInstallComponents kind cabalFile outDir = do
+-- Resolves the cabal file by looking up @<pname>.cabal@ in the
+-- driver's current working directory (with the same fallback rules as
+-- 'findCabalFile'), takes the Cabal build directory to be
+-- @<PWD>/dist/build@ (which is how Cabal lays out its build artefacts
+-- during a @Setup build@), then delegates to
+-- 'runInstallComponentsWithBuildDir'.
+runInstallComponents :: ComponentKind -> String -> Path Abs Dir -> IO ()
+runInstallComponents kind pname outDir = do
   cwd <- getCurrentDir
+  cabalFile <- findCabalFile pname cwd
   runInstallComponentsWithBuildDir
     kind
     cabalFile

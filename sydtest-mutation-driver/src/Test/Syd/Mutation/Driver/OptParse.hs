@@ -241,16 +241,6 @@ componentKindSetting =
       metavar "KIND"
     ]
 
-absFileArgument :: String -> Parser (Path Abs File)
-absFileArgument helpText =
-  setting
-    [ help helpText,
-      reader $ eitherReader $ \s ->
-        maybe (Left ("invalid absolute file path: " ++ s)) Right (parseAbsFile s),
-      argument,
-      metavar "FILE"
-    ]
-
 absDirArgument :: String -> Parser (Path Abs Dir)
 absDirArgument helpText =
   setting
@@ -261,6 +251,15 @@ absDirArgument helpText =
       metavar "DIR"
     ]
 
+pnameArgument :: Parser String
+pnameArgument =
+  setting
+    [ help "Cabal package name; the driver resolves <pname>.cabal in the current working directory",
+      reader str,
+      argument,
+      metavar "PNAME"
+    ]
+
 -- | What the driver should do this invocation.  Each constructor corresponds
 -- to one subcommand.  The default (no subcommand) is 'DispatchRun'.
 data Dispatch
@@ -268,12 +267,16 @@ data Dispatch
     DispatchRun !MutationDriverSettings
   | -- | Print the component names of one kind in a cabal file, one per
     -- line.  Used by the Nix harness to enumerate executables and
-    -- test-suites at build time.
-    DispatchListComponents !ComponentKind !(Path Abs File)
+    -- test-suites at build time.  The cabal file is looked up by
+    -- 'Test.Syd.Mutation.Driver.Components.findCabalFile' relative to
+    -- the driver's current working directory.
+    DispatchListComponents !ComponentKind !String
   | -- | Install (copy) the built executables of one kind from
     -- @dist/build/<n>/<n>@ into the given output directory.  Used by the
-    -- Nix harness in @postInstall@.
-    DispatchInstallComponents !ComponentKind !(Path Abs File) !(Path Abs Dir)
+    -- Nix harness in @postInstall@.  The cabal file is looked up by
+    -- 'Test.Syd.Mutation.Driver.Components.findCabalFile' relative to
+    -- the driver's current working directory.
+    DispatchInstallComponents !ComponentKind !String !(Path Abs Dir)
   | -- | Check a @report.json@ for survivors and (optionally) uncovered
     -- mutations.  Exits non-zero on assertion failure.
     DispatchAssertScore
@@ -293,12 +296,12 @@ dispatchParser =
         withoutConfig $
           DispatchListComponents
             <$> componentKindSetting
-            <*> absFileArgument "Path to the .cabal file",
+            <*> pnameArgument,
       command "install-components" "Copy built executables to an install directory" $
         withoutConfig $
           DispatchInstallComponents
             <$> componentKindSetting
-            <*> absFileArgument "Path to the .cabal file"
+            <*> pnameArgument
             <*> absDirArgument "Output directory to copy executables into",
       command "assert-score" "Check a mutation-run report for survivors and (optionally) uncovered mutations" $
         withoutConfig $

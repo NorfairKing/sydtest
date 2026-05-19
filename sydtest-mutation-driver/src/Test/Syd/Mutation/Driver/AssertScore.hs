@@ -14,9 +14,11 @@ module Test.Syd.Mutation.Driver.AssertScore
   )
 where
 
+import Data.Foldable (for_)
 import qualified Data.Text as T
 import Path
-import Path.IO (doesFileExist)
+import Path.IO (doesFileExist, ensureDir)
+import System.Directory (createFileLink)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO (stdout)
 import Test.Syd.Mutation.AugmentedManifest
@@ -81,8 +83,13 @@ assertScoreResult assertNoneUncovered MutationRunReport {mutationRunReportKilled
 -- exit with code 1 on a failed assertion.  Exits with code 2 if
 -- @report.json@ is missing — distinct from a normal assertion failure
 -- so the Nix harness can tell the two apart.
-runAssertScore :: Bool -> Path Abs Dir -> IO ()
-runAssertScore assertNoneUncovered reportDir = do
+--
+-- When @mOutDir@ is 'Just', and the assertion passes, also symlink
+-- @report.txt@ and @report.json@ from the report directory into the
+-- output directory.  The Nix @assertMutationScore@ derivation uses
+-- this to populate its @$out@ as a single subcommand invocation.
+runAssertScore :: Bool -> Path Abs Dir -> Maybe (Path Abs Dir) -> IO ()
+runAssertScore assertNoneUncovered reportDir mOutDir = do
   let jsonPath = reportDir </> [relfile|report.json|]
   exists <- doesFileExist jsonPath
   if not exists
@@ -112,4 +119,17 @@ runAssertScore assertNoneUncovered reportDir = do
           ]
       if assertScoreFailed result
         then exitWith (ExitFailure 1)
-        else pure ()
+        else for_ mOutDir (symlinkReportsInto reportDir)
+
+-- | Symlink @report.txt@ and @report.json@ from the report directory
+-- into the given output directory.  Creates @outDir@ if it does not
+-- already exist.  Used by 'runAssertScore' when @--out-dir@ is set.
+symlinkReportsInto :: Path Abs Dir -> Path Abs Dir -> IO ()
+symlinkReportsInto reportDir outDir = do
+  ensureDir outDir
+  let txtSrc = reportDir </> [relfile|report.txt|]
+      jsonSrc = reportDir </> [relfile|report.json|]
+      txtDest = outDir </> [relfile|report.txt|]
+      jsonDest = outDir </> [relfile|report.json|]
+  createFileLink (fromAbsFile txtSrc) (fromAbsFile txtDest)
+  createFileLink (fromAbsFile jsonSrc) (fromAbsFile jsonDest)

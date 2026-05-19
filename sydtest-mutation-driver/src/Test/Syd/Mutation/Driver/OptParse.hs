@@ -278,12 +278,20 @@ data Dispatch
     -- the driver's current working directory.
     DispatchInstallComponents !ComponentKind !String !(Path Abs Dir)
   | -- | Check a @report.json@ for survivors and (optionally) uncovered
-    -- mutations.  Exits non-zero on assertion failure.
+    -- mutations.  Exits non-zero on assertion failure.  On success,
+    -- when 'Just' an output directory is given, symlink @report.txt@
+    -- and @report.json@ from the report directory into the output
+    -- directory.  This second job exists so the Nix harness's
+    -- @assertMutationScore@ can be a single subcommand invocation
+    -- rather than a Bash buildCommand with shell-level
+    -- @mkdir -p $out; ln -s ...@.
     DispatchAssertScore
       -- | Whether to also fail on uncovered mutations.
       !Bool
       -- | Report directory containing @report.json@ and @report.txt@.
       !(Path Abs Dir)
+      -- | Optional output directory to symlink the report files into.
+      !(Maybe (Path Abs Dir))
   deriving (Show, Eq, Generic)
 
 dispatchParser :: Parser Dispatch
@@ -311,7 +319,17 @@ dispatchParser =
                 long "assert-none-uncovered",
                 value True
               ]
-            <*> absDirArgument "Directory containing report.json and report.txt",
+            <*> absDirArgument "Directory containing report.json and report.txt"
+            <*> optional
+              ( setting
+                  [ help "Directory to symlink report.txt and report.json into on success",
+                    reader $ eitherReader $ \s ->
+                      maybe (Left ("invalid absolute directory path: " ++ s)) Right (parseAbsDir s),
+                    option,
+                    long "out-dir",
+                    metavar "DIR"
+                  ]
+              ),
       defaultCommand "run"
     ]
 

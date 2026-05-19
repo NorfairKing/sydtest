@@ -56,8 +56,8 @@ sydMutationDriver = do
     DispatchListComponents kind cabalFile -> runListComponents kind cabalFile
     DispatchInstallComponents kind cabalFile outDir ->
       runInstallComponents kind cabalFile outDir
-    DispatchAssertScore assertNoneUncovered reportDir ->
-      runAssertScore assertNoneUncovered reportDir
+    DispatchAssertScore assertNoneUncovered reportDir mOutDir ->
+      runAssertScore assertNoneUncovered reportDir mOutDir
 
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()

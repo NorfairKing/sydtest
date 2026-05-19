@@ -20,6 +20,7 @@ library:
   - autodocodec
   - bytestring
   - containers
+  - directory
   - opt-env-conf >=0.10
   - path
   - path-io

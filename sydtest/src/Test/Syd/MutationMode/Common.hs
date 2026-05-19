@@ -48,7 +48,6 @@ where
 
 import Control.Exception (Exception)
 import qualified Control.Exception as Exception
-import Control.Monad (when)
 import Data.List (intercalate)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -279,9 +278,16 @@ runOneGroup globalFailFast runOne onResult = loop Nothing
     loop Nothing (rec : rest) = do
       r <- runOne rec
       onResult r
-      when (globalFailFast && isMutationFailure r) $
-        Exception.throwIO MutationFailFast
-      loop (mutationResultId r) rest
+      let failFastNow = globalFailFast && isMutationFailure r
+      if failFastNow
+        then do
+          -- Record every remaining record in this group as skipped so the
+          -- partial report (assembled by the caller after catching
+          -- 'MutationFailFast') reflects the entire group, not just the
+          -- records processed before the abort.
+          loop (mutationResultId r) rest
+          Exception.throwIO MutationFailFast
+        else loop (mutationResultId r) rest
 
 renderMutationRunReport :: MutationRunReport -> [[Chunk]]
 renderMutationRunReport

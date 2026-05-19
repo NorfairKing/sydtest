@@ -251,10 +251,11 @@ spec = describe "runOneGroup" $ do
                     }
             _ -> pure (MutationKilled r)
         onResult r = modifyIORef' resultsRef (r :)
-    -- runOneGroup throws MutationFailFast after the failing result is
-    -- appended; catch that exception so the test can inspect the partial
-    -- state.  All three records would normally be inspected, but the
-    -- third record is never run because the throw aborts the loop.
+    -- runOneGroup throws MutationFailFast after every remaining record in
+    -- the group has been recorded as 'MutationSkipped'.  Catch that
+    -- exception so the test can inspect the partial state.  The third
+    -- record is not run, but it is recorded as skipped so the partial
+    -- report reflects the entire group.
     _ <-
       Exception.try @Exception.SomeException $
         runOneGroup True runOne onResult records
@@ -266,6 +267,11 @@ spec = describe "runOneGroup" $ do
                      SurvivedMutation
                        { survivedMutationRecord = b,
                          survivedMutationLogFile = Nothing
+                       },
+                   MutationSkipped
+                     SkippedMutation
+                       { skippedMutationRecord = c,
+                         skippedMutationCause = augmentedMutationRecordId b
                        }
                  ]
     ran `shouldBe` [a, b]

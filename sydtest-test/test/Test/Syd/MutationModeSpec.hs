@@ -15,10 +15,59 @@ import Text.Colour (Chunk, TerminalCapabilities (..), renderChunksText)
 spec :: Spec
 spec = do
   describe "formatMutationLog" $ do
-    describe "fallback (wrong number of parts)" $
-      it "shows the mutation id parts joined by slashes" $
+    -- The function pattern-matches on the parts list length: <5 falls back
+    -- to the slash-joined id, 5+ formats a header with source location,
+    -- and exactly 7 appends an alt-index suffix.  These tests pin down
+    -- the boundary behaviour at each length so a future change cannot
+    -- silently move a case into a different branch.
+    describe "fallback (fewer than 5 parts)" $ do
+      it "shows the mutation id parts joined by slashes (2 parts)" $
         chunksToString (formatMutationLog (MutationId ["only-two", "parts"]) aRecord)
           `shouldBe` "only-two/parts\n"
+      it "shows the mutation id parts joined by slashes (3 parts)" $
+        chunksToString (formatMutationLog (MutationId ["a", "b", "c"]) aRecord)
+          `shouldBe` "a/b/c\n"
+      it "shows the mutation id parts joined by slashes (4 parts)" $
+        chunksToString (formatMutationLog (MutationId ["a", "b", "c", "d"]) aRecord)
+          `shouldBe` "a/b/c/d\n"
+
+    describe "with 6 parts (one extra, no alt-index disambiguation)" $
+      it "renders the header without an alt-index suffix" $
+        chunksToString
+          ( formatMutationLog
+              (MutationId ["Foo.Bar", "ArithOp", "42", "10", "12", "extra"])
+              aRecord
+                { augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = []
+                }
+          )
+          `shouldBe` unlines
+            [ "ArithOp at Foo/Bar.hs:42:10-12",
+              "    - (+)",
+              "    + (-)"
+            ]
+
+    describe "with 8 or more parts (alt-index suffix is only added on exactly 7)" $
+      it "renders the header without an alt-index suffix when there are 8 parts" $
+        chunksToString
+          ( formatMutationLog
+              (MutationId ["Foo.Bar", "ArithOp", "42", "10", "12", "replStr", "2", "trailing"])
+              aRecord
+                { augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = []
+                }
+          )
+          `shouldBe` unlines
+            [ "ArithOp at Foo/Bar.hs:42:10-12",
+              "    - (+)",
+              "    + (-)"
+            ]
 
     describe "with record but no source context" $
       it "falls back to reconstructed path and expression-level diff" $

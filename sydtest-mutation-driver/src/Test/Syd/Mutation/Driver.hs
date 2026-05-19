@@ -30,7 +30,7 @@ import qualified Data.Text.Encoding as T
 import Path
 import Path.IO (getCurrentDir, setCurrentDir)
 import System.IO (BufferMode (..), hFlush, hSetBuffering, hSetEncoding, stderr, stdout, utf8)
-import Test.Syd.Mutation.Driver.Components (runListComponents)
+import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListComponents)
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
@@ -53,8 +53,8 @@ sydMutationDriver = do
   case dispatch of
     DispatchRun settings -> runDriver settings
     DispatchListComponents kind cabalFile -> runListComponents kind cabalFile
-    DispatchInstallComponents {} ->
-      fail "sydtest-mutation-driver: install-components is not implemented yet"
+    DispatchInstallComponents kind cabalFile outDir ->
+      runInstallComponents kind cabalFile outDir
     DispatchAssertScore _ _ ->
       fail "sydtest-mutation-driver: assert-score is not implemented yet"
 

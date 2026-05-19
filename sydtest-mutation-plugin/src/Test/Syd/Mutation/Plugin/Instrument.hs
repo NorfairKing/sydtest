@@ -18,7 +18,6 @@ module Test.Syd.Mutation.Plugin.Instrument
   )
 where
 
-import Control.Exception (IOException, catch)
 import Control.Monad (filterM, foldM)
 import Control.Monad.Reader
 import Control.Monad.Writer.Strict
@@ -29,6 +28,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isJust)
 import qualified Data.Set as Set
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import GHC
@@ -48,7 +48,7 @@ import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
 import Path
-import Path.IO (resolveFile')
+import Path.IO (forgivingAbsence, resolveFile')
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
@@ -58,21 +58,21 @@ import Test.Syd.Mutation.Runtime (MutationId (..))
 -- | Describes the source-level change a mutation makes, for display purposes.
 data SrcSpanDelta
   = -- | Replace the matched expression's span text with this exact text.
-    TokenReplace T.Text
+    TokenReplace Text
   | -- | Replace the text at a specific sub-span (within the matched
     -- expression) with this exact text. Used for operator-token swaps
     -- (e.g. @+@ → @-@), where the matched expression covers the whole
     -- operator application but the textual change is only the operator
     -- token itself.
-    TokenReplaceAt RealSrcSpan T.Text
+    TokenReplaceAt RealSrcSpan Text
   | -- | Remove these source line ranges from within the outer expression's span.
     SpanRemoval [RealSrcSpan]
   | -- | Prepend this text at the start of the matched expression's span.
-    PrependText T.Text
+    PrependText Text
   | -- | Wrap the matched expression's span text with a prefix and suffix.
     -- Useful when the prefix alone would re-parse with the wrong precedence
     -- (e.g. @not n < 0@ parses as @(not n) < 0@, so we want @not (n < 0)@).
-    WrapWithText T.Text T.Text
+    WrapWithText Text Text
 
 -- ---------------------------------------------------------------------------
 -- Operator
@@ -119,7 +119,7 @@ data InstrumentEnv = InstrumentEnv
     -- | Mutation type names disabled at module or global scope.
     instrDisabledMutations :: [String],
     -- | Source file (relative path) and pre-read lines, read once per module.
-    instrSourceFile :: Maybe (Path Rel File, [T.Text]),
+    instrSourceFile :: Maybe (Path Rel File, [Text]),
     -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
     instrDebug :: Bool,
     -- | When True, do not instrument the expanded body of TH splices and
@@ -195,7 +195,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
     Nothing -> pure Nothing
     Just relFile -> do
       absFile <- resolveFile' (fromRelFile relFile)
-      mbs <- (Just <$> SB.readFile (fromAbsFile absFile)) `catch` ioErr
+      mbs <- forgivingAbsence (SB.readFile (fromAbsFile absFile))
       pure $ fmap (\bs -> (relFile, T.lines (TE.decodeUtf8Lenient bs))) mbs
   let activeOperators = filter (\op -> operatorName op `notElem` disabledMutations) operators
   runReaderT
@@ -216,9 +216,6 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrLocalDisables = Map.empty,
         instrInLocalLet = False
       }
-  where
-    ioErr :: IOException -> IO (Maybe SB.ByteString)
-    ioErr _ = pure Nothing
 
 -- | Look up a value Id from the module's GlobalRdrEnv by OccName.
 -- The name must be in scope via the injected import of Test.Syd.Mutation.Plugin.Runtime.
@@ -846,7 +843,7 @@ recordMutation le op origStr replStr delta altIndex = do
     UnhelpfulSpan _ -> pure (MutationId [], Nothing)
 
 -- | Apply a 'SrcSpanDelta' to compute the mutated lines.
-applyDelta :: [T.Text] -> Int -> Int -> Int -> Int -> SrcSpanDelta -> [T.Text] -> [T.Text]
+applyDelta :: [Text] -> Int -> Int -> Int -> Int -> SrcSpanDelta -> [Text] -> [Text]
 applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta of
   TokenReplace newText -> applyTokenReplace colS colE newText spanLines
   TokenReplaceAt subSpan newText ->
@@ -858,7 +855,7 @@ applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta o
 -- | Wrap the matched span text with @prefix@ before and @suffix@ after.
 -- For multi-line spans only the prefix lands on the first line and the
 -- suffix on the last line; everything in between is unchanged.
-applyWrapWithText :: Int -> Int -> T.Text -> T.Text -> [T.Text] -> [T.Text]
+applyWrapWithText :: Int -> Int -> Text -> Text -> [Text] -> [Text]
 applyWrapWithText _ _ _ _ [] = []
 applyWrapWithText colS colE prefix suffix [line] =
   let before = T.take (colS - 1) line
@@ -880,7 +877,7 @@ applyWrapWithText colS colE prefix suffix (firstLine : rest) =
 -- | Replace text at the columns covered by @subSpan@, relative to the outer
 -- expression's span (whose first line is @outerStart@). Only single-line
 -- sub-spans are handled — multi-line operator tokens don't occur in practice.
-applyTokenReplaceAt :: Int -> RealSrcSpan -> T.Text -> [T.Text] -> [T.Text]
+applyTokenReplaceAt :: Int -> RealSrcSpan -> Text -> [Text] -> [Text]
 applyTokenReplaceAt outerStart subSpan newText spanLines =
   let subLine = srcSpanStartLine subSpan
       idx = subLine - outerStart
@@ -890,13 +887,13 @@ applyTokenReplaceAt outerStart subSpan newText spanLines =
            in before ++ line' : after
         _ -> spanLines
 
-applySingleLineReplace :: Int -> Int -> T.Text -> T.Text -> T.Text
+applySingleLineReplace :: Int -> Int -> Text -> Text -> Text
 applySingleLineReplace colS colE newText line =
   T.take (colS - 1) line <> newText <> T.drop (colE - 1) line
 
 -- | Replace text at columns colS..colE on the first line of the span.
 -- GHC colEnd is exclusive (one past the last character), so T.drop (colE-1) is correct.
-applyTokenReplace :: Int -> Int -> T.Text -> [T.Text] -> [T.Text]
+applyTokenReplace :: Int -> Int -> Text -> [Text] -> [Text]
 applyTokenReplace _ _ _ [] = []
 applyTokenReplace colS colE newText (line : rest) =
   let before = T.take (colS - 1) line
@@ -909,7 +906,7 @@ applyTokenReplace colS colE newText (line : rest) =
 -- happens when GHC source spans refer to a preprocessor-generated source
 -- (e.g. via @-pgmF sydtest-discover@) while @allLines@ is the original
 -- on-disk @.hs@ file, which is shorter.
-applySpanRemoval :: [T.Text] -> Int -> Int -> [RealSrcSpan] -> [T.Text]
+applySpanRemoval :: [Text] -> Int -> Int -> [RealSrcSpan] -> [Text]
 applySpanRemoval allLines outerStart outerEnd rmSpans =
   let removed = Set.fromList [l | rss <- rmSpans, l <- [srcSpanStartLine rss .. srcSpanEndLine rss]]
    in [ line
@@ -920,7 +917,7 @@ applySpanRemoval allLines outerStart outerEnd rmSpans =
       ]
 
 -- | Prepend text at the column position of the start of the span.
-applyPrependText :: Int -> T.Text -> [T.Text] -> [T.Text]
+applyPrependText :: Int -> Text -> [Text] -> [Text]
 applyPrependText _ _ [] = []
 applyPrependText colS prefix (line : rest) =
   let (before, after) = T.splitAt (colS - 1) line

@@ -90,7 +90,7 @@ diffMonotonicMicros end start =
 data MutationResult
   = MutationUncovered UncoveredMutation
   | MutationKilled AugmentedMutationRecord
-  | -- | At least one suite's child exceeded its wall-clock timeout. The
+  | -- | At least one suite's child exceeded its monotonic-clock timeout. The
     -- mutation is counted as killed in the overall score but also recorded
     -- separately in the report for visibility.
     MutationTimedOut TimedOutMutation
@@ -110,7 +110,7 @@ data SuiteOutcome
     -- log path points at the captured stdout/stderr (when a report dir is
     -- configured).
     SuiteSurvived (Maybe (Path Rel File))
-  | -- | Child exceeded its wall-clock timeout and was terminated by the
+  | -- | Child exceeded its monotonic-clock timeout and was terminated by the
     -- parent.  Carries the elapsed microseconds and (optionally) the
     -- log path.
     SuiteTimedOut Word (Maybe (Path Rel File))

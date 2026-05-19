@@ -46,7 +46,7 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Path
-import Path.IO (doesFileExist, ensureDir)
+import Path.IO (ensureDir, forgivingAbsence)
 import Test.Syd.Mutation.Manifest (MutationRecord (..), relFileCodec)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId)
@@ -73,7 +73,7 @@ data AugmentedMutationRecord = AugmentedMutationRecord
     -- (backward-compatible with the old flat list format).
     -- Always present (coverage was collected before writing this file).
     augmentedMutationRecordCoveringTests :: Map.Map Text [TestId],
-    -- | Wall-clock timeout (in microseconds) to apply to a mutation child
+    -- | Monotonic-clock timeout (in microseconds) to apply to a mutation child
     -- running this mutation.  Derived during the coverage phase as
     -- @max 30_000_000 (10 * sum baselines_of_covering_tests)@.
     augmentedMutationRecordTimeoutMicros :: Word
@@ -151,7 +151,7 @@ instance Monoid AugmentedManifest where
 augmentedManifestRelFile :: Path Rel File
 augmentedManifestRelFile = [relfile|manifest-augmented.json|]
 
--- | 30 seconds, used as the floor for per-mutation wall-clock budgets and as
+-- | 30 seconds, used as the floor for per-mutation monotonic-clock budgets and as
 -- the initial value when a record is constructed without baseline timing
 -- (i.e. before the coverage phase has annotated it).  The actual budget is
 -- @max defaultTimeoutMicros (10 * sum baselines_of_covering_tests)@.
@@ -164,6 +164,13 @@ writeAugmentedManifestFile dir manifest = do
   ensureDir dir
   LB.writeFile (fromAbsFile (dir </> augmentedManifestRelFile)) (Aeson.encode manifest)
 
+-- | Thrown by 'readAugmentedManifestFile' when the file cannot be decoded.
+newtype AugmentedManifestDecodeException
+  = AugmentedManifestDecodeException FilePath
+  deriving (Show)
+
+instance Exception AugmentedManifestDecodeException
+
 -- | Read from @<dir>/manifest-augmented.json@.
 --
 -- Reads strictly (via 'B.readFile' + 'Aeson.decodeStrict') so the file
@@ -172,13 +179,6 @@ writeAugmentedManifestFile dir manifest = do
 -- 'Aeson.decode' path was a suspected (but unproven) contributor to a
 -- non-deterministic 'BlockedIndefinitelyOnMVar' / @<<loop>>@ at the
 -- coverage/mutation phase boundary on large projects.
--- | Thrown by 'readAugmentedManifestFile' when the file cannot be decoded.
-newtype AugmentedManifestDecodeException
-  = AugmentedManifestDecodeException FilePath
-  deriving (Show)
-
-instance Exception AugmentedManifestDecodeException
-
 readAugmentedManifestFile :: Path Abs Dir -> IO AugmentedManifest
 readAugmentedManifestFile dir = do
   let path = dir </> augmentedManifestRelFile
@@ -190,12 +190,8 @@ readAugmentedManifestFile dir = do
 -- | Read from @<dir>/manifest-augmented.json@, returning 'Nothing' if the file
 -- does not exist.
 readAugmentedManifestFileIfExists :: Path Abs Dir -> IO (Maybe AugmentedManifest)
-readAugmentedManifestFileIfExists dir = do
-  let path = dir </> augmentedManifestRelFile
-  exists <- doesFileExist path
-  if exists
-    then Just <$> readAugmentedManifestFile dir
-    else pure Nothing
+readAugmentedManifestFileIfExists dir =
+  forgivingAbsence (readAugmentedManifestFile dir)
 
 -- | Merge two 'AugmentedManifest's, combining 'covering_tests' maps by
 -- mutation id.  Records present only in one manifest are kept as-is.
@@ -264,7 +260,6 @@ lookupAugmentedMutationRecord mid (AugmentedManifest groups) =
     [] -> Nothing
 
 -- | A survived mutation with an optional pointer to the raw child output file.
--- The log file is 'Nothing' when no report directory is configured.
 data SurvivedMutation = SurvivedMutation
   { survivedMutationRecord :: AugmentedMutationRecord,
     -- | Path to the raw child output file, relative to the report directory.
@@ -286,16 +281,15 @@ instance HasCodec SurvivedMutation where
         <$> requiredField' "mutation" .= survivedMutationRecord
         <*> optionalFieldWith' "log_file" relFileCodec .= survivedMutationLogFile
 
--- | A mutation child that exceeded its wall-clock timeout and was killed by
+-- | A mutation child that exceeded its monotonic-clock timeout and was killed by
 -- the parent.  Treated as killed for the overall score (a hung mutation is
 -- still a broken mutation), but reported separately for visibility.
 data TimedOutMutation = TimedOutMutation
   { timedOutMutationRecord :: AugmentedMutationRecord,
-    -- | Wall-clock microseconds elapsed before the parent killed the child.
+    -- | Monotonic-clock microseconds elapsed before the parent killed the child.
     timedOutMutationElapsedMicros :: Word,
     -- | Path to the raw child output file (the bit produced before the kill),
-    -- relative to the report directory.  'Nothing' when no report directory is
-    -- configured.
+    -- relative to the report directory.
     timedOutMutationLogFile :: Maybe (Path Rel File)
   }
   deriving stock (Show, Eq, Generic)

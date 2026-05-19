@@ -279,13 +279,16 @@ listSuiteTestIds childExe = do
         _ -> t
       txt = stripBOM (decodeUtf8Lenient (LB.toStrict output))
       raw = filter (not . T.null) (T.lines txt)
-  case mapM parseTestIdFilterArg raw of
-    Just tids -> pure tids
-    Nothing ->
+  let parsed = [(line, parseTestIdFilterArg line) | line <- raw]
+      bad = [line | (line, Nothing) <- parsed]
+  case bad of
+    [] -> pure [tid | (_, Just tid) <- parsed]
+    _ ->
       fail $
         "sydtest-mutation-driver: failed to parse test ids from "
           ++ fromAbsFile childExe
-          ++ "'s --mutation-coverage-list output"
+          ++ "'s --mutation-coverage-list output; unparseable lines: "
+          ++ show (map T.unpack bad)
 
 -- | Invert a @'Map' 'TestId' ('Set' 'MutationId')@ to
 -- @'Map' 'MutationId' ('Set' 'TestId')@.

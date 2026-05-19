@@ -35,7 +35,7 @@ import Text.Colour (chunk, fore, hPutChunksLocaleWith, red, unlinesChunks)
 
 -- | Child process: run the single test identified by @--mutation-coverage-one@,
 -- write its 'TestCoverageMap' to @--mutation-coverage-output@, write its
--- wall-clock baseline to @--mutation-coverage-baseline-output@, and exit.
+-- monotonic-clock baseline to @--mutation-coverage-baseline-output@, and exit.
 runSingleCoverageMode :: Settings -> Bool -> CoverageChildSettings -> Spec -> IO ()
 runSingleCoverageMode settings failFast covChild spec = do
   tid <- case parseTestIdFilterArg (coverageChildTestId covChild) of

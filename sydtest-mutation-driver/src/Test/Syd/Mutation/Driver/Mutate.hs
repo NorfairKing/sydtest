@@ -104,15 +104,16 @@ runMutationMode ::
   Bool ->
   -- | Augmented-manifest directory.
   Path Abs Dir ->
-  -- | Optional report directory.  'Nothing' skips writing report files.
-  Maybe (Path Abs Dir) ->
+  -- | Output directory: report.json, report.txt, and per-suite *.log
+  -- files are written here.
+  Path Abs Dir ->
   -- | Optional RTS heap cap to apply to each mutation child.
   Maybe String ->
   -- | Map of suite name to exe path; used to find each covering suite's
   -- exe when spawning a mutation child.
   Map.Map Text (Path Abs File) ->
   IO MutationRunReport
-runMutationMode failFast augDir reportDirM childMemLimit suiteExes = do
+runMutationMode failFast augDir outDir childMemLimit suiteExes = do
   hSetBuffering stderr (BlockBuffering Nothing)
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
@@ -180,14 +181,14 @@ runMutationMode failFast augDir reportDirM childMemLimit suiteExes = do
             mutationRunReportSkipped = skipped,
             mutationRunReportGroups = groupReports
           }
-  mapM_ (`writeMutationRunReport` jsonReport) reportDirM
+  writeMutationRunReport outDir jsonReport
   -- Render the report once and write report.txt alongside report.json
   -- in the out dir.  Done here (rather than in 'runDriver') so that a
   -- --fail-fast exitWith below still produces report.txt — without
   -- this, fail-fast would skip the report.txt write because control
   -- never returns to 'runDriver'.
   let renderedChunks = renderMutationRunReport jsonReport
-  mapM_ (writeReportTxt renderedChunks) reportDirM
+  writeReportTxt renderedChunks outDir
   putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
   -- Force out any block-buffered progress events before we either return
   -- normally or exit non-zero.  Without this, the last few lines of
@@ -282,7 +283,7 @@ runMutationMode failFast augDir reportDirM childMemLimit suiteExes = do
                     setStdout (useHandleOpen logHandle) $
                       setStderr (useHandleOpen logHandle) $
                         proc exe args
-                  -- Per-mutation wall-clock budget computed by the
+                  -- Per-mutation monotonic-clock budget computed by the
                   -- coverage phase.
                   timeoutMicros = augmentedMutationRecordTimeoutMicros record
                   -- Cap the threadDelay argument at maxBound Int so very
@@ -309,24 +310,21 @@ runMutationMode failFast augDir reportDirM childMemLimit suiteExes = do
                 mRelFile <- copyChildLog "survivor-" mid suiteName logPath
                 pure (SuiteSurvived mRelFile)
 
-    copyChildLog prefix mid suiteName logPath =
-      case reportDirM of
+    copyChildLog prefix mid suiteName logPath = do
+      let suiteNameStr = T.unpack suiteName
+          logName =
+            prefix
+              ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid)
+              ++ ( if T.null suiteName
+                     then ""
+                     else "-" ++ suiteNameStr
+                 )
+              ++ ".log"
+      case parseRelFile logName of
         Nothing -> pure Nothing
-        Just reportDir -> do
-          let suiteNameStr = T.unpack suiteName
-              logName =
-                prefix
-                  ++ map (\c -> if c == '/' then '-' else c) (renderMutationId mid)
-                  ++ ( if T.null suiteName
-                         then ""
-                         else "-" ++ suiteNameStr
-                     )
-                  ++ ".log"
-          case parseRelFile logName of
-            Nothing -> pure Nothing
-            Just relFile -> do
-              copyFile logPath (reportDir </> relFile)
-              pure (Just relFile)
+        Just relFile -> do
+          copyFile logPath (outDir </> relFile)
+          pure (Just relFile)
 
     -- Race the child against a delay; on timeout, stop the process
     -- (SIGTERM via System.Process.Typed's stopProcess; SIGKILL follows

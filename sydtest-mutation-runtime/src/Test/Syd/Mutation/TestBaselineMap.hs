@@ -19,7 +19,7 @@ import qualified Data.Map.Strict as Map
 import GHC.Generics (Generic)
 import Test.Syd.Mutation.TestId (TestId)
 
--- | Per-test wall-clock baselines (microseconds) collected during the
+-- | Per-test monotonic-clock baselines (microseconds) collected during the
 -- coverage phase.  Used to derive per-mutation timeouts in the mutation
 -- phase.
 newtype TestBaselineMap = TestBaselineMap (Map.Map TestId Word)

@@ -116,7 +116,7 @@ data MutationMode
   deriving (Show, Eq, Generic)
 
 -- | Options for the coverage-child process: the single test to run, plus
--- the two output files for its coverage map and wall-clock baseline.
+-- the two output files for its coverage map and monotonic-clock baseline.
 data CoverageChildSettings = CoverageChildSettings
   { coverageChildTestId :: !Text,
     coverageChildOutput :: !FilePath,

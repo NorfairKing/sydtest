@@ -1,4 +1,4 @@
-{ haskell, mutationPlugin, sydtest-cabal-components, writeText }:
+{ haskell, mutationDriver, mutationPlugin, writeText }:
 
 # Wrap a Haskell package so that the mutation plugin runs during compilation
 # and writes the mutation manifest to a separate 'manifest' output.
@@ -112,10 +112,10 @@ in
   # run BEFORE any existing postInstall hooks the caller has already
   # attached.
   #
-  # Executable component names are discovered at build time by parsing the
-  # package's cabal file with the 'sydtest-cabal-components' helper (which
-  # uses the 'Cabal' library), so the caller does not have to enumerate
-  # them at Nix evaluation time.
+  # Executable component names are discovered at build time by running
+  # the driver's 'list-components' subcommand (which uses the 'Cabal'
+  # library) against the package's cabal file, so the caller does not
+  # have to enumerate them at Nix evaluation time.
   postInstall = ''
     if [ -f "${old.pname}.cabal" ]; then
       cabalFile="${old.pname}.cabal"
@@ -126,7 +126,7 @@ in
       echo "mutation-nix: no cabal file found in $PWD" >&2
       exit 1
     fi
-    exes=$(${sydtest-cabal-components}/bin/sydtest-cabal-components executables "$cabalFile")
+    exes=$(${mutationDriver}/bin/sydtest-mutation-driver list-components executables "$cabalFile")
     if [ -n "$exes" ]; then
       mkdir -p $out/bin
       while IFS= read -r n; do

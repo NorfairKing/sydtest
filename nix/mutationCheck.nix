@@ -49,9 +49,9 @@
 # Executable and test-suite component names are NOT enumerated by the
 # caller, nor discovered from the source tree at evaluation time. Instead,
 # they are discovered at build time inside each derivation by running the
-# 'sydtest-cabal-components' helper executable (which uses the 'Cabal'
-# library) against the package's <pname>.cabal file. The driver's YAML
-# config is likewise assembled at build time via 'jq'.
+# driver's 'list-components' subcommand (which uses the 'Cabal' library)
+# against the package's <pname>.cabal file. The driver's YAML config is
+# likewise assembled at build time via 'jq'.
 
 { name
 , packages ? [ ]
@@ -77,7 +77,6 @@
 let
   inherit (haskellPackages.sydtest) addManifest assertMutationScore;
   driver = haskellPackages.sydtest-mutation-driver;
-  cabalComponentsHelper = haskellPackages.sydtest-cabal-components;
 
   libraryPackages = packages ++ libraries;
   testPackages = packages ++ tests;
@@ -125,7 +124,7 @@ let
   # dist/build/.
   #
   # Test-suite component names are discovered at build time by parsing the
-  # package's cabal file with sydtest-cabal-components.
+  # package's cabal file with the driver's list-components subcommand.
   builtTestPkg = pkgName:
     pkgs.haskell.lib.overrideCabal
       (pkgs.haskell.lib.dontBenchmark
@@ -142,7 +141,7 @@ let
             echo "mutation-nix: no cabal file found in $PWD" >&2
             exit 1
           fi
-          suites=$(${cabalComponentsHelper}/bin/sydtest-cabal-components test-suites "$cabalFile")
+          suites=$(${driver}/bin/sydtest-mutation-driver list-components test-suites "$cabalFile")
           mkdir -p $out/test
           if [ -n "$suites" ]; then
             while IFS= read -r suite; do

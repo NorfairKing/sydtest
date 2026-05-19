@@ -63,8 +63,8 @@ let
     "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old:
       let
         addManifest = callPackage ./addManifest.nix {
+          mutationDriver = self.sydtest-mutation-driver;
           mutationPlugin = self.sydtest-mutation-plugin;
-          sydtest-cabal-components = self.sydtest-cabal-components;
         };
         addMutationRuntimeDependency = callPackage ./addMutationRuntimeDependency.nix {
           haskellPackages = self;

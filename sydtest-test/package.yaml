@@ -28,13 +28,16 @@ tests:
     - QuickCheck
     - async
     - bytestring
+    - containers
     - fast-myers-diff
     - mtl
     - opt-env-conf-test
     - path
     - path-io
+    - safe-coloured-text
     - stm
     - sydtest >=0.17
+    - sydtest-mutation-runtime
     - text
     - time
     - vector

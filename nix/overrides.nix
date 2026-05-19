@@ -12,6 +12,7 @@
 , callPackage
 , ...
 }:
+
 self: super:
 with lib;
 with haskell.lib;
@@ -60,12 +61,40 @@ let
     });
 
   sydtestPackages = {
-    "sydtest" = sydtestPkg "sydtest";
+    "sydtest" = (sydtestPkg "sydtest").overrideAttrs (old:
+      let
+        addManifest = callPackage ./addManifest.nix {
+          mutationDriver = self.sydtest-mutation-driver;
+          mutationPlugin = self.sydtest-mutation-plugin;
+        };
+        addMutationRuntimeDependency = callPackage ./addMutationRuntimeDependency.nix {
+          haskellPackages = self;
+        };
+        assertMutationScore = callPackage ./assertMutationScore.nix {
+          mutationDriver = self.sydtest-mutation-driver;
+        };
+        mutationCheck = callPackage ./mutationCheck.nix {
+          inherit addMutationRuntimeDependency;
+          haskellPackages = self;
+        };
+      in
+      {
+        passthru = (old.passthru or { }) // {
+          inherit addManifest addMutationRuntimeDependency assertMutationScore mutationCheck;
+        };
+      });
     "sydtest-aeson" = sydtestPkg "sydtest-aeson";
     "sydtest-autodocodec" = sydtestPkg "sydtest-autodocodec";
     "sydtest-discover" = sydtestPkg "sydtest-discover";
     "sydtest-hedgehog" = sydtestPkg "sydtest-hedgehog";
     "sydtest-hspec" = sydtestPkg "sydtest-hspec";
+    "sydtest-mutation" = sydtestPkg "sydtest-mutation";
+    "sydtest-mutation-driver" = sydtestPkg "sydtest-mutation-driver";
+    "sydtest-mutation-driver-gen" = sydtestPkg "sydtest-mutation-driver-gen";
+    "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
+    "sydtest-mutation-example-gen" = sydtestPkg "sydtest-mutation-example-gen";
+    "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
+    "sydtest-mutation-runtime" = sydtestPkg "sydtest-mutation-runtime";
     "sydtest-persistent" = sydtestPkg "sydtest-persistent";
     "sydtest-persistent-sqlite" = sydtestPkg "sydtest-persistent-sqlite";
     "sydtest-process" = sydtestPkg "sydtest-process";
@@ -95,6 +124,25 @@ let
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
   };
 
+  # Mutation packages depend on stm-containers / list-t / a GHC-API-specific
+  # plugin, which the forward-compatibility build (horizon-advance) does not
+  # ship.  Keep them out of the forward-compat release so it only exercises
+  # the non-mutation surface against newer GHCs.
+  #
+  # This is an explicit list rather than a prefix filter so that a future
+  # non-mutation package whose name happens to start with `sydtest-mutation`
+  # is not silently excluded.
+  mutationPkgNames = [
+    "sydtest-mutation"
+    "sydtest-mutation-driver"
+    "sydtest-mutation-driver-gen"
+    "sydtest-mutation-example"
+    "sydtest-mutation-example-gen"
+    "sydtest-mutation-plugin"
+    "sydtest-mutation-runtime"
+  ];
+  sydtestPackagesWithoutMutation =
+    removeAttrs sydtestPackages mutationPkgNames;
 in
 {
   inherit sydtestPackages;
@@ -104,6 +152,16 @@ in
     paths = attrValues self.sydtestPackages;
     passthru = self.sydtestPackages;
   };
+
+  # Release containing every sydtest package except the mutation-testing
+  # ones — used by the forward-compatibility check, which builds against
+  # GHC versions that lack the mutation packages' dependencies.
+  sydtestReleaseWithoutMutation = symlinkJoin {
+    name = "sydtest-release-without-mutation";
+    paths = attrValues sydtestPackagesWithoutMutation;
+    passthru = sydtestPackagesWithoutMutation;
+  };
+
   # Until https://github.com/jfischoff/tmp-postgres/issues/281
   tmp-postgres =
     dontCheck (self.callCabal2nix "tmp-postgres"

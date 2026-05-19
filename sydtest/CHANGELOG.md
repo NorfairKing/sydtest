@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.24.0.0] - 2026-05-18
+
+### Added
+
+* Mutation testing.  Instrument a library with the
+  `sydtest-mutation-plugin` GHC plugin to record mutation sites, then run the
+  test suite with `--mutation-coverage` and `--mutation` to find untested
+  behaviour.  Surviving mutations indicate gaps in the test suite.
+* `delColour`, `addColour`, `emphasiseIntraLine`, `renderDelSide`,
+  `renderAddSide` in `Test.Syd.Output.Common` for diff rendering.
+
+### Changed
+
+* Equality-assertion diff output (`formatDiff`) now uses the same colour
+  scheme as the mutation-mode unified diff: paired-line foregrounds are
+  dull red/green, intra-line changes are bold + bright red/green, and
+  whitespace-only changes get a background fill.
+
 ## [0.23.0.2] - 2026-02-26
 
 ### Changed

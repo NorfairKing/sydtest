@@ -1,0 +1,14 @@
+[
+    [
+        {
+            "id": ["Foo.Bar", "ArithOp", "5", "14", "15"],
+            "operator": "ArithOp",
+            "original": "+",
+            "replacement": "-",
+            "module": "Foo.Bar",
+            "line": 5,
+            "col_start": 14,
+            "col_end": 15
+        }
+    ]
+]

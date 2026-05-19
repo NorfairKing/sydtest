@@ -15,6 +15,13 @@ license:        OtherLicense
 build-type:     Simple
 extra-source-files:
     test_resources/defaultSettings-show.golden
+    test_resources/diff/mutation-log-with-context.txt
+    test_resources/diff/no-common.txt
+    test_resources/diff/simple.txt
+    test_resources/diff/unequal-more-adds.txt
+    test_resources/diff/unequal-more-deletes.txt
+    test_resources/diff/whitespace.txt
+    test_resources/diff/with-context.txt
     test_resources/documentation.txt
     test_resources/even/2
     test_resources/even/4
@@ -87,14 +94,19 @@ test-suite sydtest-test
       Test.Syd.AroundAllSpec
       Test.Syd.AroundCombinationSpec
       Test.Syd.AroundSpec
+      Test.Syd.ClassifySyncExceptionAsKilledSpec
+      Test.Syd.CoverageFailFastSpec
       Test.Syd.DescriptionsSpec
       Test.Syd.DiffSpec
       Test.Syd.ExceptionSpec
       Test.Syd.ExpectationSpec
       Test.Syd.FootgunSpec
       Test.Syd.GoldenSpec
+      Test.Syd.MutationGroupSkipSpec
+      Test.Syd.MutationModeSpec
       Test.Syd.OptParseSpec
       Test.Syd.PathSpec
+      Test.Syd.RetryingIOSpec
       Test.Syd.RunnerSpec
       Test.Syd.ScenarioSpec
       Test.Syd.SequentialSpec
@@ -113,13 +125,16 @@ test-suite sydtest-test
     , async
     , base >=4.7 && <5
     , bytestring
+    , containers
     , fast-myers-diff
     , mtl
     , opt-env-conf-test
     , path
     , path-io
+    , safe-coloured-text
     , stm
     , sydtest >=0.17
+    , sydtest-mutation-runtime
     , text
     , time
     , vector

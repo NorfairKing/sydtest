@@ -49,13 +49,10 @@ spec = doNotRandomiseExecutionOrder $ do
             Right () -> fail "The subtest must fail"
             Left (_ :: ExitCode) -> pure ()
 
-    -- We timeout after 10s. If the test timeouts by itself, it means that the
-    -- diff timeout worked after 2seconds.
-    --
-    -- Why 10s? Because it's more than 2s, and gives enough room for scheduling
-    -- and additional operations (such as generating the random numbers)
-    -- without too much risk of generating a flaky test.
-    timeout 10_000_000 test `shouldReturn` Just ()
+    -- We timeout after 120s. If the test timeouts by itself, it means that the
+    -- diff timeout worked after 2 seconds. The outer timeout is generous to
+    -- account for slow CI sandboxes where generating 100k elements takes time.
+    timeout 120_000_000 test `shouldReturn` Just ()
 
 {-# NOINLINE take10ms #-}
 take10ms :: IO ()

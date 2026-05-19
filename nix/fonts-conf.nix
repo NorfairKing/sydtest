@@ -8,8 +8,12 @@
 }:
 
 # Chromium reads FONTCONFIG_SYSROOT, and uses that instead of / for all font-related filepaths
-# Chromium also reads FONTCONFIG_PATH, but always also reads FONTCONFIG_SYSROOT/etc/fonts/font.conf so you cannot override fonts, only add to them
-# so here we have to nix build of something that looks like / with everything font-related, (which I could only do based on the strace output showing me which things it tries to read in FONTCONFIG_SYSROOT)
+# Chromium also reads FONTCONFIG_PATH, but always also reads
+# FONTCONFIG_SYSROOT/etc/fonts/font.conf so you cannot override fonts, only add
+# to them
+# so here we have to nix build of something that looks like / with everything
+# font-related, (which I could only do based on the strace output showing me
+# which things it tries to read in FONTCONFIG_SYSROOT)
 # and then set FONTCONFIG_SYSROOT to that.
 # and I only found FONTCONFIG_SYSROOT by looking through the chromium source code
 let

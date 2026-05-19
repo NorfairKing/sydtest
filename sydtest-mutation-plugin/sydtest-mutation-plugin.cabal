@@ -1,0 +1,85 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.3.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-mutation-plugin
+version:        0.0.0.0
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+license:        OtherLicense
+license-file:   LICENSE.md
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Test.Syd.Mutation.Plugin
+      Test.Syd.Mutation.Plugin.Instrument
+      Test.Syd.Mutation.Plugin.Operator.Arith
+      Test.Syd.Mutation.Plugin.Operator.BoolLit
+      Test.Syd.Mutation.Plugin.Operator.Cmp
+      Test.Syd.Mutation.Plugin.Operator.ConstBool
+      Test.Syd.Mutation.Plugin.Operator.IntLit
+      Test.Syd.Mutation.Plugin.Operator.ListLit
+      Test.Syd.Mutation.Plugin.Operator.LogicOp
+      Test.Syd.Mutation.Plugin.Operator.MaybeOp
+      Test.Syd.Mutation.Plugin.Operator.Negate
+      Test.Syd.Mutation.Plugin.Operator.RemoveAction
+      Test.Syd.Mutation.Plugin.Operator.RemoveCase
+      Test.Syd.Mutation.Plugin.Operator.Util
+      Test.Syd.Mutation.Plugin.Operators
+      Test.Syd.Mutation.Plugin.Operators.TH
+      Test.Syd.Mutation.Plugin.OptParse
+      Test.Syd.Mutation.Plugin.Runtime
+  other-modules:
+      Paths_sydtest_mutation_plugin
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , autodocodec
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , ghc
+    , ghc-boot
+    , mtl
+    , path
+    , path-io
+    , stm
+    , stm-containers
+    , sydtest-mutation-runtime
+    , template-haskell
+    , text
+    , yaml
+  default-language: Haskell2010
+
+test-suite sydtest-mutation-plugin-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Test.Syd.Mutation.Plugin.InstrumentSpec
+      Paths_sydtest_mutation_plugin
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      sydtest-discover:sydtest-discover
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , ghc
+    , sydtest
+    , sydtest-mutation-plugin
+    , text
+  default-language: Haskell2010

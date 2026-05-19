@@ -1,0 +1,43 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.3.
+--
+-- see: https://github.com/sol/hpack
+
+name:           sydtest-mutation-example
+version:        0.0.0.0
+category:       Testing
+homepage:       https://github.com/NorfairKing/sydtest#readme
+bug-reports:    https://github.com/NorfairKing/sydtest/issues
+author:         Tom Sydney Kerckhove
+maintainer:     syd@cs-syd.eu
+license:        OtherLicense
+license-file:   LICENSE.md
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/NorfairKing/sydtest
+
+library
+  exposed-modules:
+      Example.BoolLib
+      Example.CaseLib
+      Example.DoLib
+      Example.ExceptionLib
+      Example.FunctionExceptionLib
+      Example.Lib
+      Example.ListLib
+      Example.LocalDisableLib
+      Example.LogicLib
+      Example.OtherwiseLib
+      Example.UntestedLib
+  other-modules:
+      Paths_sydtest_mutation_example
+  hs-source-dirs:
+      src
+  ghc-options: -fno-full-laziness
+  build-depends:
+      base >=4.7 && <5
+    , mtl ==2.*
+  default-language: Haskell2010

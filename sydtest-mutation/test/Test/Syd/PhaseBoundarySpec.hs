@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | Smoke tests around bug #1 (the @<<loop>>@ that surfaces in
@@ -46,8 +47,8 @@ spec = describe "phase boundary smoke (bug #1)" $ do
   it "concurrent per-child read-then-teardown of coverage maps preserves data" $ do
     -- Mirrors the runCoverageChild pattern: per-thread temp dir, write
     -- result, read it back, then let the temp dir get torn down.
-    let n = 500
-        readOne i = withSystemTempDir "phase-boundary-cov" $ \dir -> do
+    let n = 500 :: Int
+        readOne (i :: Int) = withSystemTempDir "phase-boundary-cov" $ \dir -> do
           let path = fromAbsFile (dir </> [relfile|coverage.json|])
               tid = TestId ((T.pack ('t' : show i), 0) :| [])
               cm = TestCoverageMap (Map.singleton tid (Set.singleton (MutationId ["M", "Op", show i, "1", "5", "r", "1"])))
@@ -60,8 +61,8 @@ spec = describe "phase boundary smoke (bug #1)" $ do
     pure ()
 
   it "concurrent per-child read-then-teardown of baseline maps preserves data" $ do
-    let n = 500
-        readOne i = withSystemTempDir "phase-boundary-base" $ \dir -> do
+    let n = 500 :: Int
+        readOne (i :: Int) = withSystemTempDir "phase-boundary-base" $ \dir -> do
           let path = fromAbsFile (dir </> [relfile|baseline.json|])
               tid = TestId ((T.pack ('t' : show i), 0) :| [])
               bm = TestBaselineMap (Map.singleton tid (fromIntegral i))

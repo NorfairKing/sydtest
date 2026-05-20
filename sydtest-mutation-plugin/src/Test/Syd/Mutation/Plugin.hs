@@ -121,7 +121,7 @@ plugin =
 -- 'RealSrcSpan's covering every 'HsUntypedSplice', 'HsTypedSplice', and
 -- declaration-level 'SpliceD'.  These are stored in a process-global IORef
 -- keyed by module name and consulted by 'recordMutation' (via the
--- 'instrSpliceSpans' field of 'InstrumentEnv') to drop mutations whose own
+-- 'instrumentEnvSpliceSpans' field of 'InstrumentEnv') to drop mutations whose own
 -- span is contained inside any splice span.
 --
 -- Why parse-time: many top-level splices (e.g. @mkYesodData@,

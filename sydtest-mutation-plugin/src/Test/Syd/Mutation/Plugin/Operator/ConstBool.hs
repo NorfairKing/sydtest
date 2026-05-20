@@ -37,7 +37,7 @@ isBoolLit = \case
 
 action :: InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 action = do
-  InstrumentEnv {instrInGuard} <- ask
+  InstrumentEnv {instrumentEnvInGuard} <- ask
   let trueAlt = (boolTy, nlHsDataCon trueDataCon, "e", "True", TokenReplace "True")
       falseAlt = (boolTy, nlHsDataCon falseDataCon, "e", "False", TokenReplace "False")
-  pure $ if instrInGuard then [trueAlt] else [trueAlt, falseAlt]
+  pure $ if instrumentEnvInGuard then [trueAlt] else [trueAlt, falseAlt]

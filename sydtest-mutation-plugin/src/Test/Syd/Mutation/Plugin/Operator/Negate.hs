@@ -38,8 +38,8 @@ action ::
   LHsExpr GhcTc ->
   InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 action le = do
-  InstrumentEnv {instrRdrEnv} <- ask
-  notId <- liftTcM $ case lookupOccEnv instrRdrEnv (mkVarOcc "not") of
+  InstrumentEnv {instrumentEnvRdrEnv} <- ask
+  notId <- liftTcM $ case lookupOccEnv instrumentEnvRdrEnv (mkVarOcc "not") of
     Just (gre : _) -> tcLookupId (greName gre)
     _ -> liftIO $ ioError $ userError "mutation/Negate: 'not' not in scope"
   let notVar = noLocA (HsVar NoExtField (noLocA notId))

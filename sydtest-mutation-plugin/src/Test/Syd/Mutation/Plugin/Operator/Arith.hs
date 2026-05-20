@@ -41,14 +41,14 @@ action ::
   TcOpApp ->
   InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
 action TcOpApp {tcOpAppTy, tcOpAppLhs, tcOpAppOp, tcOpAppRhs, tcOpAppOcc, tcOpAppOpSrcSpan} = do
-  InstrumentEnv {instrRdrEnv} <- ask
+  InstrumentEnv {instrumentEnvRdrEnv} <- ask
   let replacements = filter (/= tcOpAppOcc) arithOps
       delta replOcc = case tcOpAppOpSrcSpan of
         Just rss -> TokenReplaceAt rss (T.pack replOcc)
         Nothing -> TokenReplace (T.pack replOcc)
   mapM
     ( \replOcc -> do
-        repl <- liftTcM $ mkOpReplacement instrRdrEnv tcOpAppLhs tcOpAppOp tcOpAppRhs replOcc
+        repl <- liftTcM $ mkOpReplacement instrumentEnvRdrEnv tcOpAppLhs tcOpAppOp tcOpAppRhs replOcc
         pure (tcOpAppTy, repl, tcOpAppOcc, replOcc, delta replOcc)
     )
     replacements

@@ -105,42 +105,42 @@ data MutationOperator = MutationOperator
 -- Monad
 
 data InstrumentEnv = InstrumentEnv
-  { instrModule :: Module,
+  { instrumentEnvModule :: Module,
     -- | The module's 'GlobalRdrEnv', used by operators to look up replacement ids.
-    instrRdrEnv :: GlobalRdrEnv,
+    instrumentEnvRdrEnv :: GlobalRdrEnv,
     -- | Id for Test.Syd.Mutation.Runtime.ifMutation, looked up once per module.
-    instrIfMutationId :: Id,
+    instrumentEnvIfMutationId :: Id,
     -- | DataCon for Test.Syd.Mutation.Runtime.MutationId, looked up once per module.
-    instrMutationIdCon :: DataCon,
+    instrumentEnvMutationIdCon :: DataCon,
     -- | Operators to try at each expression site.
-    instrOperators :: [MutationOperator],
+    instrumentEnvOperators :: [MutationOperator],
     -- | Annotation environment for reading {-# ANN #-} annotations.
-    instrAnnEnv :: AnnEnv,
+    instrumentEnvAnnEnv :: AnnEnv,
     -- | Mutation type names disabled at module or global scope.
-    instrDisabledMutations :: [String],
+    instrumentEnvDisabledMutations :: [String],
     -- | Source file (relative path) and pre-read lines, read once per module.
-    instrSourceFile :: Maybe (Path Rel File, [Text]),
+    instrumentEnvSourceFile :: Maybe (Path Rel File, [Text]),
     -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
-    instrDebug :: Bool,
+    instrumentEnvDebug :: Bool,
     -- | When True, do not instrument the expanded body of TH splices and
     -- quasi-quotes.  Detected two ways: (a) matching
     -- @XExpr (ExpandedThingTc orig _)@ where @orig@ is an 'OrigExpr'
     -- wrapping a splice node — covers operator-style expansions; (b)
     -- checking whether a mutation's 'RealSrcSpan' lies inside any span in
-    -- 'instrSpliceSpans' — covers top-level splices like @mkYesodData@
+    -- 'instrumentEnvSpliceSpans' — covers top-level splices like @mkYesodData@
     -- and quasi-quotes that are evaluated at rename time and leave no
     -- 'ExpandedThingTc' wrapper in the typechecked AST.  Enabled by
     -- @--skip-th-splices@.
-    instrSkipThSplices :: Bool,
+    instrumentEnvSkipThSplices :: Bool,
     -- | Splice 'RealSrcSpan's collected from the parsed AST (one entry per
     -- @$(...)@, @[name|...|]@, or 'SpliceD').  Only populated when
-    -- 'instrSkipThSplices' is True; used by 'recordMutation' to drop
+    -- 'instrumentEnvSkipThSplices' is True; used by 'recordMutation' to drop
     -- mutations whose own span is contained in any splice span.
-    instrSpliceSpans :: [RealSrcSpan],
+    instrumentEnvSpliceSpans :: [RealSrcSpan],
     -- | True when instrumenting a guard expression (BodyStmt inside a GRHS).
     -- Used by ConstBool to suppress the e->False alternative, which would make
     -- the guard non-exhaustive and throw an exception that tests can't catch.
-    instrInGuard :: Bool,
+    instrumentEnvInGuard :: Bool,
     -- | Per-local-binding mutation disables that apply inside the currently
     -- enclosing top-level binding. Keyed by the local binding's source-level
     -- name (its 'OccName' string).  Populated by 'withFunBindEnv' when an
@@ -148,14 +148,14 @@ data InstrumentEnv = InstrumentEnv
     -- annotation is present, and consumed by 'instrumentBind' when entering
     -- a matching local 'FunBind' or 'VarBind'.  Cleared at the start of each
     -- top-level binding so disables don't leak across them.
-    instrLocalDisables :: Map String LocalDisable,
+    instrumentEnvLocalDisables :: Map String LocalDisable,
     -- | True when we are currently instrumenting a local binding inside a
     -- @let@ or @where@.  Gates 'withLocalDisable' so it never matches the
     -- top-level binding itself — which would happen at @XHsBindsLR
     -- AbsBinds@, whose inner 'FunBind' has the same source name as its poly
     -- export and would otherwise spuriously consume a 'DisableMutationsFor'
     -- entry intended for an identically named local.
-    instrInLocalLet :: Bool
+    instrumentEnvInLocalLet :: Bool
   }
 
 type InstrM = WriterT [MutationGroup] (ReaderT InstrumentEnv TcM)
@@ -201,20 +201,20 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
   runReaderT
     (runWriterT action)
     InstrumentEnv
-      { instrModule = modul,
-        instrRdrEnv = rdrEnv,
-        instrIfMutationId = ifMutId,
-        instrMutationIdCon = mutIdCon,
-        instrOperators = activeOperators,
-        instrAnnEnv = annEnv,
-        instrDisabledMutations = disabledMutations,
-        instrSourceFile = mSrcFile,
-        instrDebug = debug,
-        instrSkipThSplices = skipThSplices,
-        instrSpliceSpans = spliceSpans,
-        instrInGuard = False,
-        instrLocalDisables = Map.empty,
-        instrInLocalLet = False
+      { instrumentEnvModule = modul,
+        instrumentEnvRdrEnv = rdrEnv,
+        instrumentEnvIfMutationId = ifMutId,
+        instrumentEnvMutationIdCon = mutIdCon,
+        instrumentEnvOperators = activeOperators,
+        instrumentEnvAnnEnv = annEnv,
+        instrumentEnvDisabledMutations = disabledMutations,
+        instrumentEnvSourceFile = mSrcFile,
+        instrumentEnvDebug = debug,
+        instrumentEnvSkipThSplices = skipThSplices,
+        instrumentEnvSpliceSpans = spliceSpans,
+        instrumentEnvInGuard = False,
+        instrumentEnvLocalDisables = Map.empty,
+        instrumentEnvInLocalLet = False
       }
 
 -- | Look up a value Id from the module's GlobalRdrEnv by OccName.
@@ -254,7 +254,7 @@ instrumentBind = \case
   FunBind x name mg -> do
     let funName = idName (unLoc name)
     -- 'withLocalDisable' is a no-op outside an enclosing local-let scope (the
-    -- 'instrInLocalLet' flag is false at module top-level), so it only fires
+    -- 'instrumentEnvInLocalLet' flag is false at module top-level), so it only fires
     -- on truly local bindings.  Inside, 'withFunBindEnv' sees no annotations
     -- (locals can't be ANN'd) and leaves the disable map intact.
     mg' <- withLocalDisable funName (withFunBindEnv funName (instrumentMatchGroup mg))
@@ -271,28 +271,28 @@ instrumentBind = \case
     binds' <- foldr withFunBindEnv (mapBagM (traverse instrumentBind) abs_binds) polyNames
     pure (XHsBindsLR ab {abs_binds = binds'})
 
--- | If @bindName@'s source-level name is a key in 'instrLocalDisables',
--- narrow 'instrOperators' for the wrapped action and remove the entry from
+-- | If @bindName@'s source-level name is a key in 'instrumentEnvLocalDisables',
+-- narrow 'instrumentEnvOperators' for the wrapped action and remove the entry from
 -- the map (so the same disable doesn't re-fire on a shadowed inner binding).
 --
 -- This is the lookup half of @DisableMutationsFor <name>@: the outer
 -- top-level binding's 'withFunBindEnv' installed the map; this is where
 -- the local binding's RHS instrumentation consults it.
 --
--- No-op when 'instrInLocalLet' is False — the matching only applies inside a
+-- No-op when 'instrumentEnvInLocalLet' is False — the matching only applies inside a
 -- @let@ or @where@, not to the top-level binding itself (whose inner FunBind
 -- shares a source name with its poly export).
 withLocalDisable :: Name -> InstrM a -> InstrM a
 withLocalDisable bindName action = do
-  InstrumentEnv {instrInLocalLet} <- ask
-  if instrInLocalLet
+  InstrumentEnv {instrumentEnvInLocalLet} <- ask
+  if instrumentEnvInLocalLet
     then applyLocalDisables [getOccString bindName] action
     else action
 
 -- | Like 'withLocalDisable' but takes a list of 'Id's (typically the binders
 -- of a @do@-block 'BindStmt' pattern) and matches any of them.
 --
--- Always checks regardless of 'instrInLocalLet': @<-@-bound names cannot
+-- Always checks regardless of 'instrumentEnvInLocalLet': @<-@-bound names cannot
 -- collide with the enclosing top-level binding the way the
 -- @XHsBindsLR AbsBinds@ inner 'FunBind' can, so the gate is unnecessary
 -- here.
@@ -300,13 +300,13 @@ withLocalDisableMany :: [Id] -> InstrM a -> InstrM a
 withLocalDisableMany ids =
   applyLocalDisables (map (getOccString . idName) ids)
 
--- | Common implementation: look up any of @occs@ in 'instrLocalDisables',
+-- | Common implementation: look up any of @occs@ in 'instrumentEnvLocalDisables',
 -- narrow operators by the merged disable list, and remove all matched
 -- entries from the map for the wrapped action.
 applyLocalDisables :: [String] -> InstrM a -> InstrM a
 applyLocalDisables occs action = do
-  InstrumentEnv {instrLocalDisables, instrOperators} <- ask
-  let matches = [(occ, d) | occ <- occs, Just d <- [Map.lookup occ instrLocalDisables]]
+  InstrumentEnv {instrumentEnvLocalDisables, instrumentEnvOperators} <- ask
+  let matches = [(occ, d) | occ <- occs, Just d <- [Map.lookup occ instrumentEnvLocalDisables]]
   case matches of
     [] -> action
     _ ->
@@ -315,13 +315,13 @@ applyLocalDisables occs action = do
           operators' =
             if disableAll
               then []
-              else filter (\op -> operatorName op `notElem` namedDisables) instrOperators
-          remaining = foldr (Map.delete . fst) instrLocalDisables matches
+              else filter (\op -> operatorName op `notElem` namedDisables) instrumentEnvOperators
+          remaining = foldr (Map.delete . fst) instrumentEnvLocalDisables matches
        in local
             ( \env ->
                 env
-                  { instrOperators = operators',
-                    instrLocalDisables = remaining
+                  { instrumentEnvOperators = operators',
+                    instrumentEnvLocalDisables = remaining
                   }
             )
             action
@@ -331,33 +331,33 @@ applyLocalDisables occs action = do
 -- given top-level name.
 --
 -- Also reads any @DisableMutationsFor <localName>...@ annotations on the
--- same top-level name and installs them in 'instrLocalDisables' so that
+-- same top-level name and installs them in 'instrumentEnvLocalDisables' so that
 -- 'instrumentBind' can scope them down to the right local binding.
 --
 -- @ANN@ targets only resolve for top-level names, so for local bindings
 -- 'findAnns' returns @[]@; in that case this is the identity on the
--- environment (the existing 'instrLocalDisables' from the enclosing
+-- environment (the existing 'instrumentEnvLocalDisables' from the enclosing
 -- top-level binding is preserved).
 withFunBindEnv :: Name -> InstrM a -> InstrM a
 withFunBindEnv funName action = do
-  InstrumentEnv {instrAnnEnv, instrOperators, instrLocalDisables} <- ask
-  let funAnns = findAnns deserializeWithData instrAnnEnv (NamedTarget funName) :: [String]
+  InstrumentEnv {instrumentEnvAnnEnv, instrumentEnvOperators, instrumentEnvLocalDisables} <- ask
+  let funAnns = findAnns deserializeWithData instrumentEnvAnnEnv (NamedTarget funName) :: [String]
       FunMutationAnns selfDisable localDisables = parseFunMutationAnns funAnns
       operators' = case selfDisable of
         DisableAllOps -> []
-        DisableOps disabled -> filter (\op -> operatorName op `notElem` disabled) instrOperators
-      -- Only replace instrLocalDisables when this binding actually contributes
+        DisableOps disabled -> filter (\op -> operatorName op `notElem` disabled) instrumentEnvOperators
+      -- Only replace instrumentEnvLocalDisables when this binding actually contributes
       -- entries.  Local bindings have no ANN entries, so they return an empty
       -- map and we must keep the enclosing top-level binding's map intact.
       localDisables' =
         if Map.null localDisables
-          then instrLocalDisables
+          then instrumentEnvLocalDisables
           else localDisables
   local
     ( \env ->
         env
-          { instrOperators = operators',
-            instrLocalDisables = localDisables'
+          { instrumentEnvOperators = operators',
+            instrumentEnvLocalDisables = localDisables'
           }
     )
     action
@@ -485,7 +485,7 @@ instrumentLocalBinds :: HsLocalBinds GhcTc -> InstrM (HsLocalBinds GhcTc)
 instrumentLocalBinds = \case
   HsValBinds x valBinds ->
     HsValBinds x
-      <$> local (\env -> env {instrInLocalLet = True}) (instrumentValBinds valBinds)
+      <$> local (\env -> env {instrumentEnvInLocalLet = True}) (instrumentValBinds valBinds)
   lbs -> pure lbs
 
 instrumentValBinds :: HsValBinds GhcTc -> InstrM (HsValBinds GhcTc)
@@ -540,8 +540,8 @@ instrumentLExpr le = do
   -- change at one specific site; when that mutation is active we execute the
   -- mutant directly without needing to recurse into it for other mutations.
   le' <- traverse (instrumentExpr (getLocA le)) le
-  InstrumentEnv {instrOperators} <- ask
-  tryMutateWith instrOperators le le'
+  InstrumentEnv {instrumentEnvOperators} <- ask
+  tryMutateWith instrumentEnvOperators le le'
 
 instrumentExpr :: SrcSpan -> HsExpr GhcTc -> InstrM (HsExpr GhcTc)
 instrumentExpr _sp = \case
@@ -559,14 +559,14 @@ instrumentExpr _sp = \case
   RecordCon x con flds -> RecordCon x con <$> instrumentRecordBinds flds
   -- XExpr nodes appear after typechecking for operator expansion etc.
   -- We instrument the expanded expression (what the desugarer sees), except
-  -- when 'instrSkipThSplices' is set and the original (pre-expansion) node
+  -- when 'instrumentEnvSkipThSplices' is set and the original (pre-expansion) node
   -- was a TH splice or quasi-quote — those expansions are macro-generated
   -- code whose source location points at the splice site, so any mutations
   -- recorded inside would be unhelpful (every covering test would have to
   -- exercise the splice's expanded form, and the diff in the report would
   -- not line up with the source file).
   XExpr (ExpandedThingTc orig expanded) -> do
-    skipSplices <- asks instrSkipThSplices
+    skipSplices <- asks instrumentEnvSkipThSplices
     if skipSplices && isSpliceThing orig
       then pure (XExpr (ExpandedThingTc orig expanded))
       else case origBindStmtBinders orig of
@@ -653,7 +653,7 @@ instrumentStmt = traverse $ \case
   BindStmt x p e -> BindStmt x p <$> withLocalDisableMany (collectPatBinders CollNoDictBinders p) (instrumentLExpr e)
   BodyStmt x e se1 se2 ->
     BodyStmt x
-      <$> local (\env -> env {instrInGuard = True}) (instrumentLExpr e)
+      <$> local (\env -> env {instrumentEnvInGuard = True}) (instrumentLExpr e)
       <*> pure se1
       <*> pure se2
   LetStmt x lbs -> LetStmt x <$> instrumentLocalBinds lbs
@@ -774,15 +774,15 @@ recordMutation ::
   Int ->
   InstrM (MutationId, Maybe MutationRecord)
 recordMutation le op origStr replStr delta altIndex = do
-  InstrumentEnv {instrModule, instrSourceFile, instrSkipThSplices, instrSpliceSpans} <- ask
+  InstrumentEnv {instrumentEnvModule, instrumentEnvSourceFile, instrumentEnvSkipThSplices, instrumentEnvSpliceSpans} <- ask
   let sp = getLocA le
   case sp of
     RealSrcSpan rss _
-      | instrSkipThSplices && any (`containsSpan` rss) instrSpliceSpans ->
+      | instrumentEnvSkipThSplices && any (`containsSpan` rss) instrumentEnvSpliceSpans ->
           -- Mutation is inside a TH splice or quasi-quote; drop it.
           pure (MutationId [], Nothing)
     RealSrcSpan rss _ -> do
-      let mn = moduleNameString (moduleName instrModule)
+      let mn = moduleNameString (moduleName instrumentEnvModule)
           lineNum = srcSpanStartLine rss
           colStart = srcSpanStartCol rss
           colEnd = srcSpanEndCol rss
@@ -798,7 +798,7 @@ recordMutation le op origStr replStr delta altIndex = do
               ]
           lineNumEnd = srcSpanEndLine rss
           (mSrcFile, ctxBefore, ctxAfter, spanLines, mutatedLines) =
-            case instrSourceFile of
+            case instrumentEnvSourceFile of
               Nothing -> (Nothing, [], [], [], [])
               Just (relFile, ls) ->
                 let startIdx = lineNum - 1
@@ -936,9 +936,9 @@ wrapWithIfMutation ::
   LHsExpr GhcTc ->
   InstrM (LHsExpr GhcTc)
 wrapWithIfMutation ty mid mutatedExpr origExpr = do
-  InstrumentEnv {instrIfMutationId, instrMutationIdCon} <- ask
-  midExpr <- liftTcM $ buildMutationIdExpr instrMutationIdCon mid
-  let ifMutVar = nlHsTyApp instrIfMutationId [ty]
+  InstrumentEnv {instrumentEnvIfMutationId, instrumentEnvMutationIdCon} <- ask
+  midExpr <- liftTcM $ buildMutationIdExpr instrumentEnvMutationIdCon mid
+  let ifMutVar = nlHsTyApp instrumentEnvIfMutationId [ty]
       call = mkHsApp (mkHsApp (mkHsApp ifMutVar midExpr) mutatedExpr) origExpr
   pure call
 

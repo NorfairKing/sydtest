@@ -32,7 +32,7 @@ let
   configConfigureFlags =
     if configFile == null
     then [ ]
-    else [ "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:--config-file=${configFile}" ];
+    else [ "--ghc-option=-fplugin-opt=Test.Syd.Mutation.Plugin:--config-file=${configFile}" ];
 in
 (haskell.lib.overrideCabal pkg (old: {
   # Disable haddock: the haddock pass runs GHC with the plugin but without

@@ -17,7 +17,7 @@
 # a fresh tree that can be copied over the goldens.
 
 let
-  instrumented = haskellPackages.sydtest.addManifest { } haskellPackages.sydtest-mutation-example;
+  instrumented = haskellPackages.sydtest.addManifest { configFile = ./mutation.yaml; } haskellPackages.sydtest-mutation-example;
 
   expected = ../sydtest-mutation-example/test_resources/manifests;
 

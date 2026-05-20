@@ -23,11 +23,26 @@ import GHC.Types.SourceText (mkIntegralLit)
 -- chain.  At GhcTc the operator often has type and dictionary arguments
 -- attached (e.g. @(+) \@Int $dNumInt@), so we walk through 'HsApp',
 -- 'HsAppType', and 'WrapExpr' wrappers to find the underlying 'HsVar'.
+--
+-- Also peels through @XExpr (ExpandedThingTc orig expanded)@: GHC 9.6+
+-- expands source-level @f $ x@ and similar rebindable-syntax forms into
+-- @HsApp@ chains wrapped in 'ExpandedThingTc'.  Without this case, a call
+-- like @logInfo $ ...@ would look like a "no head" expression, and the
+-- ignore filter (which dispatches on 'opOccName') would let mutations
+-- leak into the argument subtree.
+--
+-- Treats @($)@ specially: at GhcTc, @f $ x@ is expanded into the application
+-- chain @($) f x@, but the syntactic "head" the user thinks of is @f@, not
+-- @($)@.  Whenever we encounter @($) f x@ (or any further nesting of @$@s),
+-- we recurse on the first argument instead of returning @"$"@.
 opOccName :: LHsExpr GhcTc -> Maybe String
 opOccName = \case
   L _ (HsVar _ (L _ v)) -> Just (getOccString v)
   L _ (XExpr (WrapExpr (HsWrap _ e))) -> opOccName (noLocA e)
-  L _ (HsApp _ f _) -> opOccName f
+  L _ (XExpr (ExpandedThingTc _ e)) -> opOccName (noLocA e)
+  L _ (HsApp _ f a)
+    | Just "$" <- opOccName f -> opOccName a
+    | otherwise -> opOccName f
   L _ (HsAppType _ f _) -> opOccName f
   L _ (HsPar _ e) -> opOccName e
   _ -> Nothing

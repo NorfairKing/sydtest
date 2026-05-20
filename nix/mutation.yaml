@@ -6,3 +6,10 @@
 # Passed to the plugin via '--config=PATH' by sydtest.mutationCheck.
 
 debug: true
+
+# Exercises the 'ignore' filter from sydtest-mutation-example's
+# Example.IgnoreLib: 'mark' is a no-op marker, and calls to it must be
+# left untouched even when wrapped by '$' (which expands to a typecheck
+# 'ExpandedThingTc' node).
+ignore:
+  - mark

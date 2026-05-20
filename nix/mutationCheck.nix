@@ -19,9 +19,9 @@
 #       executables (test suites or benchmarks) link against an instrumented
 #       library and therefore need sydtest-mutation-runtime added to their
 #       link line. See ./nix/addMutationRuntimeDependency.nix.
-# - config: attrset rendered to a YAML config file and consumed by the
-#       mutation plugin (exceptions, disabled mutation types, skip-th-splices,
-#       debug). Defaults to {}, meaning the plugin uses its built-in defaults.
+# - configFile: optional path to a YAML config file consumed by the mutation
+#       plugin. Defaults to null, meaning the plugin uses its built-in
+#       defaults.
 #       Schema: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig.
 # - assertAllKilled: return a check derivation that fails if any mutations survive (default: true)
 # - assertNoneUncovered: also fail the check derivation if any mutations are uncovered (default: true)
@@ -58,7 +58,7 @@
 , libraries ? [ ]
 , tests ? [ ]
 , needToBeLinkedAgainstMutationRuntime ? [ ]
-, config ? { }
+, configFile ? null
 , assertAllKilled ? true
 , assertNoneUncovered ? true
 , ghcMemLimit ? "16g"
@@ -104,7 +104,7 @@ let
         name = pkg;
         value = addManifest
           {
-            inherit config ghcMemLimit;
+            inherit configFile ghcMemLimit;
           }
           super.${pkg};
       })

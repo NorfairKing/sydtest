@@ -50,6 +50,7 @@ import GHC.Types.SourceText (SourceText (NoSourceText))
 import Path
 import Path.IO (forgivingAbsence, resolveFile')
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..))
+import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
 -- ---------------------------------------------------------------------------
@@ -137,6 +138,14 @@ data InstrumentEnv = InstrumentEnv
     -- 'instrumentEnvSkipThSplices' is True; used by 'recordMutation' to drop
     -- mutations whose own span is contained in any splice span.
     instrumentEnvSpliceSpans :: [RealSrcSpan],
+    -- | Unqualified identifier names whose calls are ignored: any expression
+    -- whose syntactic head is one of these is left untouched by
+    -- 'instrumentLExpr' (no operators tried, no recursion into children).
+    -- Populated from the @ignore@ YAML config field.  Used to silence noisy
+    -- mutations on calls like @logDebug "..."@ where dropping or mutating
+    -- the call almost never affects observable behaviour, producing
+    -- surviving mutants that are pure noise.
+    instrumentEnvIgnore :: [String],
     -- | True when instrumenting a guard expression (BodyStmt inside a GRHS).
     -- Used by ConstBool to suppress the e->False alternative, which would make
     -- the guard non-exhaustive and throw an exception that tests can't catch.
@@ -184,9 +193,13 @@ runInstrument ::
   Bool ->
   -- | Splice spans collected at parse time, used to filter mutations.
   [RealSrcSpan] ->
+  -- | Unqualified identifier names whose call expressions are ignored: no
+  -- mutations are produced for them or anything inside their argument
+  -- subtrees.
+  [String] ->
   InstrM a ->
   TcM (a, [MutationGroup])
-runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices spliceSpans action = do
+runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices spliceSpans ignore action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -212,6 +225,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrumentEnvDebug = debug,
         instrumentEnvSkipThSplices = skipThSplices,
         instrumentEnvSpliceSpans = spliceSpans,
+        instrumentEnvIgnore = ignore,
         instrumentEnvInGuard = False,
         instrumentEnvLocalDisables = Map.empty,
         instrumentEnvInLocalLet = False
@@ -501,6 +515,24 @@ instrumentValBinds = \case
 
 instrumentLExpr :: LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
 instrumentLExpr le = do
+  -- 'ignore' filter: if this expression's syntactic head is one of the
+  -- configured names (e.g. "logDebug"), return it unchanged and do NOT
+  -- recurse into children.  This silences mutations both on the call itself
+  -- (the RemoveAction operator would otherwise turn @do { logDebug "x"; k }@
+  -- into @do { k }@) and on every sub-expression of the arguments (so the
+  -- string literal, an inner @show n@, etc. are also left alone).
+  --
+  -- 'opOccName' peels through HsApp/HsAppType/WrapExpr/HsPar wrappers to find
+  -- the head identifier's unqualified 'OccName' string.  We match against the
+  -- bare name (no module qualifier), so users configure e.g. "logDebug"
+  -- regardless of whether it's imported qualified or unqualified.
+  expressionToIgnore <- asks instrumentEnvIgnore
+  case opOccName le of
+    Just occ | occ `elem` expressionToIgnore -> pure le
+    _ -> instrumentLExprGo le
+
+instrumentLExprGo :: LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+instrumentLExprGo le = do
   -- ORDERING INVARIANT: instrument children before applying operators, but
   -- pass the ORIGINAL (pre-child-instrumentation) expression to the operators
   -- for matching and mutant construction.

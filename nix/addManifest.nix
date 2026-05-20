@@ -1,4 +1,4 @@
-{ haskell, mutationDriver, mutationPlugin, writeText }:
+{ haskell, mutationDriver, mutationPlugin }:
 
 # Wrap a Haskell package so that the mutation plugin runs during compilation
 # and writes the mutation manifest to a separate 'manifest' output.
@@ -12,28 +12,27 @@
 # not need to declare them in its cabal file.
 #
 # The manifest output path is communicated to the plugin via the
-# MUTATION_MANIFEST_DIR environment variable (set in preBuild), because Nix
+# MUTATION_PLUGIN_MANIFEST_DIR environment variable (set in preBuild), because Nix
 # output store paths are not available as Nix strings at evaluation time and
 # cannot be interpolated into configureFlags or buildFlags.
 #
-# All plugin-instrumentation tunables (exceptions, disabled mutation types,
-# skip-th-splices, debug) live in the YAML config file rendered from the
-# 'config' attrset. When 'config' is {}, the plugin uses its built-in
+# Plugin-instrumentation tunables (exceptions, disabled mutation types,
+# skip-th-splices, debug, ignore) live in the YAML file pointed to by
+# 'configFile'. When 'configFile' is null, the plugin uses its built-in
 # defaults (instrument everything, no debug output).
 #
-# Schema for 'config': Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig.
+# Schema for the YAML file: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig.
 
-{ config ? { } # Plugin configuration; rendered to YAML and passed via --config=PATH
+{ configFile ? null # Optional path to a YAML config file; passed to the plugin via --config-file=PATH
 , ghcMemLimit ? "16g" # RTS heap limit for GHC during instrumented compilation (e.g. "8g", "16g")
 }:
 pkg: # the Haskell package derivation to wrap
 
 let
-  configFile = writeText "mutation-config.yaml" (builtins.toJSON config);
   configConfigureFlags =
-    if config == { }
+    if configFile == null
     then [ ]
-    else [ "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:--config=${configFile}" ];
+    else [ "--ghc-options=-fplugin-opt=Test.Syd.Mutation.Plugin:--config-file=${configFile}" ];
 in
 (haskell.lib.overrideCabal pkg (old: {
   # Disable haddock: the haddock pass runs GHC with the plugin but without
@@ -77,9 +76,9 @@ in
     "--ghc-option=-RTS"
   ];
   preBuild = (old.preBuild or "") + ''
-    echo "mutation-nix: setting MUTATION_MANIFEST_DIR=$manifest"
+    echo "mutation-nix: setting MUTATION_PLUGIN_MANIFEST_DIR=$manifest"
     mkdir -p "$manifest"
-    export MUTATION_MANIFEST_DIR="$manifest"
+    export MUTATION_PLUGIN_MANIFEST_DIR="$manifest"
   '';
   # The main 'Setup build' invocation (driven by buildFlags above) has
   # 'lib:${old.pname}' as its buildTarget so only the library is

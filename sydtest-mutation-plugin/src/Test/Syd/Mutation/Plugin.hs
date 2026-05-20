@@ -1,17 +1,15 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Syd.Mutation.Plugin (plugin) where
 
-import Control.Concurrent.STM (atomically)
-import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Data.Char (toLower)
 import Data.Data (Data, cast, gmapQ)
+import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
 import Data.List (isPrefixOf, stripPrefix)
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import GHC
 import GHC.Data.FastString (unpackFS)
 import GHC.Driver.Env (Hsc, HscEnv (..))
@@ -21,17 +19,13 @@ import GHC.Serialized (deserializeWithData)
 import GHC.Tc.Types
 import GHC.Types.Annotations (AnnTarget (..), findAnns)
 import Path
-import Path.IO (resolveDir')
-import qualified StmContainers.Map as StmMap
-import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), writeManifestFile)
 import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Plugin.Operators (allOperators)
 import Test.Syd.Mutation.Plugin.OptParse
-  ( MutationPluginConfig (..),
-    defaultMutationPluginConfig,
-    readMutationPluginConfigFile,
+  ( Settings (..),
+    resolveSettings,
   )
 
 data DisabledMutation
@@ -65,13 +59,6 @@ splitOnComma :: String -> [String]
 splitOnComma s = case break (== ',') s of
   (w, []) -> [w]
   (w, _ : rest) -> w : splitOnComma rest
-
--- | Treat the common truthy spellings as "enabled".  Used for env-var kill
--- switches so users don't have to remember an exact magic value.
-isTruthyEnv :: Maybe String -> Bool
-isTruthyEnv = \case
-  Just s -> map toLower s `elem` ["1", "true", "yes", "on"]
-  Nothing -> False
 
 plugin :: Plugin
 plugin =
@@ -137,11 +124,11 @@ mutationAddRuntimeImport ::
   Hsc ParsedResult
 mutationAddRuntimeImport opts ms pr = do
   let mn = moduleNameString (moduleName (ms_mod ms))
-  MutationPluginConfig
-    { mutationPluginConfigExceptions = exceptions,
-      mutationPluginConfigSkipThSplices = skipThSplices
+  Settings
+    { settingExceptions = exceptions,
+      settingSkipThSplices = skipThSplices
     } <-
-    liftIO $ resolveConfig opts
+    liftIO $ resolveSettings opts
   if "Paths_" `isPrefixOf` mn || mn `elem` exceptions
     then pure pr
     else do
@@ -158,7 +145,7 @@ mutationAddRuntimeImport opts ms pr = do
       liftIO $
         when (skipThSplices && not disabled) $ do
           let spliceRanges = collectSpliceSpans lm
-          atomically $ StmMap.insert spliceRanges mn spliceSpansMap
+          atomicModifyIORef' spliceSpansMap (\m -> (Map.insert mn spliceRanges m, ()))
       let runtimeImport = noLocA (simpleImportDecl (mkModuleName "Test.Syd.Mutation.Plugin.Runtime"))
           lm' = fmap (\m -> m {hsmodImports = runtimeImport : hsmodImports m}) lm
       pure pr {parsedResultModule = pm {hpm_module = lm'}}
@@ -192,36 +179,16 @@ hasDisableMutationsAnn m = any isDisableMutationsDecl (hsmodDecls m)
 
 -- | Per-module splice spans collected by 'mutationAddRuntimeImport' when
 -- @--skip-th-splices@ is set, read back by 'mutationTypeCheckAction' and
--- threaded through 'InstrumentEnv'.  Lives in a process-global STM map
+-- threaded through 'InstrumentEnv'.  Lives in a process-global IORef
 -- because 'Hsc' and 'TcM' don't share state cleanly across compilation
--- units, and GHC may compile many modules in one process.
+-- units, and GHC may compile many modules in one process.  Switched from
+-- 'stm-containers' to 'IORef'+'atomicModifyIORef'' to avoid loading the
+-- 'stm' package into the GHC-as-host process, which has been observed to
+-- hang the plugin during the parsed-result action on real-world libraries
+-- (e.g. safe-coloured-text).
 {-# NOINLINE spliceSpansMap #-}
-spliceSpansMap :: StmMap.Map String [RealSrcSpan]
-spliceSpansMap = unsafePerformIO StmMap.newIO
-
--- | Cache the decoded 'MutationPluginConfig' for the lifetime of the GHC
--- invocation.  Every module compiled in that invocation calls 'resolveConfig'
--- and we want to read and parse the YAML only once.  All modules in a single
--- invocation are passed the same @--config=PATH@ flag, so a single slot
--- suffices.
-{-# NOINLINE configCacheVar #-}
-configCacheVar :: TVar (Maybe (FilePath, MutationPluginConfig))
-configCacheVar = unsafePerformIO (newTVarIO Nothing)
-
--- | Resolve the 'MutationPluginConfig' for a plugin action.  If
--- @--config=PATH@ is present in @opts@, read and cache the YAML; otherwise
--- return 'defaultMutationPluginConfig'.
-resolveConfig :: [CommandLineOption] -> IO MutationPluginConfig
-resolveConfig opts = case mapMaybe (stripPrefix "--config=") opts of
-  [] -> pure defaultMutationPluginConfig
-  (path : _) -> do
-    cached <- readTVarIO configCacheVar
-    case cached of
-      Just (p, cfg) | p == path -> pure cfg
-      _ -> do
-        cfg <- readMutationPluginConfigFile path
-        atomically $ writeTVar configCacheVar (Just (path, cfg))
-        pure cfg
+spliceSpansMap :: IORef (Map String [RealSrcSpan])
+spliceSpansMap = unsafePerformIO (newIORef Map.empty)
 
 -- | Generic traversal that collects 'RealSrcSpan's of all parsed-AST
 -- splice and quasi-quote nodes.  Uses 'Data' generics so we don't have
@@ -257,22 +224,17 @@ mutationTypeCheckAction ::
   TcM TcGblEnv
 mutationTypeCheckAction opts ms tcGblEnv = do
   let mn = moduleNameString (moduleName (tcg_mod tcGblEnv))
-  MutationPluginConfig
-    { mutationPluginConfigExceptions = exceptions,
-      mutationPluginConfigDisabledMutations = disabledFromConfig,
-      mutationPluginConfigSkipThSplices = skipThSplices,
-      mutationPluginConfigDebug = debug
+  Settings
+    { settingExceptions = exceptions,
+      settingDisabledMutations = disabledFromConfig,
+      settingIgnore = ignore,
+      settingSkipThSplices = skipThSplices,
+      settingDebug = debug,
+      settingSkipInstrumentation = skipInstrumentation,
+      settingManifestDir = manifestDir
     } <-
-    liftIO $ resolveConfig opts
-  let manifestDirOpt = mapMaybe (stripPrefix "--manifest=") opts
-  -- Runtime kill switch: when MUTATION_PLUGIN_SKIP is set, the plugin loads
-  -- but instruments nothing. The Nix build sets this when re-invoking
-  -- 'Setup build' to compile non-library components (test-suites, executables,
-  -- benchmarks) — those should not be instrumented, but we cannot drop the
-  -- plugin flags from that invocation without making Cabal rebuild the
-  -- already-instrumented library un-instrumented.
-  skip <- liftIO $ lookupEnv "MUTATION_PLUGIN_SKIP"
-  if "Paths_" `isPrefixOf` mn || mn `elem` exceptions || isTruthyEnv skip
+    liftIO $ resolveSettings opts
+  if "Paths_" `isPrefixOf` mn || mn `elem` exceptions || skipInstrumentation
     then pure tcGblEnv
     else do
       let annEnv = tcg_ann_env tcGblEnv
@@ -291,29 +253,17 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           let mSrcPath = ml_hs_file (ms_location ms)
           spliceSpans <-
             if skipThSplices
-              then
-                liftIO $
-                  atomically $
-                    fromMaybe [] <$> StmMap.lookup mn spliceSpansMap
+              then liftIO $ Map.findWithDefault [] mn <$> readIORef spliceSpansMap
               else pure []
           (binds', groups) <-
-            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices spliceSpans $
+            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices spliceSpans ignore $
               instrumentModule (tcg_binds tcGblEnv)
-          -- The manifest dir comes from --manifest= plugin opt, or from the
-          -- MUTATION_MANIFEST_DIR env var (used by the Nix build so the store path
-          -- can be passed without shell expansion in configureFlags).
-          envDir <- liftIO $ lookupEnv "MUTATION_MANIFEST_DIR"
-          let rawDir = case manifestDirOpt of
-                (d : _) -> Just d
-                [] -> envDir
           let totalMutations = sum [length rs | MutationGroup rs <- groups]
           liftIO $ do
             putStrLn $ "added " ++ show totalMutations ++ " mutations in " ++ show (length groups) ++ " groups"
-            case rawDir of
+            case manifestDir of
               Nothing -> pure ()
-              Just raw -> do
-                dir <- resolveDir' raw
-                writeModuleManifest dir mn groups
+              Just dir -> writeModuleManifest dir mn groups
           pure tcGblEnv {tcg_binds = binds'}
 
 -- | Write a JSON manifest file for one module to @<dir>/<ModuleName>.json@.

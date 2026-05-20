@@ -18,39 +18,27 @@
 # `assertAllKilled = true`, so `mutationCheck` returns the check derivation.
 
 let
-  # Single source of truth for plugin-instrumentation tunables. Rendered to
-  # YAML and passed to every mutation check via '--config=PATH'.
+  # Plugin-instrumentation tunables for every in-repo mutation check live
+  # in ./mutation.yaml. Passed to the plugin via '--config=PATH'.
   # Schema: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig
-  config = {
-    debug = true;
-  };
+  configFile = ./mutation.yaml;
 
   mutationCheck = args:
-    haskellPackages.sydtest.mutationCheck ({ inherit config; } // args);
+    haskellPackages.sydtest.mutationCheck ({ inherit configFile; } // args);
 in
 {
-  mutation-opt-env-conf = mutationCheck {
-    name = "opt-env-conf";
-    packages = [ "opt-env-conf-test" ];
-    libraries = [ "opt-env-conf" ];
-    assertAllKilled = false;
-  };
-
-  mutation-safe-coloured-text = mutationCheck {
-    name = "safe-coloured-text";
-    libraries = [
-      "safe-coloured-text"
-      "safe-coloured-text-layout"
-      "safe-coloured-text-parsing"
-      "safe-coloured-text-terminfo"
-    ];
-    tests = [
-      "safe-coloured-text-gen"
-      "safe-coloured-text-layout-gen"
-      "safe-coloured-text-parsing-gen"
-    ];
-    assertAllKilled = false;
-  };
+  # NOTE: libraries that sydtest (and therefore the mutation plugin/driver)
+  # itself depends on cannot be instrumented here — the plugin would load
+  # the mutated version of its own dep on the second build pass and either
+  # crash or hang.  This currently rules out:
+  #
+  #   * opt-env-conf      (the plugin uses it to parse its own settings)
+  #   * safe-coloured-text and its layout/parsing/terminfo siblings
+  #                       (sydtest uses these for colour output, which the
+  #                       mutation driver invokes during report rendering)
+  #
+  # If you want to mutate any of these again, the plugin/driver needs to be
+  # made independent of that library first.
 
   mutation-sydtest-mutation-example = mutationCheck {
     name = "sydtest-mutation-example";

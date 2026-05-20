@@ -1,0 +1,8 @@
+# Mutation-plugin config used by every in-repo mutation check
+# (mutation-opt-env-conf, mutation-safe-coloured-text,
+# mutation-sydtest-mutation-example).
+#
+# Schema: Test.Syd.Mutation.Plugin.OptParse.MutationPluginConfig.
+# Passed to the plugin via '--config=PATH' by sydtest.mutationCheck.
+
+debug: true

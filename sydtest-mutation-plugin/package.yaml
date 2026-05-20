@@ -13,8 +13,6 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
-  - aeson
-  - autodocodec
   - bytestring
   - containers
   - directory
@@ -22,14 +20,13 @@ library:
   - ghc
   - ghc-boot
   - mtl
+  - opt-env-conf
   - path
   - path-io
-  - stm
-  - stm-containers
+  - safe-coloured-text
   - sydtest-mutation-runtime
   - template-haskell
   - text
-  - yaml
 
 tests:
   sydtest-mutation-plugin-test:
@@ -43,6 +40,8 @@ tests:
     dependencies:
     - containers
     - ghc
+    - opt-env-conf-test
+    - path
     - sydtest
     - sydtest-mutation-plugin
     - text

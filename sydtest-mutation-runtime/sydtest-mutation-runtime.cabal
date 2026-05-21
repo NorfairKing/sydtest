@@ -27,6 +27,7 @@ library
       Test.Syd.Mutation.TestBaselineMap
       Test.Syd.Mutation.TestCoverageMap
       Test.Syd.Mutation.TestId
+      Test.Syd.Mutation.TestLocation
   other-modules:
       Paths_sydtest_mutation_runtime
   hs-source-dirs:

@@ -20,6 +20,14 @@ module Test.Syd.Mutation.Driver.OptParse
     MutationDriverSettings (..),
     defaultCoverageRetry,
     defaultFailFast,
+
+    -- * 'coverage' subcommand
+    CoverageSettings (..),
+
+    -- * 'diff' subcommand
+    DiffSettings (..),
+    DiffSource (..),
+    defaultBaseBranch,
   )
 where
 
@@ -101,13 +109,73 @@ data MutationDriverSettings = MutationDriverSettings
   { mutationDriverSettingManifests :: ![Path Abs Dir],
     mutationDriverSettingSuitePkgs :: ![SuitePkgSpec],
     mutationDriverSettingChildMemLimit :: !(Maybe String),
-    mutationDriverSettingCoverageJobs :: !(Maybe Int),
+    mutationDriverSettingCoverageJobs :: !(Maybe Word),
     mutationDriverSettingCoverageRetry :: !Word,
     mutationDriverSettingAugmentedManifestDir :: !(Path Abs Dir),
     mutationDriverSettingOutDir :: !(Path Abs Dir),
     mutationDriverSettingFailFast :: !Bool
   }
   deriving (Show, Eq, Generic)
+
+-- | Settings for the @coverage@ subcommand: build only the coverage cache
+-- (the augmented manifest) that the diff-scoped runner depends on, without
+-- running the mutation phase.  This is what lets the diff cache be a much
+-- cheaper derivation than the full check.
+data CoverageSettings = CoverageSettings
+  { coverageSettingManifests :: ![Path Abs Dir],
+    coverageSettingSuitePkgs :: ![SuitePkgSpec],
+    coverageSettingCoverageJobs :: !(Maybe Word),
+    coverageSettingCoverageRetry :: !Word,
+    coverageSettingAugmentedManifestDir :: !(Path Abs Dir),
+    coverageSettingFailFast :: !Bool
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Where the @diff@ subcommand gets the unified diff to scope the run by.
+data DiffSource
+  = -- | Read the diff from this file.
+    DiffSourceFile !(Path Abs File)
+  | -- | Read the diff from standard input.
+    DiffSourceStdin
+  | -- | Compute @git diff@ against the merge-base of @HEAD@ and the given
+    -- base branch, run from this working directory.  This is the default.
+    DiffSourceGitMergeBase
+      -- | Base branch to find the merge-base with.
+      !String
+  deriving (Show, Eq, Generic)
+
+-- | Settings for the @diff@ subcommand: the diff-scoped mutation runner.
+--
+-- It reads the /already-built/ augmented manifest (the cached
+-- which-test-covers-which-mutation map) and the cached per-suite
+-- @TestId -> source-location@ listings, selects the mutations implied by the
+-- diff, and runs only those mutation children.  No compilation and no
+-- coverage phase happen.
+data DiffSettings = DiffSettings
+  { -- | Where the unified diff comes from.
+    diffSettingSource :: !DiffSource,
+    -- | Test-package specs, expanded to the suite-exe map at run time
+    -- (same as the @run@ subcommand).
+    diffSettingSuitePkgs :: ![SuitePkgSpec],
+    -- | Per-package coverage directories.  Each directory holds that
+    -- package's @augmented/manifest-augmented.json@ and its
+    -- @test-locations/\<suite\>.tsv@ listings.  The driver unions the
+    -- augmented manifests in-memory and reads every directory's
+    -- test-locations, so no separate merge step is needed.
+    diffSettingCoverageDirs :: ![Path Abs Dir],
+    -- | RTS heap cap for each mutation child.
+    diffSettingChildMemLimit :: !(Maybe String),
+    -- | Output directory for report.json\/report.txt\/per-suite logs.
+    diffSettingOutDir :: !(Path Abs Dir),
+    -- | Whether to abort on the first surviving or uncovered mutation.
+    diffSettingFailFast :: !Bool
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Default base branch the @diff@ subcommand finds the merge-base with when
+-- no @--diff@ is given and no @--base@ is set.
+defaultBaseBranch :: String
+defaultBaseBranch = "master"
 
 -- | Top-level CLI parser for the @run@ subcommand.
 mutationDriverSettingsParser :: Parser MutationDriverSettings
@@ -175,6 +243,139 @@ mutationDriverSettingsParser = do
         value defaultFailFast
       ]
   pure MutationDriverSettings {..}
+
+-- | CLI parser for the @coverage@ subcommand.  Shares the coverage-relevant
+-- flags with @run@ but takes no @--out-dir@ (it writes no report) and no
+-- @--child-mem-limit@ (it spawns no mutation children).
+coverageSettingsParser :: Parser CoverageSettings
+coverageSettingsParser = do
+  coverageSettingManifests <-
+    many $
+      directoryPathSetting
+        [ help "Mutation manifest directory (one per instrumented library; may be repeated)",
+          option,
+          long "manifest",
+          metavar "DIR"
+        ]
+  coverageSettingSuitePkgs <-
+    many $
+      setting
+        [ help "Test-package: PNAME=BUILT_TEST_PKG_ROOT=RESOURCE_DIR (may be repeated)",
+          reader $ eitherReader parseSuitePkgSpec,
+          option,
+          long "suite-pkg",
+          metavar "PNAME=ROOT=RESOURCE_DIR"
+        ]
+  coverageSettingCoverageJobs <-
+    optional $
+      setting
+        [ help "Maximum number of coverage children to run concurrently",
+          reader auto,
+          option,
+          long "coverage-jobs",
+          metavar "INT"
+        ]
+  coverageSettingCoverageRetry <-
+    setting
+      [ help "How many times to retry a failing coverage child before giving up",
+        reader auto,
+        option,
+        long "coverage-retry",
+        metavar "INT",
+        value defaultCoverageRetry
+      ]
+  coverageSettingAugmentedManifestDir <-
+    directoryPathSetting
+      [ help "Directory to write manifest-augmented.json into (required)",
+        option,
+        long "mutation-augmented-manifest-dir"
+      ]
+  coverageSettingFailFast <-
+    yesNoSwitch
+      [ help "Whether to abort the coverage run on a baseline test failure",
+        long "fail-fast",
+        value defaultFailFast
+      ]
+  pure CoverageSettings {..}
+
+-- | CLI parser for the @diff@ subcommand.
+diffSettingsParser :: Parser DiffSettings
+diffSettingsParser = do
+  diffSettingSource <- diffSourceParser
+  diffSettingSuitePkgs <-
+    many $
+      setting
+        [ help "Test-package: PNAME=BUILT_TEST_PKG_ROOT=RESOURCE_DIR (may be repeated)",
+          reader $ eitherReader parseSuitePkgSpec,
+          option,
+          long "suite-pkg",
+          metavar "PNAME=ROOT=RESOURCE_DIR"
+        ]
+  diffSettingCoverageDirs <-
+    many $
+      directoryPathSetting
+        [ help "Per-package coverage directory holding augmented/ and test-locations/ (may be repeated)",
+          option,
+          long "coverage-dir",
+          metavar "DIR"
+        ]
+  diffSettingChildMemLimit <-
+    optional $
+      setting
+        [ help "RTS heap cap for each mutation child, e.g. 4g",
+          reader str,
+          option,
+          long "child-mem-limit",
+          metavar "LIMIT"
+        ]
+  diffSettingOutDir <-
+    directoryPathSetting
+      [ help "Output directory: where the driver writes report.txt, report.json, and per-suite *.log files (required)",
+        option,
+        long "out-dir"
+      ]
+  diffSettingFailFast <-
+    yesNoSwitch
+      [ help "Whether to abort on the first surviving or uncovered mutation",
+        long "fail-fast",
+        value defaultFailFast
+      ]
+  pure DiffSettings {..}
+
+-- | Parse the diff source.  Precedence: an explicit @--diff FILE@ wins, then
+-- @--diff-stdin@, otherwise the default git merge-base computation against
+-- @--base@ (defaulting to 'defaultBaseBranch').
+diffSourceParser :: Parser DiffSource
+diffSourceParser = do
+  mFile <-
+    optional $
+      filePathSetting
+        [ help "Read the unified diff from this file instead of computing it from git",
+          option,
+          long "diff",
+          metavar "FILE"
+        ]
+  fromStdin <-
+    setting
+      [ help "Read the unified diff from standard input instead of computing it from git",
+        switch True,
+        long "diff-stdin",
+        value False
+      ]
+  base <-
+    setting
+      [ help "Base branch to compute the merge-base diff against (default git mode)",
+        reader str,
+        option,
+        long "base",
+        metavar "BRANCH",
+        value defaultBaseBranch
+      ]
+  pure $ case mFile of
+    Just f -> DiffSourceFile f
+    Nothing
+      | fromStdin -> DiffSourceStdin
+      | otherwise -> DiffSourceGitMergeBase base
 
 -- | Which component kind to enumerate or install: Cabal @executables@ or
 -- @test-suites@.
@@ -244,6 +445,14 @@ data Dispatch
       !(Path Abs Dir)
       -- | Optional output directory to symlink the report files into.
       !(Maybe (Path Abs Dir))
+  | -- | Run only the coverage phase, writing the augmented manifest.  This
+    -- builds the cheap coverage cache the diff-scoped runner depends on,
+    -- without the full mutation run.
+    DispatchCoverage !CoverageSettings
+  | -- | Run the mutation phase over only the subset of mutations implied by
+    -- a diff, using the cached augmented manifest and cached per-suite test
+    -- location listings.  No coverage phase; no compilation.
+    DispatchDiff !DiffSettings
   deriving (Show, Eq, Generic)
 
 dispatchParser :: Parser Dispatch
@@ -282,6 +491,12 @@ dispatchParser =
                     metavar "DIR"
                   ]
               ),
+      command "coverage" "Run only the coverage phase and write the augmented manifest" $
+        withoutConfig $
+          DispatchCoverage <$> coverageSettingsParser,
+      command "diff" "Run only the mutations implied by a diff, against cached coverage" $
+        withoutConfig $
+          DispatchDiff <$> diffSettingsParser,
       defaultCommand "run"
     ]
 

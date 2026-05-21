@@ -80,7 +80,7 @@ runCoverageMode ::
   Path Abs Dir ->
   -- | Maximum coverage-child concurrency.  'Nothing' means
   -- 'getNumCapabilities'.
-  Maybe Int ->
+  Maybe Word ->
   -- | Retry budget for a failing coverage child.
   Word ->
   -- | Name of this suite (used as the covering-tests key).
@@ -112,7 +112,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
           writeEmptyAugmented
         else do
           n <- case coverageJobs of
-            Just j | j > 0 -> pure j
+            Just j | j > 0 -> pure (fromIntegral j)
             _ -> getNumCapabilities
           sem <- newQSem n
           -- A coverage child that observes a test failure (and was

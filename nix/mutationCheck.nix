@@ -9,6 +9,37 @@
 #   and report.json; succeeds as long as all test suites complete without
 #   crashing
 #
+# The returned derivation carries the building blocks as passthru attributes,
+# so each piece can be built and inspected on its own:
+#
+# - 'passthru.report': the full mutation report ('report.txt'/'report.json'),
+#   the same derivation the sealed check is built from.
+#
+# - 'passthru.coverage': a separate, much cheaper set of derivations that run
+#   only the coverage phase and emit the augmented manifest ('augmented/', the
+#   which-test-covers-which-mutation map) plus the per-suite test-location
+#   listings ('test-locations/<suite>.json').  Coverage is gathered in one
+#   derivation per test-package (so editing one package's tests only
+#   invalidates that package's coverage, and the per-package runs build in
+#   parallel).  None of this runs the mutation phase.  Each per-package
+#   coverage is reachable as a passthru on this derivation, keyed by package
+#   name ('passthru.coverage.<pkg>'), so a single package's coverage can be
+#   built and inspected on its own; 'passthru.coverage' itself is an aggregate
+#   view that symlinks each package's coverage under '<pkg>/'.  See the
+#   'coverage' binding below.
+#
+# - 'passthru.diff': a 'nix run'-able diff-scoped mutation runner.  It depends
+#   on the per-package coverage derivations (NOT the full report), reading them
+#   directly (one '--coverage-dir' each) and unioning their augmented manifests
+#   in-memory, to mutation-test only the subset
+#   of mutations implied by a diff: source-file changes select the mutations
+#   whose span falls in a changed hunk; test-file changes select the mutations
+#   the changed tests cover.  It runs only those mutation children — no
+#   compilation and no coverage phase at 'nix run' time.  Run it from inside
+#   the repository working tree; by default it diffs against the merge-base
+#   with the base branch (override with '--diff FILE', '--diff-stdin', or
+#   '--base BRANCH').  See the 'diff' binding below.
+#
 # Arguments:
 # - name: derivation name prefix
 # - packages: attr names in haskellPackages for packages that have both
@@ -194,6 +225,92 @@ let
       "--coverage-retry=${toString coverageRetry}";
   failFastFlag = if failFast then "--fail-fast" else "--no-fail-fast";
 
+  # The coverage cache, split into one derivation per test-package plus a
+  # cheap merge.  Both steps run ONLY the coverage phase (never the mutation
+  # phase), so the cache is much cheaper than the full check ('drv' below) and
+  # is what '.diff' depends on — the diff-scoped runner never needs the full
+  # mutation run to have happened.
+  #
+  # Splitting per test-package means editing one package's tests only
+  # invalidates that package's coverage derivation, the others stay cached, and
+  # the per-package coverage runs build in parallel.
+
+  # One per-package coverage derivation: run the 'coverage' subcommand for a
+  # single --suite-pkg (but against ALL --manifest dirs, so the full mutation
+  # set is known), writing that package's augmented manifest to $out/augmented
+  # and its suites' TestId -> source-location listings to
+  # $out/test-locations/<suite>.json (a JSON array of TestLocation objects).
+  #
+  # The listing only walks the spec tree (no tests execute), so it is cheap; we
+  # cd into the package's resource dir first so spec-definition IO ('runIO')
+  # resolves relative paths the same way the driver does.
+  perPackageCoverage = pkg:
+    pkgs.stdenv.mkDerivation {
+      name = "${name}-${pkg}-mutation-coverage";
+      dontUnpack = true;
+      buildInputs = [ (builtTestPkg pkg) driver ];
+      nativeBuildInputs = collectedTestToolDepends;
+      buildPhase = ''
+        runHook preBuild
+
+        ${driver}/bin/sydtest-mutation-driver coverage \
+          ${pkgs.lib.concatStringsSep " " manifestFlags} \
+          --suite-pkg=${pkg}=${builtTestPkg pkg}=${unpackedSrcFor pkg} \
+          ${failFastFlag} \
+          ${coverageJobsFlag} \
+          ${coverageRetryFlag} \
+          --mutation-augmented-manifest-dir="$out/augmented"
+
+        mkdir -p "$out/test-locations"
+        for exe in "${builtTestPkg pkg}/test/"*; do
+          [ -e "$exe" ] || continue
+          suite="$(basename "$exe")"
+          ( cd "${unpackedSrcFor pkg}" \
+            && "$exe" --mutation-coverage-list-locations ) \
+            > "$out/test-locations/$suite.json"
+        done
+
+        runHook postBuild
+      '';
+      # buildPhase populates $out directly; there is nothing to install.
+      dontInstall = true;
+    };
+
+  perPackageCoverages = map perPackageCoverage testPackages;
+
+  # The same per-package coverage derivations, keyed by package name, so a
+  # single package's coverage can be built and inspected on its own via the
+  # 'coverage' derivation's per-package passthrus (e.g.
+  # 'nix build .#…​.coverage.<pkg>').
+  perPackageCoverageByName =
+    builtins.listToAttrs (map
+      (pkg: { name = pkg; value = perPackageCoverage pkg; })
+      testPackages);
+
+  # The aggregate coverage view: a cheap derivation that symlinks each
+  # package's coverage under its own subdirectory ($out/<pkg> -> that
+  # package's augmented/ + test-locations/).  Per-package subdirs avoid the
+  # 'augmented/manifest-augmented.json' filename collision a flat join would
+  # hit.  This is purely for convenient inspection ('nix build .#…​.coverage');
+  # the diff runner does NOT consume it — it reads the per-package coverage
+  # directories directly (one --coverage-dir each), unioning their augmented
+  # manifests in-memory, so there is no merge derivation.
+  #
+  # The per-package coverage derivations are attached as passthrus, so
+  # 'coverage' is both the aggregate view and the namespace for its
+  # per-package inputs ('coverage.<pkg>').
+  coverage =
+    (pkgs.runCommand "${name}-mutation-coverage" { } (
+      pkgs.lib.concatMapStringsSep "\n"
+        (pkg: ''
+          mkdir -p "$out"
+          ln -s "${perPackageCoverage pkg}" "$out/${pkg}"
+        '')
+        testPackages
+    )).overrideAttrs (old: {
+      passthru = (old.passthru or { }) // perPackageCoverageByName;
+    });
+
   drv =
     pkgs.stdenv.mkDerivation {
       name = "${name}-mutation-report";
@@ -204,9 +321,10 @@ let
       # PATH so children can find them.
       nativeBuildInputs = collectedTestToolDepends;
       # The driver writes report.txt, report.json, and every per-suite
-      # *.log file directly into --out-dir.  The augmented manifest is
-      # an intermediate artefact that doesn't belong in $out, so it
-      # lives in a workdir-local directory the driver creates itself.
+      # *.log file directly into --out-dir.  The augmented manifest is an
+      # intermediate artefact that lives in a workdir-local directory the
+      # driver creates itself.  (The diff-scoped runner does not read it from
+      # here — it reads the per-package coverage derivations instead.)
       buildPhase = ''
         runHook preBuild
 
@@ -222,15 +340,73 @@ let
 
         runHook postBuild
       '';
-      installPhase = ''
-        runHook preInstall
-        runHook postInstall
-      '';
+      # buildPhase writes report.txt/report.json into $out directly; there is
+      # nothing to install.
+      dontInstall = true;
     };
 
   report = drv;
+
+  # The diff-scoped runner: 'nix run' this to mutation-test only the subset
+  # of mutations implied by a diff (default: 'git diff' against the
+  # merge-base with the base branch; override with '--diff FILE',
+  # '--diff-stdin', or '--base BRANCH').
+  #
+  # It depends only on the cheap 'coverage' derivation (the augmented
+  # manifest + per-suite test-location listings) and the cached instrumented
+  # test exes — NOT on the full mutation report.  No compilation and no
+  # coverage phase run at 'nix run' time; only the selected mutation children
+  # execute.  It must be run from inside the repository working tree so the
+  # default 'git' diff and the suites' relative resource paths resolve.
+  #
+  # Extra arguments are forwarded to 'sydtest-mutation-driver diff' (e.g.
+  # '--diff FILE', '--base BRANCH', '--no-fail-fast').  The report output
+  # directory defaults to a fresh temp dir; override it with the
+  # MUTATION_DIFF_OUT_DIR environment variable or by passing your own
+  # '--out-dir' (in which case the wrapper does not inject its default, since
+  # the driver rejects a duplicate '--out-dir').
+  diff = pkgs.writeShellApplication {
+    name = "${name}-mutation-diff";
+    runtimeInputs = [ driver pkgs.git pkgs.coreutils ] ++ collectedTestToolDepends;
+    text = ''
+      # Only inject a default --out-dir when the caller didn't pass one.
+      out_dir_args=()
+      case " $* " in
+        *" --out-dir "* | *" --out-dir="*) ;;
+        *) out_dir_args=(--out-dir "''${MUTATION_DIFF_OUT_DIR:-$(mktemp -d)}") ;;
+      esac
+      sydtest-mutation-driver diff \
+        ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
+        ${pkgs.lib.concatMapStringsSep " "
+          (pkg: ''--coverage-dir="${perPackageCoverage pkg}"'')
+          testPackages} \
+        --child-mem-limit=${testProcessMemLimit} \
+        "''${out_dir_args[@]}" \
+        "$@"
+      if [ ''${#out_dir_args[@]} -gt 0 ]; then
+        echo "Diff-scoped mutation report written to ''${out_dir_args[1]}" >&2
+      fi
+    '';
+  };
+
   check = assertMutationScore { inherit name assertNoneUncovered report; };
+
+  # Attach the building blocks as passthrus on whichever derivation we return,
+  # so a single 'mutationCheck { ... }' call yields not just the sealed
+  # check/report but every intermediate piece, each buildable and inspectable
+  # on its own:
+  #
+  # - '.diff'              the diff-scoped runner (nix run)
+  # - '.report'           the full mutation report (report.txt/report.json)
+  # - '.coverage'         the merged coverage (augmented/ + test-locations/);
+  #                       its own per-package passthrus ('.coverage.<pkg>')
+  #                       give each test-package's coverage on its own
+  withPassthru = drv': drv'.overrideAttrs (old: {
+    passthru = (old.passthru or { }) // {
+      inherit diff report coverage;
+    };
+  });
 in
 if assertAllKilled
-then check
-else report
+then withPassthru check
+else withPassthru report

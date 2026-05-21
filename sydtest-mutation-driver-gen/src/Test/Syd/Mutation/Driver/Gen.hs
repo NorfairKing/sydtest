@@ -22,3 +22,15 @@ instance GenValid SuitePkgSpec
 instance Validity MutationDriverSettings
 
 instance GenValid MutationDriverSettings
+
+instance Validity CoverageSettings
+
+instance GenValid CoverageSettings
+
+instance Validity DiffSource
+
+instance GenValid DiffSource
+
+instance Validity DiffSettings
+
+instance GenValid DiffSettings

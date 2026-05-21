@@ -29,6 +29,7 @@ import System.IO (BufferMode (..), hFlush, hSetBuffering, hSetEncoding, stderr, 
 import Test.Syd.Mutation.Driver.AssertScore (runAssertScore)
 import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListComponents)
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
+import Test.Syd.Mutation.Driver.DiffRun (runDiff)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
@@ -53,6 +54,8 @@ sydMutationDriver = do
       runInstallComponents kind cabalFile outDir
     DispatchAssertScore assertNoneUncovered reportDir mOutDir ->
       runAssertScore assertNoneUncovered reportDir mOutDir
+    DispatchCoverage settings -> runCoverage settings
+    DispatchDiff settings -> runDiff settings
 
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()
@@ -92,12 +95,29 @@ runDriver MutationDriverSettings {..} = do
         suiteExesByName
   hFlush stdout
 
+-- | Run only the coverage phase: for each suite, run the coverage parent so
+-- the augmented manifest accumulates, then stop.  Writes no report; the
+-- augmented manifest it leaves behind is the diff-scoped runner's cache.
+runCoverage :: CoverageSettings -> IO ()
+runCoverage CoverageSettings {..} = do
+  suites <- walkSuitePkgs coverageSettingSuitePkgs
+  mapM_
+    ( runOneSuiteCoverage
+        coverageSettingManifests
+        coverageSettingAugmentedManifestDir
+        coverageSettingCoverageJobs
+        coverageSettingCoverageRetry
+        coverageSettingFailFast
+    )
+    (Map.toAscList suites)
+  hFlush stdout
+
 -- | Run the coverage phase for one suite, with optional @cd@ into its
 -- resource directory beforehand.
 runOneSuiteCoverage ::
   [Path Abs Dir] ->
   Path Abs Dir ->
-  Maybe Int ->
+  Maybe Word ->
   Word ->
   Bool ->
   (Text, SuiteConfig) ->

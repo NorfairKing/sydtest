@@ -109,6 +109,11 @@ data MutationMode
   = -- | Child process: print every leaf test's id on stdout and exit.
     -- Used by the driver to enumerate tests for the coverage phase.
     MutationModeCoverageList
+  | -- | Child process: print every leaf test's id and the source
+    -- location ('srcFile:line') of its @it@\/@prop@ call site, one
+    -- @id\\tloc@ pair per line, then exit.  Used by the diff-scoped
+    -- runner to map changed test-source lines back to test ids.
+    MutationModeCoverageListLocations
   | -- | Child process that collects coverage for one test.
     MutationModeCoverageChild !CoverageChildSettings
   | -- | Child process that runs only the tests covering one mutation.
@@ -278,6 +283,9 @@ resolveMutationSettings Flags {..} =
    in case (flagMutationCoverageList, flagMutationCoverageOne, flagMutationOne) of
         (True, _, _) ->
           pure $ mkMutation MutationModeCoverageList
+        _
+          | flagMutationCoverageListLocations ->
+              pure $ mkMutation MutationModeCoverageListLocations
         (False, Just tid, _) -> do
           outputFile <- case flagMutationCoverageOutput of
             Just f -> Right f
@@ -394,6 +402,7 @@ data Flags = Flags
     flagMutationCoverageOutput :: !(Maybe FilePath),
     flagMutationCoverageBaselineOutput :: !(Maybe FilePath),
     flagMutationCoverageList :: !Bool,
+    flagMutationCoverageListLocations :: !Bool,
     flagMutationFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -630,6 +639,14 @@ instance HasParser Flags where
         [ help "List every leaf test id on stdout and exit (used internally by the mutation driver to enumerate tests)",
           switch True,
           long "mutation-coverage-list",
+          hidden,
+          value False
+        ]
+    flagMutationCoverageListLocations <-
+      setting
+        [ help "List every leaf test id and its source location on stdout and exit (used internally by the diff-scoped mutation runner)",
+          switch True,
+          long "mutation-coverage-list-locations",
           hidden,
           value False
         ]

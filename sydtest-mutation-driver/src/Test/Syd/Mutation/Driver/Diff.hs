@@ -292,7 +292,7 @@ mutationsInHunks hunks (AugmentedManifest groups) =
 -- | @rangesIntersect (a, b) (c, d)@ is 'True' when the inclusive ranges
 -- @[a..b]@ and @[c..d]@ overlap.  Empty ranges (start > end) overlap nothing.
 rangesIntersect :: (Word, Word) -> (Word, Word) -> Bool
-rangesIntersect (a, b) (c, d) = a <= b && c <= d && a <= d && c <= b
+rangesIntersect (a, b) (c, d) = and [a <= b, c <= d, a <= d, c <= b]
 
 -- | Select every 'TestId' whose source location lies inside a changed hunk's
 -- /whole new-side span/ in a matching file.  The map argument is the per-test

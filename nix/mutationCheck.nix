@@ -272,10 +272,8 @@ let
 
         runHook postBuild
       '';
-      installPhase = ''
-        runHook preInstall
-        runHook postInstall
-      '';
+      # buildPhase populates $out directly; there is nothing to install.
+      dontInstall = true;
     };
 
   perPackageCoverages = map perPackageCoverage testPackages;
@@ -326,7 +324,7 @@ let
       # *.log file directly into --out-dir.  The augmented manifest is an
       # intermediate artefact that lives in a workdir-local directory the
       # driver creates itself.  (The diff-scoped runner does not read it from
-      # here — it reads the dedicated 'coverage' derivation instead.)
+      # here — it reads the per-package coverage derivations instead.)
       buildPhase = ''
         runHook preBuild
 
@@ -342,10 +340,9 @@ let
 
         runHook postBuild
       '';
-      installPhase = ''
-        runHook preInstall
-        runHook postInstall
-      '';
+      # buildPhase writes report.txt/report.json into $out directly; there is
+      # nothing to install.
+      dontInstall = true;
     };
 
   report = drv;

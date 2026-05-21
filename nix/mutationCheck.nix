@@ -15,22 +15,20 @@
 # - 'passthru.report': the full mutation report ('report.txt'/'report.json'),
 #   the same derivation the sealed check is built from.
 #
-# - 'passthru.coverageCache': a separate, much cheaper set of derivations that
-#   run only the coverage phase and emit the augmented manifest ('augmented/',
-#   the which-test-covers-which-mutation map) plus the per-suite test-location
+# - 'passthru.coverage': a separate, much cheaper set of derivations that run
+#   only the coverage phase and emit the augmented manifest ('augmented/', the
+#   which-test-covers-which-mutation map) plus the per-suite test-location
 #   listings ('test-locations/<suite>.tsv').  Coverage is gathered in one
 #   derivation per test-package (so editing one package's tests only
 #   invalidates that package's coverage, and the per-package runs build in
 #   parallel), then unioned by a cheap merge derivation.  None of this runs the
-#   mutation phase.  See the 'perPackageCoverage' and 'coverageCache' bindings
-#   below.
-#
-# - 'passthru.perPackageCoverage.<pkg>': the coverage derivation for one
-#   test-package on its own ('augmented/' + 'test-locations/'), keyed by
-#   package name.  These are the inputs the merged 'coverageCache' unions.
+#   mutation phase.  Each per-package coverage is itself reachable as a
+#   passthru on this derivation, keyed by package name
+#   ('passthru.coverage.<pkg>'), so a single package's coverage can be built
+#   and inspected on its own.  See the 'coverage' binding below.
 #
 # - 'passthru.diff': a 'nix run'-able diff-scoped mutation runner.  It depends
-#   on 'coverageCache' (NOT the full report) to mutation-test only the subset
+#   on 'coverage' (NOT the full report) to mutation-test only the subset
 #   of mutations implied by a diff: source-file changes select the mutations
 #   whose span falls in a changed hunk; test-file changes select the mutations
 #   the changed tests cover.  It runs only those mutation children — no
@@ -281,22 +279,26 @@ let
 
   # The same per-package coverage derivations, keyed by package name, so a
   # single package's coverage can be built and inspected on its own via the
-  # 'perPackageCoverage' passthru (e.g.
-  # 'nix build .#…​.perPackageCoverage.<pkg>').
+  # 'coverage' derivation's per-package passthrus (e.g.
+  # 'nix build .#…​.coverage.<pkg>').
   perPackageCoverageByName =
     builtins.listToAttrs (map
       (pkg: { name = pkg; value = perPackageCoverage pkg; })
       testPackages);
 
-  # The merged coverage cache: union the per-package augmented manifests with
-  # the driver's 'merge-coverage' subcommand, and gather every package's
+  # The merged coverage: union the per-package augmented manifests with the
+  # driver's 'merge-coverage' subcommand, and gather every package's
   # test-location TSVs into one directory.  Cheap: no tests run here, it only
   # reads + unions JSON and copies small TSV files.  Exposes the same
   # $out/augmented + $out/test-locations layout the diff runner reads, so the
   # split is invisible to '.diff'.
-  coverageCache =
-    pkgs.stdenv.mkDerivation {
-      name = "${name}-mutation-coverage-cache";
+  #
+  # The per-package coverage derivations are attached as passthrus on this
+  # derivation, so 'coverage' is both the merged result and the namespace for
+  # its per-package inputs ('coverage.<pkg>').
+  coverage =
+    (pkgs.stdenv.mkDerivation {
+      name = "${name}-mutation-coverage";
       dontUnpack = true;
       nativeBuildInputs = [ driver ];
       buildPhase = ''
@@ -319,7 +321,9 @@ let
         runHook preInstall
         runHook postInstall
       '';
-    };
+    }).overrideAttrs (old: {
+      passthru = (old.passthru or { }) // perPackageCoverageByName;
+    });
 
   drv =
     pkgs.stdenv.mkDerivation {
@@ -334,7 +338,7 @@ let
       # *.log file directly into --out-dir.  The augmented manifest is an
       # intermediate artefact that lives in a workdir-local directory the
       # driver creates itself.  (The diff-scoped runner does not read it from
-      # here — it reads the dedicated 'coverageCache' derivation instead.)
+      # here — it reads the dedicated 'coverage' derivation instead.)
       buildPhase = ''
         runHook preBuild
 
@@ -363,7 +367,7 @@ let
   # merge-base with the base branch; override with '--diff FILE',
   # '--diff-stdin', or '--base BRANCH').
   #
-  # It depends only on the cheap 'coverageCache' derivation (the augmented
+  # It depends only on the cheap 'coverage' derivation (the augmented
   # manifest + per-suite test-location listings) and the cached instrumented
   # test exes — NOT on the full mutation report.  No compilation and no
   # coverage phase run at 'nix run' time; only the selected mutation children
@@ -388,8 +392,8 @@ let
       esac
       sydtest-mutation-driver diff \
         ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
-        --mutation-augmented-manifest-dir="${coverageCache}/augmented" \
-        --test-locations-dir="${coverageCache}/test-locations" \
+        --mutation-augmented-manifest-dir="${coverage}/augmented" \
+        --test-locations-dir="${coverage}/test-locations" \
         --child-mem-limit=${testProcessMemLimit} \
         "''${out_dir_args[@]}" \
         "$@"
@@ -406,15 +410,14 @@ let
   # check/report but every intermediate piece, each buildable and inspectable
   # on its own:
   #
-  # - '.diff'                 the diff-scoped runner (nix run)
-  # - '.report'              the full mutation report (report.txt/report.json)
-  # - '.coverageCache'       the merged coverage cache (augmented/ + test-locations/)
-  # - '.perPackageCoverage'  attrset keyed by test-package name: that package's
-  #                          own coverage derivation (augmented/ + test-locations/)
+  # - '.diff'              the diff-scoped runner (nix run)
+  # - '.report'           the full mutation report (report.txt/report.json)
+  # - '.coverage'         the merged coverage (augmented/ + test-locations/);
+  #                       its own per-package passthrus ('.coverage.<pkg>')
+  #                       give each test-package's coverage on its own
   withPassthru = drv': drv'.overrideAttrs (old: {
     passthru = (old.passthru or { }) // {
-      inherit diff report coverageCache;
-      perPackageCoverage = perPackageCoverageByName;
+      inherit diff report coverage;
     };
   });
 in

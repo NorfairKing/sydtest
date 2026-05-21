@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -17,6 +18,7 @@ module Test.Syd.Mutation.Driver.DiffRun
   )
 where
 
+import Control.Monad (filterM)
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -28,7 +30,9 @@ import Path.IO (doesFileExist, withSystemTempDir)
 import System.IO (hPutStrLn, stderr)
 import System.Process.Typed (proc, readProcessStdout_)
 import Test.Syd.Mutation.AugmentedManifest
-  ( filterAugmentedManifestByIds,
+  ( AugmentedManifest (..),
+    filterAugmentedManifestByIds,
+    mergeAugmentedManifests,
     readAugmentedManifestFile,
     writeAugmentedManifestFile,
   )
@@ -54,12 +58,18 @@ runDiff DiffSettings {..} = do
   -- 2. Resolve the suite map (suite name -> exe + resource dir).
   suites <- walkSuitePkgs diffSettingSuitePkgs
 
-  -- 3. Read the cached augmented manifest and the cached per-suite test
-  -- location listings.
-  manifest <- readAugmentedManifestFile diffSettingAugmentedManifestDir
+  -- 3. Read the per-package coverage directories: union their augmented
+  -- manifests in-memory, and read each suite's test-location listing from
+  -- whichever directory provides it.  Consuming the per-package coverage
+  -- directly avoids a separate merge derivation.
+  manifests <-
+    mapM
+      (\dir -> readAugmentedManifestFile (dir </> [reldir|augmented|]))
+      diffSettingCoverageDirs
+  let manifest = foldl mergeAugmentedManifests (AugmentedManifest []) manifests
   testLocationsBySuite <-
     Map.traverseWithKey
-      (\suiteName _ -> readTestLocations diffSettingTestLocationsDir suiteName)
+      (\suiteName _ -> readTestLocations diffSettingCoverageDirs suiteName)
       suites
 
   -- 4. Select the diff-implied mutations and filter the manifest down to them.
@@ -108,20 +118,22 @@ gitMergeBaseDiff base = do
   pure (decodeUtf8Lenient (LB.toStrict diffOut))
 
 -- | Read a suite's @TestId -> (file, line)@ map from
--- @<dir>/<suite-name>.tsv@.  Each line is @<rendered-test-id>\\t<file>:<line>@;
--- a line without a tab (a test whose call stack was empty) is skipped, as it
--- cannot be mapped to a source line.  A missing file yields an empty map (the
--- suite contributed no listing).
+-- @\<coverage-dir\>/test-locations/\<suite-name\>.tsv@, searching each
+-- per-package coverage directory for the suite's listing.  Each line is
+-- @\<rendered-test-id\>\\t\<file\>:\<line\>@; a line without a tab (a test
+-- whose call stack was empty) is skipped, as it cannot be mapped to a source
+-- line.  A suite whose listing is absent from every directory yields an empty
+-- map.
 readTestLocations ::
-  Path Abs Dir ->
+  [Path Abs Dir] ->
   Text ->
   IO (Map.Map TestId (Path Rel File, Word))
-readTestLocations dir suiteName = do
+readTestLocations coverageDirs suiteName = do
   relFile <- case parseRelFile (T.unpack suiteName ++ ".tsv") of
     Just rf -> pure rf
     Nothing -> fail ("sydtest-mutation-driver diff: invalid suite name for tsv file: " ++ show suiteName)
-  let path = dir </> relFile
-  exists <- doesFileExist path
-  if not exists
-    then pure Map.empty
-    else parseTestLocationsTsv <$> TIO.readFile (fromAbsFile path)
+  let candidates = map (\dir -> dir </> [reldir|test-locations|] </> relFile) coverageDirs
+  existing <- filterM doesFileExist candidates
+  case existing of
+    [] -> pure Map.empty
+    (path : _) -> parseTestLocationsTsv <$> TIO.readFile (fromAbsFile path)

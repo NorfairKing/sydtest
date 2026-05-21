@@ -26,12 +26,6 @@ import Data.Text (Text)
 import Path
 import Path.IO (getCurrentDir, setCurrentDir)
 import System.IO (BufferMode (..), hFlush, hSetBuffering, hSetEncoding, stderr, stdout, utf8)
-import Test.Syd.Mutation.AugmentedManifest
-  ( AugmentedManifest (..),
-    mergeAugmentedManifests,
-    readAugmentedManifestFile,
-    writeAugmentedManifestFile,
-  )
 import Test.Syd.Mutation.Driver.AssertScore (runAssertScore)
 import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListComponents)
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
@@ -61,7 +55,6 @@ sydMutationDriver = do
     DispatchAssertScore assertNoneUncovered reportDir mOutDir ->
       runAssertScore assertNoneUncovered reportDir mOutDir
     DispatchCoverage settings -> runCoverage settings
-    DispatchMergeCoverage settings -> runMergeCoverage settings
     DispatchDiff settings -> runDiff settings
 
 -- | Run the driver phases in order: coverage, then mutation.
@@ -117,19 +110,6 @@ runCoverage CoverageSettings {..} = do
         coverageSettingFailFast
     )
     (Map.toAscList suites)
-  hFlush stdout
-
--- | Union several per-suite augmented manifests into one.  Each input was
--- produced by a per-suite 'runCoverage'; 'mergeAugmentedManifests' unions
--- their @coveringTests@ per mutation, so the result is identical to having
--- run coverage for all suites in one derivation.  The merge is associative
--- and the inputs are folded left-to-right with an empty manifest as the
--- identity, so the order of @--input@ flags does not affect the result.
-runMergeCoverage :: MergeCoverageSettings -> IO ()
-runMergeCoverage MergeCoverageSettings {..} = do
-  inputs <- mapM readAugmentedManifestFile mergeCoverageSettingInputs
-  let merged = foldl mergeAugmentedManifests (AugmentedManifest []) inputs
-  writeAugmentedManifestFile mergeCoverageSettingOutputDir merged
   hFlush stdout
 
 -- | Run the coverage phase for one suite, with optional @cd@ into its

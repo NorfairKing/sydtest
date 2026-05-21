@@ -24,9 +24,6 @@ module Test.Syd.Mutation.Driver.OptParse
     -- * 'coverage' subcommand
     CoverageSettings (..),
 
-    -- * 'merge-coverage' subcommand
-    MergeCoverageSettings (..),
-
     -- * 'diff' subcommand
     DiffSettings (..),
     DiffSource (..),
@@ -134,19 +131,6 @@ data CoverageSettings = CoverageSettings
   }
   deriving (Show, Eq, Generic)
 
--- | Settings for the @merge-coverage@ subcommand: union several augmented
--- manifests (each produced by a per-suite @coverage@ run) into one.  Used to
--- combine the per-test-package coverage caches into a single augmented
--- manifest the diff runner can read.
-data MergeCoverageSettings = MergeCoverageSettings
-  { -- | Input augmented-manifest directories to union (each holds a
-    -- @manifest-augmented.json@).
-    mergeCoverageSettingInputs :: ![Path Abs Dir],
-    -- | Directory to write the merged @manifest-augmented.json@ into.
-    mergeCoverageSettingOutputDir :: !(Path Abs Dir)
-  }
-  deriving (Show, Eq, Generic)
-
 -- | Where the @diff@ subcommand gets the unified diff to scope the run by.
 data DiffSource
   = -- | Read the diff from this file.
@@ -173,12 +157,12 @@ data DiffSettings = DiffSettings
     -- | Test-package specs, expanded to the suite-exe map at run time
     -- (same as the @run@ subcommand).
     diffSettingSuitePkgs :: ![SuitePkgSpec],
-    -- | Directory holding the cached @manifest-augmented.json@.
-    diffSettingAugmentedManifestDir :: !(Path Abs Dir),
-    -- | Directory holding the cached per-suite @\<suite-name\>.tsv@
-    -- listings of @TestId\\tfile:line@ (from
-    -- @--mutation-coverage-list-locations@).
-    diffSettingTestLocationsDir :: !(Path Abs Dir),
+    -- | Per-package coverage directories.  Each directory holds that
+    -- package's @augmented/manifest-augmented.json@ and its
+    -- @test-locations/\<suite\>.tsv@ listings.  The driver unions the
+    -- augmented manifests in-memory and reads every directory's
+    -- test-locations, so no separate merge step is needed.
+    diffSettingCoverageDirs :: ![Path Abs Dir],
     -- | RTS heap cap for each mutation child.
     diffSettingChildMemLimit :: !(Maybe String),
     -- | Output directory for report.json\/report.txt\/per-suite logs.
@@ -314,25 +298,6 @@ coverageSettingsParser = do
       ]
   pure CoverageSettings {..}
 
--- | CLI parser for the @merge-coverage@ subcommand.
-mergeCoverageSettingsParser :: Parser MergeCoverageSettings
-mergeCoverageSettingsParser = do
-  mergeCoverageSettingInputs <-
-    many $
-      directoryPathSetting
-        [ help "Input augmented-manifest directory to union (may be repeated)",
-          option,
-          long "input",
-          metavar "DIR"
-        ]
-  mergeCoverageSettingOutputDir <-
-    directoryPathSetting
-      [ help "Directory to write the merged manifest-augmented.json into (required)",
-        option,
-        long "mutation-augmented-manifest-dir"
-      ]
-  pure MergeCoverageSettings {..}
-
 -- | CLI parser for the @diff@ subcommand.
 diffSettingsParser :: Parser DiffSettings
 diffSettingsParser = do
@@ -346,18 +311,14 @@ diffSettingsParser = do
           long "suite-pkg",
           metavar "PNAME=ROOT=RESOURCE_DIR"
         ]
-  diffSettingAugmentedManifestDir <-
-    directoryPathSetting
-      [ help "Directory holding the cached manifest-augmented.json (required)",
-        option,
-        long "mutation-augmented-manifest-dir"
-      ]
-  diffSettingTestLocationsDir <-
-    directoryPathSetting
-      [ help "Directory holding the cached per-suite <suite>.tsv test-location listings (required)",
-        option,
-        long "test-locations-dir"
-      ]
+  diffSettingCoverageDirs <-
+    many $
+      directoryPathSetting
+        [ help "Per-package coverage directory holding augmented/ and test-locations/ (may be repeated)",
+          option,
+          long "coverage-dir",
+          metavar "DIR"
+        ]
   diffSettingChildMemLimit <-
     optional $
       setting
@@ -488,9 +449,6 @@ data Dispatch
     -- builds the cheap coverage cache the diff-scoped runner depends on,
     -- without the full mutation run.
     DispatchCoverage !CoverageSettings
-  | -- | Union several per-suite augmented manifests into one.  Used to
-    -- combine the per-test-package coverage caches.
-    DispatchMergeCoverage !MergeCoverageSettings
   | -- | Run the mutation phase over only the subset of mutations implied by
     -- a diff, using the cached augmented manifest and cached per-suite test
     -- location listings.  No coverage phase; no compilation.
@@ -536,9 +494,6 @@ dispatchParser =
       command "coverage" "Run only the coverage phase and write the augmented manifest" $
         withoutConfig $
           DispatchCoverage <$> coverageSettingsParser,
-      command "merge-coverage" "Union several per-suite augmented manifests into one" $
-        withoutConfig $
-          DispatchMergeCoverage <$> mergeCoverageSettingsParser,
       command "diff" "Run only the mutations implied by a diff, against cached coverage" $
         withoutConfig $
           DispatchDiff <$> diffSettingsParser,

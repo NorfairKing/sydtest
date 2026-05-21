@@ -21,14 +21,17 @@
 #   listings ('test-locations/<suite>.tsv').  Coverage is gathered in one
 #   derivation per test-package (so editing one package's tests only
 #   invalidates that package's coverage, and the per-package runs build in
-#   parallel), then unioned by a cheap merge derivation.  None of this runs the
-#   mutation phase.  Each per-package coverage is itself reachable as a
-#   passthru on this derivation, keyed by package name
-#   ('passthru.coverage.<pkg>'), so a single package's coverage can be built
-#   and inspected on its own.  See the 'coverage' binding below.
+#   parallel).  None of this runs the mutation phase.  Each per-package
+#   coverage is reachable as a passthru on this derivation, keyed by package
+#   name ('passthru.coverage.<pkg>'), so a single package's coverage can be
+#   built and inspected on its own; 'passthru.coverage' itself is an aggregate
+#   view that symlinks each package's coverage under '<pkg>/'.  See the
+#   'coverage' binding below.
 #
 # - 'passthru.diff': a 'nix run'-able diff-scoped mutation runner.  It depends
-#   on 'coverage' (NOT the full report) to mutation-test only the subset
+#   on the per-package coverage derivations (NOT the full report), reading them
+#   directly (one '--coverage-dir' each) and unioning their augmented manifests
+#   in-memory, to mutation-test only the subset
 #   of mutations implied by a diff: source-file changes select the mutations
 #   whose span falls in a changed hunk; test-file changes select the mutations
 #   the changed tests cover.  It runs only those mutation children — no
@@ -286,42 +289,27 @@ let
       (pkg: { name = pkg; value = perPackageCoverage pkg; })
       testPackages);
 
-  # The merged coverage: union the per-package augmented manifests with the
-  # driver's 'merge-coverage' subcommand, and gather every package's
-  # test-location TSVs into one directory.  Cheap: no tests run here, it only
-  # reads + unions JSON and copies small TSV files.  Exposes the same
-  # $out/augmented + $out/test-locations layout the diff runner reads, so the
-  # split is invisible to '.diff'.
+  # The aggregate coverage view: a cheap derivation that symlinks each
+  # package's coverage under its own subdirectory ($out/<pkg> -> that
+  # package's augmented/ + test-locations/).  Per-package subdirs avoid the
+  # 'augmented/manifest-augmented.json' filename collision a flat join would
+  # hit.  This is purely for convenient inspection ('nix build .#…​.coverage');
+  # the diff runner does NOT consume it — it reads the per-package coverage
+  # directories directly (one --coverage-dir each), unioning their augmented
+  # manifests in-memory, so there is no merge derivation.
   #
-  # The per-package coverage derivations are attached as passthrus on this
-  # derivation, so 'coverage' is both the merged result and the namespace for
-  # its per-package inputs ('coverage.<pkg>').
+  # The per-package coverage derivations are attached as passthrus, so
+  # 'coverage' is both the aggregate view and the namespace for its
+  # per-package inputs ('coverage.<pkg>').
   coverage =
-    (pkgs.stdenv.mkDerivation {
-      name = "${name}-mutation-coverage";
-      dontUnpack = true;
-      nativeBuildInputs = [ driver ];
-      buildPhase = ''
-        runHook preBuild
-
-        ${driver}/bin/sydtest-mutation-driver merge-coverage \
-          ${pkgs.lib.concatMapStringsSep " "
-            (cov: "--input=${cov}/augmented")
-            perPackageCoverages} \
-          --mutation-augmented-manifest-dir="$out/augmented"
-
-        mkdir -p "$out/test-locations"
-        ${pkgs.lib.concatMapStringsSep "\n"
-          (cov: ''cp -n "${cov}/test-locations/"*.tsv "$out/test-locations/" 2>/dev/null || true'')
-          perPackageCoverages}
-
-        runHook postBuild
-      '';
-      installPhase = ''
-        runHook preInstall
-        runHook postInstall
-      '';
-    }).overrideAttrs (old: {
+    (pkgs.runCommand "${name}-mutation-coverage" { } (
+      pkgs.lib.concatMapStringsSep "\n"
+        (pkg: ''
+          mkdir -p "$out"
+          ln -s "${perPackageCoverage pkg}" "$out/${pkg}"
+        '')
+        testPackages
+    )).overrideAttrs (old: {
       passthru = (old.passthru or { }) // perPackageCoverageByName;
     });
 
@@ -392,8 +380,9 @@ let
       esac
       sydtest-mutation-driver diff \
         ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
-        --mutation-augmented-manifest-dir="${coverage}/augmented" \
-        --test-locations-dir="${coverage}/test-locations" \
+        ${pkgs.lib.concatMapStringsSep " "
+          (pkg: ''--coverage-dir="${perPackageCoverage pkg}"'')
+          testPackages} \
         --child-mem-limit=${testProcessMemLimit} \
         "''${out_dir_args[@]}" \
         "$@"

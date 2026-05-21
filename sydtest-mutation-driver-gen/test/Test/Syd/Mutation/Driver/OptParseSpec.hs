@@ -23,9 +23,6 @@ spec = do
   describe "CoverageSettings" $
     genValidSpec @CoverageSettings
 
-  describe "MergeCoverageSettings" $
-    genValidSpec @MergeCoverageSettings
-
   describe "DiffSource" $
     genValidSpec @DiffSource
 

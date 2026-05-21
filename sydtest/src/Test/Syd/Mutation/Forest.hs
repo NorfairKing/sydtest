@@ -13,6 +13,7 @@ module Test.Syd.Mutation.Forest
 
     -- * Forest operations
     flattenTestForestWithIds,
+    flattenTestForestWithIdsAndCallStacks,
     filterTestForestByTrie,
   )
 where
@@ -25,6 +26,7 @@ import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
+import GHC.Stack (CallStack)
 import Test.Syd.Mutation.TestId (TestId (..))
 import Test.Syd.SpecDef
 
@@ -120,6 +122,69 @@ flattenTestForestWithIds f = evalState (execWriterT (goForest [] f)) Map.empty
         DefExpectationNode _ sub -> goForest path sub
 
     nextKey :: SpecDefTree outers inner c -> WriterT [(TestId, c)] (State (Map Text Word)) (Maybe (Text, Word))
+    nextKey tree = case descriptionOf tree of
+      Nothing -> pure Nothing
+      Just t -> do
+        idx <- gets (Map.findWithDefault 0 t)
+        modify' (Map.insert t (idx + 1))
+        pure (Just (t, idx))
+
+    descriptionOf :: SpecDefTree outers inner c -> Maybe Text
+    descriptionOf = \case
+      DefSpecifyNode t _ _ -> Just t
+      DefPendingNode t _ -> Just t
+      DefDescribeNode t _ -> Just t
+      _ -> Nothing
+
+-- | Like 'flattenTestForestWithIds', but pair each leaf 'TestId' with the
+-- 'CallStack' captured at its @it@\/@prop@\/@specify@ call site
+-- ('testDefCallStack').  The 'TestId' assignment is identical to
+-- 'flattenTestForestWithIds' so the two stay in lockstep: a leaf's id here is
+-- the same id that the coverage phase records coverage against.
+--
+-- The 'CallStack' lets the diff-scoped runner map a changed test-source line
+-- back to the tests defined there.
+flattenTestForestWithIdsAndCallStacks :: SpecDefForest '[] () result -> [(TestId, CallStack)]
+flattenTestForestWithIdsAndCallStacks f = evalState (execWriterT (goForest [] f)) Map.empty
+  where
+    goForest :: [(Text, Word)] -> SpecDefForest outers inner c -> WriterT [(TestId, CallStack)] (State (Map Text Word)) ()
+    goForest path sub = do
+      saved <- gets id
+      modify' (const Map.empty)
+      mapM_ (goTree path) sub
+      modify' (const saved)
+
+    goTree ::
+      [(Text, Word)] ->
+      SpecDefTree outers inner c ->
+      WriterT [(TestId, CallStack)] (State (Map Text Word)) ()
+    goTree path tree = do
+      mkey <- nextKey tree
+      case tree of
+        DefSpecifyNode _ td _ ->
+          case mkey of
+            Nothing -> pure ()
+            Just key -> tell [(TestId (NE.fromList (reverse (key : path))), testDefCallStack td)]
+        DefPendingNode _ _ -> pure ()
+        DefDescribeNode _ sub ->
+          case mkey of
+            Nothing -> pure ()
+            Just key -> goForest (key : path) sub
+        DefSetupNode _ sub -> goForest path sub
+        DefBeforeAllNode _ sub -> goForest path sub
+        DefBeforeAllWithNode _ sub -> goForest path sub
+        DefWrapNode _ sub -> goForest path sub
+        DefAroundAllNode _ sub -> goForest path sub
+        DefAroundAllWithNode _ sub -> goForest path sub
+        DefAfterAllNode _ sub -> goForest path sub
+        DefParallelismNode _ sub -> goForest path sub
+        DefRandomisationNode _ sub -> goForest path sub
+        DefTimeoutNode _ sub -> goForest path sub
+        DefRetriesNode _ sub -> goForest path sub
+        DefFlakinessNode _ sub -> goForest path sub
+        DefExpectationNode _ sub -> goForest path sub
+
+    nextKey :: SpecDefTree outers inner c -> WriterT [(TestId, CallStack)] (State (Map Text Word)) (Maybe (Text, Word))
     nextKey tree = case descriptionOf tree of
       Nothing -> pure Nothing
       Just t -> do

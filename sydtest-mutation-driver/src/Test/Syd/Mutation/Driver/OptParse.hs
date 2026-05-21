@@ -20,6 +20,9 @@ module Test.Syd.Mutation.Driver.OptParse
     MutationDriverSettings (..),
     defaultCoverageRetry,
     defaultFailFast,
+
+    -- * 'coverage' subcommand
+    CoverageSettings (..),
   )
 where
 
@@ -109,6 +112,20 @@ data MutationDriverSettings = MutationDriverSettings
   }
   deriving (Show, Eq, Generic)
 
+-- | Settings for the @coverage@ subcommand: build only the coverage cache
+-- (the augmented manifest) that the diff-scoped runner depends on, without
+-- running the mutation phase.  This is what lets the diff cache be a much
+-- cheaper derivation than the full check.
+data CoverageSettings = CoverageSettings
+  { coverageSettingManifests :: ![Path Abs Dir],
+    coverageSettingSuitePkgs :: ![SuitePkgSpec],
+    coverageSettingCoverageJobs :: !(Maybe Int),
+    coverageSettingCoverageRetry :: !Word,
+    coverageSettingAugmentedManifestDir :: !(Path Abs Dir),
+    coverageSettingFailFast :: !Bool
+  }
+  deriving (Show, Eq, Generic)
+
 -- | Top-level CLI parser for the @run@ subcommand.
 mutationDriverSettingsParser :: Parser MutationDriverSettings
 mutationDriverSettingsParser = do
@@ -175,6 +192,60 @@ mutationDriverSettingsParser = do
         value defaultFailFast
       ]
   pure MutationDriverSettings {..}
+
+-- | CLI parser for the @coverage@ subcommand.  Shares the coverage-relevant
+-- flags with @run@ but takes no @--out-dir@ (it writes no report) and no
+-- @--child-mem-limit@ (it spawns no mutation children).
+coverageSettingsParser :: Parser CoverageSettings
+coverageSettingsParser = do
+  coverageSettingManifests <-
+    many $
+      directoryPathSetting
+        [ help "Mutation manifest directory (one per instrumented library; may be repeated)",
+          option,
+          long "manifest",
+          metavar "DIR"
+        ]
+  coverageSettingSuitePkgs <-
+    many $
+      setting
+        [ help "Test-package: PNAME=BUILT_TEST_PKG_ROOT=RESOURCE_DIR (may be repeated)",
+          reader $ eitherReader parseSuitePkgSpec,
+          option,
+          long "suite-pkg",
+          metavar "PNAME=ROOT=RESOURCE_DIR"
+        ]
+  coverageSettingCoverageJobs <-
+    optional $
+      setting
+        [ help "Maximum number of coverage children to run concurrently",
+          reader auto,
+          option,
+          long "coverage-jobs",
+          metavar "INT"
+        ]
+  coverageSettingCoverageRetry <-
+    setting
+      [ help "How many times to retry a failing coverage child before giving up",
+        reader auto,
+        option,
+        long "coverage-retry",
+        metavar "INT",
+        value defaultCoverageRetry
+      ]
+  coverageSettingAugmentedManifestDir <-
+    directoryPathSetting
+      [ help "Directory to write manifest-augmented.json into (required)",
+        option,
+        long "mutation-augmented-manifest-dir"
+      ]
+  coverageSettingFailFast <-
+    yesNoSwitch
+      [ help "Whether to abort the coverage run on a baseline test failure",
+        long "fail-fast",
+        value defaultFailFast
+      ]
+  pure CoverageSettings {..}
 
 -- | Which component kind to enumerate or install: Cabal @executables@ or
 -- @test-suites@.
@@ -244,6 +315,10 @@ data Dispatch
       !(Path Abs Dir)
       -- | Optional output directory to symlink the report files into.
       !(Maybe (Path Abs Dir))
+  | -- | Run only the coverage phase, writing the augmented manifest.  This
+    -- builds the cheap coverage cache the diff-scoped runner depends on,
+    -- without the full mutation run.
+    DispatchCoverage !CoverageSettings
   deriving (Show, Eq, Generic)
 
 dispatchParser :: Parser Dispatch
@@ -282,6 +357,9 @@ dispatchParser =
                     metavar "DIR"
                   ]
               ),
+      command "coverage" "Run only the coverage phase and write the augmented manifest" $
+        withoutConfig $
+          DispatchCoverage <$> coverageSettingsParser,
       defaultCommand "run"
     ]
 

@@ -53,6 +53,7 @@ sydMutationDriver = do
       runInstallComponents kind cabalFile outDir
     DispatchAssertScore assertNoneUncovered reportDir mOutDir ->
       runAssertScore assertNoneUncovered reportDir mOutDir
+    DispatchCoverage settings -> runCoverage settings
 
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()
@@ -90,6 +91,23 @@ runDriver MutationDriverSettings {..} = do
         mutationDriverSettingOutDir
         mutationDriverSettingChildMemLimit
         suiteExesByName
+  hFlush stdout
+
+-- | Run only the coverage phase: for each suite, run the coverage parent so
+-- the augmented manifest accumulates, then stop.  Writes no report; the
+-- augmented manifest it leaves behind is the diff-scoped runner's cache.
+runCoverage :: CoverageSettings -> IO ()
+runCoverage CoverageSettings {..} = do
+  suites <- walkSuitePkgs coverageSettingSuitePkgs
+  mapM_
+    ( runOneSuiteCoverage
+        coverageSettingManifests
+        coverageSettingAugmentedManifestDir
+        coverageSettingCoverageJobs
+        coverageSettingCoverageRetry
+        coverageSettingFailFast
+    )
+    (Map.toAscList suites)
   hFlush stdout
 
 -- | Run the coverage phase for one suite, with optional @cd@ into its

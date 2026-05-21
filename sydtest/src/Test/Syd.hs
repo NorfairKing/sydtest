@@ -257,6 +257,7 @@ where
 import Control.Monad
 import Control.Monad.IO.Class
 import qualified Data.Text as T
+import GHC.Stack (getCallStack, srcLocFile, srcLocStartLine)
 import Path
 import Path.IO
 import System.Exit
@@ -265,7 +266,7 @@ import Test.Syd.Def
 import Test.Syd.Expectation
 import Test.Syd.HList
 import Test.Syd.Modify
-import Test.Syd.Mutation.Forest (flattenTestForestWithIds)
+import Test.Syd.Mutation.Forest (flattenTestForestWithIds, flattenTestForestWithIdsAndCallStacks)
 import Test.Syd.Mutation.TestId (renderTestId)
 import Test.Syd.MutationMode.Single (runSingleMutationMode)
 import Test.Syd.MutationMode.SingleCoverage (runSingleCoverageMode)
@@ -288,6 +289,7 @@ sydTest spec = do
   case settingMutation sets of
     Just MutationSettings {mutationFailFast, mutationMode} -> case mutationMode of
       MutationModeCoverageList -> runCoverageListMode sets spec
+      MutationModeCoverageListLocations -> runCoverageListLocationsMode sets spec
       MutationModeCoverageChild ch -> runSingleCoverageMode sets mutationFailFast ch spec
       MutationModeMutateChild ch -> runSingleMutationMode sets ch spec
     Nothing -> sydTestWith sets spec
@@ -300,6 +302,33 @@ runCoverageListMode sets spec = do
   specForest <- execTestDefM sets spec
   let leafIds = map fst (flattenTestForestWithIds specForest)
   mapM_ (putStrLn . T.unpack . renderTestId) leafIds
+
+-- | Child-side entry point that prints, for every leaf test, its id and
+-- the source location of its @it@\/@prop@\/@specify@ call site, separated
+-- by a tab, then exits.  The line format is @<id>\\t<file>:<line>@.
+--
+-- A leaf whose 'CallStack' is empty (it carries no recorded frame) is
+-- emitted without a location: just @<id>@ with no tab.  The diff-scoped
+-- runner treats such tests as unmappable to a source line.
+--
+-- The most-recent ('head') frame of the 'CallStack' is the
+-- @it@\/@prop@\/@specify@ call site, because those combinators use
+-- 'withFrozenCallStack' to fix the user's call site as the top frame.
+runCoverageListLocationsMode :: Settings -> Spec -> IO ()
+runCoverageListLocationsMode sets spec = do
+  specForest <- execTestDefM sets spec
+  let leaves = flattenTestForestWithIdsAndCallStacks specForest
+  forM_ leaves $ \(tid, cs) -> do
+    let idText = renderTestId tid
+    case getCallStack cs of
+      ((_, srcLoc) : _) ->
+        putStrLn $
+          T.unpack idText
+            ++ "\t"
+            ++ srcLocFile srcLoc
+            ++ ":"
+            ++ show (srcLocStartLine srcLoc)
+      [] -> putStrLn (T.unpack idText)
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'
 --

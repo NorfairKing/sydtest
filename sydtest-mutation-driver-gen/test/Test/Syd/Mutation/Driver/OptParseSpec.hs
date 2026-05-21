@@ -20,6 +20,9 @@ spec = do
   describe "MutationDriverSettings" $
     genValidSpec @MutationDriverSettings
 
+  describe "CoverageSettings" $
+    genValidSpec @CoverageSettings
+
   describe "parseSuitePkgSpec" $ do
     it "parses PNAME=ROOT=RESOURCE_DIR" $
       parseSuitePkgSpec "mypkg=/nix/store/abc/=/nix/store/def/"

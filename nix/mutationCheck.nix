@@ -9,6 +9,13 @@
 #   and report.json; succeeds as long as all test suites complete without
 #   crashing
 #
+# The returned derivation carries a 'passthru.coverageCache' attribute: a
+# separate, much cheaper derivation that runs only the coverage phase and emits
+# the augmented manifest ('augmented/', the which-test-covers-which-mutation
+# map) plus the per-suite test-location listings ('test-locations/<suite>.tsv').
+# It does NOT run the mutation phase, so it is far cheaper than the full check.
+# See the 'coverageCache' binding below.
+#
 # Arguments:
 # - name: derivation name prefix
 # - packages: attr names in haskellPackages for packages that have both
@@ -194,6 +201,64 @@ let
       "--coverage-retry=${toString coverageRetry}";
   failFastFlag = if failFast then "--fail-fast" else "--no-fail-fast";
 
+  # The coverage cache: a derivation that runs ONLY the coverage phase and
+  # caches the which-test-covers-which-mutation map plus the per-suite
+  # TestId -> source-location listings.  It deliberately does NOT run the
+  # mutation phase, so it is much cheaper than the full check ('drv' below),
+  # and it is what '.diff' depends on — the diff-scoped runner never needs the
+  # full mutation run to have happened.
+  #
+  # Today this is a single derivation covering all suites.  Because the driver
+  # accumulates the augmented manifest one suite at a time (and the library
+  # exposes 'mergeAugmentedManifests'), it can later be split into one
+  # derivation per test-suite plus a union step without changing the diff
+  # runner.
+  #
+  # The augmented manifest goes in $out/augmented.  Each suite's
+  # TestId -> source-location listing is cached in
+  # $out/test-locations/<suite>.tsv via the suite's
+  # --mutation-coverage-list-locations mode.  That listing only walks the spec
+  # tree (no tests execute), so it is cheap; we cd into each suite's resource
+  # dir first so spec-definition IO ('runIO') resolves relative paths the same
+  # way the driver does.
+  coverageCache =
+    pkgs.stdenv.mkDerivation {
+      name = "${name}-mutation-coverage-cache";
+      dontUnpack = true;
+      buildInputs = testPkgInputs ++ [ driver ];
+      nativeBuildInputs = collectedTestToolDepends;
+      buildPhase = ''
+        runHook preBuild
+
+        ${driver}/bin/sydtest-mutation-driver coverage \
+          ${pkgs.lib.concatStringsSep " " manifestFlags} \
+          ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
+          ${failFastFlag} \
+          ${coverageJobsFlag} \
+          ${coverageRetryFlag} \
+          --mutation-augmented-manifest-dir="$out/augmented"
+
+        mkdir -p "$out/test-locations"
+        ${pkgs.lib.concatMapStringsSep "\n"
+          (pkg: ''
+            for exe in "${builtTestPkg pkg}/test/"*; do
+              [ -e "$exe" ] || continue
+              suite="$(basename "$exe")"
+              ( cd "${unpackedSrcFor pkg}" \
+                && "$exe" --mutation-coverage-list-locations ) \
+                > "$out/test-locations/$suite.tsv"
+            done
+          '')
+          testPackages}
+
+        runHook postBuild
+      '';
+      installPhase = ''
+        runHook preInstall
+        runHook postInstall
+      '';
+    };
+
   drv =
     pkgs.stdenv.mkDerivation {
       name = "${name}-mutation-report";
@@ -204,9 +269,10 @@ let
       # PATH so children can find them.
       nativeBuildInputs = collectedTestToolDepends;
       # The driver writes report.txt, report.json, and every per-suite
-      # *.log file directly into --out-dir.  The augmented manifest is
-      # an intermediate artefact that doesn't belong in $out, so it
-      # lives in a workdir-local directory the driver creates itself.
+      # *.log file directly into --out-dir.  The augmented manifest is an
+      # intermediate artefact that lives in a workdir-local directory the
+      # driver creates itself.  (The diff-scoped runner does not read it from
+      # here — it reads the dedicated 'coverageCache' derivation instead.)
       buildPhase = ''
         runHook preBuild
 
@@ -229,8 +295,17 @@ let
     };
 
   report = drv;
+
   check = assertMutationScore { inherit name assertNoneUncovered report; };
+
+  # Attach the coverage cache as a passthru on whichever derivation we return,
+  # so a single 'mutationCheck { ... }' call exposes both the sealed
+  # check/report and its (much cheaper) coverage cache with no duplicated
+  # configuration.
+  withCoverageCache = drv': drv'.overrideAttrs (old: {
+    passthru = (old.passthru or { }) // { inherit coverageCache; };
+  });
 in
 if assertAllKilled
-then check
-else report
+then withCoverageCache check
+else withCoverageCache report

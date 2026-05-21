@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.25.0.0] - 2026-05-21
+
+### Added
+
+* `--mutation-coverage-list-locations`: a child-side mutation mode that prints,
+  as a JSON array, each leaf test's id and the source location of its
+  `it`/`prop`/`specify` call site.  Used by the diff-scoped mutation runner to
+  map a changed test-source line back to the tests defined there.
+* `flattenTestForestWithIdsAndCallStacks` in `Test.Syd.Mutation.Forest`, which
+  pairs each leaf `TestId` with the `CallStack` captured at its definition site.
+
 ## [0.24.0.0] - 2026-05-18
 
 ### Added

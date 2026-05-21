@@ -256,9 +256,6 @@ where
 
 import Control.Monad
 import Control.Monad.IO.Class
-import qualified Data.ByteString.Lazy as LB
-import qualified Data.Text as T
-import GHC.Stack (getCallStack, srcLocFile, srcLocStartLine)
 import Path
 import Path.IO
 import System.Exit
@@ -267,9 +264,8 @@ import Test.Syd.Def
 import Test.Syd.Expectation
 import Test.Syd.HList
 import Test.Syd.Modify
-import Test.Syd.Mutation.Forest (flattenTestForestWithIds, flattenTestForestWithIdsAndCallStacks)
-import Test.Syd.Mutation.TestId (renderTestId)
-import Test.Syd.Mutation.TestLocation (TestLocation (..), encodeTestLocations)
+import Test.Syd.MutationMode.CoverageList (runCoverageListMode)
+import Test.Syd.MutationMode.CoverageListLocations (runCoverageListLocationsMode)
 import Test.Syd.MutationMode.Single (runSingleMutationMode)
 import Test.Syd.MutationMode.SingleCoverage (runSingleCoverageMode)
 import Test.Syd.OptParse
@@ -295,42 +291,6 @@ sydTest spec = do
       MutationModeCoverageChild ch -> runSingleCoverageMode sets mutationFailFast ch spec
       MutationModeMutateChild ch -> runSingleMutationMode sets ch spec
     Nothing -> sydTestWith sets spec
-
--- | Child-side entry point that prints every leaf test id on stdout and
--- exits.  Used by 'sydtest-mutation-driver' to enumerate tests for the
--- coverage phase.
-runCoverageListMode :: Settings -> Spec -> IO ()
-runCoverageListMode sets spec = do
-  specForest <- execTestDefM sets spec
-  let leafIds = map fst (flattenTestForestWithIds specForest)
-  mapM_ (putStrLn . T.unpack . renderTestId) leafIds
-
--- | Child-side entry point that prints, as a JSON array, the source location
--- of every leaf test's @it@\/@prop@\/@specify@ call site, then exits.  Each
--- element is a 'TestLocation' (test id, source file, line).
---
--- A leaf whose 'CallStack' is empty (it carries no recorded frame), or whose
--- source file does not parse as a relative path, is omitted: it cannot be
--- mapped to a source line, so the diff-scoped runner has no use for it.
---
--- The most-recent ('head') frame of the 'CallStack' is the
--- @it@\/@prop@\/@specify@ call site, because those combinators use
--- 'withFrozenCallStack' to fix the user's call site as the top frame.
-runCoverageListLocationsMode :: Settings -> Spec -> IO ()
-runCoverageListLocationsMode sets spec = do
-  specForest <- execTestDefM sets spec
-  let leaves = flattenTestForestWithIdsAndCallStacks specForest
-      locations =
-        [ TestLocation
-            { testLocationTestId = tid,
-              testLocationFile = relFile,
-              testLocationLine = fromIntegral (srcLocStartLine srcLoc)
-            }
-        | (tid, cs) <- leaves,
-          (_, srcLoc) : _ <- [getCallStack cs],
-          Just relFile <- [parseRelFile (srcLocFile srcLoc)]
-        ]
-  LB.putStr (encodeTestLocations locations)
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'
 --

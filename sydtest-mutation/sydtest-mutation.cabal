@@ -47,6 +47,7 @@ test-suite sydtest-mutation-test
       Test.Syd.MutationIdSpec
       Test.Syd.MutationSpec
       Test.Syd.PhaseBoundarySpec
+      Test.Syd.TestLocationSpec
       Paths_sydtest_mutation
   hs-source-dirs:
       test

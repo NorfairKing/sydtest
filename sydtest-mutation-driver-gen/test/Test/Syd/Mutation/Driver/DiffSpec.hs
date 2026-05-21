@@ -188,27 +188,6 @@ spec = do
       testsInHunks [addedHunk [relfile|pkg/test/Spec.hs|] 8 10] locs
         `shouldBe` Set.singleton (tid "Spec.two")
 
-  describe "test-location listing" $ do
-    it "round-trips a rendered line back through parseTestLocationLine" $ do
-      let t = tid "Example\\.LibSpec.addOne.returns 6 for input 5"
-          loc = ([relfile|test/Example/LibSpec.hs|], 11)
-      parseTestLocationLine (renderTestLocationLine t loc)
-        `shouldBe` Just (t, loc)
-    it "parses a whole tsv, dropping lines without a location" $ do
-      let t1 = tid "Spec.one"
-          t2 = tid "Spec.two"
-          tsv =
-            T.unlines
-              [ renderTestLocationLine t1 ([relfile|test/Spec.hs|], 5),
-                "Spec.three", -- no tab: unmappable, dropped
-                renderTestLocationLine t2 ([relfile|test/Spec.hs|], 9)
-              ]
-      parseTestLocationsTsv tsv
-        `shouldBe` Map.fromList
-          [ (t1, ([relfile|test/Spec.hs|], 5)),
-            (t2, ([relfile|test/Spec.hs|], 9))
-          ]
-
   describe "selectMutations" $
     it "unions source-selected and test-covered mutations" $ do
       let srcRec = mkRecord ["M", "Op", "10"] (Just [relfile|src/A.hs|]) (10, 10) Map.empty

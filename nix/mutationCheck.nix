@@ -18,7 +18,7 @@
 # - 'passthru.coverage': a separate, much cheaper set of derivations that run
 #   only the coverage phase and emit the augmented manifest ('augmented/', the
 #   which-test-covers-which-mutation map) plus the per-suite test-location
-#   listings ('test-locations/<suite>.tsv').  Coverage is gathered in one
+#   listings ('test-locations/<suite>.json').  Coverage is gathered in one
 #   derivation per test-package (so editing one package's tests only
 #   invalidates that package's coverage, and the per-package runs build in
 #   parallel).  None of this runs the mutation phase.  Each per-package
@@ -239,7 +239,7 @@ let
   # single --suite-pkg (but against ALL --manifest dirs, so the full mutation
   # set is known), writing that package's augmented manifest to $out/augmented
   # and its suites' TestId -> source-location listings to
-  # $out/test-locations/<suite>.tsv.
+  # $out/test-locations/<suite>.json (a JSON array of TestLocation objects).
   #
   # The listing only walks the spec tree (no tests execute), so it is cheap; we
   # cd into the package's resource dir first so spec-definition IO ('runIO')
@@ -267,7 +267,7 @@ let
           suite="$(basename "$exe")"
           ( cd "${unpackedSrcFor pkg}" \
             && "$exe" --mutation-coverage-list-locations ) \
-            > "$out/test-locations/$suite.tsv"
+            > "$out/test-locations/$suite.json"
         done
 
         runHook postBuild

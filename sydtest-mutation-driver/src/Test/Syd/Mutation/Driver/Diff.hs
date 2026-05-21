@@ -25,11 +25,6 @@ module Test.Syd.Mutation.Driver.Diff
     -- * Path matching
     pathMatchesHunkFile,
 
-    -- * Test location listings
-    renderTestLocationLine,
-    parseTestLocationLine,
-    parseTestLocationsTsv,
-
     -- * Selection
     mutationsInHunks,
     testsInHunks,
@@ -40,7 +35,7 @@ where
 
 import Data.List (isSuffixOf)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -52,7 +47,7 @@ import Test.Syd.Mutation.AugmentedManifest
     AugmentedMutationRecord (..),
   )
 import Test.Syd.Mutation.Runtime (MutationId)
-import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
+import Test.Syd.Mutation.TestId (TestId)
 
 -- | One hunk of a unified diff, attributed to its new-side file.
 --
@@ -222,48 +217,6 @@ pathMatchesHunkFile pkgRel diffPath =
           | ch == c = [] : acc
           | otherwise = (ch : cur) : rest
         step _ [] = [[]]
-
--- | Render one test-location listing line: @\<rendered-test-id\>\\t\<file\>:\<line\>@.
--- This is the line format emitted by @--mutation-coverage-list-locations@ and
--- cached one-per-suite by the Nix build.
-renderTestLocationLine :: TestId -> (Path Rel File, Word) -> Text
-renderTestLocationLine tid (file, line) =
-  renderTestId tid
-    <> "\t"
-    <> T.pack (toFilePath file)
-    <> ":"
-    <> T.pack (show line)
-
--- | Parse one test-location line produced by 'renderTestLocationLine'.
---
--- Returns 'Nothing' when the line carries no location (no tab — a test whose
--- call stack was empty, hence unmappable to a source line), or when either
--- field fails to parse.  The @\<file\>:\<line\>@ part is split at its /last/
--- colon so paths containing colons still parse.
-parseTestLocationLine :: Text -> Maybe (TestId, (Path Rel File, Word))
-parseTestLocationLine line
-  | T.null line = Nothing
-  | otherwise = case T.breakOn "\t" line of
-      (_, "") -> Nothing
-      (idText, rest) -> do
-        tid <- parseTestIdFilterArg idText
-        loc <- parseFileLine (T.drop 1 rest)
-        Just (tid, loc)
-  where
-    parseFileLine t = case T.breakOnEnd ":" t of
-      ("", _) -> Nothing
-      (fileWithColon, lineText) -> do
-        rf <- parseRelFile (T.unpack (T.dropEnd 1 fileWithColon))
-        n <- case reads (T.unpack lineText) of
-          [(parsed, "")] -> Just parsed
-          _ -> Nothing
-        Just (rf, n)
-
--- | Parse a whole test-location listing (one suite's @.tsv@ contents) into a
--- @TestId -> (file, line)@ map.  Lines that 'parseTestLocationLine' rejects
--- are dropped.
-parseTestLocationsTsv :: Text -> Map.Map TestId (Path Rel File, Word)
-parseTestLocationsTsv = Map.fromList . mapMaybe parseTestLocationLine . T.lines
 
 -- | Select every mutation whose recorded source span intersects a changed
 -- hunk in a matching file.

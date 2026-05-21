@@ -256,6 +256,7 @@ where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text as T
 import GHC.Stack (getCallStack, srcLocFile, srcLocStartLine)
 import Path
@@ -268,6 +269,7 @@ import Test.Syd.HList
 import Test.Syd.Modify
 import Test.Syd.Mutation.Forest (flattenTestForestWithIds, flattenTestForestWithIdsAndCallStacks)
 import Test.Syd.Mutation.TestId (renderTestId)
+import Test.Syd.Mutation.TestLocation (TestLocation (..), encodeTestLocations)
 import Test.Syd.MutationMode.Single (runSingleMutationMode)
 import Test.Syd.MutationMode.SingleCoverage (runSingleCoverageMode)
 import Test.Syd.OptParse
@@ -303,13 +305,13 @@ runCoverageListMode sets spec = do
   let leafIds = map fst (flattenTestForestWithIds specForest)
   mapM_ (putStrLn . T.unpack . renderTestId) leafIds
 
--- | Child-side entry point that prints, for every leaf test, its id and
--- the source location of its @it@\/@prop@\/@specify@ call site, separated
--- by a tab, then exits.  The line format is @<id>\\t<file>:<line>@.
+-- | Child-side entry point that prints, as a JSON array, the source location
+-- of every leaf test's @it@\/@prop@\/@specify@ call site, then exits.  Each
+-- element is a 'TestLocation' (test id, source file, line).
 --
--- A leaf whose 'CallStack' is empty (it carries no recorded frame) is
--- emitted without a location: just @<id>@ with no tab.  The diff-scoped
--- runner treats such tests as unmappable to a source line.
+-- A leaf whose 'CallStack' is empty (it carries no recorded frame), or whose
+-- source file does not parse as a relative path, is omitted: it cannot be
+-- mapped to a source line, so the diff-scoped runner has no use for it.
 --
 -- The most-recent ('head') frame of the 'CallStack' is the
 -- @it@\/@prop@\/@specify@ call site, because those combinators use
@@ -318,17 +320,17 @@ runCoverageListLocationsMode :: Settings -> Spec -> IO ()
 runCoverageListLocationsMode sets spec = do
   specForest <- execTestDefM sets spec
   let leaves = flattenTestForestWithIdsAndCallStacks specForest
-  forM_ leaves $ \(tid, cs) -> do
-    let idText = renderTestId tid
-    case getCallStack cs of
-      ((_, srcLoc) : _) ->
-        putStrLn $
-          T.unpack idText
-            ++ "\t"
-            ++ srcLocFile srcLoc
-            ++ ":"
-            ++ show (srcLocStartLine srcLoc)
-      [] -> putStrLn (T.unpack idText)
+      locations =
+        [ TestLocation
+            { testLocationTestId = tid,
+              testLocationFile = relFile,
+              testLocationLine = fromIntegral (srcLocStartLine srcLoc)
+            }
+        | (tid, cs) <- leaves,
+          (_, srcLoc) : _ <- [getCallStack cs],
+          Just relFile <- [parseRelFile (srcLocFile srcLoc)]
+        ]
+  LB.putStr (encodeTestLocations locations)
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'
 --

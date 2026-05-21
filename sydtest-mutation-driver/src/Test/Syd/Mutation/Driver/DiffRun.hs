@@ -18,6 +18,7 @@ module Test.Syd.Mutation.Driver.DiffRun
   )
 where
 
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -35,7 +36,7 @@ import Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
     writeAugmentedManifestFile,
   )
-import Test.Syd.Mutation.Driver.Diff (parseTestLocationsTsv, parseUnifiedDiff, selectMutations)
+import Test.Syd.Mutation.Driver.Diff (parseUnifiedDiff, selectMutations)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
   ( DiffSettings (..),
@@ -44,6 +45,7 @@ import Test.Syd.Mutation.Driver.OptParse
   )
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 import Test.Syd.Mutation.TestId (TestId)
+import Test.Syd.Mutation.TestLocation (TestLocation (..), decodeTestLocations)
 import Text.Colour (Chunk, TerminalCapabilities (..), chunk, cyan, fore, green, hPutChunksLocaleWith, unlinesChunks)
 
 -- | Run the diff subcommand: select and run only the diff-implied mutations.
@@ -129,31 +131,40 @@ gitMergeBaseDiff base = do
   pure (decodeUtf8Lenient (LB.toStrict diffOut))
 
 -- | Read a suite's @TestId -> (file, line)@ map from
--- @\<coverage-dir\>/test-locations/\<suite-name\>.tsv@, unioning the listing
+-- @\<coverage-dir\>/test-locations/\<suite-name\>.json@, unioning the listing
 -- from every per-package coverage directory that has one.  (A suite lives in
 -- exactly one package, so normally only one directory matches; unioning is
--- robust to a suite legitimately spanning more than one.)  Each line is
--- @\<rendered-test-id\>\\t\<file\>:\<line\>@; a line without a tab (a test
--- whose call stack was empty) is skipped, as it cannot be mapped to a source
--- line.  A suite whose listing is absent from every directory yields an empty
--- map.
+-- robust to a suite legitimately spanning more than one.)  Each file is a JSON
+-- array of 'TestLocation' objects.  A suite whose listing is absent from every
+-- directory yields an empty map.
 readTestLocations ::
   [Path Abs Dir] ->
   Text ->
   IO (Map.Map TestId (Path Rel File, Word))
 readTestLocations coverageDirs suiteName = do
-  relFile <- case parseRelFile (T.unpack suiteName ++ ".tsv") of
+  relFile <- case parseRelFile (T.unpack suiteName ++ ".json") of
     Just rf -> pure rf
-    Nothing -> fail ("sydtest-mutation-driver diff: invalid suite name for tsv file: " ++ show suiteName)
+    Nothing -> fail ("sydtest-mutation-driver diff: invalid suite name for locations file: " ++ show suiteName)
   let candidates = map (\dir -> dir </> [reldir|test-locations|] </> relFile) coverageDirs
   -- Read directly and treat a missing file as an empty listing via
   -- 'forgivingAbsence', rather than a 'doesFileExist' check that would race
   -- (TOCTOU) against the file disappearing between the check and the read.
   maps <-
     mapM
-      ( \path ->
-          maybe Map.empty parseTestLocationsTsv
-            <$> forgivingAbsence (TIO.readFile (fromAbsFile path))
+      ( \path -> do
+          mbs <- forgivingAbsence (B.readFile (fromAbsFile path))
+          case mbs of
+            Nothing -> pure Map.empty
+            Just bs -> case decodeTestLocations bs of
+              Just locs -> pure (testLocationsMap locs)
+              Nothing -> fail ("sydtest-mutation-driver diff: could not decode test locations from " ++ fromAbsFile path)
       )
       candidates
   pure (Map.unions maps)
+  where
+    testLocationsMap :: [TestLocation] -> Map.Map TestId (Path Rel File, Word)
+    testLocationsMap locs =
+      Map.fromList
+        [ (testLocationTestId l, (testLocationFile l, testLocationLine l))
+        | l <- locs
+        ]

@@ -9,16 +9,27 @@
 #   and report.json; succeeds as long as all test suites complete without
 #   crashing
 #
-# The returned derivation carries a 'passthru.coverageCache' attribute: a
-# separate, much cheaper set of derivations that run only the coverage phase
-# and emit the augmented manifest ('augmented/', the
-# which-test-covers-which-mutation map) plus the per-suite test-location
-# listings ('test-locations/<suite>.tsv').  Coverage is gathered in one
-# derivation per test-package (so editing one package's tests only invalidates
-# that package's coverage, and the per-package runs build in parallel), then
-# unioned by a cheap merge derivation.  None of this runs the mutation phase,
-# so it is far cheaper than the full check.  See the 'perPackageCoverage' and
-# 'coverageCache' bindings below.
+# The returned derivation carries two passthru attributes:
+#
+# - 'passthru.coverageCache': a separate, much cheaper set of derivations that
+#   run only the coverage phase and emit the augmented manifest ('augmented/',
+#   the which-test-covers-which-mutation map) plus the per-suite test-location
+#   listings ('test-locations/<suite>.tsv').  Coverage is gathered in one
+#   derivation per test-package (so editing one package's tests only
+#   invalidates that package's coverage, and the per-package runs build in
+#   parallel), then unioned by a cheap merge derivation.  None of this runs the
+#   mutation phase.  See the 'perPackageCoverage' and 'coverageCache' bindings
+#   below.
+#
+# - 'passthru.diff': a 'nix run'-able diff-scoped mutation runner.  It depends
+#   on 'coverageCache' (NOT the full report) to mutation-test only the subset
+#   of mutations implied by a diff: source-file changes select the mutations
+#   whose span falls in a changed hunk; test-file changes select the mutations
+#   the changed tests cover.  It runs only those mutation children — no
+#   compilation and no coverage phase at 'nix run' time.  Run it from inside
+#   the repository working tree; by default it diffs against the merge-base
+#   with the base branch (override with '--diff FILE', '--diff-stdin', or
+#   '--base BRANCH').  See the 'diff' binding below.
 #
 # Arguments:
 # - name: derivation name prefix
@@ -330,16 +341,57 @@ let
 
   report = drv;
 
+  # The diff-scoped runner: 'nix run' this to mutation-test only the subset
+  # of mutations implied by a diff (default: 'git diff' against the
+  # merge-base with the base branch; override with '--diff FILE',
+  # '--diff-stdin', or '--base BRANCH').
+  #
+  # It depends only on the cheap 'coverageCache' derivation (the augmented
+  # manifest + per-suite test-location listings) and the cached instrumented
+  # test exes — NOT on the full mutation report.  No compilation and no
+  # coverage phase run at 'nix run' time; only the selected mutation children
+  # execute.  It must be run from inside the repository working tree so the
+  # default 'git' diff and the suites' relative resource paths resolve.
+  #
+  # Extra arguments are forwarded to 'sydtest-mutation-driver diff' (e.g.
+  # '--diff FILE', '--base BRANCH', '--no-fail-fast').  The report output
+  # directory defaults to a fresh temp dir; override it with the
+  # MUTATION_DIFF_OUT_DIR environment variable or by passing your own
+  # '--out-dir' (in which case the wrapper does not inject its default, since
+  # the driver rejects a duplicate '--out-dir').
+  diff = pkgs.writeShellApplication {
+    name = "${name}-mutation-diff";
+    runtimeInputs = [ driver pkgs.git pkgs.coreutils ] ++ collectedTestToolDepends;
+    text = ''
+      # Only inject a default --out-dir when the caller didn't pass one.
+      out_dir_args=()
+      case " $* " in
+        *" --out-dir "* | *" --out-dir="*) ;;
+        *) out_dir_args=(--out-dir "''${MUTATION_DIFF_OUT_DIR:-$(mktemp -d)}") ;;
+      esac
+      sydtest-mutation-driver diff \
+        ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
+        --mutation-augmented-manifest-dir="${coverageCache}/augmented" \
+        --test-locations-dir="${coverageCache}/test-locations" \
+        --child-mem-limit=${testProcessMemLimit} \
+        "''${out_dir_args[@]}" \
+        "$@"
+      if [ ''${#out_dir_args[@]} -gt 0 ]; then
+        echo "Diff-scoped mutation report written to ''${out_dir_args[1]}" >&2
+      fi
+    '';
+  };
+
   check = assertMutationScore { inherit name assertNoneUncovered report; };
 
-  # Attach the coverage cache as a passthru on whichever derivation we return,
-  # so a single 'mutationCheck { ... }' call exposes both the sealed
-  # check/report and its (much cheaper) coverage cache with no duplicated
-  # configuration.
-  withCoverageCache = drv': drv'.overrideAttrs (old: {
-    passthru = (old.passthru or { }) // { inherit coverageCache; };
+  # Attach '.diff' and '.coverageCache' as passthrus on whichever derivation we
+  # return, so a single 'mutationCheck { ... }' call yields the sealed
+  # check/report, its diff-scoped runner, and the underlying coverage cache
+  # with no duplicated configuration.
+  withPassthru = drv': drv'.overrideAttrs (old: {
+    passthru = (old.passthru or { }) // { inherit diff coverageCache; };
   });
 in
 if assertAllKilled
-then withCoverageCache check
-else withCoverageCache report
+then withPassthru check
+else withPassthru report

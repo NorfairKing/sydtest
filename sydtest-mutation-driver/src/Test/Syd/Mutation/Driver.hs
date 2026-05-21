@@ -35,6 +35,7 @@ import Test.Syd.Mutation.AugmentedManifest
 import Test.Syd.Mutation.Driver.AssertScore (runAssertScore)
 import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListComponents)
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
+import Test.Syd.Mutation.Driver.DiffRun (runDiff)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
@@ -61,6 +62,7 @@ sydMutationDriver = do
       runAssertScore assertNoneUncovered reportDir mOutDir
     DispatchCoverage settings -> runCoverage settings
     DispatchMergeCoverage settings -> runMergeCoverage settings
+    DispatchDiff settings -> runDiff settings
 
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()

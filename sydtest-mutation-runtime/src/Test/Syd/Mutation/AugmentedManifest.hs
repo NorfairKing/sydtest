@@ -11,6 +11,7 @@ module Test.Syd.Mutation.AugmentedManifest
     AugmentedMutationGroup (..),
     AugmentedManifest (..),
     mergeAugmentedManifests,
+    filterAugmentedManifestByIds,
     writeAugmentedManifestFile,
     readAugmentedManifestFile,
     readAugmentedManifestFileIfExists,
@@ -147,6 +148,19 @@ instance Semigroup AugmentedManifest where
 
 instance Monoid AugmentedManifest where
   mempty = AugmentedManifest []
+
+-- | Keep only the mutation records whose id is in the given set, dropping any
+-- group that ends up empty.  Group order and within-group order are
+-- preserved, so the filtered manifest runs the selected mutations in the same
+-- order a full run would.
+filterAugmentedManifestByIds :: Set.Set MutationId -> AugmentedManifest -> AugmentedManifest
+filterAugmentedManifestByIds ids (AugmentedManifest groups) =
+  AugmentedManifest
+    [ AugmentedMutationGroup kept
+    | AugmentedMutationGroup recs <- groups,
+      let kept = filter ((`Set.member` ids) . augmentedMutationRecordId) recs,
+      not (null kept)
+    ]
 
 augmentedManifestRelFile :: Path Rel File
 augmentedManifestRelFile = [relfile|manifest-augmented.json|]

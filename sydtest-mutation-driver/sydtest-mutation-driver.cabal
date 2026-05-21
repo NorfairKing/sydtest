@@ -27,6 +27,8 @@ library
       Test.Syd.Mutation.Driver.AssertScore
       Test.Syd.Mutation.Driver.Components
       Test.Syd.Mutation.Driver.Coverage
+      Test.Syd.Mutation.Driver.Diff
+      Test.Syd.Mutation.Driver.DiffRun
       Test.Syd.Mutation.Driver.Mutate
       Test.Syd.Mutation.Driver.OptParse
       Test.Syd.Mutation.Driver.SuitePkg

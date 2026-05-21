@@ -30,3 +30,11 @@ instance GenValid CoverageSettings
 instance Validity MergeCoverageSettings
 
 instance GenValid MergeCoverageSettings
+
+instance Validity DiffSource
+
+instance GenValid DiffSource
+
+instance Validity DiffSettings
+
+instance GenValid DiffSettings

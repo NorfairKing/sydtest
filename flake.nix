@@ -48,7 +48,15 @@
     {
       overrides.${system} = pkgs.callPackage ./nix/overrides.nix { };
       overlays.${system} = import ./nix/overlay.nix;
-      packages.${system}.default = haskellPackages.sydtestRelease;
+      packages.${system} = {
+        default = haskellPackages.sydtestRelease;
+        # Diff-scoped mutation runner for the in-repo example check.
+        # 'nix run .#mutation-sydtest-mutation-example-diff' mutation-tests
+        # only the mutations implied by the current diff.  See
+        # nix/mutationCheck.nix's '.diff' passthru.
+        mutation-sydtest-mutation-example-diff =
+          self.checks.${system}.mutation-sydtest-mutation-example.diff;
+      };
       checks.${system} = {
         forwardCompatibility = horizonPkgs.sydtestReleaseWithoutMutation;
         release = haskellPackages.sydtestRelease;

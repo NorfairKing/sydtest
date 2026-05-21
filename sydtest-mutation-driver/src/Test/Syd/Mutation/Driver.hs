@@ -117,7 +117,7 @@ runCoverage CoverageSettings {..} = do
 runOneSuiteCoverage ::
   [Path Abs Dir] ->
   Path Abs Dir ->
-  Maybe Int ->
+  Maybe Word ->
   Word ->
   Bool ->
   (Text, SuiteConfig) ->

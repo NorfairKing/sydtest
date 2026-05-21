@@ -109,7 +109,7 @@ data MutationDriverSettings = MutationDriverSettings
   { mutationDriverSettingManifests :: ![Path Abs Dir],
     mutationDriverSettingSuitePkgs :: ![SuitePkgSpec],
     mutationDriverSettingChildMemLimit :: !(Maybe String),
-    mutationDriverSettingCoverageJobs :: !(Maybe Int),
+    mutationDriverSettingCoverageJobs :: !(Maybe Word),
     mutationDriverSettingCoverageRetry :: !Word,
     mutationDriverSettingAugmentedManifestDir :: !(Path Abs Dir),
     mutationDriverSettingOutDir :: !(Path Abs Dir),
@@ -124,7 +124,7 @@ data MutationDriverSettings = MutationDriverSettings
 data CoverageSettings = CoverageSettings
   { coverageSettingManifests :: ![Path Abs Dir],
     coverageSettingSuitePkgs :: ![SuitePkgSpec],
-    coverageSettingCoverageJobs :: !(Maybe Int),
+    coverageSettingCoverageJobs :: !(Maybe Word),
     coverageSettingCoverageRetry :: !Word,
     coverageSettingAugmentedManifestDir :: !(Path Abs Dir),
     coverageSettingFailFast :: !Bool

@@ -23,6 +23,9 @@ spec = do
   describe "CoverageSettings" $
     genValidSpec @CoverageSettings
 
+  describe "MergeCoverageSettings" $
+    genValidSpec @MergeCoverageSettings
+
   describe "parseSuitePkgSpec" $ do
     it "parses PNAME=ROOT=RESOURCE_DIR" $
       parseSuitePkgSpec "mypkg=/nix/store/abc/=/nix/store/def/"

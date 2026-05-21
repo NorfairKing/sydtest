@@ -10,11 +10,15 @@
 #   crashing
 #
 # The returned derivation carries a 'passthru.coverageCache' attribute: a
-# separate, much cheaper derivation that runs only the coverage phase and emits
-# the augmented manifest ('augmented/', the which-test-covers-which-mutation
-# map) plus the per-suite test-location listings ('test-locations/<suite>.tsv').
-# It does NOT run the mutation phase, so it is far cheaper than the full check.
-# See the 'coverageCache' binding below.
+# separate, much cheaper set of derivations that run only the coverage phase
+# and emit the augmented manifest ('augmented/', the
+# which-test-covers-which-mutation map) plus the per-suite test-location
+# listings ('test-locations/<suite>.tsv').  Coverage is gathered in one
+# derivation per test-package (so editing one package's tests only invalidates
+# that package's coverage, and the per-package runs build in parallel), then
+# unioned by a cheap merge derivation.  None of this runs the mutation phase,
+# so it is far cheaper than the full check.  See the 'perPackageCoverage' and
+# 'coverageCache' bindings below.
 #
 # Arguments:
 # - name: derivation name prefix
@@ -201,55 +205,85 @@ let
       "--coverage-retry=${toString coverageRetry}";
   failFastFlag = if failFast then "--fail-fast" else "--no-fail-fast";
 
-  # The coverage cache: a derivation that runs ONLY the coverage phase and
-  # caches the which-test-covers-which-mutation map plus the per-suite
-  # TestId -> source-location listings.  It deliberately does NOT run the
-  # mutation phase, so it is much cheaper than the full check ('drv' below),
-  # and it is what '.diff' depends on — the diff-scoped runner never needs the
-  # full mutation run to have happened.
+  # The coverage cache, split into one derivation per test-package plus a
+  # cheap merge.  Both steps run ONLY the coverage phase (never the mutation
+  # phase), so the cache is much cheaper than the full check ('drv' below) and
+  # is what '.diff' depends on — the diff-scoped runner never needs the full
+  # mutation run to have happened.
   #
-  # Today this is a single derivation covering all suites.  Because the driver
-  # accumulates the augmented manifest one suite at a time (and the library
-  # exposes 'mergeAugmentedManifests'), it can later be split into one
-  # derivation per test-suite plus a union step without changing the diff
-  # runner.
+  # Splitting per test-package means editing one package's tests only
+  # invalidates that package's coverage derivation, the others stay cached, and
+  # the per-package coverage runs build in parallel.
+
+  # One per-package coverage derivation: run the 'coverage' subcommand for a
+  # single --suite-pkg (but against ALL --manifest dirs, so the full mutation
+  # set is known), writing that package's augmented manifest to $out/augmented
+  # and its suites' TestId -> source-location listings to
+  # $out/test-locations/<suite>.tsv.
   #
-  # The augmented manifest goes in $out/augmented.  Each suite's
-  # TestId -> source-location listing is cached in
-  # $out/test-locations/<suite>.tsv via the suite's
-  # --mutation-coverage-list-locations mode.  That listing only walks the spec
-  # tree (no tests execute), so it is cheap; we cd into each suite's resource
-  # dir first so spec-definition IO ('runIO') resolves relative paths the same
-  # way the driver does.
-  coverageCache =
+  # The listing only walks the spec tree (no tests execute), so it is cheap; we
+  # cd into the package's resource dir first so spec-definition IO ('runIO')
+  # resolves relative paths the same way the driver does.
+  perPackageCoverage = pkg:
     pkgs.stdenv.mkDerivation {
-      name = "${name}-mutation-coverage-cache";
+      name = "${name}-${pkg}-mutation-coverage";
       dontUnpack = true;
-      buildInputs = testPkgInputs ++ [ driver ];
+      buildInputs = [ (builtTestPkg pkg) driver ];
       nativeBuildInputs = collectedTestToolDepends;
       buildPhase = ''
         runHook preBuild
 
         ${driver}/bin/sydtest-mutation-driver coverage \
           ${pkgs.lib.concatStringsSep " " manifestFlags} \
-          ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
+          --suite-pkg=${pkg}=${builtTestPkg pkg}=${unpackedSrcFor pkg} \
           ${failFastFlag} \
           ${coverageJobsFlag} \
           ${coverageRetryFlag} \
           --mutation-augmented-manifest-dir="$out/augmented"
 
         mkdir -p "$out/test-locations"
+        for exe in "${builtTestPkg pkg}/test/"*; do
+          [ -e "$exe" ] || continue
+          suite="$(basename "$exe")"
+          ( cd "${unpackedSrcFor pkg}" \
+            && "$exe" --mutation-coverage-list-locations ) \
+            > "$out/test-locations/$suite.tsv"
+        done
+
+        runHook postBuild
+      '';
+      installPhase = ''
+        runHook preInstall
+        runHook postInstall
+      '';
+    };
+
+  perPackageCoverages = map perPackageCoverage testPackages;
+
+  # The merged coverage cache: union the per-package augmented manifests with
+  # the driver's 'merge-coverage' subcommand, and gather every package's
+  # test-location TSVs into one directory.  Cheap: no tests run here, it only
+  # reads + unions JSON and copies small TSV files.  Exposes the same
+  # $out/augmented + $out/test-locations layout the diff runner reads, so the
+  # split is invisible to '.diff'.
+  coverageCache =
+    pkgs.stdenv.mkDerivation {
+      name = "${name}-mutation-coverage-cache";
+      dontUnpack = true;
+      nativeBuildInputs = [ driver ];
+      buildPhase = ''
+        runHook preBuild
+
+        ${driver}/bin/sydtest-mutation-driver merge-coverage \
+          ${pkgs.lib.concatMapStringsSep " "
+            (cov: "--input=${cov}/augmented")
+            perPackageCoverages} \
+          --mutation-augmented-manifest-dir="$out/augmented"
+
+        mkdir -p "$out/test-locations"
         ${pkgs.lib.concatMapStringsSep "\n"
-          (pkg: ''
-            for exe in "${builtTestPkg pkg}/test/"*; do
-              [ -e "$exe" ] || continue
-              suite="$(basename "$exe")"
-              ( cd "${unpackedSrcFor pkg}" \
-                && "$exe" --mutation-coverage-list-locations ) \
-                > "$out/test-locations/$suite.tsv"
-            done
-          '')
-          testPackages}
+          (cov: ''cp -n "${cov}/test-locations/"*.tsv "$out/test-locations/" 2>/dev/null || true'')
+          perPackageCoverages}
 
         runHook postBuild
       '';

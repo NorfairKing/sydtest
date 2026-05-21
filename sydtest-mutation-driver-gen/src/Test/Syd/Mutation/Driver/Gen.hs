@@ -26,3 +26,7 @@ instance GenValid MutationDriverSettings
 instance Validity CoverageSettings
 
 instance GenValid CoverageSettings
+
+instance Validity MergeCoverageSettings
+
+instance GenValid MergeCoverageSettings

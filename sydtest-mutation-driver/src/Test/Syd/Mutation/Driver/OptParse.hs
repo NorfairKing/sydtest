@@ -23,6 +23,9 @@ module Test.Syd.Mutation.Driver.OptParse
 
     -- * 'coverage' subcommand
     CoverageSettings (..),
+
+    -- * 'merge-coverage' subcommand
+    MergeCoverageSettings (..),
   )
 where
 
@@ -123,6 +126,19 @@ data CoverageSettings = CoverageSettings
     coverageSettingCoverageRetry :: !Word,
     coverageSettingAugmentedManifestDir :: !(Path Abs Dir),
     coverageSettingFailFast :: !Bool
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Settings for the @merge-coverage@ subcommand: union several augmented
+-- manifests (each produced by a per-suite @coverage@ run) into one.  Used to
+-- combine the per-test-package coverage caches into a single augmented
+-- manifest the diff runner can read.
+data MergeCoverageSettings = MergeCoverageSettings
+  { -- | Input augmented-manifest directories to union (each holds a
+    -- @manifest-augmented.json@).
+    mergeCoverageSettingInputs :: ![Path Abs Dir],
+    -- | Directory to write the merged @manifest-augmented.json@ into.
+    mergeCoverageSettingOutputDir :: !(Path Abs Dir)
   }
   deriving (Show, Eq, Generic)
 
@@ -247,6 +263,25 @@ coverageSettingsParser = do
       ]
   pure CoverageSettings {..}
 
+-- | CLI parser for the @merge-coverage@ subcommand.
+mergeCoverageSettingsParser :: Parser MergeCoverageSettings
+mergeCoverageSettingsParser = do
+  mergeCoverageSettingInputs <-
+    many $
+      directoryPathSetting
+        [ help "Input augmented-manifest directory to union (may be repeated)",
+          option,
+          long "input",
+          metavar "DIR"
+        ]
+  mergeCoverageSettingOutputDir <-
+    directoryPathSetting
+      [ help "Directory to write the merged manifest-augmented.json into (required)",
+        option,
+        long "mutation-augmented-manifest-dir"
+      ]
+  pure MergeCoverageSettings {..}
+
 -- | Which component kind to enumerate or install: Cabal @executables@ or
 -- @test-suites@.
 data ComponentKind = ComponentExecutables | ComponentTestSuites
@@ -319,6 +354,9 @@ data Dispatch
     -- builds the cheap coverage cache the diff-scoped runner depends on,
     -- without the full mutation run.
     DispatchCoverage !CoverageSettings
+  | -- | Union several per-suite augmented manifests into one.  Used to
+    -- combine the per-test-package coverage caches.
+    DispatchMergeCoverage !MergeCoverageSettings
   deriving (Show, Eq, Generic)
 
 dispatchParser :: Parser Dispatch
@@ -360,6 +398,9 @@ dispatchParser =
       command "coverage" "Run only the coverage phase and write the augmented manifest" $
         withoutConfig $
           DispatchCoverage <$> coverageSettingsParser,
+      command "merge-coverage" "Union several per-suite augmented manifests into one" $
+        withoutConfig $
+          DispatchMergeCoverage <$> mergeCoverageSettingsParser,
       defaultCommand "run"
     ]
 

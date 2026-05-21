@@ -27,7 +27,7 @@ import Data.Text.Encoding (decodeUtf8Lenient)
 import qualified Data.Text.IO as TIO
 import Path
 import Path.IO (doesFileExist, withSystemTempDir)
-import System.IO (hPutStrLn, stderr)
+import System.IO (stderr)
 import System.Process.Typed (proc, readProcessStdout_)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -45,6 +45,7 @@ import Test.Syd.Mutation.Driver.OptParse
   )
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 import Test.Syd.Mutation.TestId (TestId)
+import Text.Colour (Chunk, TerminalCapabilities (..), chunk, cyan, fore, green, hPutChunksLocaleWith, unlinesChunks)
 
 -- | Run the diff subcommand: select and run only the diff-implied mutations.
 runDiff :: DiffSettings -> IO ()
@@ -76,12 +77,8 @@ runDiff DiffSettings {..} = do
   let selected = selectMutations hunks manifest testLocationsBySuite
       filtered = filterAugmentedManifestByIds selected manifest
 
-  hPutStrLn stderr $
-    "sydtest-mutation-driver diff: "
-      ++ show (length hunks)
-      ++ " changed hunk(s); selected "
-      ++ show (length selected)
-      ++ " mutation(s) to run."
+  hPutChunksLocaleWith With8BitColours stderr $
+    unlinesChunks (renderDiffSelection (length hunks) (length selected))
 
   -- 5. Run the mutation phase over the filtered manifest.  'runMutationMode'
   -- reads the augmented manifest from a directory, so write the filtered
@@ -97,6 +94,21 @@ runDiff DiffSettings {..} = do
         diffSettingChildMemLimit
         suiteExes
     pure ()
+
+-- | Render the one-line "N changed hunks; selected M mutations" progress
+-- message as coloured chunks, matching the rest of the driver's output.
+renderDiffSelection :: Int -> Int -> [[Chunk]]
+renderDiffSelection numHunks numSelected =
+  [ [ chunk "diff: ",
+      fore cyan (chunk (T.pack (show numHunks))),
+      chunk (plural numHunks " changed hunk" " changed hunks"),
+      chunk "; selected ",
+      fore green (chunk (T.pack (show numSelected))),
+      chunk (plural numSelected " mutation to run." " mutations to run.")
+    ]
+  ]
+  where
+    plural n one many = if n == 1 then one else many
 
 -- | Obtain the unified diff text from the configured source.
 obtainDiff :: DiffSource -> IO Text

@@ -9,7 +9,11 @@
 #   and report.json; succeeds as long as all test suites complete without
 #   crashing
 #
-# The returned derivation carries two passthru attributes:
+# The returned derivation carries the building blocks as passthru attributes,
+# so each piece can be built and inspected on its own:
+#
+# - 'passthru.report': the full mutation report ('report.txt'/'report.json'),
+#   the same derivation the sealed check is built from.
 #
 # - 'passthru.coverageCache': a separate, much cheaper set of derivations that
 #   run only the coverage phase and emit the augmented manifest ('augmented/',
@@ -20,6 +24,10 @@
 #   parallel), then unioned by a cheap merge derivation.  None of this runs the
 #   mutation phase.  See the 'perPackageCoverage' and 'coverageCache' bindings
 #   below.
+#
+# - 'passthru.perPackageCoverage.<pkg>': the coverage derivation for one
+#   test-package on its own ('augmented/' + 'test-locations/'), keyed by
+#   package name.  These are the inputs the merged 'coverageCache' unions.
 #
 # - 'passthru.diff': a 'nix run'-able diff-scoped mutation runner.  It depends
 #   on 'coverageCache' (NOT the full report) to mutation-test only the subset
@@ -271,6 +279,15 @@ let
 
   perPackageCoverages = map perPackageCoverage testPackages;
 
+  # The same per-package coverage derivations, keyed by package name, so a
+  # single package's coverage can be built and inspected on its own via the
+  # 'perPackageCoverage' passthru (e.g.
+  # 'nix build .#…​.perPackageCoverage.<pkg>').
+  perPackageCoverageByName =
+    builtins.listToAttrs (map
+      (pkg: { name = pkg; value = perPackageCoverage pkg; })
+      testPackages);
+
   # The merged coverage cache: union the per-package augmented manifests with
   # the driver's 'merge-coverage' subcommand, and gather every package's
   # test-location TSVs into one directory.  Cheap: no tests run here, it only
@@ -384,12 +401,21 @@ let
 
   check = assertMutationScore { inherit name assertNoneUncovered report; };
 
-  # Attach '.diff' and '.coverageCache' as passthrus on whichever derivation we
-  # return, so a single 'mutationCheck { ... }' call yields the sealed
-  # check/report, its diff-scoped runner, and the underlying coverage cache
-  # with no duplicated configuration.
+  # Attach the building blocks as passthrus on whichever derivation we return,
+  # so a single 'mutationCheck { ... }' call yields not just the sealed
+  # check/report but every intermediate piece, each buildable and inspectable
+  # on its own:
+  #
+  # - '.diff'                 the diff-scoped runner (nix run)
+  # - '.report'              the full mutation report (report.txt/report.json)
+  # - '.coverageCache'       the merged coverage cache (augmented/ + test-locations/)
+  # - '.perPackageCoverage'  attrset keyed by test-package name: that package's
+  #                          own coverage derivation (augmented/ + test-locations/)
   withPassthru = drv': drv'.overrideAttrs (old: {
-    passthru = (old.passthru or { }) // { inherit diff coverageCache; };
+    passthru = (old.passthru or { }) // {
+      inherit diff report coverageCache;
+      perPackageCoverage = perPackageCoverageByName;
+    };
   });
 in
 if assertAllKilled

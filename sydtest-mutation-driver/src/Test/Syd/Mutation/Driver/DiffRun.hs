@@ -18,7 +18,6 @@ module Test.Syd.Mutation.Driver.DiffRun
   )
 where
 
-import Control.Monad (filterM)
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -26,7 +25,7 @@ import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8Lenient)
 import qualified Data.Text.IO as TIO
 import Path
-import Path.IO (doesFileExist, withSystemTempDir)
+import Path.IO (forgivingAbsence, withSystemTempDir)
 import System.IO (stderr)
 import System.Process.Typed (proc, readProcessStdout_)
 import Test.Syd.Mutation.AugmentedManifest
@@ -130,8 +129,10 @@ gitMergeBaseDiff base = do
   pure (decodeUtf8Lenient (LB.toStrict diffOut))
 
 -- | Read a suite's @TestId -> (file, line)@ map from
--- @\<coverage-dir\>/test-locations/\<suite-name\>.tsv@, searching each
--- per-package coverage directory for the suite's listing.  Each line is
+-- @\<coverage-dir\>/test-locations/\<suite-name\>.tsv@, unioning the listing
+-- from every per-package coverage directory that has one.  (A suite lives in
+-- exactly one package, so normally only one directory matches; unioning is
+-- robust to a suite legitimately spanning more than one.)  Each line is
 -- @\<rendered-test-id\>\\t\<file\>:\<line\>@; a line without a tab (a test
 -- whose call stack was empty) is skipped, as it cannot be mapped to a source
 -- line.  A suite whose listing is absent from every directory yields an empty
@@ -145,7 +146,14 @@ readTestLocations coverageDirs suiteName = do
     Just rf -> pure rf
     Nothing -> fail ("sydtest-mutation-driver diff: invalid suite name for tsv file: " ++ show suiteName)
   let candidates = map (\dir -> dir </> [reldir|test-locations|] </> relFile) coverageDirs
-  existing <- filterM doesFileExist candidates
-  case existing of
-    [] -> pure Map.empty
-    (path : _) -> parseTestLocationsTsv <$> TIO.readFile (fromAbsFile path)
+  -- Read directly and treat a missing file as an empty listing via
+  -- 'forgivingAbsence', rather than a 'doesFileExist' check that would race
+  -- (TOCTOU) against the file disappearing between the check and the read.
+  maps <-
+    mapM
+      ( \path ->
+          maybe Map.empty parseTestLocationsTsv
+            <$> forgivingAbsence (TIO.readFile (fromAbsFile path))
+      )
+      candidates
+  pure (Map.unions maps)

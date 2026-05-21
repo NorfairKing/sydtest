@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Forest operations keyed by 'TestId': flattening, filtering, and trie
 -- construction.  Lives in @sydtest@ so it can reference 'SpecDefForest'
@@ -77,77 +78,40 @@ testIdTrieFromList = foldr insertId (TrieNode Map.empty)
 -- with the same description text receive a zero-based per-description index
 -- so that duplicate descriptions are still uniquely identified.
 flattenTestForestWithIds :: SpecDefForest '[] () result -> [(TestId, result)]
-flattenTestForestWithIds f = evalState (execWriterT (goForest [] f)) Map.empty
-  where
-    -- Each call to 'goForest' establishes its own fresh sibling-index counter
-    -- and restores the caller's counter on the way out.  Both 'DefDescribeNode'
-    -- and the wrapper nodes (setup, before-all, ...) descend via 'goForest',
-    -- so each wrapped sub-forest gets its own counter, matching the
-    -- accumulator-style implementation this replaces.
-    goForest :: [(Text, Word)] -> SpecDefForest outers inner c -> WriterT [(TestId, c)] (State (Map Text Word)) ()
-    goForest path sub = do
-      saved <- gets id
-      modify' (const Map.empty)
-      mapM_ (goTree path) sub
-      modify' (const saved)
-
-    goTree ::
-      [(Text, Word)] ->
-      SpecDefTree outers inner c ->
-      WriterT [(TestId, c)] (State (Map Text Word)) ()
-    goTree path tree = do
-      mkey <- nextKey tree
-      case tree of
-        DefSpecifyNode _ _ e ->
-          case mkey of
-            Nothing -> pure ()
-            Just key -> tell [(TestId (NE.fromList (reverse (key : path))), e)]
-        DefPendingNode _ _ -> pure ()
-        DefDescribeNode _ sub ->
-          case mkey of
-            Nothing -> pure ()
-            Just key -> goForest (key : path) sub
-        DefSetupNode _ sub -> goForest path sub
-        DefBeforeAllNode _ sub -> goForest path sub
-        DefBeforeAllWithNode _ sub -> goForest path sub
-        DefWrapNode _ sub -> goForest path sub
-        DefAroundAllNode _ sub -> goForest path sub
-        DefAroundAllWithNode _ sub -> goForest path sub
-        DefAfterAllNode _ sub -> goForest path sub
-        DefParallelismNode _ sub -> goForest path sub
-        DefRandomisationNode _ sub -> goForest path sub
-        DefTimeoutNode _ sub -> goForest path sub
-        DefRetriesNode _ sub -> goForest path sub
-        DefFlakinessNode _ sub -> goForest path sub
-        DefExpectationNode _ sub -> goForest path sub
-
-    nextKey :: SpecDefTree outers inner c -> WriterT [(TestId, c)] (State (Map Text Word)) (Maybe (Text, Word))
-    nextKey tree = case descriptionOf tree of
-      Nothing -> pure Nothing
-      Just t -> do
-        idx <- gets (Map.findWithDefault 0 t)
-        modify' (Map.insert t (idx + 1))
-        pure (Just (t, idx))
-
-    descriptionOf :: SpecDefTree outers inner c -> Maybe Text
-    descriptionOf = \case
-      DefSpecifyNode t _ _ -> Just t
-      DefPendingNode t _ -> Just t
-      DefDescribeNode t _ -> Just t
-      _ -> Nothing
+flattenTestForestWithIds = flattenTestForestWith (\_callStack e -> e)
 
 -- | Like 'flattenTestForestWithIds', but pair each leaf 'TestId' with the
 -- 'CallStack' captured at its @it@\/@prop@\/@specify@ call site
--- ('testDefCallStack').  The 'TestId' assignment is identical to
--- 'flattenTestForestWithIds' so the two stay in lockstep: a leaf's id here is
--- the same id that the coverage phase records coverage against.
+-- ('testDefCallStack') instead of the leaf value.  The 'TestId' assignment is
+-- identical, so the two stay in lockstep: a leaf's id here is the same id that
+-- the coverage phase records coverage against.
 --
 -- The 'CallStack' lets the diff-scoped runner map a changed test-source line
 -- back to the tests defined there.
 flattenTestForestWithIdsAndCallStacks :: SpecDefForest '[] () result -> [(TestId, CallStack)]
-flattenTestForestWithIdsAndCallStacks f = evalState (execWriterT (goForest [] f)) Map.empty
+flattenTestForestWithIdsAndCallStacks = flattenTestForestWith (\callStack _e -> callStack)
+
+-- | Flatten a 'TestForest' into a list of '(TestId, value)' pairs, where each
+-- leaf's value is computed from its 'CallStack' ('testDefCallStack') and its
+-- leaf value by the given projection.  'flattenTestForestWithIds' and
+-- 'flattenTestForestWithIdsAndCallStacks' are the two projections we use.
+--
+-- 'TestId's are assigned by traversing the forest in order.  Sibling nodes
+-- with the same description text receive a zero-based per-description index so
+-- that duplicate descriptions are still uniquely identified.
+flattenTestForestWith :: forall result a. (CallStack -> result -> a) -> SpecDefForest '[] () result -> [(TestId, a)]
+flattenTestForestWith leaf f = evalState (execWriterT (goForest [] f)) Map.empty
   where
-    goForest :: [(Text, Word)] -> SpecDefForest outers inner c -> WriterT [(TestId, CallStack)] (State (Map Text Word)) ()
+    -- The wrapper nodes (setup, before-all, ...) preserve the forest's @extra@
+    -- (result) type parameter, so it is uniformly @result@ throughout; only
+    -- @outers@ and @inner@ vary, which is why those stay polymorphic here.
+    --
+    -- Each call to 'goForest' establishes its own fresh sibling-index counter
+    -- and restores the caller's counter on the way out.  Both 'DefDescribeNode'
+    -- and the wrapper nodes descend via 'goForest', so each wrapped sub-forest
+    -- gets its own counter, matching the accumulator-style implementation this
+    -- replaces.
+    goForest :: [(Text, Word)] -> SpecDefForest outers inner result -> WriterT [(TestId, a)] (State (Map Text Word)) ()
     goForest path sub = do
       saved <- gets id
       modify' (const Map.empty)
@@ -156,15 +120,15 @@ flattenTestForestWithIdsAndCallStacks f = evalState (execWriterT (goForest [] f)
 
     goTree ::
       [(Text, Word)] ->
-      SpecDefTree outers inner c ->
-      WriterT [(TestId, CallStack)] (State (Map Text Word)) ()
+      SpecDefTree outers inner result ->
+      WriterT [(TestId, a)] (State (Map Text Word)) ()
     goTree path tree = do
       mkey <- nextKey tree
       case tree of
-        DefSpecifyNode _ td _ ->
+        DefSpecifyNode _ td e ->
           case mkey of
             Nothing -> pure ()
-            Just key -> tell [(TestId (NE.fromList (reverse (key : path))), testDefCallStack td)]
+            Just key -> tell [(TestId (NE.fromList (reverse (key : path))), leaf (testDefCallStack td) e)]
         DefPendingNode _ _ -> pure ()
         DefDescribeNode _ sub ->
           case mkey of
@@ -184,7 +148,7 @@ flattenTestForestWithIdsAndCallStacks f = evalState (execWriterT (goForest [] f)
         DefFlakinessNode _ sub -> goForest path sub
         DefExpectationNode _ sub -> goForest path sub
 
-    nextKey :: SpecDefTree outers inner c -> WriterT [(TestId, CallStack)] (State (Map Text Word)) (Maybe (Text, Word))
+    nextKey :: SpecDefTree outers inner result -> WriterT [(TestId, a)] (State (Map Text Word)) (Maybe (Text, Word))
     nextKey tree = case descriptionOf tree of
       Nothing -> pure Nothing
       Just t -> do
@@ -192,7 +156,7 @@ flattenTestForestWithIdsAndCallStacks f = evalState (execWriterT (goForest [] f)
         modify' (Map.insert t (idx + 1))
         pure (Just (t, idx))
 
-    descriptionOf :: SpecDefTree outers inner c -> Maybe Text
+    descriptionOf :: SpecDefTree outers inner result -> Maybe Text
     descriptionOf = \case
       DefSpecifyNode t _ _ -> Just t
       DefPendingNode t _ -> Just t

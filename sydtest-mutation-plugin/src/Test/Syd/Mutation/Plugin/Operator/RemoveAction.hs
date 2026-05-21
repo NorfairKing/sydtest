@@ -2,9 +2,10 @@
 
 module Test.Syd.Mutation.Plugin.Operator.RemoveAction (theOperator) where
 
+import Control.Monad.Reader (asks)
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
 
 -- | Remove one non-binding action from a do block.
@@ -48,23 +49,38 @@ viewThenChain le = case unLoc le of
   _ -> Nothing
 
 -- | Build the mutation: replace @lhs >> rest@ with just @rest@.
+--
+-- Suppressed when @lhs@'s syntactic head is on the @ignore@ list: removing
+-- e.g. @logDebug "x"@ from @do { logDebug "x"; rest }@ is exactly the noise
+-- the ignore filter exists to silence.  The filter in 'instrumentLExpr'
+-- cannot catch this on its own because GHC 9.10 has expanded the do-block
+-- into @(>>) lhs rest@, whose head is @(>>)@, not the ignored name — so we
+-- check the removed action's head here instead.  Returning @[]@ makes
+-- 'applyOperator' treat the site as a non-candidate (no warning, no mutant).
 mutateChain ::
   Type ->
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
   InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
-mutateChain ty lhs rest =
-  let removedSpan = case getLocA lhs of
-        RealSrcSpan rss _ -> [rss]
-        UnhelpfulSpan _ -> []
-   in pure
-        [ ( ty,
-            rest,
-            "a >> rest",
-            "rest",
-            SpanRemoval removedSpan
-          )
-        ]
+mutateChain ty lhs rest = do
+  ignore <- asks instrumentEnvIgnore
+  let lhsIgnored = case opOccName lhs of
+        Just occ -> occ `elem` ignore
+        Nothing -> False
+  if lhsIgnored
+    then pure []
+    else
+      let removedSpan = case getLocA lhs of
+            RealSrcSpan rss _ -> [rss]
+            UnhelpfulSpan _ -> []
+       in pure
+            [ ( ty,
+                rest,
+                "a >> rest",
+                "rest",
+                SpanRemoval removedSpan
+              )
+            ]
 
 -- | Fallback: also support @HsDo@ if it ever shows up unexpanded
 -- (e.g. list comprehensions, arrow notation), since the original
@@ -83,6 +99,12 @@ isRemovableStmt (L _ s) = case s of
   BodyStmt {} -> True
   _ -> False
 
+-- | The expression of a 'BodyStmt', if this statement is one.
+bodyStmtExpr :: ExprLStmt GhcTc -> Maybe (LHsExpr GhcTc)
+bodyStmtExpr (L _ s) = case s of
+  BodyStmt _ e _ _ -> Just e
+  _ -> Nothing
+
 rawDoAction ::
   SrcSpanAnnA ->
   XDo GhcTc ->
@@ -91,8 +113,16 @@ rawDoAction ::
   [ExprLStmt GhcTc] ->
   Type ->
   InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
-rawDoAction ann x ctx lann stmts ty =
-  let removable = [(i, s) | (i, s) <- zip [0 ..] stmts, isRemovableStmt s]
+rawDoAction ann x ctx lann stmts ty = do
+  -- Do not offer to remove a statement whose head is on the 'ignore' list:
+  -- removing @logDebug "x"@ and the like is the noise the ignore filter
+  -- exists to silence.  Mirrors the guard in 'mutateChain' for the expanded
+  -- @(>>)@ form.
+  ignore <- asks instrumentEnvIgnore
+  let stmtIgnored s = case bodyStmtExpr s >>= opOccName of
+        Just occ -> occ `elem` ignore
+        Nothing -> False
+      removable = [(i, s) | (i, s) <- zip [0 ..] stmts, isRemovableStmt s, not (stmtIgnored s)]
       n = length stmts
       mkMutation i s =
         let stmts' = take i stmts ++ drop (i + 1) stmts
@@ -105,4 +135,4 @@ rawDoAction ann x ctx lann stmts ty =
               show (n - 1) ++ " statements (removed #" ++ show (i + 1) ++ ")",
               SpanRemoval removedSpan
             )
-   in pure [mkMutation i s | (i, s) <- removable]
+  pure [mkMutation i s | (i, s) <- removable]

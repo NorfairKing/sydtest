@@ -726,18 +726,25 @@ applyOperator origExpr fallthrough op = case operatorMatch op origExpr of
   Nothing -> pure fallthrough
   Just action -> do
     alts <- action
-    hscEnv <- liftTcM getTopEnv
-    validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) alts
-    case validated of
-      [] -> do
-        liftTcM $
-          liftIO $
-            putStrLn $
-              "mutation: WARNING all replacements dropped for operator "
-                ++ operatorName op
-                ++ locStr (getLocA origExpr)
-        pure fallthrough
-      (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
+    case alts of
+      -- The operator's action chose to produce no alternatives (e.g.
+      -- RemoveAction declining to remove an action whose head is on the
+      -- 'ignore' list).  This is a deliberate non-candidate, not a
+      -- validation failure, so it must be silent.
+      [] -> pure fallthrough
+      _ -> do
+        hscEnv <- liftTcM getTopEnv
+        validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) alts
+        case validated of
+          [] -> do
+            liftTcM $
+              liftIO $
+                putStrLn $
+                  "mutation: WARNING all replacements dropped for operator "
+                    ++ operatorName op
+                    ++ locStr (getLocA origExpr)
+            pure fallthrough
+          (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
 
 validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> IO Bool
 validateAlt hscEnv (_, mutated, _, _, _) = do

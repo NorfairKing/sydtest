@@ -15,11 +15,13 @@ module Test.Syd.Mutation.Plugin.Instrument
     parseFunMutationAnns,
     FunMutationAnns (..),
     LocalDisable (..),
+    deadDisableTargets,
   )
 where
 
-import Control.Monad (filterM, foldM)
+import Control.Monad (filterM, foldM, forM_)
 import Control.Monad.Reader
+import Control.Monad.State.Strict
 import Control.Monad.Writer.Strict
 import qualified Data.ByteString as SB
 import Data.List (stripPrefix)
@@ -27,6 +29,7 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isJust)
+import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -37,16 +40,18 @@ import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
 import GHC.HsToCore (deSugarExpr)
 import GHC.Serialized (deserializeWithData)
+import GHC.Tc.Errors.Types (mkTcRnUnknownMessage)
 import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
-import GHC.Tc.Utils.Monad (getTopEnv)
+import GHC.Tc.Utils.Monad (addErrAt, getTopEnv)
 import GHC.Types.Annotations (AnnEnv, AnnTarget (..), findAnns)
-import GHC.Types.Error (isEmptyMessages)
+import GHC.Types.Error (isEmptyMessages, mkPlainError, noHints)
 import GHC.Types.Id (idName)
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
+import GHC.Utils.Outputable (text)
 import Path
 import Path.IO (forgivingAbsence, resolveFile')
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..))
@@ -167,10 +172,19 @@ data InstrumentEnv = InstrumentEnv
     instrumentEnvInLocalLet :: Bool
   }
 
-type InstrM = WriterT [MutationGroup] (ReaderT InstrumentEnv TcM)
+-- | The 'StateT' state: names of 'DisableMutationsFor' targets that
+-- 'applyLocalDisables' has matched against a real local binding within the
+-- body currently being walked.  'withFunBindEnv' brackets each declaring
+-- binding by resetting this to empty, walking the body, and reading it back:
+-- any declared target still absent named a binding that does not exist, so the
+-- annotation is dead and we raise a compile error (see 'deadDisableTargets').
+-- Bracketing per declaring binding keeps the bookkeeping correct even when
+-- several bindings disable the same local name (e.g. an @inner@ in each),
+-- which a single threaded set could not.
+type InstrM = WriterT [MutationGroup] (StateT (Set String) (ReaderT InstrumentEnv TcM))
 
 liftTcM :: TcM a -> InstrM a
-liftTcM = lift . lift
+liftTcM = lift . lift . lift
 
 -- ---------------------------------------------------------------------------
 -- Entry point
@@ -211,8 +225,8 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
       mbs <- forgivingAbsence (SB.readFile (fromAbsFile absFile))
       pure $ fmap (\bs -> (relFile, T.lines (TE.decodeUtf8Lenient bs))) mbs
   let activeOperators = filter (\op -> operatorName op `notElem` disabledMutations) operators
-  runReaderT
-    (runWriterT action)
+  flip
+    runReaderT
     InstrumentEnv
       { instrumentEnvModule = modul,
         instrumentEnvRdrEnv = rdrEnv,
@@ -230,6 +244,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrumentEnvLocalDisables = Map.empty,
         instrumentEnvInLocalLet = False
       }
+    $ evalStateT (runWriterT action) Set.empty
 
 -- | Look up a value Id from the module's GlobalRdrEnv by OccName.
 -- The name must be in scope via the injected import of Test.Syd.Mutation.Plugin.Runtime.
@@ -323,7 +338,8 @@ applyLocalDisables occs action = do
   let matches = [(occ, d) | occ <- occs, Just d <- [Map.lookup occ instrumentEnvLocalDisables]]
   case matches of
     [] -> action
-    _ ->
+    _ -> do
+      modify' (Set.union (Set.fromList (map fst matches)))
       let disableAll = any ((== DisableAllOps) . snd) matches
           namedDisables = concat [ns | (_, DisableOps ns) <- matches]
           operators' =
@@ -331,14 +347,26 @@ applyLocalDisables occs action = do
               then []
               else filter (\op -> operatorName op `notElem` namedDisables) instrumentEnvOperators
           remaining = foldr (Map.delete . fst) instrumentEnvLocalDisables matches
-       in local
-            ( \env ->
-                env
-                  { instrumentEnvOperators = operators',
-                    instrumentEnvLocalDisables = remaining
-                  }
-            )
-            action
+      local
+        ( \env ->
+            env
+              { instrumentEnvOperators = operators',
+                instrumentEnvLocalDisables = remaining
+              }
+        )
+        action
+
+-- | The 'DisableMutationsFor' targets that never matched a local binding.
+--
+-- @declared@ is the local-disable map a top-level binding's annotations
+-- installed (keyed by target name); @consumed@ is the set of target names that
+-- 'applyLocalDisables' actually matched against a real local binding while
+-- walking that binding's body.  A declared target absent from @consumed@ named
+-- a binding that does not exist (e.g. a typo or a since-renamed local), so the
+-- annotation disables nothing and should be removed.
+deadDisableTargets :: Map String LocalDisable -> Set String -> [String]
+deadDisableTargets declared consumed =
+  filter (`Set.notMember` consumed) (Map.keys declared)
 
 -- | Run an instrumentation action with the operator list filtered by any
 -- {-# ANN funName ("DisableMutations..." :: String) #-} annotations on the
@@ -367,14 +395,49 @@ withFunBindEnv funName action = do
         if Map.null localDisables
           then instrumentEnvLocalDisables
           else localDisables
-  local
-    ( \env ->
-        env
-          { instrumentEnvOperators = operators',
-            instrumentEnvLocalDisables = localDisables'
-          }
-    )
-    action
+  if Map.null localDisables
+    then
+      -- This binding contributes no 'DisableMutationsFor' targets, so it leaves
+      -- the consumed-targets state alone: a local binding consumed inside it
+      -- must still count for whichever outer binding declared the target.
+      local (\env -> env {instrumentEnvOperators = operators'}) action
+    else do
+      -- This binding declares targets, so bracket the consumed-targets state:
+      -- reset it to empty, walk the body, then read back exactly what this
+      -- binding's body consumed.  A single threaded set would be wrong here,
+      -- since several bindings can disable the same local name (e.g. an @inner@
+      -- in each), and the first consumption would mask the others.
+      saved <- get
+      put Set.empty
+      result <-
+        local
+          ( \env ->
+              env
+                { instrumentEnvOperators = operators',
+                  instrumentEnvLocalDisables = localDisables'
+                }
+          )
+          action
+      consumed <- get
+      -- Restore the enclosing scope's consumption, plus what this body added,
+      -- so an outer declaring binding still sees targets consumed in here.
+      put (saved `Set.union` consumed)
+      -- Any declared target that was never consumed named a binding that does
+      -- not exist, so the annotation disables nothing: raise a compile error
+      -- asking for its removal.
+      forM_ (deadDisableTargets localDisables consumed) $ \target ->
+        liftTcM $
+          addErrAt (nameSrcSpan funName) $
+            mkTcRnUnknownMessage $
+              mkPlainError noHints $
+                text $
+                  "Mutation DisableMutationsFor annotation on `"
+                    ++ getOccString funName
+                    ++ "` targets `"
+                    ++ target
+                    ++ "`, which is not a local binding in its body. "
+                    ++ "It disables no mutations; remove it."
+      pure result
 
 -- | Parsed result of all mutation-related @{-# ANN funName ... #-}@
 -- annotations on a single top-level binding.

@@ -3,6 +3,7 @@
 module Test.Syd.Mutation.Plugin.InstrumentSpec (spec) where
 
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import GHC.Data.FastString (mkFastString)
 import GHC.Types.SrcLoc
@@ -100,6 +101,35 @@ spec = do
     it "ignores a DisableMutationsFor with an empty name" $
       parseFunMutationAnns ["DisableMutationsFor "]
         `shouldBe` FunMutationAnns (DisableOps []) Map.empty
+
+  describe "deadDisableTargets" $ do
+    it "reports nothing when there are no declared targets" $
+      deadDisableTargets Map.empty (Set.fromList ["a", "b"])
+        `shouldBe` []
+
+    it "reports a declared target that was never consumed" $
+      deadDisableTargets
+        (Map.singleton "innerVar" DisableAllOps)
+        Set.empty
+        `shouldBe` ["innerVar"]
+
+    it "reports nothing when the declared target was consumed" $
+      deadDisableTargets
+        (Map.singleton "innerVar" DisableAllOps)
+        (Set.singleton "innerVar")
+        `shouldBe` []
+
+    it "reports only the unconsumed targets" $
+      deadDisableTargets
+        (Map.fromList [("a", DisableAllOps), ("b", DisableOps ["BoolLit"]), ("c", DisableAllOps)])
+        (Set.fromList ["b"])
+        `shouldBe` ["a", "c"]
+
+    it "ignores consumed names that were never declared" $
+      deadDisableTargets
+        (Map.singleton "a" DisableAllOps)
+        (Set.fromList ["a", "x", "y"])
+        `shouldBe` []
 
   describe "applySpanRemoval" $ do
     it "removes the requested lines from a multi-line outer span" $

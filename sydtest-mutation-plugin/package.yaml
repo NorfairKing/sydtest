@@ -1,11 +1,14 @@
 name: sydtest-mutation-plugin
-version: 0.0.0.0
+version: 0.1.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 category: Testing
+
+extra-source-files:
+- CHANGELOG.md
 
 dependencies:
 - base >= 4.7 && < 5

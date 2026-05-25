@@ -38,6 +38,8 @@ import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
 import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
+import GHC.Driver.Env (HscEnv (..))
+import GHC.Driver.Session (WarningFlag (..), wopt_set)
 import GHC.HsToCore (deSugarExpr)
 import GHC.Serialized (deserializeWithData)
 import GHC.Tc.Errors.Types (mkTcRnUnknownMessage)
@@ -809,9 +811,37 @@ applyOperator origExpr fallthrough op = case operatorMatch op origExpr of
             pure fallthrough
           (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
 
+-- | Desugar a mutated expression and accept it only when desugaring is silent.
+--
+-- Pattern-match warnings are re-enabled on the validation 'HscEnv' so the
+-- desugarer's coverage checker ('pmcMatches') runs.  The plugin's driver hook
+-- disables 'Opt_WarnIncompletePatterns' and 'Opt_WarnIncompleteUniPatterns'
+-- on the host 'DynFlags' (see 'Test.Syd.Mutation.Plugin.plugin') because the
+-- @ifMutation@ wrapper confuses the checker for the surrounding module
+-- compilation.  Validation, by contrast, desugars an isolated mutated
+-- sub-expression with no wrapper around it, so the checker's verdict is
+-- reliable here.
+--
+-- Auto-killing non-exhaustive cases: a 'RemoveCase' mutation that drops the
+-- only alternative covering a constructor (e.g. the @_@ wildcard in
+-- @case xs of [] -> ...; [_] -> ...; _ -> ...@) leaves the case
+-- non-exhaustive.  GHC emits 'DsNonExhaustivePatterns' for such a mutated
+-- expression; 'isEmptyMessages' returns 'False'; the mutation is dropped.
+-- Any test built with @-Werror=incomplete-patterns@ (or that exercises the
+-- runtime @MatchFail@) would kill the mutant anyway, so producing it would
+-- just add noise to the manifest.
 validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> IO Bool
 validateAlt hscEnv (_, mutated, _, _, _) = do
-  (msgs, mcore) <- deSugarExpr hscEnv mutated
+  let dflags' =
+        foldl
+          wopt_set
+          (hsc_dflags hscEnv)
+          [ Opt_WarnIncompletePatterns,
+            Opt_WarnIncompleteUniPatterns,
+            Opt_WarnOverlappingPatterns
+          ]
+      hscEnv' = hscEnv {hsc_dflags = dflags'}
+  (msgs, mcore) <- deSugarExpr hscEnv' mutated
   pure (isEmptyMessages msgs && isJust mcore)
 
 locStr :: SrcSpan -> String

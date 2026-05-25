@@ -73,43 +73,6 @@
         "  [_] -> \"singleton\"",
         "  _ -> \"longer\""
       ]
-    },
-    {
-      "col_end": 16,
-      "col_start": 19,
-      "context_after": [],
-      "context_before": [
-        "--",
-        "-- Mutation sites: RemoveCase removes one of the three alternatives.",
-        "describeList :: [a] -> String"
-      ],
-      "end_line": 10,
-      "id": [
-        "Example.CaseLib",
-        "RemoveCase",
-        "7",
-        "19",
-        "16",
-        "2 alternatives (removed #3)",
-        "3"
-      ],
-      "line": 7,
-      "module": "Example.CaseLib",
-      "mutated_lines": [
-        "describeList xs = case xs of",
-        "  [] -> \"empty\"",
-        "  [_] -> \"singleton\""
-      ],
-      "operator": "RemoveCase",
-      "original": "3 alternatives",
-      "replacement": "2 alternatives (removed #3)",
-      "source_file": "src/Example/CaseLib.hs",
-      "source_lines": [
-        "describeList xs = case xs of",
-        "  [] -> \"empty\"",
-        "  [_] -> \"singleton\"",
-        "  _ -> \"longer\""
-      ]
     }
   ]
 ]

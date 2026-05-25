@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.1.0] - 2026-05-25
+
+### Changed
+
+* Mutations whose desugared form is non-exhaustive (e.g. a `RemoveCase`
+  that drops the only alternative covering a constructor) are now
+  auto-killed at instrument time, since the compiler's incomplete-patterns
+  warning would catch them anyway.
+
 ## [0.1.0.0] - 2026-05-22
 
 ### Added

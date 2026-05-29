@@ -21,11 +21,16 @@ module Test.Syd.Mutation.Driver
 where
 
 import Control.Exception (bracket)
+import Control.Monad (when)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Path
 import Path.IO (getCurrentDir, setCurrentDir)
+import System.Exit (ExitCode (..), exitWith)
 import System.IO (BufferMode (..), hFlush, hSetBuffering, hSetEncoding, stderr, stdout, utf8)
+import Test.Syd.Mutation.AugmentedManifest
+  ( MutationRunReport (..),
+  )
 import Test.Syd.Mutation.Driver.AssertScore (runAssertScore)
 import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListComponents)
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
@@ -82,10 +87,13 @@ runDriver MutationDriverSettings {..} = do
         ((_, sc) : _) -> suiteConfigResourceDir sc
         [] -> Nothing
       suiteExesByName = Map.map suiteConfigExe suites
-  -- 'runMutationMode' prints the report to stdout, writes
-  -- report.json + report.txt + per-suite *.log files to the out dir,
-  -- and (under --fail-fast) exitWith's directly without returning.
-  _ <-
+  -- 'runMutationMode' prints the report to stdout and writes
+  -- report.json + report.txt + per-suite *.log files to the out dir.
+  -- It returns the run report; under --fail-fast we then exit non-zero
+  -- ourselves, preserving the historical behaviour of the @run@
+  -- subcommand (a downstream @assert-score@ step is the gate when
+  -- --fail-fast is off).
+  report <-
     withMaybeCurrentDir firstSuiteResourceDir $
       runMutationMode
         mutationDriverSettingFailFast
@@ -94,6 +102,13 @@ runDriver MutationDriverSettings {..} = do
         mutationDriverSettingChildMemLimit
         suiteExesByName
   hFlush stdout
+  when
+    ( mutationDriverSettingFailFast
+        && ( mutationRunReportSurvived report > 0
+               || mutationRunReportUncovered report > 0
+           )
+    )
+    $ exitWith (ExitFailure 1)
 
 -- | Run only the coverage phase: for each suite, run the coverage parent so
 -- the augmented manifest accumulates, then stop.  Writes no report; the

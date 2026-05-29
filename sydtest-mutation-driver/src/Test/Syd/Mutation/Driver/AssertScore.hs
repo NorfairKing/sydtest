@@ -60,12 +60,21 @@ assertScoreResult assertNoneUncovered MutationRunReport {mutationRunReportKilled
         mutationRunReportKilled
           + mutationRunReportSurvived
           + mutationRunReportUncovered
+      -- A count is good (green) when it's zero, bad (red) when it isn't.
+      -- The header colour reflects the overall verdict, but each
+      -- individual count is coloured by its own value so a "FAIL: 0
+      -- surviving, 1 uncovered" reads honestly: the surviving count
+      -- itself is fine, the uncovered count is what tripped the
+      -- assertion.
+      countChunk n =
+        let c = if n == 0 then green else red
+         in fore c (chunk (T.pack (show n)))
       header
         | failed =
             [ fore red (chunk "FAIL: "),
-              chunk (T.pack (show mutationRunReportSurvived)),
+              countChunk mutationRunReportSurvived,
               chunk " surviving, ",
-              chunk (T.pack (show mutationRunReportUncovered)),
+              countChunk mutationRunReportUncovered,
               chunk " uncovered out of ",
               chunk (T.pack (show total)),
               chunk " mutation(s)."

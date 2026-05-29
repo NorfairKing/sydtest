@@ -43,6 +43,7 @@ test-suite sydtest-mutation-driver-gen-test
   other-modules:
       Test.Syd.Mutation.Driver.AssertScoreSpec
       Test.Syd.Mutation.Driver.ComponentsSpec
+      Test.Syd.Mutation.Driver.DiffRunSpec
       Test.Syd.Mutation.Driver.DiffSpec
       Test.Syd.Mutation.Driver.MutateSpec
       Test.Syd.Mutation.Driver.OptParseSpec

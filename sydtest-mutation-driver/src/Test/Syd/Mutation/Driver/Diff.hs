@@ -30,6 +30,8 @@ module Test.Syd.Mutation.Driver.Diff
     testsInHunks,
     mutationsCoveredByTests,
     selectMutations,
+    DiffSelectionBreakdown (..),
+    selectMutationsBreakdown,
   )
 where
 
@@ -297,8 +299,35 @@ selectMutations ::
   Map.Map Text (Map.Map TestId (Path Rel File, Word)) ->
   Set MutationId
 selectMutations hunks manifest testLocationsBySuite =
+  let b = selectMutationsBreakdown hunks manifest testLocationsBySuite
+   in Set.union (diffSelectionSourceMutations b) (diffSelectionTestMutations b)
+
+-- | The two intermediate selection sets that 'selectMutations' unions: the
+-- source-diff selection (mutations whose span sits in a changed source-file
+-- hunk) and the test-diff selection (mutations covered by a test whose
+-- definition sits in a changed test-file hunk).
+--
+-- Exposed so the diff-scoped runner can print a breakdown summary to the
+-- author ("X from source, Y from tests, Z total"), which makes a 0-selection
+-- result self-explanatory instead of mysterious.
+data DiffSelectionBreakdown = DiffSelectionBreakdown
+  { diffSelectionSourceMutations :: !(Set MutationId),
+    diffSelectionTestMutations :: !(Set MutationId)
+  }
+
+-- | Compute both the source-diff and test-diff selection sets.  Their union
+-- is what 'selectMutations' returns.
+selectMutationsBreakdown ::
+  [DiffHunk] ->
+  AugmentedManifest ->
+  Map.Map Text (Map.Map TestId (Path Rel File, Word)) ->
+  DiffSelectionBreakdown
+selectMutationsBreakdown hunks manifest testLocationsBySuite =
   let sourceSelected = mutationsInHunks hunks manifest
       allTestLocations = Map.unions (Map.elems testLocationsBySuite)
       changedTests = testsInHunks hunks allTestLocations
       testSelected = mutationsCoveredByTests changedTests manifest
-   in Set.union sourceSelected testSelected
+   in DiffSelectionBreakdown
+        { diffSelectionSourceMutations = sourceSelected,
+          diffSelectionTestMutations = testSelected
+        }

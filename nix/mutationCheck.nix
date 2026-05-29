@@ -370,6 +370,10 @@ let
     runtimeInputs = [ driver pkgs.git pkgs.coreutils ] ++ collectedTestToolDepends;
     text = ''
       # Only inject a default --out-dir when the caller didn't pass one.
+      # The driver itself prints the final PASS/FAIL summary and the
+      # report-file paths, so the wrapper does not echo anything else
+      # — that would push the driver's summary off the bottom of the
+      # build log.
       out_dir_args=()
       case " $* " in
         *" --out-dir "* | *" --out-dir="*) ;;
@@ -383,9 +387,6 @@ let
         --child-mem-limit=${testProcessMemLimit} \
         "''${out_dir_args[@]}" \
         "$@"
-      if [ ''${#out_dir_args[@]} -gt 0 ]; then
-        echo "Diff-scoped mutation report written to ''${out_dir_args[1]}" >&2
-      fi
     '';
   };
 

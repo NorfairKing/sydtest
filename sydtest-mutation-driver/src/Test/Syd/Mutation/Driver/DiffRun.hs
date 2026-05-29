@@ -15,19 +15,23 @@
 -- artifacts.
 module Test.Syd.Mutation.Driver.DiffRun
   ( runDiff,
+    renderDiffSelection,
+    renderDiffFinalSummary,
   )
 where
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8Lenient)
 import qualified Data.Text.IO as TIO
 import Path
 import Path.IO (forgivingAbsence, withSystemTempDir)
-import System.IO (stderr)
+import System.Exit (ExitCode (..), exitWith)
+import System.IO (hFlush, stderr, stdout)
 import System.Process.Typed (proc, readProcessStdout_)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -36,7 +40,12 @@ import Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
     writeAugmentedManifestFile,
   )
-import Test.Syd.Mutation.Driver.Diff (parseUnifiedDiff, selectMutations)
+import Test.Syd.Mutation.Driver.AssertScore (AssertScoreResult (..), assertScoreResult)
+import Test.Syd.Mutation.Driver.Diff
+  ( DiffSelectionBreakdown (..),
+    parseUnifiedDiff,
+    selectMutationsBreakdown,
+  )
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
   ( DiffSettings (..),
@@ -46,7 +55,17 @@ import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.Mutation.TestLocation (TestLocation (..), decodeTestLocations)
-import Text.Colour (Chunk, TerminalCapabilities (..), chunk, cyan, fore, green, hPutChunksLocaleWith, unlinesChunks)
+import Text.Colour
+  ( Chunk,
+    TerminalCapabilities (..),
+    chunk,
+    cyan,
+    fore,
+    green,
+    hPutChunksLocaleWith,
+    putChunksLocaleWith,
+    unlinesChunks,
+  )
 
 -- | Run the diff subcommand: select and run only the diff-implied mutations.
 runDiff :: DiffSettings -> IO ()
@@ -75,37 +94,116 @@ runDiff DiffSettings {..} = do
       suites
 
   -- 4. Select the diff-implied mutations and filter the manifest down to them.
-  let selected = selectMutations hunks manifest testLocationsBySuite
+  let breakdown = selectMutationsBreakdown hunks manifest testLocationsBySuite
+      selected =
+        Set.union
+          (diffSelectionSourceMutations breakdown)
+          (diffSelectionTestMutations breakdown)
       filtered = filterAugmentedManifestByIds selected manifest
+      numSourceSelected = Set.size (diffSelectionSourceMutations breakdown)
+      numTestSelected = Set.size (diffSelectionTestMutations breakdown)
+      numSelected = Set.size selected
 
   hPutChunksLocaleWith With8BitColours stderr $
-    unlinesChunks (renderDiffSelection (length hunks) (length selected))
+    unlinesChunks
+      (renderDiffSelection (length hunks) numSourceSelected numTestSelected numSelected)
 
   -- 5. Run the mutation phase over the filtered manifest.  'runMutationMode'
   -- reads the augmented manifest from a directory, so write the filtered
-  -- manifest to a temp dir and point it there.
-  withSystemTempDir "mutation-diff-augmented" $ \augDir -> do
-    writeAugmentedManifestFile augDir filtered
-    let suiteExes = Map.map suiteConfigExe suites
-    _ <-
+  -- manifest to a temp dir and point it there.  It also writes
+  -- report.txt/report.json into 'diffSettingOutDir' and prints the rendered
+  -- body to stdout before returning, so the body is in the build log even
+  -- for an empty selection.
+  report <-
+    withSystemTempDir "mutation-diff-augmented" $ \augDir -> do
+      writeAugmentedManifestFile augDir filtered
+      let suiteExes = Map.map suiteConfigExe suites
       runMutationMode
         diffSettingFailFast
         augDir
         diffSettingOutDir
         diffSettingChildMemLimit
         suiteExes
-    pure ()
+
+  -- 6. Final summary block: PASS/FAIL header + report paths, written to
+  -- stdout so they're the last thing in the CI build log.  Hard-code
+  -- 'assertNoneUncovered = True' for the diff runner: an uncovered
+  -- diff-touched mutation is a FAIL, matching the strictest mode of the
+  -- full check.
+  let assertion = assertScoreResult True report
+      txtPath = diffSettingOutDir </> [relfile|report.txt|]
+      jsonPath = diffSettingOutDir </> [relfile|report.json|]
+      summary =
+        renderDiffFinalSummary
+          numSelected
+          assertion
+          (T.pack (fromAbsFile txtPath))
+          (T.pack (fromAbsFile jsonPath))
+  -- 'runMutationMode' already flushed stderr; flush again so any further
+  -- stderr writes from the runtime can't land after our stdout summary.
+  hFlush stderr
+  putChunksLocaleWith With8BitColours (unlinesChunks summary)
+  hFlush stdout
+  -- A 0-selection run always passes (we did no work); only exit non-zero
+  -- when the underlying assertion failed.
+  if numSelected > 0 && assertScoreFailed assertion
+    then exitWith (ExitFailure 1)
+    else pure ()
+
+-- | Render the final summary block of the diff runner.  This is the
+-- *last* thing written to stdout, so it's what the CI build log ends
+-- with: a coloured PASS\/FAIL header followed by the report-file paths
+-- (txt + json).
+--
+-- The header is special-cased for a 0-selection run: instead of "PASS:
+-- All 0 mutation(s) accounted for." it reads "PASS: nothing to
+-- mutation-test in this diff.", which is honest about why the run was a
+-- no-op.  For a non-empty selection, the header comes from
+-- 'assertScoreResult'.
+--
+-- Pure so it can be golden-tested without spinning up a real run; the
+-- output is exactly the @stdout@ block the CI log ends with.
+renderDiffFinalSummary ::
+  -- | Number of mutations selected for the run.
+  Int ->
+  -- | Assertion result for the produced report.  Ignored when 0
+  -- mutations were selected.
+  AssertScoreResult ->
+  -- | Path to @report.txt@ in the out dir.
+  Text ->
+  -- | Path to @report.json@ in the out dir.
+  Text ->
+  [[Chunk]]
+renderDiffFinalSummary numSelected assertion txtPath jsonPath =
+  [ [],
+    header,
+    [],
+    [chunk "Full report:             ", chunk txtPath],
+    [chunk "Machine-readable report: ", chunk jsonPath]
+  ]
+  where
+    header
+      | numSelected == 0 =
+          [fore green (chunk "PASS: "), chunk "nothing to mutation-test in this diff."]
+      | otherwise = assertScoreHeader assertion
 
 -- | Render the one-line "N changed hunks; selected M mutations" progress
 -- message as coloured chunks, matching the rest of the driver's output.
-renderDiffSelection :: Int -> Int -> [[Chunk]]
-renderDiffSelection numHunks numSelected =
+-- The breakdown ("X from source, Y from tests") makes a 0-selection run
+-- self-explanatory.
+renderDiffSelection :: Int -> Int -> Int -> Int -> [[Chunk]]
+renderDiffSelection numHunks numSource numTest numTotal =
   [ [ chunk "diff: ",
       fore cyan (chunk (T.pack (show numHunks))),
       chunk (plural numHunks " changed hunk" " changed hunks"),
       chunk "; selected ",
-      fore green (chunk (T.pack (show numSelected))),
-      chunk (plural numSelected " mutation to run." " mutations to run.")
+      fore green (chunk (T.pack (show numTotal))),
+      chunk (plural numTotal " mutation to run" " mutations to run"),
+      chunk " (",
+      chunk (T.pack (show numSource)),
+      chunk " from source, ",
+      chunk (T.pack (show numTest)),
+      chunk " from tests)."
     ]
   ]
   where

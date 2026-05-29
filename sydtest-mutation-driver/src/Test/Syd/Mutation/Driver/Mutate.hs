@@ -22,7 +22,6 @@ import Control.Concurrent.Async (mapConcurrently, race)
 import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
 import Control.Exception (bracket, bracket_)
 import qualified Control.Exception as Exception
-import Control.Monad (when)
 import qualified Data.ByteString as BS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
@@ -34,7 +33,7 @@ import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Conc (getNumCapabilities)
 import Path
 import Path.IO (copyFile, ignoringAbsence, withSystemTempDir)
-import System.Exit (ExitCode (..), exitWith)
+import System.Exit (ExitCode (..))
 import System.IO (BufferMode (..), IOMode (..), hFlush, hSetBuffering, stderr, withFile)
 import System.Process.Typed (proc, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Mutation.AugmentedManifest
@@ -190,16 +189,24 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
   let renderedChunks = renderMutationRunReport jsonReport
   writeReportTxt renderedChunks outDir
   putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
-  -- Force out any block-buffered progress events before we either return
-  -- normally or exit non-zero.  Without this, the last few lines of
-  -- progress can be dropped when 'exitWith' tears down the runtime.
+  -- Force out any block-buffered progress events before we return.  This
+  -- matters even though we don't 'exitWith' here ourselves: callers (e.g.
+  -- 'runDriver' under --fail-fast) may, and a buffered stderr line that
+  -- lands after the caller's stdout summary block would look like trailing
+  -- garbage in the build log.
   hFlush stderr
   case mWorkerException of
     Left e -> case Exception.fromException e of
       Just MutationFailFast -> pure ()
       Nothing -> Exception.throwIO e
     Right () -> pure ()
-  when (failFast && (survived > 0 || uncovered > 0)) $ exitWith (ExitFailure 1)
+  -- Note: 'runMutationMode' itself does NOT 'exitWith' here, even under
+  -- --fail-fast.  Returning the report lets callers print their own final
+  -- summary line and decide the exit code.  Callers that want the
+  -- historical fail-fast exit (e.g. the full-report 'runDriver') call
+  -- 'exitWith (ExitFailure 1)' themselves on a non-empty survived/uncovered
+  -- count.  This is what lets 'runDiff' still print its PASS/FAIL block
+  -- when fail-fast trips.
   pure jsonReport
   where
     runOne sem record =

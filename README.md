@@ -1,5 +1,7 @@
 # sydtest
 
+[![NixCI](https://staging.nix-ci.com/badge/gh:NorfairKing:sydtest)](https://staging.nix-ci.com/gh:NorfairKing:sydtest)
+
 A modern testing framework for Haskell with good defaults and advanced testing features.
 
 

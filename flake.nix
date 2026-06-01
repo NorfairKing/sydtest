@@ -5,7 +5,7 @@
     extra-trusted-public-keys = "sydtest.cachix.org-1:fyby3c42t+0iTABcLd/R3POxzJhCQ/9gYM7Sh879+9w=";
   };
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-26.05";
     horizon-advance.url = "git+https://gitlab.horizon-haskell.net/package-sets/horizon-advance";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     autodocodec.url = "github:NorfairKing/autodocodec";

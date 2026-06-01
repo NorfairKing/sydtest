@@ -16,6 +16,11 @@ maintainer:     syd@cs-syd.eu
 license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
+extra-source-files:
+    test_resources/diff-run/all-killed.golden
+    test_resources/diff-run/empty-selection.golden
+    test_resources/diff-run/one-survivor-fail.golden
+    test_resources/diff-run/one-uncovered-fail.golden
 
 source-repository head
   type: git

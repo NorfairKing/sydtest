@@ -12,6 +12,9 @@ description: GenValid instances and roundtrip tests for the data types in sydtes
 dependencies:
 - base >= 4.7 && < 5
 
+extra-source-files:
+- test_resources/**/*
+
 library:
   source-dirs: src
   dependencies:

@@ -219,6 +219,43 @@
   ],
   [
     {
+      "col_end": 23,
+      "col_start": 13,
+      "context_after": [
+        "  | n == 0 = \"zero\"",
+        "  | otherwise = \"positive\""
+      ],
+      "context_before": [
+        "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+        "classify :: Int -> String",
+        "classify n"
+      ],
+      "end_line": 12,
+      "id": [
+        "Example.OtherwiseLib",
+        "ConstEmptyList",
+        "12",
+        "13",
+        "23",
+        "[]",
+        "1"
+      ],
+      "line": 12,
+      "module": "Example.OtherwiseLib",
+      "mutated_lines": [
+        "  | n < 0 = []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/OtherwiseLib.hs",
+      "source_lines": [
+        "  | n < 0 = \"negative\""
+      ]
+    }
+  ],
+  [
+    {
       "col_end": 11,
       "col_start": 10,
       "context_after": [
@@ -322,6 +359,76 @@
       "source_file": "src/Example/OtherwiseLib.hs",
       "source_lines": [
         "  | n == 0 = \"zero\""
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 20,
+      "col_start": 14,
+      "context_after": [
+        "  | otherwise = \"positive\""
+      ],
+      "context_before": [
+        "classify :: Int -> String",
+        "classify n",
+        "  | n < 0 = \"negative\""
+      ],
+      "end_line": 13,
+      "id": [
+        "Example.OtherwiseLib",
+        "ConstEmptyList",
+        "13",
+        "14",
+        "20",
+        "[]",
+        "1"
+      ],
+      "line": 13,
+      "module": "Example.OtherwiseLib",
+      "mutated_lines": [
+        "  | n == 0 = []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/OtherwiseLib.hs",
+      "source_lines": [
+        "  | n == 0 = \"zero\""
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 27,
+      "col_start": 17,
+      "context_after": [],
+      "context_before": [
+        "classify n",
+        "  | n < 0 = \"negative\"",
+        "  | n == 0 = \"zero\""
+      ],
+      "end_line": 14,
+      "id": [
+        "Example.OtherwiseLib",
+        "ConstEmptyList",
+        "14",
+        "17",
+        "27",
+        "[]",
+        "1"
+      ],
+      "line": 14,
+      "module": "Example.OtherwiseLib",
+      "mutated_lines": [
+        "  | otherwise = []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/OtherwiseLib.hs",
+      "source_lines": [
+        "  | otherwise = \"positive\""
       ]
     }
   ]

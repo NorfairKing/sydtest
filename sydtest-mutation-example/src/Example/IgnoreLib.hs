@@ -15,6 +15,11 @@ import Control.Monad.Writer (Writer, execWriter, tell)
 -- subtree.  The polymorphic 'a' is what introduces the typecheck-time
 -- 'WrapExpr' wrappers around the head that the ignore filter must
 -- peel through.
+--
+-- 'ConstEmptyList' would otherwise fire on the body @tag :: String@
+-- (since 'String' = @[Char]@); this module is only here to exercise the
+-- 'ignore' filter, so disable that one operator on the body.
+{-# ANN mark ("DisableMutation: ConstEmptyList" :: String) #-}
 mark :: String -> a -> String
 mark tag _ = tag
 
@@ -45,6 +50,12 @@ markM _ = pure ()
 -- | A @do@-block that uses 'markM' (ignored) as a non-binding statement.
 -- No mutation may be produced for the @markM "..."@ action, including the
 -- 'RemoveAction' that would drop the statement entirely.
+--
+-- 'ConstEmptyList' would otherwise fire on the outer
+-- @execWriter $ do { ... }@ application (result type 'String' is @[Char]@),
+-- but this module is only here to exercise the @ignore@ filter, not to be
+-- exhaustively covered by tests; disable that operator on this binding.
+{-# ANN markAction ("DisableMutation: ConstEmptyList" :: String) #-}
 markAction :: String
 markAction = execWriter $ do
   markM "tag"

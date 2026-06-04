@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
 module Test.Syd.Mutation.Plugin.Instrument
@@ -7,6 +8,7 @@ module Test.Syd.Mutation.Plugin.Instrument
     MutationOperator (..),
     SrcSpanDelta (..),
     InstrumentEnv (..),
+    OpAppCtx (..),
     InstrM,
     liftTcM,
     runInstrument,
@@ -26,6 +28,7 @@ import Control.Monad.Writer.Strict
 import qualified Data.ByteString as SB
 import Data.List (stripPrefix)
 import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isJust)
@@ -53,6 +56,7 @@ import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (SourceText (NoSourceText))
+import GHC.Types.SrcLoc (combineRealSrcSpans)
 import GHC.Utils.Outputable (text)
 import Path
 import Path.IO (forgivingAbsence, resolveFile')
@@ -81,6 +85,14 @@ data SrcSpanDelta
     -- Useful when the prefix alone would re-parse with the wrong precedence
     -- (e.g. @not n < 0@ parses as @(not n) < 0@, so we want @not (n < 0)@).
     WrapWithText Text Text
+  | -- | Replace an arbitrary outer span (wider than the matched expression's
+    -- own span) with the given text.  Used by the const-family operators
+    -- when the matched expression sits at the operator position of an infix
+    -- application: text-splicing the operator token alone would produce
+    -- nonsense source (e.g. replacing @||@ with @\\_ _ -> True@ in
+    -- @not a || b@), so we replace the whole @OpApp@ span with a prefix-form
+    -- rewrite instead.
+    ReplaceOuterSpan RealSrcSpan Text
 
 -- ---------------------------------------------------------------------------
 -- Operator
@@ -171,7 +183,51 @@ data InstrumentEnv = InstrumentEnv
     -- AbsBinds@, whose inner 'FunBind' has the same source name as its poly
     -- export and would otherwise spuriously consume a 'DisableMutationsFor'
     -- entry intended for an identically named local.
-    instrumentEnvInLocalLet :: Bool
+    instrumentEnvInLocalLet :: Bool,
+    -- | When 'Just', we are currently walking the typechecker's expansion
+    -- of a source-level @OpApp@ (an infix operator application like
+    -- @not a || b@).  The walker stashes the original 'OpApp' source spans
+    -- and operand text here so const-family operators that fire on the
+    -- bare operator (or a partial application carrying the operator's span)
+    -- can emit a 'ReplaceOuterSpan' delta that rewrites the whole infix
+    -- expression in prefix form, instead of text-splicing a non-operator
+    -- replacement into the operator-token slot and producing nonsense
+    -- source.  Cleared (set back to 'Nothing') when the walker leaves the
+    -- expansion.
+    instrumentEnvOpAppCtx :: Maybe OpAppCtx,
+    -- | How many enclosing 'HsApp' function-position layers we are inside.
+    --
+    -- Incremented when the walker descends into the function side ('f') of
+    -- an @HsApp f a@; reset to 0 when descending into the argument side
+    -- ('a') or any non-application sub-expression (lambda body, case
+    -- scrutinee, let body, list element, ...).  Preserved through
+    -- 'HsPar', 'WrapExpr', and 'ExpandedThingTc' wrappers, which do not
+    -- disrupt the "I am the function head" relationship.
+    --
+    -- The const-family operators ('ConstNothing' / 'ConstEmptyList' /
+    -- 'ConstBool') consult this to skip arity-\>=1 mutations at sites where
+    -- the matched expression is already saturated by enclosing
+    -- applications: an arity-N const-fn mutant @\\_ ... _ -> v@ inserted
+    -- under @N@ levels of 'HsApp' is dominated by the arity-0 mutation on
+    -- the outermost saturated expression (both reduce to @v@), so emitting
+    -- both is pure noise.
+    instrumentEnvAppDepth :: Int
+  }
+
+-- | Original source information for an enclosing infix @OpApp@ — captured
+-- when the walker enters the typechecker's expansion of one.  See
+-- 'instrumentEnvOpAppCtx'.
+data OpAppCtx = OpAppCtx
+  { -- | The full source span of the @OpApp@ (from the start of LHS to the
+    -- end of RHS).  Used as the outer span when rewriting the preview.
+    opAppOuterSpan :: RealSrcSpan,
+    -- | The source span of the operator token itself.  An operator at this
+    -- exact span is the bare-operator mutation site.
+    opAppOpSpan :: RealSrcSpan,
+    -- | The exact source text of the LHS operand.
+    opAppLhsText :: Text,
+    -- | The exact source text of the RHS operand.
+    opAppRhsText :: Text
   }
 
 -- | The 'StateT' state: names of 'DisableMutationsFor' targets that
@@ -243,8 +299,10 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrumentEnvSpliceSpans = spliceSpans,
         instrumentEnvIgnore = ignore,
         instrumentEnvInGuard = False,
+        instrumentEnvAppDepth = 0,
         instrumentEnvLocalDisables = Map.empty,
-        instrumentEnvInLocalLet = False
+        instrumentEnvInLocalLet = False,
+        instrumentEnvOpAppCtx = Nothing
       }
     $ evalStateT (runWriterT action) Set.empty
 
@@ -642,7 +700,15 @@ instrumentLExprGo le = do
 
 instrumentExpr :: SrcSpan -> HsExpr GhcTc -> InstrM (HsExpr GhcTc)
 instrumentExpr _sp = \case
-  HsApp x f a -> HsApp x <$> instrumentLExpr f <*> instrumentLExpr a
+  -- Track HsApp function-position depth so const-family operators can skip
+  -- arity-\>=1 mutations at saturated sites.  The function side ('f') sees
+  -- depth+1 (it is one more level of "head of an application" than its
+  -- parent); the argument side ('a') resets to 0 (a is its own root
+  -- expression).
+  HsApp x f a ->
+    HsApp x
+      <$> local (\env -> env {instrumentEnvAppDepth = instrumentEnvAppDepth env + 1}) (instrumentLExpr f)
+      <*> local (\env -> env {instrumentEnvAppDepth = 0}) (instrumentLExpr a)
   HsLam x lv mg -> HsLam x lv <$> instrumentMatchGroup mg
   HsCase x scrut mg -> HsCase x <$> instrumentLExpr scrut <*> instrumentMatchGroup mg
   HsIf x c t e -> HsIf x <$> instrumentLExpr c <*> instrumentLExpr t <*> instrumentLExpr e
@@ -674,7 +740,17 @@ instrumentExpr _sp = \case
         -- contains further expanded BindStmts whose RHS expressions belong
         -- to other names entirely.
         Just binders -> XExpr . ExpandedThingTc orig <$> instrumentBindExpansion binders expanded
-        Nothing -> XExpr . ExpandedThingTc orig <$> instrumentExpr _sp expanded
+        Nothing -> do
+          -- If the expansion originated from a source-level @OpApp@ (an infix
+          -- operator application like @not a || b@), stash the original
+          -- spans and operand text in 'instrumentEnvOpAppCtx' for the
+          -- duration of the inner walk so const-family operators that fire
+          -- on the bare operator can rewrite their preview to prefix form.
+          ctx <- mkOpAppCtx orig
+          let updateEnv env = case ctx of
+                Just c -> env {instrumentEnvOpAppCtx = Just c}
+                Nothing -> env
+          XExpr . ExpandedThingTc orig <$> local updateEnv (instrumentExpr _sp expanded)
   XExpr (WrapExpr (HsWrap co e)) ->
     XExpr . WrapExpr . HsWrap co <$> instrumentExpr _sp e
   e -> pure e
@@ -697,6 +773,55 @@ origBindStmtBinders = \case
   OrigStmt (L _ (BindStmt _ pat _)) ->
     Just (collectPatBinders CollNoDictBinders pat)
   _ -> Nothing
+
+-- | If @orig@ is an 'OpApp' originating from source-level infix syntax,
+-- extract the outer, operator-token, and operand source spans plus the
+-- operand source text.  Returns 'Nothing' for any non-'OpApp' original or
+-- when a needed span is 'UnhelpfulSpan' or when the source file isn't
+-- available (so we can't read operand text).
+mkOpAppCtx :: HsThingRn -> InstrM (Maybe OpAppCtx)
+mkOpAppCtx orig = case orig of
+  OrigExpr (OpApp _ lLhs lOp lRhs)
+    | RealSrcSpan lhsSp _ <- getLocA lLhs,
+      RealSrcSpan opSp _ <- getLocA lOp,
+      RealSrcSpan rhsSp _ <- getLocA lRhs -> do
+        InstrumentEnv {instrumentEnvSourceFile} <- ask
+        case instrumentEnvSourceFile of
+          Just (_, ls) -> do
+            let outerSp = combineRealSrcSpans lhsSp rhsSp
+                lhsText = textInSpan ls lhsSp
+                rhsText = textInSpan ls rhsSp
+            pure $
+              Just
+                OpAppCtx
+                  { opAppOuterSpan = outerSp,
+                    opAppOpSpan = opSp,
+                    opAppLhsText = lhsText,
+                    opAppRhsText = rhsText
+                  }
+          Nothing -> pure Nothing
+  _ -> pure Nothing
+
+-- | Extract the source text covered by a single 'RealSrcSpan' from a list
+-- of source lines.  Handles multi-line spans by concatenating intermediate
+-- lines with a single space, which is enough for the prefix-form preview
+-- (operands inside an @OpApp@ are typically single-line).
+textInSpan :: [Text] -> RealSrcSpan -> Text
+textInSpan allLines rss =
+  let startLine = srcSpanStartLine rss
+      endLine = srcSpanEndLine rss
+      colS = srcSpanStartCol rss
+      colE = srcSpanEndCol rss
+      lineN i = case drop (i - 1) allLines of
+        (l : _) -> l
+        [] -> T.empty
+   in if startLine == endLine
+        then T.take (colE - colS) (T.drop (colS - 1) (lineN startLine))
+        else
+          let firstPart = T.drop (colS - 1) (lineN startLine)
+              middleParts = map lineN [startLine + 1 .. endLine - 1]
+              lastPart = T.take (colE - 1) (lineN endLine)
+           in T.intercalate " " (firstPart : middleParts ++ [lastPart])
 
 -- | Walk a typechecked @(>>=) rhs (\\pat -> rest)@ application, applying
 -- 'DisableMutationsFor' scoping (drawn from @binders@) only to the @rhs@
@@ -929,16 +1054,31 @@ recordMutation le op origStr replStr delta altIndex = do
                 show altIndex
               ]
           lineNumEnd = srcSpanEndLine rss
+          -- The diff (source_lines / mutated_lines / context) covers the
+          -- "display span": the matched expression's span normally, but
+          -- widened to the outer span when the operator emitted a
+          -- 'ReplaceOuterSpan'.  Keeping the diff aligned on the same span
+          -- on both sides means it always parses as a single contiguous
+          -- edit, never as "narrow original text vs wider mutated text".
+          (displayStartLine, displayEndLine, displayColS, displayColE) =
+            case delta of
+              ReplaceOuterSpan outerRss _ ->
+                ( srcSpanStartLine outerRss,
+                  srcSpanEndLine outerRss,
+                  srcSpanStartCol outerRss,
+                  srcSpanEndCol outerRss
+                )
+              _ -> (lineNum, lineNumEnd, colStart, colEnd)
           (mSrcFile, ctxBefore, ctxAfter, spanLines, mutatedLines) =
             case instrumentEnvSourceFile of
               Nothing -> (Nothing, [], [], [], [])
               Just (relFile, ls) ->
-                let startIdx = lineNum - 1
-                    endIdx = lineNumEnd - 1
+                let startIdx = displayStartLine - 1
+                    endIdx = displayEndLine - 1
                     before = reverse $ take 3 $ reverse $ take startIdx ls
                     after = take 3 $ drop (endIdx + 1) ls
                     srcSpanLines = [line | (i, line) <- zip [0 :: Int ..] ls, i >= startIdx, i <= endIdx]
-                    mutLines = applyDelta ls lineNum lineNumEnd colStart colEnd delta srcSpanLines
+                    mutLines = applyDelta ls displayStartLine displayEndLine displayColS displayColE delta srcSpanLines
                  in (Just relFile, before, after, srcSpanLines, mutLines)
       let record =
             MutationRecord
@@ -983,6 +1123,11 @@ applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta o
   SpanRemoval rmSpans -> applySpanRemoval allLines outerStart outerEnd rmSpans
   PrependText prefix -> applyPrependText colS prefix spanLines
   WrapWithText prefix suffix -> applyWrapWithText colS colE prefix suffix spanLines
+  -- 'ReplaceOuterSpan' has already widened the display span at the
+  -- 'recordMutation' level, so by the time we are here the @colS@..@colE@
+  -- bounds already cover the outer span and 'applyTokenReplace' does the
+  -- right thing.
+  ReplaceOuterSpan _ newText -> applyTokenReplace colS colE newText spanLines
 
 -- | Wrap the matched span text with @prefix@ before and @suffix@ after.
 -- For multi-line spans only the prefix lands on the first line and the
@@ -1025,12 +1170,19 @@ applySingleLineReplace colS colE newText line =
 
 -- | Replace text at columns colS..colE on the first line of the span.
 -- GHC colEnd is exclusive (one past the last character), so T.drop (colE-1) is correct.
+--
+-- Multi-line spans collapse to a single line: the prefix of the first line
+-- (columns 1..colS-1), then the replacement text, then the suffix of the
+-- last line (columns colE.. onwards).  Intermediate lines are dropped.  This
+-- matters for operators that replace whole multi-line expressions with a
+-- short token — e.g. @FunctionToEmptyList@ on @execWriter $ do { ... }@.
 applyTokenReplace :: Int -> Int -> Text -> [Text] -> [Text]
-applyTokenReplace _ _ _ [] = []
-applyTokenReplace colS colE newText (line : rest) =
-  let before = T.take (colS - 1) line
-      after = T.drop (colE - 1) line
-   in (before <> newText <> after) : rest
+applyTokenReplace colS colE newText lns = case NE.nonEmpty lns of
+  Nothing -> []
+  Just ne ->
+    let before = T.take (colS - 1) (NE.head ne)
+        after = T.drop (colE - 1) (NE.last ne)
+     in [before <> newText <> after]
 
 -- | Remove lines belonging to any of the given spans from the outer span's line range.
 --

@@ -23,6 +23,7 @@ library
   exposed-modules:
       Test.Syd.Mutation.AugmentedManifest
       Test.Syd.Mutation.Manifest
+      Test.Syd.Mutation.Manifest.Render
       Test.Syd.Mutation.Runtime
       Test.Syd.Mutation.TestBaselineMap
       Test.Syd.Mutation.TestCoverageMap
@@ -39,12 +40,15 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , fast-myers-diff >=0.0.1
     , genvalidity
     , genvalidity-containers
     , genvalidity-path
     , genvalidity-text
     , path
     , path-io
+    , safe-coloured-text
     , text
     , unordered-containers
+    , vector
   default-language: Haskell2010

@@ -1,0 +1,78 @@
+[36m# Example.BoolLib[m
+8 mutations in 7 groups
+
+ConstNothing at src/Example/BoolLib.hs:22:17-21 #1
+[36m@@ -19,4 +19,4 @@[m
+ 
+ -- | Negates a wrapped boolean.
+ negateWrapped :: Maybe Bool -> Maybe Bool
+[31m-[m[31mnegateWrapped =[m[31m [m[1;91mf[m[1;91mm[m[1;91map[m[31m not[m
+[32m+[m[32mnegateWrapped =[m[42m [m[1;92m([m[1;92m\[m[1;92m_[m[32m [m[1;92m_[m[42m [m[1;92m-> No[m[1;92mt[m[1;92mhin[m[1;92mg[m[1;92m)[m[32m not[m
+
+ConstBool at src/Example/BoolLib.hs:22:22-25 #1
+[36m@@ -19,4 +19,4 @@[m
+ 
+ -- | Negates a wrapped boolean.
+ negateWrapped :: Maybe Bool -> Maybe Bool
+[31m-[m[31mnegateWrapped = fmap[m[31m [m[1;91mnot[m
+[32m+[m[32mnegateWrapped = fmap[m[42m [m[1;92m([m[1;92m\_[m[1;92m -[m[1;92m>[m[32m [m[1;92mT[m[1;92mrue)[m
+
+ConstBool at src/Example/BoolLib.hs:22:22-25 #2
+[36m@@ -19,4 +19,4 @@[m
+ 
+ -- | Negates a wrapped boolean.
+ negateWrapped :: Maybe Bool -> Maybe Bool
+[31m-[m[31mnegateWrapped = fmap [m[1;91mn[m[1;91mo[m[1;91mt[m
+[32m+[m[32mnegateWrapped = fmap [m[1;92m([m[1;92m\_ -[m[1;92m> False)[m
+
+ConstNothing at src/Example/BoolLib.hs:22:17-25 #1
+[36m@@ -19,4 +19,4 @@[m
+ 
+ -- | Negates a wrapped boolean.
+ negateWrapped :: Maybe Bool -> Maybe Bool
+[31m-[m[31mnegateWrapped = [m[1;91mfm[m[1;91ma[m[1;91mp[m[31m [m[1;91mn[m[31mot[m
+[32m+[m[32mnegateWrapped = [m[1;92m([m[1;92m\[m[1;92m_[m[1;92m -[m[1;92m>[m[32m [m[1;92mN[m[32mot[m[1;92mh[m[1;92ming)[m
+
+BoolLit at src/Example/BoolLib.hs:18:18-23 #1
+[36m@@ -15,7 +15,7 @@[m
+ --
+ -- Mutation sites: BoolLit/ConstBool on the inner False, MaybeOp on Just False.
+ wrapFalse :: Maybe Bool
+[31m-[m[31mwrapFalse = Just [m[1;91mF[m[1;91mal[m[1;91ms[m[31me[m
+[32m+[m[32mwrapFalse = Just [m[1;92mT[m[1;92mru[m[32me[m
+ 
+ -- | Negates a wrapped boolean.
+ negateWrapped :: Maybe Bool -> Maybe Bool
+
+MaybeOp at src/Example/BoolLib.hs:18:13-23 #1
+[36m@@ -15,7 +15,7 @@[m
+ --
+ -- Mutation sites: BoolLit/ConstBool on the inner False, MaybeOp on Just False.
+ wrapFalse :: Maybe Bool
+[31m-[m[31mwrapFalse = [m[1;91mJ[m[1;91mu[m[1;91ms[m[31mt[m[1;91m F[m[1;91ma[m[1;91mlse[m
+[32m+[m[32mwrapFalse = [m[1;92mN[m[1;92mo[m[32mt[m[1;92mh[m[1;92min[m[1;92mg[m
+ 
+ -- | Negates a wrapped boolean.
+ negateWrapped :: Maybe Bool -> Maybe Bool
+
+BoolLit at src/Example/BoolLib.hs:12:17-21 #1
+[36m@@ -9,7 +9,7 @@[m
+ --
+ -- Mutation sites: BoolLit/ConstBool on the inner True, MaybeOp on Just True.
+ wrapTrue :: Maybe Bool
+[31m-[m[31mwrapTrue = Just [m[1;91mTr[m[1;91mu[m[31me[m
+[32m+[m[32mwrapTrue = Just [m[1;92mF[m[1;92ma[m[1;92mls[m[32me[m
+ 
+ -- | Wraps False in Just.
+ --
+
+MaybeOp at src/Example/BoolLib.hs:12:12-21 #1
+[36m@@ -9,7 +9,7 @@[m
+ --
+ -- Mutation sites: BoolLit/ConstBool on the inner True, MaybeOp on Just True.
+ wrapTrue :: Maybe Bool
+[31m-[m[31mwrapTrue = [m[1;91mJ[m[1;91mu[m[1;91ms[m[31mt[m[41m [m[1;91mT[m[1;91mrue[m
+[32m+[m[32mwrapTrue = [m[1;92mNo[m[32mt[m[1;92mhing[m
+ 
+ -- | Wraps False in Just.
+ --

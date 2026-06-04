@@ -37,6 +37,7 @@ test-suite sydtest-mutation-example-gen-test
   other-modules:
       Example.BoolLibSpec
       Example.CaseLibSpec
+      Example.ConstFnLibSpec
       Example.DoLibSpec
       Example.ExceptionLibSpec
       Example.FunctionExceptionLibSpec

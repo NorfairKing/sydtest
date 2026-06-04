@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Test.Syd.Mutation.Plugin.Operator.Util
   ( opOccName,
@@ -6,14 +7,25 @@ module Test.Syd.Mutation.Plugin.Operator.Util
     mkIntLitExpr,
     TcOpApp (..),
     matchTcOpApp,
+    ConstFnMatch (..),
+    viewConstFnResult,
+    mkConstLambda,
+    arrowTy,
+    prefixFormPreview,
   )
 where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Text (Text)
+import qualified Data.Text as T
 import GHC
+import GHC.Builtin.Types (manyDataConTy)
+import GHC.Core.TyCo.Rep (Scaled (..))
+import GHC.Core.Type (isForAllTy, mkVisFunTyMany, splitFunTy_maybe, splitTyConApp_maybe)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Tc.Types (TcM)
 import GHC.Tc.Utils.Env (tcLookupId)
+import GHC.Types.Basic (DoPmc (..), GenReason (..), Origin (..))
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
@@ -174,3 +186,145 @@ substIntegerInWitness n = \case
   HsLit x (HsInteger src _ ty) -> HsLit x (HsInteger src n ty)
   XExpr (WrapExpr (HsWrap w e)) -> XExpr (WrapExpr (HsWrap w (substIntegerInWitness n e)))
   e -> e
+
+-- | Result of matching an expression for the @Const…@ family of operators:
+-- peel arrows on @le@'s type until the head TyCon matches a target, with
+-- the argument types of the arrows that were peeled.
+data ConstFnMatch = ConstFnMatch
+  { -- | Argument types of the arrows that were peeled, in order.  Empty for
+    -- arity 0 (the expression itself already has the target type).
+    cfnArgTys :: [Type],
+    -- | The result type (the target TyCon applied to its arguments).
+    cfnResTy :: Type,
+    -- | The result type's TyCon arguments, e.g. @[a]@ for @[a] -> Maybe a@.
+    cfnTyConArgs :: [Type]
+  }
+
+-- | If @le@'s type matches @arg1 -> ... -> argN -> targetTyCon tcArgs@ with
+-- @N >= minArity@, return the peeled arrow argument types, the final result
+-- type, and the target TyCon's arguments.  Used by the @Const…@ family.
+--
+-- Returns 'Nothing' when:
+--
+--   * @le@'s outermost head is a data constructor (e.g. @Just x@, @x : xs@) —
+--     those have their own dedicated operators ('MaybeOp', 'ListLit') and
+--     would duplicate them,
+--   * the expression's type has a forall or class constraint (we can't
+--     synthesise a constant under one without building a typed dictionary or
+--     type lambda),
+--   * after peeling arrows, the result type does not split as
+--     @targetTyCon args@,
+--   * the arity (number of arrows peeled) is less than @minArity@.
+viewConstFnResult :: Int -> TyCon -> LHsExpr GhcTc -> Maybe ConstFnMatch
+viewConstFnResult minArity targetTyCon le = do
+  () <- nonConstructorHead le
+  let ty = lhsExprType le
+  if isForAllTy ty
+    then Nothing
+    else do
+      let (argTys, resTy) = peelArrows ty
+      if length argTys < minArity
+        then Nothing
+        else do
+          (tc, tcArgs) <- splitTyConApp_maybe resTy
+          if tc == targetTyCon
+            then Just (ConstFnMatch argTys resTy tcArgs)
+            else Nothing
+
+-- | Peel as many @arg -> rest@ arrows as possible from the type, returning
+-- the argument types and the final result type.  Stops at any
+-- non-arrow type (including constrained types).
+peelArrows :: Type -> ([Type], Type)
+peelArrows = go []
+  where
+    go acc ty = case splitFunTy_maybe ty of
+      Just (_af, _mult, argTy, resTy) -> go (argTy : acc) resTy
+      Nothing -> (reverse acc, ty)
+
+-- | Reject expressions whose outermost head is a data constructor at GhcTc
+-- ('ConLikeTc' / a 'HsConLikeOut'-style node).  Peels through 'HsApp',
+-- 'HsAppType', 'HsPar', 'WrapExpr', and 'ExpandedThingTc' wrappers.
+nonConstructorHead :: LHsExpr GhcTc -> Maybe ()
+nonConstructorHead = go
+  where
+    go h = case unLoc h of
+      XExpr (ConLikeTc {}) -> Nothing
+      HsApp _ f _ -> go f
+      HsAppType _ f _ -> go f
+      HsPar _ e -> go e
+      XExpr (WrapExpr (HsWrap _ e)) -> go (L (getLoc h) e)
+      XExpr (ExpandedThingTc _ e) -> go (L (getLoc h) e)
+      _ -> Just ()
+
+-- | Build @\\_ _ ... _ -> v@ at GhcTc.  @v@ must already have type @resTy@;
+-- the resulting lambda has type @arg1 -> ... -> argN -> resTy@.
+--
+-- For arity 0 (empty @argTys@) this is the identity on @v@.
+--
+-- Used by the @Const…@ family of operators to produce a constant-function
+-- mutant without depending on @Prelude.const@ being in scope.  All
+-- annotation/origin fields are filled with neutral defaults so the desugarer
+-- accepts the result and the pattern-match checker does not complain about
+-- the wildcards.
+mkConstLambda ::
+  -- | Argument types, in source order: @[arg1, arg2, ..., argN]@.
+  [Type] ->
+  -- | Result type of @v@.
+  Type ->
+  -- | The bare value to wrap.
+  LHsExpr GhcTc ->
+  LHsExpr GhcTc
+mkConstLambda [] _ body = body
+mkConstLambda argTys resTy body =
+  let pats = map (\ty -> noLocA (WildPat ty)) argTys
+      grhs = noLocA (GRHS noAnn [] body)
+      grhss = GRHSs emptyComments [grhs] (EmptyLocalBinds NoExtField)
+      ctxt = LamAlt LamSingle
+      match = noLocA (Match [] ctxt pats grhss)
+      mgtc =
+        MatchGroupTc
+          { mg_arg_tys = map (Scaled manyDataConTy) argTys,
+            mg_res_ty = resTy,
+            mg_origin = Generated OtherExpansion SkipPmc
+          }
+      mg = MG mgtc (noLocA [match])
+   in noLocA (HsLam [] LamSingle mg)
+
+-- | Build an arrow type @arg1 -> ... -> argN -> resTy@ with default (Many)
+-- multiplicity.
+arrowTy :: [Type] -> Type -> Type
+arrowTy as resTy = foldr mkVisFunTyMany resTy as
+
+-- | Build a prefix-form preview text for an arity-N constant-function
+-- mutation that sits at an infix operator position.
+--
+-- Given operand source text and a mutant rendering, produces text that
+-- replaces the whole enclosing @OpApp@ source span in prefix form:
+--
+--   arity 2:  @(\\_ _ -> v) (lhsText) (rhsText)@
+--   arity 1:  @(\\_ -> v) (rhsText)@           — the partial app
+--                                              consumed the LHS already.
+--
+-- The result reparses as a normal Haskell expression and has the same
+-- runtime semantics as the AST mutation, so the manifest diff is honest.
+prefixFormPreview ::
+  -- | Arity of the constant function being inserted.
+  Int ->
+  -- | Source text of the constant body (e.g. @"True"@, @"Nothing"@, @"[]"@).
+  Text ->
+  -- | Source text of the LHS operand of the infix @OpApp@.
+  Text ->
+  -- | Source text of the RHS operand of the infix @OpApp@.
+  Text ->
+  Text
+prefixFormPreview arity vText lhsText rhsText =
+  let lam =
+        "(\\"
+          <> T.replicate arity "_ "
+          <> "-> "
+          <> vText
+          <> ")"
+   in case arity of
+        2 -> lam <> " (" <> lhsText <> ") (" <> rhsText <> ")"
+        1 -> lam <> " (" <> rhsText <> ")"
+        _ -> lam

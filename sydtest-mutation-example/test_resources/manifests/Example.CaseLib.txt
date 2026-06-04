@@ -1,0 +1,71 @@
+[36m# Example.CaseLib[m
+7 mutations in 6 groups
+
+ConstEmptyList at src/Example/CaseLib.hs:7:24-26 #1
+[36m@@ -4,7 +4,7 @@[m
+ --
+ -- Mutation sites: RemoveCase removes one of the three alternatives.
+ describeList :: [a] -> String
+[31m-[m[31mdescribeList xs = case [m[1;91mx[m[1;91ms[m[31m of[m
+[32m+[m[32mdescribeList xs = case [m[1;92m[[m[1;92m][m[32m of[m
+   [] -> "empty"
+   [_] -> "singleton"
+   _ -> "longer"
+
+ConstEmptyList at src/Example/CaseLib.hs:8:9-16 #1
+[36m@@ -5,6 +5,6 @@[m
+ -- Mutation sites: RemoveCase removes one of the three alternatives.
+ describeList :: [a] -> String
+ describeList xs = case xs of
+[31m-[m[31m  [] -> [m[1;91m"[m[1;91mem[m[1;91mpty"[m
+[32m+[m[32m  [] -> [m[1;92m[[m[1;92m][m
+   [_] -> "singleton"
+   _ -> "longer"
+
+ConstEmptyList at src/Example/CaseLib.hs:9:10-21 #1
+[36m@@ -6,5 +6,5 @@[m
+ describeList :: [a] -> String
+ describeList xs = case xs of
+   [] -> "empty"
+[31m-[m[31m  [_] -> [m[1;91m"[m[1;91ms[m[1;91ming[m[1;91mleton"[m
+[32m+[m[32m  [_] -> [m[1;92m[][m
+   _ -> "longer"
+
+ConstEmptyList at src/Example/CaseLib.hs:10:8-16 #1
+[36m@@ -7,4 +7,4 @@[m
+ describeList xs = case xs of
+   [] -> "empty"
+   [_] -> "singleton"
+[31m-[m[31m  _ -> [m[1;91m"[m[1;91ml[m[1;91mo[m[1;91mng[m[1;91me[m[1;91mr"[m
+[32m+[m[32m  _ -> [m[1;92m[][m
+
+ConstEmptyList at src/Example/CaseLib.hs:7:19-16 #1
+[36m@@ -4,7 +4,4 @@[m
+ --
+ -- Mutation sites: RemoveCase removes one of the three alternatives.
+ describeList :: [a] -> String
+[31m-[m[31mdescribeList xs =[m[41m [m[1;91mc[m[1;91ma[m[1;91mse [m[1;91mxs[m[31m [m[1;91mo[m[1;91mf[m
+[31m-  [] -> "empty"[m
+[31m-  [_] -> "singleton"[m
+[31m-  _ -> "longer"[m
+[32m+[m[32mdescribeList xs =[m[32m [m[1;92m[][m
+
+RemoveCase at src/Example/CaseLib.hs:7:19-16 #1
+[36m@@ -4,7 +4,6 @@[m
+ --
+ -- Mutation sites: RemoveCase removes one of the three alternatives.
+ describeList :: [a] -> String
+ describeList xs = case xs of
+[31m-  [] -> "empty"[m
+   [_] -> "singleton"
+   _ -> "longer"
+
+RemoveCase at src/Example/CaseLib.hs:7:19-16 #2
+[36m@@ -4,7 +4,6 @@[m
+ --
+ -- Mutation sites: RemoveCase removes one of the three alternatives.
+ describeList :: [a] -> String
+ describeList xs = case xs of
+   [] -> "empty"
+[31m-  [_] -> "singleton"[m
+   _ -> "longer"

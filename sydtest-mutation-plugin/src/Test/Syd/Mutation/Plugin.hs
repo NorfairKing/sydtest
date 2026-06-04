@@ -21,6 +21,7 @@ import GHC.Types.Annotations (AnnTarget (..), findAnns)
 import Path
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), writeManifestFile)
+import Test.Syd.Mutation.Manifest.Render (writeManifestTxtFile)
 import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Plugin.Operators (allOperators)
 import Test.Syd.Mutation.Plugin.OptParse
@@ -266,8 +267,14 @@ mutationTypeCheckAction opts ms tcGblEnv = do
               Just dir -> writeModuleManifest dir mn groups
           pure tcGblEnv {tcg_binds = binds'}
 
--- | Write a JSON manifest file for one module to @<dir>/<ModuleName>.json@.
--- Each module gets its own file, so no locking is needed.
+-- | Write the manifest for one module to @<dir>/<ModuleName>.json@ and a
+-- coloured human-readable rendering to @<dir>/<ModuleName>.txt@.  Each
+-- module gets its own pair of files, so no locking is needed.
+--
+-- The @.txt@ is what reviewers diff during code review; it uses the same
+-- header + unified-diff layout as the runtime's surviving-mutation report.
 writeModuleManifest :: Path Abs Dir -> String -> [MutationGroup] -> IO ()
-writeModuleManifest dir mn groups =
-  writeManifestFile dir mn (MutationManifest groups)
+writeModuleManifest dir mn groups = do
+  let manifest = MutationManifest groups
+  writeManifestFile dir mn manifest
+  writeManifestTxtFile dir mn manifest

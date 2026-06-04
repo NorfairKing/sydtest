@@ -1,0 +1,869 @@
+[36m# Example.ConstFnLib[m
+84 mutations in 56 groups
+
+ConstBool at src/Example/ConstFnLib.hs:71:26-28 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter[m[31m [m[1;91mi[m[1;91md[m[31m [m[31m[a, b, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter[m[42m [m[1;92m([m[1;92m\[m[1;92m_[m[32m [m[1;92m-[m[1;92m>[m[32m [m[1;92mT[m[1;92mru[m[1;92me)[m[42m [m[32m[a, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:26-28 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter[m[31m [m[1;91mi[m[1;91md[m[31m [a, b, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter[m[42m [m[1;92m([m[1;92m\_[m[1;92m -[m[1;92m>[m[32m [m[1;92mF[m[1;92malse[m[1;92m)[m[32m [a, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:30-31 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [[m[1;91ma[m[31m, b, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [[m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:30-31 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [[m[31ma[m[31m, b, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [[m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Negate at src/Example/ConstFnLib.hs:71:30-31 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [[m[31ma[m[31m, b, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [[m[1;92mn[m[1;92mo[m[1;92mt[m[1;92m ([m[32ma[m[1;92m)[m[32m, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:33-34 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, [m[1;91mb[m[31m, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:33-34 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, [m[1;91mb[m[31m, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Negate at src/Example/ConstFnLib.hs:71:33-34 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a,[m[31m [m[31mb[m[31m, c, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a,[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m[32m, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:36-37 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, [m[1;91mc[m[31m, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:36-37 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, [m[1;91mc[m[31m, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Negate at src/Example/ConstFnLib.hs:71:36-37 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b,[m[31m [m[31mc[m[31m, d, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b,[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mc[m[1;92m)[m[32m, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:39-40 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, [m[1;91md[m[31m, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:39-40 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, [m[1;91md[m[31m, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Negate at src/Example/ConstFnLib.hs:71:39-40 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c,[m[31m [m[31md[m[31m, e]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c,[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32md[m[1;92m)[m[32m, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:42-43 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, [m[31me]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, [m[1;92mT[m[1;92mr[m[1;92mu[m[32me]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:42-43 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, [m[31me]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, [m[1;92mF[m[1;92ma[m[1;92ml[m[1;92ms[m[32me]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Negate at src/Example/ConstFnLib.hs:71:42-43 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d,[m[31m [m[31me[m[31m]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d,[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32me[m[1;92m)[m[32m]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstEmptyList at src/Example/ConstFnLib.hs:71:29-44 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [[m[1;91ma[m[1;91m,[m[1;91m b[m[1;91m, c[m[1;91m, d[m[1;91m, [m[1;91me[m[31m]) in n >= 3[m
+[32m+[m[32m  let n = length (filter id [[m[32m]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ListLit at src/Example/ConstFnLib.hs:71:29-44 #1
+[36m@@ -68,7 +68,6 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-  let n = length (filter id [a, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ListLit at src/Example/ConstFnLib.hs:71:29-44 #2
+[36m@@ -68,7 +68,6 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-  let n = length (filter id [a, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ListLit at src/Example/ConstFnLib.hs:71:29-44 #3
+[36m@@ -68,7 +68,6 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-  let n = length (filter id [a, b, c, d, e]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstEmptyList at src/Example/ConstFnLib.hs:71:19-44 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length ([m[1;91mf[m[1;91mi[m[1;91ml[m[1;91mter[m[1;91m id[m[41m [m[31m[[m[1;91ma[m[1;91m,[m[1;91m b, c,[m[1;91m d,[m[41m [m[1;91me[m[31m]) in n >= 3[m
+[32m+[m[32m  let n = length ([m[32m[[m[32m]) in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstEmptyList at src/Example/ConstFnLib.hs:71:18-45 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length [m[1;91m([m[1;91mf[m[1;91mil[m[1;91mter[m[1;91m id[m[41m [m[31m[[m[1;91ma[m[1;91m,[m[1;91m b, c,[m[1;91m d,[m[1;91m e[m[31m][m[1;91m)[m[31m in n >= 3[m
+[32m+[m[32m  let n = length [m[32m[[m[32m][m[32m in n >= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+IntLit at src/Example/ConstFnLib.hs:71:54-55 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) in n >= [m[1;91m3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) in n >= [m[1;92m0[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+IntLit at src/Example/ConstFnLib.hs:71:54-55 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) in n >= [m[1;91m3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) in n >= [m[1;92m1[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+IntLit at src/Example/ConstFnLib.hs:71:54-55 #3
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) in n >= [m[31m3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) in n >= [m[1;92m-[m[32m3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Cmp at src/Example/ConstFnLib.hs:71:49-55 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) in n [m[1;91m>[m[1;91m=[m[31m 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) in n [m[1;92m<[m[32m 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Cmp at src/Example/ConstFnLib.hs:71:49-55 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) in n [m[1;91m>[m[31m= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) in n [m[1;92m<[m[32m= 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Cmp at src/Example/ConstFnLib.hs:71:49-55 #3
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) in n >[m[1;91m=[m[31m 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) in n >[m[32m 3[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:49-55 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) i[m[1;91mn[m[41m [m[31mn[m[41m [m[1;91m>=[m[31m [m[1;91m3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) i[m[32mn[m[32m [m[1;92mTru[m[1;92me[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:49-55 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) in [m[1;91mn[m[1;91m >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) in [m[1;92mF[m[1;92ma[m[1;92mlse[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Negate at src/Example/ConstFnLib.hs:71:49-55 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m  let n = length (filter id [a, b, c, d, e]) i[m[31mn[m[31m [m[31mn >= 3[m
+[32m+[m[32m  let n = length (filter id [a, b, c, d, e]) i[m[1;92mn[m[42m [m[32mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mn >= 3[m[1;92m)[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:3-55 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[41m [m[31m [m[1;91ml[m[1;91met[m[1;91m n [m[1;91m= leng[m[1;91mth[m[31m [m[1;91m([m[1;91mfil[m[1;91mte[m[31mr[m[41m [m[1;91mid [m[1;91m[a, b, c, d, [m[31me[m[1;91m][m[1;91m) [m[1;91min [m[1;91mn >= 3[m
+[32m+[m[32m [m[32m [m[1;92mT[m[32mr[m[1;92mu[m[32me[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:71:3-55 #2
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[1;91m  let n[m[31m [m[1;91m=[m[31m [m[31ml[m[31me[m[1;91mngt[m[1;91mh (filter id [m[1;91m[a, b, c, d, e]) in n >= 3[m
+[32m+[m[32m [m[32m [m[1;92mF[m[1;92ma[m[32ml[m[1;92ms[m[32me[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+Negate at src/Example/ConstFnLib.hs:71:3-55 #1
+[36m@@ -68,7 +68,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+[31m-[m[31m [m[31m [m[31mlet n = length (filter id [a, b, c, d, e]) in n >= 3[m
+[32m+[m[42m [m[32m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mlet n = length (filter id [a, b, c, d, e]) in n >= 3[m[1;92m)[m
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:81:50-51 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;91ma[m[31m b c d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m b c d e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:50-51 #2
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[31ma[m[31m b c d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m b c d e[m
+
+Negate at src/Example/ConstFnLib.hs:81:50-51 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5[m[31m [m[31ma[m[31m b c d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32ma[m[1;92m)[m[32m b c d e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:52-53 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;91mb[m[31m c d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m c d e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:52-53 #2
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;91mb[m[31m c d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m c d e[m
+
+Negate at src/Example/ConstFnLib.hs:81:52-53 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a[m[31m [m[31mb[m[31m c d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m[32m c d e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:54-55 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;91mc[m[31m d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m d e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:54-55 #2
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;91mc[m[31m d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m d e[m
+
+Negate at src/Example/ConstFnLib.hs:81:54-55 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b[m[31m [m[31mc[m[31m d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mc[m[1;92m)[m[32m d e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:56-57 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;91md[m[31m e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:56-57 #2
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;91md[m[31m e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m e[m
+
+Negate at src/Example/ConstFnLib.hs:81:56-57 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c[m[31m [m[31md[m[31m e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32md[m[1;92m)[m[32m e[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:58-59 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[31me[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[1;92mT[m[1;92mr[m[1;92mu[m[32me[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:58-59 #2
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[31me[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[1;92mF[m[1;92ma[m[1;92ml[m[1;92ms[m[32me[m
+
+Negate at src/Example/ConstFnLib.hs:81:58-59 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d[m[31m [m[31me[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32me[m[1;92m)[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:38-59 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = [m[1;91mm[m[1;91ma[m[1;91mj[m[1;91mo[m[31mr[m[1;91mityOf[m[1;91m5 a b[m[1;91m c [m[1;91md[m[41m [m[31me[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = [m[1;92mT[m[32mr[m[1;92mu[m[32me[m
+
+ConstBool at src/Example/ConstFnLib.hs:81:38-59 #2
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) =[m[41m [m[1;91mm[m[1;91ma[m[1;91mjor[m[1;91mityOf[m[1;91m5[m[31m [m[31ma[m[41m [m[1;91mb[m[1;91m c [m[1;91md[m[41m [m[31me[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) =[m[32m [m[1;92mF[m[32ma[m[1;92mls[m[32me[m
+
+Negate at src/Example/ConstFnLib.hs:81:38-59 #1
+[36m@@ -78,4 +78,4 @@[m
+ --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
+ --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+[31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) =[m[31m [m[31mmajorityOf5 a b c d e[m
+[32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mmajorityOf5 a b c d e[m[1;92m)[m
+
+ConstBool at src/Example/ConstFnLib.hs:55:19-20 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = not [m[1;91ma[m[31m || b[m
+[32m+[m[32mimplies a b = not [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m || b[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:55:19-20 #2
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = not [m[31ma[m[31m || b[m
+[32m+[m[32mimplies a b = not [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m || b[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+Negate at src/Example/ConstFnLib.hs:55:19-20 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b =[m[31m not [m[31ma[m[31m || b[m
+[32m+[m[32mimplies a b =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m not [m[1;92m([m[32ma[m[1;92m)[m[32m || b[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:55:15-20 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = [m[1;91mn[m[1;91mot[m[41m [m[1;91ma[m[31m || b[m
+[32m+[m[32mimplies a b = [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m || b[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:55:15-20 #2
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b =[m[41m [m[1;91mn[m[1;91mot[m[31m [m[31ma[m[31m || b[m
+[32m+[m[32mimplies a b =[m[32m [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m || b[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+Negate at src/Example/ConstFnLib.hs:55:15-20 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b =[m[31m [m[31mnot a[m[31m || b[m
+[32m+[m[32mimplies a b =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mnot a[m[1;92m)[m[32m || b[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:55:24-25 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = not a || [m[1;91mb[m
+[32m+[m[32mimplies a b = not a || [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:55:24-25 #2
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = not a || [m[1;91mb[m
+[32m+[m[32mimplies a b = not a || [m[1;92mF[m[1;92ma[m[1;92mlse[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+Negate at src/Example/ConstFnLib.hs:55:24-25 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = not a ||[m[31m [m[31mb[m
+[32m+[m[32mimplies a b = not a ||[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:55:15-25 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b =[m[41m [m[1;91mn[m[1;91mot[m[1;91m a [m[1;91m||[m[31m [m[1;91mb[m
+[32m+[m[32mimplies a b =[m[32m [m[1;92mTr[m[1;92mue[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:55:15-25 #2
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = [m[1;91mn[m[1;91mo[m[1;91mt[m[41m [m[31ma[m[1;91m ||[m[41m [m[1;91mb[m
+[32m+[m[32mimplies a b = [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+LogicOp at src/Example/ConstFnLib.hs:55:15-25 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b = not a [m[1;91m|[m[1;91m|[m[31m b[m
+[32m+[m[32mimplies a b = not a [m[1;92m&[m[1;92m&[m[32m b[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+Negate at src/Example/ConstFnLib.hs:55:15-25 #1
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+[31m-[m[31mimplies a b =[m[31m [m[31mnot a || b[m
+[32m+[m[32mimplies a b =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mnot a || b[m[1;92m)[m
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
+ConstBool at src/Example/ConstFnLib.hs:65:30-31 #1
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = implies [m[1;91ma[m[31m b[m
+[32m+[m[32mimpliesPair (a, b) = implies [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m b[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+ConstBool at src/Example/ConstFnLib.hs:65:30-31 #2
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = implies [m[31ma[m[31m b[m
+[32m+[m[32mimpliesPair (a, b) = implies [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m b[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+Negate at src/Example/ConstFnLib.hs:65:30-31 #1
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = implies[m[31m [m[31ma[m[31m b[m
+[32m+[m[32mimpliesPair (a, b) = implies[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32ma[m[1;92m)[m[32m b[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+ConstBool at src/Example/ConstFnLib.hs:65:32-33 #1
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = implies a [m[1;91mb[m
+[32m+[m[32mimpliesPair (a, b) = implies a [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+ConstBool at src/Example/ConstFnLib.hs:65:32-33 #2
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = implies a [m[1;91mb[m
+[32m+[m[32mimpliesPair (a, b) = implies a [m[1;92mF[m[1;92ma[m[1;92mlse[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+Negate at src/Example/ConstFnLib.hs:65:32-33 #1
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = implies a[m[31m [m[31mb[m
+[32m+[m[32mimpliesPair (a, b) = implies a[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+ConstBool at src/Example/ConstFnLib.hs:65:22-33 #1
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = [m[1;91mi[m[1;91mmpl[m[1;91mi[m[31me[m[1;91ms[m[41m [m[1;91ma b[m
+[32m+[m[32mimpliesPair (a, b) = [m[1;92mT[m[1;92mru[m[32me[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+ConstBool at src/Example/ConstFnLib.hs:65:22-33 #2
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = [m[1;91mi[m[1;91mm[m[1;91mp[m[31ml[m[1;91mi[m[1;91me[m[31ms[m[41m [m[1;91ma[m[41m [m[1;91mb[m
+[32m+[m[32mimpliesPair (a, b) = [m[1;92mFa[m[32ml[m[32ms[m[1;92me[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+Negate at src/Example/ConstFnLib.hs:65:22-33 #1
+[36m@@ -62,7 +62,7 @@[m
+ --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
+ --     @(\\_ _ -> False)@ mutants.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) =[m[31m [m[31mimplies a b[m
+[32m+[m[32mimpliesPair (a, b) =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mimplies a b[m[1;92m)[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+ConstEmptyList at src/Example/ConstFnLib.hs:40:14-20 #1
+[36m@@ -37,7 +37,7 @@[m
+ -- Helper used by 'digitsOf' to give that call site a non-literal
+ -- list-returning function to mutate.
+ keepDigits :: String -> String
+[31m-[m[31mkeepDigits = [m[1;91mfi[m[1;91mlter[m[31m [m[31misDigit[m
+[32m+[m[32mkeepDigits = [m[1;92m([m[1;92m\[m[1;92m_[m[42m [m[1;92m_[m[32m [m[1;92m-[m[1;92m> [m[1;92m[][m[1;92m)[m[42m [m[32misDigit[m
+ 
+ -- | Get the digits of a 'String'.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:40:21-28 #1
+[36m@@ -37,7 +37,7 @@[m
+ -- Helper used by 'digitsOf' to give that call site a non-literal
+ -- list-returning function to mutate.
+ keepDigits :: String -> String
+[31m-[m[31mkeepDigits = filter[m[31m [m[1;91mi[m[1;91msD[m[1;91migit[m
+[32m+[m[32mkeepDigits = filter[m[42m [m[1;92m([m[1;92m\[m[1;92m_ [m[1;92m->[m[32m [m[1;92mT[m[1;92mru[m[1;92me)[m
+ 
+ -- | Get the digits of a 'String'.
+ --
+
+ConstBool at src/Example/ConstFnLib.hs:40:21-28 #2
+[36m@@ -37,7 +37,7 @@[m
+ -- Helper used by 'digitsOf' to give that call site a non-literal
+ -- list-returning function to mutate.
+ keepDigits :: String -> String
+[31m-[m[31mkeepDigits = filter [m[1;91mi[m[31ms[m[1;91mD[m[1;91migit[m
+[32m+[m[32mkeepDigits = filter [m[1;92m([m[1;92m\[m[1;92m_[m[1;92m -[m[1;92m>[m[1;92m F[m[1;92mal[m[32ms[m[1;92me[m[1;92m)[m
+ 
+ -- | Get the digits of a 'String'.
+ --
+
+ConstEmptyList at src/Example/ConstFnLib.hs:40:14-28 #1
+[36m@@ -37,7 +37,7 @@[m
+ -- Helper used by 'digitsOf' to give that call site a non-literal
+ -- list-returning function to mutate.
+ keepDigits :: String -> String
+[31m-[m[31mkeepDigits = [m[1;91mf[m[1;91mi[m[1;91ml[m[1;91mter[m[31m [m[1;91mis[m[1;91mDigit[m
+[32m+[m[32mkeepDigits = [m[1;92m(\_[m[32m [m[1;92m-> [])[m
+ 
+ -- | Get the digits of a 'String'.
+ --
+
+ConstEmptyList at src/Example/ConstFnLib.hs:51:25-26 #1
+[36m@@ -48,7 +48,7 @@[m
+ --   * 'ConstEmptyList' arity 1 on the bare @keepDigits :: String -> String@:
+ --     mutated to @digitsOf s = (\\_ -> []) s@.
+ digitsOf :: String -> String
+[31m-[m[31mdigitsOf s = keepDigits [m[1;91ms[m
+[32m+[m[32mdigitsOf s = keepDigits [m[1;92m[[m[1;92m][m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+
+ConstEmptyList at src/Example/ConstFnLib.hs:51:14-26 #1
+[36m@@ -48,7 +48,7 @@[m
+ --   * 'ConstEmptyList' arity 1 on the bare @keepDigits :: String -> String@:
+ --     mutated to @digitsOf s = (\\_ -> []) s@.
+ digitsOf :: String -> String
+[31m-[m[31mdigitsOf s =[m[41m [m[1;91mk[m[1;91mee[m[1;91mpDi[m[1;91mgits[m[31m [m[1;91ms[m
+[32m+[m[32mdigitsOf s =[m[32m [m[1;92m[][m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+
+MaybeOp at src/Example/ConstFnLib.hs:22:20-26 #1
+[36m@@ -19,7 +19,7 @@[m
+ -- skips it ('MaybeOp' handles that one).
+ safeHead :: [a] -> Maybe a
+ safeHead [] = Nothing
+[31m-[m[31msafeHead (x : _) = [m[1;91mJ[m[1;91mu[m[1;91ms[m[31mt[m[1;91m x[m
+[32m+[m[32msafeHead (x : _) = [m[1;92mNo[m[32mt[m[1;92mh[m[1;92ming[m
+ 
+ -- | Get the first character of a 'String' as 'Maybe'.
+ --
+
+ConstEmptyList at src/Example/ConstFnLib.hs:33:24-25 #1
+[36m@@ -30,7 +30,7 @@[m
+ --   * 'ConstNothing' arity 1 on the bare @safeHead :: String -> Maybe Char@:
+ --     mutated to @firstChar s = (\\_ -> Nothing) s@.
+ firstChar :: String -> Maybe Char
+[31m-[m[31mfirstChar s = safeHead [m[1;91ms[m
+[32m+[m[32mfirstChar s = safeHead [m[1;92m[[m[1;92m][m
+ 
+ -- | Keep only the digit characters from a list.
+ --
+
+ConstNothing at src/Example/ConstFnLib.hs:33:15-25 #1
+[36m@@ -30,7 +30,7 @@[m
+ --   * 'ConstNothing' arity 1 on the bare @safeHead :: String -> Maybe Char@:
+ --     mutated to @firstChar s = (\\_ -> Nothing) s@.
+ firstChar :: String -> Maybe Char
+[31m-[m[31mfirstChar s = [m[1;91msa[m[1;91mfeHead s[m
+[32m+[m[32mfirstChar s = [m[1;92mN[m[1;92mo[m[1;92mt[m[1;92mhi[m[1;92mng[m
+ 
+ -- | Keep only the digit characters from a list.
+ --

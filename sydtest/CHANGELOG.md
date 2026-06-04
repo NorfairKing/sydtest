@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.25.0.1] - 2026-06-04
+
+### Changed
+
+* Diff-rendering helpers (`renderUnifiedDiff` and the colour helpers
+  `delColour`, `addColour`, `emphasiseIntraLine`, `renderDelSide`,
+  `renderAddSide`) moved into `sydtest-mutation-runtime` so the plugin's
+  manifest writer and `sydtest`'s mutation report share one
+  implementation.  `Test.Syd.Output.Common` and
+  `Test.Syd.MutationMode.Common` re-export them; existing call sites are
+  unaffected.
+
 ## [0.25.0.0] - 2026-05-21
 
 ### Added

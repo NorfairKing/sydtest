@@ -49,11 +49,8 @@ where
 import Control.Exception (Exception)
 import qualified Control.Exception as Exception
 import Data.List (intercalate)
-import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Vector as V
 import Data.Word (Word64)
-import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
 import System.IO (stderr)
 import Test.Syd.Mutation.AugmentedManifest
@@ -68,10 +65,10 @@ import Test.Syd.Mutation.AugmentedManifest
     UncoveredMutation (..),
     mutationGroupReportOutcomes,
   )
+import Test.Syd.Mutation.Manifest.Render (renderUnifiedDiff)
 import Test.Syd.Mutation.Runtime (MutationId (..), renderMutationId)
 import Test.Syd.Mutation.TestId (TestId, renderTestId)
 import Test.Syd.OptParse (Settings, settingTerminalCapabilities)
-import Test.Syd.Output.Common (addColour, delColour, renderAddSide, renderDelSide)
 import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, red, unlinesChunks, yellow)
 
 -- | Difference of two 'getMonotonicTimeNSec' readings expressed in
@@ -492,62 +489,5 @@ formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationR
   where
     moduleToFilePath m = map (\c -> if c == '.' then '/' else c) m ++ ".hs"
 
-renderUnifiedDiff :: Int -> [Text] -> [Text] -> [Text] -> [Text] -> [[Chunk]]
-renderUnifiedDiff startLine ctxBefore srcLines mutLines ctxAfter =
-  let allBefore = ctxBefore ++ srcLines ++ ctxAfter
-      allAfter = ctxBefore ++ mutLines ++ ctxAfter
-      groups = getGroupedDiff allBefore allAfter
-      hunkStart = startLine - length ctxBefore
-      origCount = length allBefore
-      mutCount = length allAfter
-      hunkHeader =
-        T.pack $
-          "@@ -"
-            ++ show hunkStart
-            ++ ","
-            ++ show origCount
-            ++ " +"
-            ++ show hunkStart
-            ++ ","
-            ++ show mutCount
-            ++ " @@"
-   in [fore cyan (chunk hunkHeader)] : renderGroups groups
-  where
-    renderGroups :: [PolyDiff [Text] [Text]] -> [[Chunk]]
-    renderGroups [] = []
-    renderGroups (Both ls _ : rest) =
-      map (\l -> [chunk (T.cons ' ' l)]) ls ++ renderGroups rest
-    renderGroups gs@(First _ : _) =
-      let (dels, adds, rest) = collectChange gs
-       in renderPaired dels adds ++ renderGroups rest
-    renderGroups gs@(Second _ : _) =
-      let (dels, adds, rest) = collectChange gs
-       in renderPaired dels adds ++ renderGroups rest
-
-    collectChange :: [PolyDiff [Text] [Text]] -> ([Text], [Text], [PolyDiff [Text] [Text]])
-    collectChange = go [] []
-      where
-        go ds as (First ls : rest) = go (ds ++ ls) as rest
-        go ds as (Second ls : rest) = go ds (as ++ ls) rest
-        go ds as rest = (ds, as, rest)
-
-    renderDelLine :: Text -> [Chunk]
-    renderDelLine l = [fore delColour (chunk (T.cons '-' l))]
-
-    renderAddLine :: Text -> [Chunk]
-    renderAddLine l = [fore addColour (chunk (T.cons '+' l))]
-
-    renderPaired :: [Text] -> [Text] -> [[Chunk]]
-    renderPaired dels adds =
-      let n = min (length dels) (length adds)
-          (pairedDels, extraDels) = splitAt n dels
-          (pairedAdds, extraAdds) = splitAt n adds
-          (delLines, addLines) = unzip (zipWith renderPair pairedDels pairedAdds)
-       in delLines ++ map renderDelLine extraDels ++ addLines ++ map renderAddLine extraAdds
-
-    renderPair :: Text -> Text -> ([Chunk], [Chunk])
-    renderPair delLine addLine =
-      let charDiff = V.toList (getTextDiff delLine addLine)
-          delChunks = fore delColour (chunk (T.singleton '-')) : renderDelSide charDiff
-          addChunks = fore addColour (chunk (T.singleton '+')) : renderAddSide charDiff
-       in (delChunks, addChunks)
+-- 'renderUnifiedDiff' moved to 'Test.Syd.Mutation.Manifest.Render' so it
+-- is shared with the plugin's @.txt@ manifest writer.

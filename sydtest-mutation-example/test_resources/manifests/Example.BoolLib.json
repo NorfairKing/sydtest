@@ -1,6 +1,140 @@
 [
   [
     {
+      "col_end": 21,
+      "col_start": 17,
+      "context_after": [],
+      "context_before": [
+        "",
+        "-- | Negates a wrapped boolean.",
+        "negateWrapped :: Maybe Bool -> Maybe Bool"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.BoolLib",
+        "ConstNothing",
+        "22",
+        "17",
+        "21",
+        "\\_ _ -> Nothing",
+        "1"
+      ],
+      "line": 22,
+      "module": "Example.BoolLib",
+      "mutated_lines": [
+        "negateWrapped = (\\_ _ -> Nothing) not"
+      ],
+      "operator": "ConstNothing",
+      "original": "f",
+      "replacement": "\\_ _ -> Nothing",
+      "source_file": "src/Example/BoolLib.hs",
+      "source_lines": [
+        "negateWrapped = fmap not"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 25,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "",
+        "-- | Negates a wrapped boolean.",
+        "negateWrapped :: Maybe Bool -> Maybe Bool"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.BoolLib",
+        "ConstBool",
+        "22",
+        "22",
+        "25",
+        "\\_ -> True",
+        "1"
+      ],
+      "line": 22,
+      "module": "Example.BoolLib",
+      "mutated_lines": [
+        "negateWrapped = fmap (\\_ -> True)"
+      ],
+      "operator": "ConstBool",
+      "original": "f",
+      "replacement": "\\_ -> True",
+      "source_file": "src/Example/BoolLib.hs",
+      "source_lines": [
+        "negateWrapped = fmap not"
+      ]
+    },
+    {
+      "col_end": 25,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "",
+        "-- | Negates a wrapped boolean.",
+        "negateWrapped :: Maybe Bool -> Maybe Bool"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.BoolLib",
+        "ConstBool",
+        "22",
+        "22",
+        "25",
+        "\\_ -> False",
+        "2"
+      ],
+      "line": 22,
+      "module": "Example.BoolLib",
+      "mutated_lines": [
+        "negateWrapped = fmap (\\_ -> False)"
+      ],
+      "operator": "ConstBool",
+      "original": "f",
+      "replacement": "\\_ -> False",
+      "source_file": "src/Example/BoolLib.hs",
+      "source_lines": [
+        "negateWrapped = fmap not"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 25,
+      "col_start": 17,
+      "context_after": [],
+      "context_before": [
+        "",
+        "-- | Negates a wrapped boolean.",
+        "negateWrapped :: Maybe Bool -> Maybe Bool"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.BoolLib",
+        "ConstNothing",
+        "22",
+        "17",
+        "25",
+        "\\_ -> Nothing",
+        "1"
+      ],
+      "line": 22,
+      "module": "Example.BoolLib",
+      "mutated_lines": [
+        "negateWrapped = (\\_ -> Nothing)"
+      ],
+      "operator": "ConstNothing",
+      "original": "f",
+      "replacement": "\\_ -> Nothing",
+      "source_file": "src/Example/BoolLib.hs",
+      "source_lines": [
+        "negateWrapped = fmap not"
+      ]
+    }
+  ],
+  [
+    {
       "col_end": 23,
       "col_start": 18,
       "context_after": [

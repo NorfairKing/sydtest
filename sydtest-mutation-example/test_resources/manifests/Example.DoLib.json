@@ -1,6 +1,81 @@
 [
   [
     {
+      "col_end": 27,
+      "col_start": 14,
+      "context_after": [
+        "  where",
+        "    go :: Writer String ()",
+        "    go = do"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: RemoveAction removes one of the three tell actions.",
+        "greet :: Bool -> String"
+      ],
+      "end_line": 9,
+      "id": [
+        "Example.DoLib",
+        "ConstEmptyList",
+        "9",
+        "14",
+        "27",
+        "[]",
+        "1"
+      ],
+      "line": 9,
+      "module": "Example.DoLib",
+      "mutated_lines": [
+        "greet loud = []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/DoLib.hs",
+      "source_lines": [
+        "greet loud = execWriter go"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 19,
+      "col_start": 12,
+      "context_after": [
+        "      if loud then tell \"!\" else pure ()",
+        "      tell \"\\n\""
+      ],
+      "context_before": [
+        "  where",
+        "    go :: Writer String ()",
+        "    go = do"
+      ],
+      "end_line": 13,
+      "id": [
+        "Example.DoLib",
+        "ConstEmptyList",
+        "13",
+        "12",
+        "19",
+        "[]",
+        "1"
+      ],
+      "line": 13,
+      "module": "Example.DoLib",
+      "mutated_lines": [
+        "      tell []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/DoLib.hs",
+      "source_lines": [
+        "      tell \"Hello\""
+      ]
+    }
+  ],
+  [
+    {
       "col_end": 14,
       "col_start": 10,
       "context_after": [
@@ -102,6 +177,76 @@
       "source_file": "src/Example/DoLib.hs",
       "source_lines": [
         "      if loud then tell \"!\" else pure ()"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 28,
+      "col_start": 25,
+      "context_after": [
+        "      tell \"\\n\""
+      ],
+      "context_before": [
+        "    go :: Writer String ()",
+        "    go = do",
+        "      tell \"Hello\""
+      ],
+      "end_line": 14,
+      "id": [
+        "Example.DoLib",
+        "ConstEmptyList",
+        "14",
+        "25",
+        "28",
+        "[]",
+        "1"
+      ],
+      "line": 14,
+      "module": "Example.DoLib",
+      "mutated_lines": [
+        "      if loud then tell [] else pure ()"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/DoLib.hs",
+      "source_lines": [
+        "      if loud then tell \"!\" else pure ()"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 16,
+      "col_start": 12,
+      "context_after": [],
+      "context_before": [
+        "    go = do",
+        "      tell \"Hello\"",
+        "      if loud then tell \"!\" else pure ()"
+      ],
+      "end_line": 15,
+      "id": [
+        "Example.DoLib",
+        "ConstEmptyList",
+        "15",
+        "12",
+        "16",
+        "[]",
+        "1"
+      ],
+      "line": 15,
+      "module": "Example.DoLib",
+      "mutated_lines": [
+        "      tell []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/DoLib.hs",
+      "source_lines": [
+        "      tell \"\\n\""
       ]
     }
   ],

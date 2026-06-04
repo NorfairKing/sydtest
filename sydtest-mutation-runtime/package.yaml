@@ -18,11 +18,14 @@ library:
   - autodocodec
   - bytestring
   - containers
+  - fast-myers-diff >= 0.0.1
   - genvalidity
   - genvalidity-containers
   - genvalidity-path
   - genvalidity-text
   - path
   - path-io
+  - safe-coloured-text
   - text
   - unordered-containers
+  - vector

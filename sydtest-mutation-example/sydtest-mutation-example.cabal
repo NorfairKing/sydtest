@@ -23,6 +23,7 @@ library
   exposed-modules:
       Example.BoolLib
       Example.CaseLib
+      Example.ConstFnLib
       Example.DoLib
       Example.ExceptionLib
       Example.FunctionExceptionLib

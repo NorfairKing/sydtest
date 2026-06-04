@@ -680,8 +680,7 @@
       "line": 36,
       "module": "Example.LocalDisableLib",
       "mutated_lines": [
-        "  True = not b",
-        "   in inner"
+        "  True"
       ],
       "operator": "ConstBool",
       "original": "e",
@@ -718,8 +717,7 @@
       "line": 36,
       "module": "Example.LocalDisableLib",
       "mutated_lines": [
-        "  False = not b",
-        "   in inner"
+        "  False"
       ],
       "operator": "ConstBool",
       "original": "e",
@@ -986,8 +984,7 @@
       "line": 29,
       "module": "Example.LocalDisableLib",
       "mutated_lines": [
-        "  True = not b",
-        "   in inner"
+        "  True"
       ],
       "operator": "ConstBool",
       "original": "e",
@@ -1024,8 +1021,7 @@
       "line": 29,
       "module": "Example.LocalDisableLib",
       "mutated_lines": [
-        "  False = not b",
-        "   in inner"
+        "  False"
       ],
       "operator": "ConstBool",
       "original": "e",
@@ -1216,8 +1212,7 @@
       "line": 20,
       "module": "Example.LocalDisableLib",
       "mutated_lines": [
-        "  True = not b",
-        "   in inner"
+        "  True"
       ],
       "operator": "ConstBool",
       "original": "e",
@@ -1254,8 +1249,7 @@
       "line": 20,
       "module": "Example.LocalDisableLib",
       "mutated_lines": [
-        "  False = not b",
-        "   in inner"
+        "  False"
       ],
       "operator": "ConstBool",
       "original": "e",

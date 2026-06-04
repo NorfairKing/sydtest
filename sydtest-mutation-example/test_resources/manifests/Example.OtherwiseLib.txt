@@ -1,0 +1,116 @@
+[36m# Example.OtherwiseLib[m
+12 mutations in 10 groups
+
+IntLit at src/Example/OtherwiseLib.hs:12:9-10 #1
+[36m@@ -9,6 +9,6 @@[m
+ -- (otherwise = True, so @otherwise -> True@ is a semantic no-op).
+ classify :: Int -> String
+ classify n
+[31m-[m[31m  | n < [m[1;91m0[m[31m = "negative"[m
+[32m+[m[32m  | n < [m[1;92m1[m[32m = "negative"[m
+   | n == 0 = "zero"
+   | otherwise = "positive"
+
+Cmp at src/Example/OtherwiseLib.hs:12:5-10 #1
+[36m@@ -9,6 +9,6 @@[m
+ -- (otherwise = True, so @otherwise -> True@ is a semantic no-op).
+ classify :: Int -> String
+ classify n
+[31m-[m[31m  | n <[m[31m 0 = "negative"[m
+[32m+[m[32m  | n <[m[1;92m=[m[32m 0 = "negative"[m
+   | n == 0 = "zero"
+   | otherwise = "positive"
+
+Cmp at src/Example/OtherwiseLib.hs:12:5-10 #2
+[36m@@ -9,6 +9,6 @@[m
+ -- (otherwise = True, so @otherwise -> True@ is a semantic no-op).
+ classify :: Int -> String
+ classify n
+[31m-[m[31m  | n [m[1;91m<[m[31m 0 = "negative"[m
+[32m+[m[32m  | n [m[1;92m>[m[32m 0 = "negative"[m
+   | n == 0 = "zero"
+   | otherwise = "positive"
+
+Cmp at src/Example/OtherwiseLib.hs:12:5-10 #3
+[36m@@ -9,6 +9,6 @@[m
+ -- (otherwise = True, so @otherwise -> True@ is a semantic no-op).
+ classify :: Int -> String
+ classify n
+[31m-[m[31m  | n [m[1;91m<[m[31m 0 = "negative"[m
+[32m+[m[32m  | n [m[1;92m>[m[1;92m=[m[32m 0 = "negative"[m
+   | n == 0 = "zero"
+   | otherwise = "positive"
+
+ConstBool at src/Example/OtherwiseLib.hs:12:5-10 #1
+[36m@@ -9,6 +9,6 @@[m
+ -- (otherwise = True, so @otherwise -> True@ is a semantic no-op).
+ classify :: Int -> String
+ classify n
+[31m-[m[31m  | [m[1;91mn[m[31m [m[1;91m< [m[1;91m0[m[41m [m[31m= "negative"[m
+[32m+[m[32m  | [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m [m[32m= "negative"[m
+   | n == 0 = "zero"
+   | otherwise = "positive"
+
+Negate at src/Example/OtherwiseLib.hs:12:5-10 #1
+[36m@@ -9,6 +9,6 @@[m
+ -- (otherwise = True, so @otherwise -> True@ is a semantic no-op).
+ classify :: Int -> String
+ classify n
+[31m-[m[31m  |[m[31m [m[31mn < 0[m[31m = "negative"[m
+[32m+[m[32m  |[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mn < 0[m[1;92m)[m[32m = "negative"[m
+   | n == 0 = "zero"
+   | otherwise = "positive"
+
+ConstEmptyList at src/Example/OtherwiseLib.hs:12:13-23 #1
+[36m@@ -9,6 +9,6 @@[m
+ -- (otherwise = True, so @otherwise -> True@ is a semantic no-op).
+ classify :: Int -> String
+ classify n
+[31m-[m[31m  | n < 0 = [m[1;91m"[m[1;91mn[m[1;91me[m[1;91mgat[m[1;91mive[m[1;91m"[m
+[32m+[m[32m  | n < 0 = [m[1;92m[][m
+   | n == 0 = "zero"
+   | otherwise = "positive"
+
+IntLit at src/Example/OtherwiseLib.hs:13:10-11 #1
+[36m@@ -10,5 +10,5 @@[m
+ classify :: Int -> String
+ classify n
+   | n < 0 = "negative"
+[31m-[m[31m  | n == [m[1;91m0[m[31m = "zero"[m
+[32m+[m[32m  | n == [m[1;92m1[m[32m = "zero"[m
+   | otherwise = "positive"
+
+ConstBool at src/Example/OtherwiseLib.hs:13:5-11 #1
+[36m@@ -10,5 +10,5 @@[m
+ classify :: Int -> String
+ classify n
+   | n < 0 = "negative"
+[31m-[m[31m  |[m[41m [m[1;91mn[m[41m [m[1;91m==[m[31m [m[1;91m0[m[31m = "zero"[m
+[32m+[m[32m  |[m[32m [m[1;92mTru[m[1;92me[m[32m = "zero"[m
+   | otherwise = "positive"
+
+Negate at src/Example/OtherwiseLib.hs:13:5-11 #1
+[36m@@ -10,5 +10,5 @@[m
+ classify :: Int -> String
+ classify n
+   | n < 0 = "negative"
+[31m-[m[31m  |[m[31m [m[31mn == 0[m[31m = "zero"[m
+[32m+[m[32m  |[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mn == 0[m[1;92m)[m[32m = "zero"[m
+   | otherwise = "positive"
+
+ConstEmptyList at src/Example/OtherwiseLib.hs:13:14-20 #1
+[36m@@ -10,5 +10,5 @@[m
+ classify :: Int -> String
+ classify n
+   | n < 0 = "negative"
+[31m-[m[31m  | n == 0 = [m[1;91m"[m[1;91mz[m[1;91mer[m[1;91mo"[m
+[32m+[m[32m  | n == 0 = [m[1;92m[][m
+   | otherwise = "positive"
+
+ConstEmptyList at src/Example/OtherwiseLib.hs:14:17-27 #1
+[36m@@ -11,4 +11,4 @@[m
+ classify n
+   | n < 0 = "negative"
+   | n == 0 = "zero"
+[31m-[m[31m  | otherwise = [m[1;91m"[m[1;91mp[m[1;91mo[m[1;91msit[m[1;91mive[m[1;91m"[m
+[32m+[m[32m  | otherwise = [m[1;92m[][m

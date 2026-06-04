@@ -1,6 +1,142 @@
 [
   [
     {
+      "col_end": 31,
+      "col_start": 30,
+      "context_after": [],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant, a drop-first mutant,",
+        "-- and a drop-last mutant on the literal @[a, b, c]@.",
+        "tripleConcat :: String -> String -> String -> String"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "19",
+        "30",
+        "31",
+        "[]",
+        "1"
+      ],
+      "line": 19,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "tripleConcat a b c = concat [[], b, c]"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "tripleConcat a b c = concat [a, b, c]"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 34,
+      "col_start": 33,
+      "context_after": [],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant, a drop-first mutant,",
+        "-- and a drop-last mutant on the literal @[a, b, c]@.",
+        "tripleConcat :: String -> String -> String -> String"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "19",
+        "33",
+        "34",
+        "[]",
+        "1"
+      ],
+      "line": 19,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "tripleConcat a b c = concat [a, [], c]"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "tripleConcat a b c = concat [a, b, c]"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 37,
+      "col_start": 36,
+      "context_after": [],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant, a drop-first mutant,",
+        "-- and a drop-last mutant on the literal @[a, b, c]@.",
+        "tripleConcat :: String -> String -> String -> String"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "19",
+        "36",
+        "37",
+        "[]",
+        "1"
+      ],
+      "line": 19,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "tripleConcat a b c = concat [a, b, []]"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "tripleConcat a b c = concat [a, b, c]"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 38,
+      "col_start": 29,
+      "context_after": [],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant, a drop-first mutant,",
+        "-- and a drop-last mutant on the literal @[a, b, c]@.",
+        "tripleConcat :: String -> String -> String -> String"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "19",
+        "29",
+        "38",
+        "[]",
+        "1"
+      ],
+      "line": 19,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "tripleConcat a b c = concat []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "tripleConcat a b c = concat [a, b, c]"
+      ]
+    }
+  ],
+  [
+    {
       "col_end": 38,
       "col_start": 29,
       "context_after": [],
@@ -93,6 +229,154 @@
   ],
   [
     {
+      "col_end": 38,
+      "col_start": 22,
+      "context_after": [],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant, a drop-first mutant,",
+        "-- and a drop-last mutant on the literal @[a, b, c]@.",
+        "tripleConcat :: String -> String -> String -> String"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "19",
+        "22",
+        "38",
+        "[]",
+        "1"
+      ],
+      "line": 19,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "tripleConcat a b c = []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "tripleConcat a b c = concat [a, b, c]"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 27,
+      "col_start": 26,
+      "context_after": [
+        "",
+        "-- | Concatenate a three-element list of strings.",
+        "--"
+      ],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant and a drop-first",
+        "-- mutant on the literal @[a, b]@.",
+        "pairConcat :: String -> String -> String"
+      ],
+      "end_line": 12,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "12",
+        "26",
+        "27",
+        "[]",
+        "1"
+      ],
+      "line": 12,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "pairConcat a b = concat [[], b]"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "pairConcat a b = concat [a, b]"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 30,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | Concatenate a three-element list of strings.",
+        "--"
+      ],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant and a drop-first",
+        "-- mutant on the literal @[a, b]@.",
+        "pairConcat :: String -> String -> String"
+      ],
+      "end_line": 12,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "12",
+        "29",
+        "30",
+        "[]",
+        "1"
+      ],
+      "line": 12,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "pairConcat a b = concat [a, []]"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "pairConcat a b = concat [a, b]"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 31,
+      "col_start": 25,
+      "context_after": [
+        "",
+        "-- | Concatenate a three-element list of strings.",
+        "--"
+      ],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant and a drop-first",
+        "-- mutant on the literal @[a, b]@.",
+        "pairConcat :: String -> String -> String"
+      ],
+      "end_line": 12,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "12",
+        "25",
+        "31",
+        "[]",
+        "1"
+      ],
+      "line": 12,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "pairConcat a b = concat []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "pairConcat a b = concat [a, b]"
+      ]
+    }
+  ],
+  [
+    {
       "col_end": 31,
       "col_start": 25,
       "context_after": [
@@ -155,6 +439,44 @@
       "operator": "ListLit",
       "original": "2 elements",
       "replacement": "1 elements",
+      "source_file": "src/Example/ListLib.hs",
+      "source_lines": [
+        "pairConcat a b = concat [a, b]"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 31,
+      "col_start": 18,
+      "context_after": [
+        "",
+        "-- | Concatenate a three-element list of strings.",
+        "--"
+      ],
+      "context_before": [
+        "-- Mutation sites: ListLit produces an empty-list mutant and a drop-first",
+        "-- mutant on the literal @[a, b]@.",
+        "pairConcat :: String -> String -> String"
+      ],
+      "end_line": 12,
+      "id": [
+        "Example.ListLib",
+        "ConstEmptyList",
+        "12",
+        "18",
+        "31",
+        "[]",
+        "1"
+      ],
+      "line": 12,
+      "module": "Example.ListLib",
+      "mutated_lines": [
+        "pairConcat a b = []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
       "source_file": "src/Example/ListLib.hs",
       "source_lines": [
         "pairConcat a b = concat [a, b]"

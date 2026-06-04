@@ -18,6 +18,7 @@ import qualified Data.Text as T
 import Data.Typeable (cast)
 import Data.Word
 import Myers.Diff
+import Test.Syd.Mutation.Manifest.Render (addColour, delColour, emphasiseIntraLine, renderAddSide, renderDelSide)
 import Test.Syd.Run
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
@@ -151,43 +152,11 @@ outputEqualityAssertionFailed actual expected diffM =
           [[fromString expected]]
         ]
 
--- | Theme-friendly colours for diff output.  Using the named 'red' and
--- 'green' (rather than 256-colour shades) lets each terminal apply its own
--- palette.  Shared between 'formatDiff' (equality assertions) and
--- 'Test.Syd.MutationMode.renderUnifiedDiff' (mutation reports).
-delColour, addColour :: Colour
-delColour = red
-addColour = green
-
--- | Emphasise an intra-line changed substring.  Non-whitespace text gets
--- bold + the brighter shade of the side's colour, so it stands out within
--- a line that is otherwise foreground-coloured with the dull shade.
--- Whitespace-only text has no glyph to colour, so fill the background
--- instead.
-emphasiseIntraLine :: Colour -> Colour -> Text -> Chunk
-emphasiseIntraLine lineCol brightCol t =
-  if T.null (T.strip t)
-    then back lineCol (chunk t)
-    else bold (fore brightCol (chunk t))
-
--- | Render the deletion side of a character-level diff.  'Both' chars get
--- 'delColour' as their whole-line foreground; this-side changes (First
--- chunks) get 'emphasiseIntraLine'd with 'brightRed'.  Addition-only
--- chunks (Second) are dropped — they belong to the other side's line.
-renderDelSide :: [PolyDiff Text Text] -> [Chunk]
-renderDelSide =
-  mapMaybe $ \case
-    First t -> Just (emphasiseIntraLine delColour brightRed t)
-    Second _ -> Nothing
-    Both t _ -> Just (fore delColour (chunk t))
-
--- | Symmetric counterpart of 'renderDelSide' for the addition side.
-renderAddSide :: [PolyDiff Text Text] -> [Chunk]
-renderAddSide =
-  mapMaybe $ \case
-    First _ -> Nothing
-    Second t -> Just (emphasiseIntraLine addColour brightGreen t)
-    Both t _ -> Just (fore addColour (chunk t))
+-- The diff-colour helpers ('delColour', 'addColour', 'emphasiseIntraLine',
+-- 'renderDelSide', 'renderAddSide') used to live here.  They were moved to
+-- 'Test.Syd.Mutation.Manifest.Render' so the mutation runtime can render
+-- manifest diffs without depending on @sydtest@.  Re-exported below for
+-- backward compatibility.
 
 formatDiff :: String -> String -> [PolyDiff Text Text] -> [[Chunk]]
 formatDiff actual expected diff =

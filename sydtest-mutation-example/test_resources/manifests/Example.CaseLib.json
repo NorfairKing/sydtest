@@ -1,6 +1,188 @@
 [
   [
     {
+      "col_end": 26,
+      "col_start": 24,
+      "context_after": [
+        "  [] -> \"empty\"",
+        "  [_] -> \"singleton\"",
+        "  _ -> \"longer\""
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: RemoveCase removes one of the three alternatives.",
+        "describeList :: [a] -> String"
+      ],
+      "end_line": 7,
+      "id": [
+        "Example.CaseLib",
+        "ConstEmptyList",
+        "7",
+        "24",
+        "26",
+        "[]",
+        "1"
+      ],
+      "line": 7,
+      "module": "Example.CaseLib",
+      "mutated_lines": [
+        "describeList xs = case [] of"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/CaseLib.hs",
+      "source_lines": [
+        "describeList xs = case xs of"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 16,
+      "col_start": 9,
+      "context_after": [
+        "  [_] -> \"singleton\"",
+        "  _ -> \"longer\""
+      ],
+      "context_before": [
+        "-- Mutation sites: RemoveCase removes one of the three alternatives.",
+        "describeList :: [a] -> String",
+        "describeList xs = case xs of"
+      ],
+      "end_line": 8,
+      "id": [
+        "Example.CaseLib",
+        "ConstEmptyList",
+        "8",
+        "9",
+        "16",
+        "[]",
+        "1"
+      ],
+      "line": 8,
+      "module": "Example.CaseLib",
+      "mutated_lines": [
+        "  [] -> []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/CaseLib.hs",
+      "source_lines": [
+        "  [] -> \"empty\""
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 21,
+      "col_start": 10,
+      "context_after": [
+        "  _ -> \"longer\""
+      ],
+      "context_before": [
+        "describeList :: [a] -> String",
+        "describeList xs = case xs of",
+        "  [] -> \"empty\""
+      ],
+      "end_line": 9,
+      "id": [
+        "Example.CaseLib",
+        "ConstEmptyList",
+        "9",
+        "10",
+        "21",
+        "[]",
+        "1"
+      ],
+      "line": 9,
+      "module": "Example.CaseLib",
+      "mutated_lines": [
+        "  [_] -> []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/CaseLib.hs",
+      "source_lines": [
+        "  [_] -> \"singleton\""
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 16,
+      "col_start": 8,
+      "context_after": [],
+      "context_before": [
+        "describeList xs = case xs of",
+        "  [] -> \"empty\"",
+        "  [_] -> \"singleton\""
+      ],
+      "end_line": 10,
+      "id": [
+        "Example.CaseLib",
+        "ConstEmptyList",
+        "10",
+        "8",
+        "16",
+        "[]",
+        "1"
+      ],
+      "line": 10,
+      "module": "Example.CaseLib",
+      "mutated_lines": [
+        "  _ -> []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/CaseLib.hs",
+      "source_lines": [
+        "  _ -> \"longer\""
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 16,
+      "col_start": 19,
+      "context_after": [],
+      "context_before": [
+        "--",
+        "-- Mutation sites: RemoveCase removes one of the three alternatives.",
+        "describeList :: [a] -> String"
+      ],
+      "end_line": 10,
+      "id": [
+        "Example.CaseLib",
+        "ConstEmptyList",
+        "7",
+        "19",
+        "16",
+        "[]",
+        "1"
+      ],
+      "line": 7,
+      "module": "Example.CaseLib",
+      "mutated_lines": [
+        "describeList xs = []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/CaseLib.hs",
+      "source_lines": [
+        "describeList xs = case xs of",
+        "  [] -> \"empty\"",
+        "  [_] -> \"singleton\"",
+        "  _ -> \"longer\""
+      ]
+    }
+  ],
+  [
+    {
       "col_end": 16,
       "col_start": 19,
       "context_after": [],

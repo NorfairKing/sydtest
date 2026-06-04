@@ -1,0 +1,384 @@
+[36m# Example.LocalDisableLib[m
+35 mutations in 24 groups
+
+ConstBool at src/Example/LocalDisableLib.hs:58:19-20 #1
+[36m@@ -55,5 +55,5 @@[m
+ -- @toggle b@ is fully instrumented.
+ withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindKept toggle b = do
+[31m-[m[31m  inner <- toggle [m[1;91mb[m
+[32m+[m[32m  inner <- toggle [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m
+   pure inner
+
+ConstBool at src/Example/LocalDisableLib.hs:58:19-20 #2
+[36m@@ -55,5 +55,5 @@[m
+ -- @toggle b@ is fully instrumented.
+ withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindKept toggle b = do
+[31m-[m[31m  inner <- toggle [m[1;91mb[m
+[32m+[m[32m  inner <- toggle [m[1;92mF[m[1;92ma[m[1;92mlse[m
+   pure inner
+
+Negate at src/Example/LocalDisableLib.hs:58:19-20 #1
+[36m@@ -55,5 +55,5 @@[m
+ -- @toggle b@ is fully instrumented.
+ withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindKept toggle b = do
+[31m-[m[31m  inner <- toggle[m[31m [m[31mb[m
+[32m+[m[32m  inner <- toggle[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m
+   pure inner
+
+ConstBool at src/Example/LocalDisableLib.hs:59:8-13 #1
+[36m@@ -56,4 +56,4 @@[m
+ withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindKept toggle b = do
+   inner <- toggle b
+[31m-[m[31m  pure [m[1;91mi[m[1;91mnn[m[31me[m[1;91mr[m
+[32m+[m[32m  pure [m[1;92mT[m[1;92mru[m[32me[m
+
+ConstBool at src/Example/LocalDisableLib.hs:59:8-13 #2
+[36m@@ -56,4 +56,4 @@[m
+ withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindKept toggle b = do
+   inner <- toggle b
+[31m-[m[31m  pure [m[1;91mi[m[1;91mn[m[1;91mn[m[31me[m[1;91mr[m
+[32m+[m[32m  pure [m[1;92mF[m[1;92mal[m[1;92ms[m[32me[m
+
+Negate at src/Example/LocalDisableLib.hs:59:8-13 #1
+[36m@@ -56,4 +56,4 @@[m
+ withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindKept toggle b = do
+   inner <- toggle b
+[31m-[m[31m  pure[m[31m [m[31minner[m
+[32m+[m[32m  pure[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32minner[m[1;92m)[m
+
+ConstBool at src/Example/LocalDisableLib.hs:52:8-13 #1
+[36m@@ -49,7 +49,7 @@[m
+ withBindDisabled :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindDisabled toggle b = do
+   inner <- toggle b
+[31m-[m[31m  pure [m[1;91mi[m[1;91mnn[m[31me[m[1;91mr[m
+[32m+[m[32m  pure [m[1;92mT[m[1;92mru[m[32me[m
+ 
+ -- | Control for 'withBindDisabled': no disable annotation, so the RHS
+ -- @toggle b@ is fully instrumented.
+
+ConstBool at src/Example/LocalDisableLib.hs:52:8-13 #2
+[36m@@ -49,7 +49,7 @@[m
+ withBindDisabled :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindDisabled toggle b = do
+   inner <- toggle b
+[31m-[m[31m  pure [m[1;91mi[m[1;91mn[m[1;91mn[m[31me[m[1;91mr[m
+[32m+[m[32m  pure [m[1;92mF[m[1;92mal[m[1;92ms[m[32me[m
+ 
+ -- | Control for 'withBindDisabled': no disable annotation, so the RHS
+ -- @toggle b@ is fully instrumented.
+
+Negate at src/Example/LocalDisableLib.hs:52:8-13 #1
+[36m@@ -49,7 +49,7 @@[m
+ withBindDisabled :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindDisabled toggle b = do
+   inner <- toggle b
+[31m-[m[31m  pure[m[31m [m[31minner[m
+[32m+[m[32m  pure[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32minner[m[1;92m)[m
+ 
+ -- | Control for 'withBindDisabled': no disable annotation, so the RHS
+ -- @toggle b@ is fully instrumented.
+
+ConstBool at src/Example/LocalDisableLib.hs:36:19-20 #1
+[36m@@ -33,7 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  let inner = not [m[1;91mb[m
+[32m+[m[32m  let inner = not [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m
+    in inner
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+
+ConstBool at src/Example/LocalDisableLib.hs:36:19-20 #2
+[36m@@ -33,7 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  let inner = not [m[1;91mb[m
+[32m+[m[32m  let inner = not [m[1;92mF[m[1;92ma[m[1;92mlse[m
+    in inner
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+
+Negate at src/Example/LocalDisableLib.hs:36:19-20 #1
+[36m@@ -33,7 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  let inner =[m[31m not [m[31mb[m
+[32m+[m[32m  let inner =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m not [m[1;92m([m[32mb[m[1;92m)[m
+    in inner
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+
+ConstBool at src/Example/LocalDisableLib.hs:36:15-20 #1
+[36m@@ -33,7 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  let inner = [m[1;91mn[m[1;91mot b[m
+[32m+[m[32m  let inner = [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m
+    in inner
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+
+ConstBool at src/Example/LocalDisableLib.hs:36:15-20 #2
+[36m@@ -33,7 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  let inner = [m[1;91mn[m[1;91mo[m[1;91mt[m[1;91m b[m
+[32m+[m[32m  let inner = [m[1;92mFalse[m
+    in inner
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+
+Negate at src/Example/LocalDisableLib.hs:36:15-20 #1
+[36m@@ -33,7 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  let inner =[m[31m [m[31mnot b[m
+[32m+[m[32m  let inner =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mnot b[m[1;92m)[m
+    in inner
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+
+ConstBool at src/Example/LocalDisableLib.hs:37:7-12 #1
+[36m@@ -34,7 +34,7 @@[m
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+   let inner = not b
+[31m-[m[31m   in [m[1;91mi[m[1;91mnn[m[31me[m[1;91mr[m
+[32m+[m[32m   in [m[1;92mT[m[1;92mru[m[32me[m
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+ -- by a @do@-block @<-@ statement instead of a @let@.  The annotation
+
+ConstBool at src/Example/LocalDisableLib.hs:37:7-12 #2
+[36m@@ -34,7 +34,7 @@[m
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+   let inner = not b
+[31m-[m[31m   in [m[1;91mi[m[1;91mn[m[1;91mn[m[31me[m[1;91mr[m
+[32m+[m[32m   in [m[1;92mF[m[1;92mal[m[1;92ms[m[32me[m
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+ -- by a @do@-block @<-@ statement instead of a @let@.  The annotation
+
+Negate at src/Example/LocalDisableLib.hs:37:7-12 #1
+[36m@@ -34,7 +34,7 @@[m
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+   let inner = not b
+[31m-[m[31m   i[m[31mn[m[31m [m[31minner[m
+[32m+[m[32m   i[m[1;92mn[m[42m [m[32mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32minner[m[1;92m)[m
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+ -- by a @do@-block @<-@ statement instead of a @let@.  The annotation
+
+ConstBool at src/Example/LocalDisableLib.hs:36:3-12 #1
+[36m@@ -33,8 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  [m[1;91ml[m[1;91me[m[1;91mt[m[1;91m i[m[1;91mn[m[1;91mn[m[31me[m[1;91mr = not b[m
+[31m-   in inner[m
+[32m+[m[32m  [m[1;92mTru[m[32me[m
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+ -- by a @do@-block @<-@ statement instead of a @let@.  The annotation
+
+ConstBool at src/Example/LocalDisableLib.hs:36:3-12 #2
+[36m@@ -33,8 +33,7 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  [m[31ml[m[1;91met[m[1;91m inn[m[31me[m[1;91mr = not b[m
+[31m-   in inner[m
+[32m+[m[32m  [m[1;92mF[m[1;92ma[m[32ml[m[1;92ms[m[32me[m
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+ -- by a @do@-block @<-@ statement instead of a @let@.  The annotation
+
+Negate at src/Example/LocalDisableLib.hs:36:3-12 #1
+[36m@@ -33,8 +33,8 @@[m
+ -- on the @inner@ binding's RHS.
+ withInnerKept :: Bool -> Bool
+ withInnerKept b =
+[31m-[m[31m  [m[31mlet inner = not b[m
+[31m-[m[31m   in inner[m
+[32m+[m[32m  [m[1;92mn[m[1;92mo[m[1;92mt[m[42m [m[1;92m([m[32mlet inner = not b[m
+[32m+[m[32m   in inner[m[1;92m)[m
+ 
+ -- | Same idea as 'withInnerDisabled', but the local binding is introduced
+ -- by a @do@-block @<-@ statement instead of a @let@.  The annotation
+
+Negate at src/Example/LocalDisableLib.hs:29:19-20 #1
+[36m@@ -26,7 +26,7 @@[m
+ {-# ANN withInnerBoolLitDisabled ("DisableMutationsFor inner: ConstBool" :: String) #-}
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+[31m-[m[31m  let inner =[m[31m not [m[31mb[m
+[32m+[m[32m  let inner =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m not [m[1;92m([m[32mb[m[1;92m)[m
+    in inner
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+
+Negate at src/Example/LocalDisableLib.hs:29:15-20 #1
+[36m@@ -26,7 +26,7 @@[m
+ {-# ANN withInnerBoolLitDisabled ("DisableMutationsFor inner: ConstBool" :: String) #-}
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+[31m-[m[31m  let inner =[m[31m [m[31mnot b[m
+[32m+[m[32m  let inner =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mnot b[m[1;92m)[m
+    in inner
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+
+ConstBool at src/Example/LocalDisableLib.hs:30:7-12 #1
+[36m@@ -27,7 +27,7 @@[m
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+   let inner = not b
+[31m-[m[31m   in [m[1;91mi[m[1;91mnn[m[31me[m[1;91mr[m
+[32m+[m[32m   in [m[1;92mT[m[1;92mru[m[32me[m
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+ -- on the @inner@ binding's RHS.
+
+ConstBool at src/Example/LocalDisableLib.hs:30:7-12 #2
+[36m@@ -27,7 +27,7 @@[m
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+   let inner = not b
+[31m-[m[31m   in [m[1;91mi[m[1;91mn[m[1;91mn[m[31me[m[1;91mr[m
+[32m+[m[32m   in [m[1;92mF[m[1;92mal[m[1;92ms[m[32me[m
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+ -- on the @inner@ binding's RHS.
+
+Negate at src/Example/LocalDisableLib.hs:30:7-12 #1
+[36m@@ -27,7 +27,7 @@[m
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+   let inner = not b
+[31m-[m[31m   i[m[31mn[m[31m [m[31minner[m
+[32m+[m[32m   i[m[1;92mn[m[42m [m[32mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32minner[m[1;92m)[m
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+ -- on the @inner@ binding's RHS.
+
+ConstBool at src/Example/LocalDisableLib.hs:29:3-12 #1
+[36m@@ -26,8 +26,7 @@[m
+ {-# ANN withInnerBoolLitDisabled ("DisableMutationsFor inner: ConstBool" :: String) #-}
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+[31m-[m[31m  [m[1;91ml[m[1;91me[m[1;91mt[m[1;91m i[m[1;91mn[m[1;91mn[m[31me[m[1;91mr = not b[m
+[31m-   in inner[m
+[32m+[m[32m  [m[1;92mTru[m[32me[m
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+ -- on the @inner@ binding's RHS.
+
+ConstBool at src/Example/LocalDisableLib.hs:29:3-12 #2
+[36m@@ -26,8 +26,7 @@[m
+ {-# ANN withInnerBoolLitDisabled ("DisableMutationsFor inner: ConstBool" :: String) #-}
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+[31m-[m[31m  [m[31ml[m[1;91met[m[1;91m inn[m[31me[m[1;91mr = not b[m
+[31m-   in inner[m
+[32m+[m[32m  [m[1;92mF[m[1;92ma[m[32ml[m[1;92ms[m[32me[m
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+ -- on the @inner@ binding's RHS.
+
+Negate at src/Example/LocalDisableLib.hs:29:3-12 #1
+[36m@@ -26,8 +26,8 @@[m
+ {-# ANN withInnerBoolLitDisabled ("DisableMutationsFor inner: ConstBool" :: String) #-}
+ withInnerBoolLitDisabled :: Bool -> Bool
+ withInnerBoolLitDisabled b =
+[31m-[m[31m  [m[31mlet inner = not b[m
+[31m-[m[31m   in inner[m
+[32m+[m[32m  [m[1;92mn[m[1;92mo[m[1;92mt[m[42m [m[1;92m([m[32mlet inner = not b[m
+[32m+[m[32m   in inner[m[1;92m)[m
+ 
+ -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
+ -- on the @inner@ binding's RHS.
+
+ConstBool at src/Example/LocalDisableLib.hs:21:7-12 #1
+[36m@@ -18,7 +18,7 @@[m
+ withInnerDisabled :: Bool -> Bool
+ withInnerDisabled b =
+   let inner = not b
+[31m-[m[31m   in [m[1;91mi[m[1;91mnn[m[31me[m[1;91mr[m
+[32m+[m[32m   in [m[1;92mT[m[1;92mru[m[32me[m
+ 
+ -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
+ -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@
+
+ConstBool at src/Example/LocalDisableLib.hs:21:7-12 #2
+[36m@@ -18,7 +18,7 @@[m
+ withInnerDisabled :: Bool -> Bool
+ withInnerDisabled b =
+   let inner = not b
+[31m-[m[31m   in [m[1;91mi[m[1;91mn[m[1;91mn[m[31me[m[1;91mr[m
+[32m+[m[32m   in [m[1;92mF[m[1;92mal[m[1;92ms[m[32me[m
+ 
+ -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
+ -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@
+
+Negate at src/Example/LocalDisableLib.hs:21:7-12 #1
+[36m@@ -18,7 +18,7 @@[m
+ withInnerDisabled :: Bool -> Bool
+ withInnerDisabled b =
+   let inner = not b
+[31m-[m[31m   i[m[31mn[m[31m [m[31minner[m
+[32m+[m[32m   i[m[1;92mn[m[42m [m[32mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32minner[m[1;92m)[m
+ 
+ -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
+ -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@
+
+ConstBool at src/Example/LocalDisableLib.hs:20:3-12 #1
+[36m@@ -17,8 +17,7 @@[m
+ {-# ANN withInnerDisabled ("DisableMutationsFor inner" :: String) #-}
+ withInnerDisabled :: Bool -> Bool
+ withInnerDisabled b =
+[31m-[m[31m  [m[1;91ml[m[1;91me[m[1;91mt[m[1;91m i[m[1;91mn[m[1;91mn[m[31me[m[1;91mr = not b[m
+[31m-   in inner[m
+[32m+[m[32m  [m[1;92mTru[m[32me[m
+ 
+ -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
+ -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@
+
+ConstBool at src/Example/LocalDisableLib.hs:20:3-12 #2
+[36m@@ -17,8 +17,7 @@[m
+ {-# ANN withInnerDisabled ("DisableMutationsFor inner" :: String) #-}
+ withInnerDisabled :: Bool -> Bool
+ withInnerDisabled b =
+[31m-[m[31m  [m[31ml[m[1;91met[m[1;91m inn[m[31me[m[1;91mr = not b[m
+[31m-   in inner[m
+[32m+[m[32m  [m[1;92mF[m[1;92ma[m[32ml[m[1;92ms[m[32me[m
+ 
+ -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
+ -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@
+
+Negate at src/Example/LocalDisableLib.hs:20:3-12 #1
+[36m@@ -17,8 +17,8 @@[m
+ {-# ANN withInnerDisabled ("DisableMutationsFor inner" :: String) #-}
+ withInnerDisabled :: Bool -> Bool
+ withInnerDisabled b =
+[31m-[m[31m  [m[31mlet inner = not b[m
+[31m-[m[31m   in inner[m
+[32m+[m[32m  [m[1;92mn[m[1;92mo[m[1;92mt[m[42m [m[1;92m([m[32mlet inner = not b[m
+[32m+[m[32m   in inner[m[1;92m)[m
+ 
+ -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
+ -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@

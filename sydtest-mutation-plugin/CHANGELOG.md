@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.2.0.0] - 2026-06-04
+
+### Added
+
+* Three const-function mutation operators that replace an expression of
+  type `arg1 -> ... -> argN -> T` (with `N >= 0`) by a constant function
+  returning `T`'s distinguished trivial value: `ConstNothing` for `Maybe a`,
+  `ConstEmptyList` for `[a]`, and an expanded `ConstBool` for `Bool`
+  (subsuming the previous arity-0-only `ConstBool` behaviour).  At arity 0
+  the mutant is the bare trivial value; at arity `N >= 1` it is a typed
+  `(\_ ... _ -> v)` lambda synthesized in the GhcTc AST.  Maybe and List
+  thereby gain coverage that the syntactic-only `MaybeOp` and `ListLit`
+  miss — calls like `lookup k m` and `concat xs` are now mutated to
+  `Nothing` and `[]` respectively.
+* A coloured human-readable `<Module>.txt` rendering of every manifest is
+  now written alongside the existing canonical `<Module>.json`.  Same
+  header + unified-diff layout as the runtime's surviving-mutation
+  report, opening with a `N mutations in M groups` count line so empty
+  manifests are not mistakeable for rendering accidents.
+* `ReplaceOuterSpan RealSrcSpan Text` constructor on `SrcSpanDelta` for
+  operators that want to replace a wider outer span than the matched
+  expression's own.  Used by the const-family operators when the matched
+  expression sits at the operator-token position of an infix application
+  to rewrite the whole `OpApp` source span in prefix form (e.g.
+  `n < 0` becomes `(\_ _ -> True) (n) (0)`) instead of text-splicing a
+  lambda into the operator slot and producing nonsense source.
+
+### Changed
+
+* `applyTokenReplace` now collapses multi-line spans correctly (a latent
+  bug that surfaced once arity-`>=1` operators started emitting multi-line
+  replacements).
+* The walker tracks `HsApp` function-position depth on `InstrumentEnv`,
+  resetting on the argument side.  Const-family operators consult it to
+  skip arity-`N` firings (`N >= 1`) at sites where the matched expression
+  is already saturated by `N` enclosing applications, because the
+  arity-`N` mutant evaluates to what the arity-0 mutation on the
+  outermost saturated expression already produces.
+
 ## [0.1.1.0] - 2026-05-25
 
 ### Changed

@@ -21,7 +21,10 @@ let
 
   expected = ../sydtest-mutation-example/test_resources/manifests;
 
-  # Pretty-print the plugin's compact manifest output for diff-friendly goldens.
+  # Pretty-print the plugin's compact manifest JSON for diff-friendly
+  # goldens; copy the .txt rendering verbatim alongside it.  Each module
+  # produces one ${"$"}{mod}.json (canonical, machine-readable) and one
+  # ${"$"}{mod}.txt (coloured human-readable diff for review).
   actual = runCommand "sydtest-mutation-example-manifest-pretty"
     {
       nativeBuildInputs = [ jq ];
@@ -30,6 +33,10 @@ let
     for f in ${instrumented.manifest}/*.json; do
       name=$(basename "$f")
       jq --sort-keys . "$f" > "$out/$name"
+    done
+    for f in ${instrumented.manifest}/*.txt; do
+      name=$(basename "$f")
+      cp "$f" "$out/$name"
     done
   '';
 

@@ -1,0 +1,85 @@
+[36m# Example.DoLib[m
+9 mutations in 8 groups
+
+ConstEmptyList at src/Example/DoLib.hs:9:14-27 #1
+[36m@@ -6,7 +6,7 @@[m
+ --
+ -- Mutation sites: RemoveAction removes one of the three tell actions.
+ greet :: Bool -> String
+[31m-[m[31mgreet loud = [m[1;91me[m[1;91mx[m[1;91mec[m[1;91mWr[m[1;91miter go[m
+[32m+[m[32mgreet loud = [m[1;92m[][m
+   where
+     go :: Writer String ()
+     go = do
+
+ConstEmptyList at src/Example/DoLib.hs:13:12-19 #1
+[36m@@ -10,6 +10,6 @@[m
+   where
+     go :: Writer String ()
+     go = do
+[31m-[m[31m      tell [m[1;91m"[m[1;91mHe[m[1;91mllo"[m
+[32m+[m[32m      tell [m[1;92m[[m[1;92m][m
+       if loud then tell "!" else pure ()
+       tell "\n"
+
+ConstBool at src/Example/DoLib.hs:14:10-14 #1
+[36m@@ -11,5 +11,5 @@[m
+     go :: Writer String ()
+     go = do
+       tell "Hello"
+[31m-[m[31m      if [m[1;91ml[m[1;91mo[m[31mu[m[1;91md[m[31m then tell "!" else pure ()[m
+[32m+[m[32m      if [m[1;92mT[m[1;92mr[m[32mu[m[1;92me[m[32m then tell "!" else pure ()[m
+       tell "\n"
+
+ConstBool at src/Example/DoLib.hs:14:10-14 #2
+[36m@@ -11,5 +11,5 @@[m
+     go :: Writer String ()
+     go = do
+       tell "Hello"
+[31m-[m[31m      if [m[31ml[m[1;91mou[m[1;91md[m[31m then tell "!" else pure ()[m
+[32m+[m[32m      if [m[1;92mF[m[1;92ma[m[32ml[m[1;92mse[m[32m then tell "!" else pure ()[m
+       tell "\n"
+
+Negate at src/Example/DoLib.hs:14:10-14 #1
+[36m@@ -11,5 +11,5 @@[m
+     go :: Writer String ()
+     go = do
+       tell "Hello"
+[31m-[m[31m      if[m[31m [m[31mloud[m[31m then tell "!" else pure ()[m
+[32m+[m[32m      if[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mloud[m[1;92m)[m[32m then tell "!" else pure ()[m
+       tell "\n"
+
+ConstEmptyList at src/Example/DoLib.hs:14:25-28 #1
+[36m@@ -11,5 +11,5 @@[m
+     go :: Writer String ()
+     go = do
+       tell "Hello"
+[31m-[m[31m      if loud then tell [m[1;91m"[m[1;91m![m[1;91m"[m[31m else pure ()[m
+[32m+[m[32m      if loud then tell [m[1;92m[[m[1;92m][m[32m else pure ()[m
+       tell "\n"
+
+ConstEmptyList at src/Example/DoLib.hs:15:12-16 #1
+[36m@@ -12,4 +12,4 @@[m
+     go = do
+       tell "Hello"
+       if loud then tell "!" else pure ()
+[31m-[m[31m      tell [m[1;91m"[m[1;91m\[m[1;91mn[m[1;91m"[m
+[32m+[m[32m      tell [m[1;92m[][m
+
+RemoveAction at src/Example/DoLib.hs:14:7-41 #1
+[36m@@ -11,5 +11,4 @@[m
+     go :: Writer String ()
+     go = do
+       tell "Hello"
+[31m-      if loud then tell "!" else pure ()[m
+       tell "\n"
+
+RemoveAction at src/Example/DoLib.hs:12:10-16 #1
+[36m@@ -9,7 +9,6 @@[m
+ greet loud = execWriter go
+   where
+     go :: Writer String ()
+     go = do
+[31m-      tell "Hello"[m
+       if loud then tell "!" else pure ()
+       tell "\n"

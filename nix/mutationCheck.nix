@@ -390,6 +390,40 @@ let
     '';
   };
 
+  # The redundant-test analyser: 'nix run' this to find tests that are
+  # redundant with respect to mutation testing.
+  #
+  # Like 'diff', it depends only on the cheap 'coverage' derivation (the
+  # cached augmented manifests) and — for the 'kill' basis — the cached
+  # instrumented test exes.  The default '--basis coverage' is pure
+  # post-processing of the coverage cache (instant, no test runs); pass
+  # '--basis kill' to build the accurate per-test kill matrix by running each
+  # mutation's covering tests.
+  #
+  # Extra arguments are forwarded to 'sydtest-mutation-driver redundancy'
+  # (e.g. '--basis kill').  The output directory defaults to a fresh temp dir;
+  # override it with MUTATION_REDUNDANCY_OUT_DIR or your own '--out-dir'.
+  redundancy = pkgs.writeShellApplication {
+    name = "${name}-mutation-redundancy";
+    runtimeInputs = [ driver pkgs.coreutils ] ++ collectedTestToolDepends;
+    text = ''
+      # Only inject a default --out-dir when the caller didn't pass one.
+      out_dir_args=()
+      case " $* " in
+        *" --out-dir "* | *" --out-dir="*) ;;
+        *) out_dir_args=(--out-dir "''${MUTATION_REDUNDANCY_OUT_DIR:-$(mktemp -d)}") ;;
+      esac
+      sydtest-mutation-driver redundancy \
+        ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
+        ${pkgs.lib.concatMapStringsSep " "
+          (pkg: ''--coverage-dir="${perPackageCoverage pkg}"'')
+          testPackages} \
+        --child-mem-limit=${testProcessMemLimit} \
+        "''${out_dir_args[@]}" \
+        "$@"
+    '';
+  };
+
   check = assertMutationScore { inherit name assertNoneUncovered report; };
 
   # Attach the building blocks as passthrus on whichever derivation we return,
@@ -402,9 +436,10 @@ let
   # - '.coverage'         the merged coverage (augmented/ + test-locations/);
   #                       its own per-package passthrus ('.coverage.<pkg>')
   #                       give each test-package's coverage on its own
+  # - '.redundancy'       the redundant-test analyser (nix run)
   withPassthru = drv': drv'.overrideAttrs (old: {
     passthru = (old.passthru or { }) // {
-      inherit diff report coverage;
+      inherit diff report coverage redundancy;
     };
   });
 in

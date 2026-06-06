@@ -330,11 +330,12 @@ analyzeRedundancy basis suite baselines rel
 redundancyReportRelFile :: Path Rel File
 redundancyReportRelFile = [relfile|redundancy.json|]
 
--- | Write @redundancy.json@ to the given directory.
-writeRedundancyReportFile :: Path Abs Dir -> RedundancyReport -> IO ()
-writeRedundancyReportFile dir report = do
+-- | Write @redundancy.json@ (a JSON array, one 'RedundancyReport' per suite)
+-- to the given directory.
+writeRedundancyReportFile :: Path Abs Dir -> [RedundancyReport] -> IO ()
+writeRedundancyReportFile dir reports = do
   ensureDir dir
-  LB.writeFile (fromAbsFile (dir </> redundancyReportRelFile)) (Aeson.encode report)
+  LB.writeFile (fromAbsFile (dir </> redundancyReportRelFile)) (Aeson.encode reports)
 
 -- | Thrown by 'readRedundancyReportFile' when @redundancy.json@ cannot be
 -- decoded.
@@ -344,9 +345,9 @@ newtype RedundancyReportDecodeException
 
 instance Exception RedundancyReportDecodeException
 
--- | Read @redundancy.json@ from the given directory.  Reads strictly so the
--- file handle is closed before returning.
-readRedundancyReportFile :: Path Abs Dir -> IO RedundancyReport
+-- | Read @redundancy.json@ (a JSON array of 'RedundancyReport') from the given
+-- directory.  Reads strictly so the file handle is closed before returning.
+readRedundancyReportFile :: Path Abs Dir -> IO [RedundancyReport]
 readRedundancyReportFile dir = do
   let path = dir </> redundancyReportRelFile
   result <- Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
@@ -355,6 +356,6 @@ readRedundancyReportFile dir = do
     Just m -> pure m
 
 -- | Read @redundancy.json@, returning 'Nothing' if the file does not exist.
-readRedundancyReportFileIfExists :: Path Abs Dir -> IO (Maybe RedundancyReport)
+readRedundancyReportFileIfExists :: Path Abs Dir -> IO (Maybe [RedundancyReport])
 readRedundancyReportFileIfExists dir =
   forgivingAbsence (readRedundancyReportFile dir)

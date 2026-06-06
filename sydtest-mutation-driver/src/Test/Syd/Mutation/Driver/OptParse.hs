@@ -28,6 +28,9 @@ module Test.Syd.Mutation.Driver.OptParse
     DiffSettings (..),
     DiffSource (..),
     defaultBaseBranch,
+
+    -- * 'redundancy' subcommand
+    RedundancySettings (..),
   )
 where
 
@@ -35,6 +38,7 @@ import GHC.Generics (Generic)
 import OptEnvConf
 import Path
 import Paths_sydtest_mutation_driver (version)
+import Test.Syd.Mutation.Redundancy (RedundancyBasis (..))
 
 -- | Configuration for one sydtest test suite executable that the driver
 -- spawns as a coverage child and as a mutation child.  The driver builds
@@ -169,6 +173,29 @@ data DiffSettings = DiffSettings
     diffSettingOutDir :: !(Path Abs Dir),
     -- | Whether to abort on the first surviving or uncovered mutation.
     diffSettingFailFast :: !Bool
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Settings for the @redundancy@ subcommand: the redundant-test analysis.
+--
+-- The @coverage@ basis reads only the cached augmented manifest(s) from
+-- @--coverage-dir@ and needs no test runs (no @--suite-pkg@,
+-- @--child-mem-limit@).  The @kill@ basis additionally runs each mutation's
+-- covering tests to observe per-test kills, so it needs the suite exes.
+data RedundancySettings = RedundancySettings
+  { -- | Which relation to analyse.
+    redundancySettingBasis :: !RedundancyBasis,
+    -- | Test-package specs, expanded to the suite-exe map at run time.  Only
+    -- used by the @kill@ basis.
+    redundancySettingSuitePkgs :: ![SuitePkgSpec],
+    -- | Per-package coverage directories, each holding
+    -- @augmented/manifest-augmented.json@ (same layout as @diff@).
+    redundancySettingCoverageDirs :: ![Path Abs Dir],
+    -- | RTS heap cap for each kill-matrix child.  Only used by the @kill@
+    -- basis.
+    redundancySettingChildMemLimit :: !(Maybe String),
+    -- | Output directory for redundancy.json\/redundancy.txt.
+    redundancySettingOutDir :: !(Path Abs Dir)
   }
   deriving (Show, Eq, Generic)
 
@@ -377,6 +404,55 @@ diffSourceParser = do
       | fromStdin -> DiffSourceStdin
       | otherwise -> DiffSourceGitMergeBase base
 
+-- | CLI parser for the @redundancy@ subcommand.
+redundancySettingsParser :: Parser RedundancySettings
+redundancySettingsParser = do
+  redundancySettingBasis <-
+    setting
+      [ help "Which relation to analyse: 'coverage' (cheap, approximate — mutations reached) or 'kill' (accurate — mutations caught)",
+        reader $ eitherReader $ \case
+          "coverage" -> Right BasisCoverage
+          "kill" -> Right BasisKill
+          s -> Left ("expected 'coverage' or 'kill', got: " ++ s),
+        option,
+        long "basis",
+        metavar "BASIS",
+        value BasisCoverage
+      ]
+  redundancySettingSuitePkgs <-
+    many $
+      setting
+        [ help "Test-package: PNAME=BUILT_TEST_PKG_ROOT=RESOURCE_DIR (may be repeated; only used by the kill basis)",
+          reader $ eitherReader parseSuitePkgSpec,
+          option,
+          long "suite-pkg",
+          metavar "PNAME=ROOT=RESOURCE_DIR"
+        ]
+  redundancySettingCoverageDirs <-
+    many $
+      directoryPathSetting
+        [ help "Per-package coverage directory holding augmented/ (may be repeated)",
+          option,
+          long "coverage-dir",
+          metavar "DIR"
+        ]
+  redundancySettingChildMemLimit <-
+    optional $
+      setting
+        [ help "RTS heap cap for each kill-matrix child, e.g. 4g",
+          reader str,
+          option,
+          long "child-mem-limit",
+          metavar "LIMIT"
+        ]
+  redundancySettingOutDir <-
+    directoryPathSetting
+      [ help "Output directory: where the driver writes redundancy.txt and redundancy.json (required)",
+        option,
+        long "out-dir"
+      ]
+  pure RedundancySettings {..}
+
 -- | Which component kind to enumerate or install: Cabal @executables@ or
 -- @test-suites@.
 data ComponentKind = ComponentExecutables | ComponentTestSuites
@@ -453,6 +529,9 @@ data Dispatch
     -- a diff, using the cached augmented manifest and cached per-suite test
     -- location listings.  No coverage phase; no compilation.
     DispatchDiff !DiffSettings
+  | -- | Analyse which tests are redundant with respect to mutation testing,
+    -- under the coverage or kill basis.
+    DispatchRedundancy !RedundancySettings
   deriving (Show, Eq, Generic)
 
 dispatchParser :: Parser Dispatch
@@ -497,6 +576,9 @@ dispatchParser =
       command "diff" "Run only the mutations implied by a diff, against cached coverage" $
         withoutConfig $
           DispatchDiff <$> diffSettingsParser,
+      command "redundancy" "Analyse which tests are redundant with respect to mutation testing" $
+        withoutConfig $
+          DispatchRedundancy <$> redundancySettingsParser,
       defaultCommand "run"
     ]
 

@@ -37,6 +37,7 @@ import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
 import Test.Syd.Mutation.Driver.DiffRun (runDiff)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
+import Test.Syd.Mutation.Driver.Redundancy (runRedundancy)
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 
 -- | Top-level entry point: parse the dispatch and run the chosen
@@ -61,6 +62,7 @@ sydMutationDriver = do
       runAssertScore assertNoneUncovered reportDir mOutDir
     DispatchCoverage settings -> runCoverage settings
     DispatchDiff settings -> runDiff settings
+    DispatchRedundancy settings -> runRedundancy settings
 
 -- | Run the driver phases in order: coverage, then mutation.
 runDriver :: MutationDriverSettings -> IO ()

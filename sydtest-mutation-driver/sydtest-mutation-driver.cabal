@@ -31,6 +31,7 @@ library
       Test.Syd.Mutation.Driver.DiffRun
       Test.Syd.Mutation.Driver.Mutate
       Test.Syd.Mutation.Driver.OptParse
+      Test.Syd.Mutation.Driver.Redundancy
       Test.Syd.Mutation.Driver.SuitePkg
   other-modules:
       Paths_sydtest_mutation_driver

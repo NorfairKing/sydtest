@@ -19,16 +19,11 @@ module Test.Syd.Mutation.Redundancy
     RedundancyReport (..),
     analyzeRedundancy,
     writeRedundancyReportFile,
-    readRedundancyReportFile,
-    readRedundancyReportFileIfExists,
-    RedundancyReportDecodeException (..),
   )
 where
 
 import Autodocodec
-import Control.Exception (Exception, throwIO)
 import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Containers ()
@@ -43,7 +38,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Path
-import Path.IO (ensureDir, forgivingAbsence)
+import Path.IO (ensureDir)
 import Test.Syd.Mutation.Runtime (MutationId)
 import Test.Syd.Mutation.TestId (TestId)
 
@@ -336,26 +331,3 @@ writeRedundancyReportFile :: Path Abs Dir -> [RedundancyReport] -> IO ()
 writeRedundancyReportFile dir reports = do
   ensureDir dir
   LB.writeFile (fromAbsFile (dir </> redundancyReportRelFile)) (Aeson.encode reports)
-
--- | Thrown by 'readRedundancyReportFile' when @redundancy.json@ cannot be
--- decoded.
-newtype RedundancyReportDecodeException
-  = RedundancyReportDecodeException FilePath
-  deriving (Show)
-
-instance Exception RedundancyReportDecodeException
-
--- | Read @redundancy.json@ (a JSON array of 'RedundancyReport') from the given
--- directory.  Reads strictly so the file handle is closed before returning.
-readRedundancyReportFile :: Path Abs Dir -> IO [RedundancyReport]
-readRedundancyReportFile dir = do
-  let path = dir </> redundancyReportRelFile
-  result <- Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
-  case result of
-    Nothing -> throwIO (RedundancyReportDecodeException (fromAbsFile path))
-    Just m -> pure m
-
--- | Read @redundancy.json@, returning 'Nothing' if the file does not exist.
-readRedundancyReportFileIfExists :: Path Abs Dir -> IO (Maybe [RedundancyReport])
-readRedundancyReportFileIfExists dir =
-  forgivingAbsence (readRedundancyReportFile dir)

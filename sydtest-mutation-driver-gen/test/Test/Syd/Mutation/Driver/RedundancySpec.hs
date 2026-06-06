@@ -12,6 +12,8 @@ import Test.Syd.Mutation.AugmentedManifest
     AugmentedMutationRecord (..),
   )
 import Test.Syd.Mutation.Driver.Redundancy (coverageRelations, renderRedundancyReport, renderRedundancyReports)
+import Test.Syd.Mutation.Driver.RedundancyKill (buildKillRelations)
+import Test.Syd.Mutation.KillRow (TestKillRow (..))
 import Test.Syd.Mutation.Redundancy
   ( RedundancyBasis (..),
     RedundancyReport (..),
@@ -34,6 +36,25 @@ spec = do
           ( Map.fromList
               [ (tid "Foo.a", Set.fromList [MutationId ["m1"], MutationId ["m2"]]),
                 (tid "Foo.b", Set.fromList [MutationId ["m1"]])
+              ]
+          )
+
+  describe "buildKillRelations" $
+    it "seeds covering tests, overlays kills, and drops non-runnable suites" $ do
+      let recM1 = mkRecord ["m1"] (Map.singleton "s" [tid "Foo.a", tid "Foo.b"])
+          recM2 = mkRecord ["m2"] (Map.singleton "s" [tid "Foo.a"])
+          rows =
+            [ ("s", MutationId ["m1"], TestKillRow (Map.fromList [(tid "Foo.a", True), (tid "Foo.b", False)])),
+              ("s", MutationId ["m2"], TestKillRow (Map.fromList [(tid "Foo.a", False)])),
+              -- A row for a suite we did not run is ignored.
+              ("other", MutationId ["m1"], TestKillRow (Map.singleton (tid "Foo.a") True))
+            ]
+      buildKillRelations (Set.singleton "s") [recM1, recM2] rows
+        `shouldBe` Map.singleton
+          "s"
+          ( Map.fromList
+              [ (tid "Foo.a", Set.singleton (MutationId ["m1"])),
+                (tid "Foo.b", Set.empty)
               ]
           )
 

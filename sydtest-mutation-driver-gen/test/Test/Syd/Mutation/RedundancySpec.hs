@@ -8,6 +8,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Data.Text (Text)
 import Test.Syd
+import Test.Syd.Mutation.KillRow (TestKillRow)
 import Test.Syd.Mutation.Redundancy
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId (..))
@@ -25,6 +26,9 @@ spec = do
   describe "RedundancyReport" $ do
     genValidSpec @RedundancyReport
     jsonSpec @RedundancyReport
+  describe "TestKillRow" $ do
+    genValidSpec @TestKillRow
+    jsonSpec @TestKillRow
 
   describe "analyzeRedundancy" $ do
     let tid :: Text -> TestId

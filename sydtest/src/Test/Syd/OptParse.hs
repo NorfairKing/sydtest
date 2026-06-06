@@ -118,6 +118,10 @@ data MutationMode
     MutationModeCoverageChild !CoverageChildSettings
   | -- | Child process that runs only the tests covering one mutation.
     MutationModeMutateChild !MutationChildSettings
+  | -- | Child process that runs one mutation's covering tests with the
+    -- mutation active and within-set fail-fast off, recording each covering
+    -- test's pass\/fail (the kill-matrix row for that mutation).
+    MutationModeKillRowChild !KillRowChildSettings
   deriving (Show, Eq, Generic)
 
 -- | Options for the coverage-child process: the single test to run, plus
@@ -137,6 +141,18 @@ data MutationChildSettings = MutationChildSettings
   { mutationChildId :: !String,
     mutationChildAugmentedManifestDir :: !(Path Abs Dir),
     mutationChildSuiteName :: !(Maybe Text)
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Options for the kill-row-child process: the mutation id to evaluate, the
+-- augmented-manifest directory to read its covering tests from, the suite name
+-- whose covering tests should be run, and the output file for the resulting
+-- 'Test.Syd.Mutation.KillRow.TestKillRow'.
+data KillRowChildSettings = KillRowChildSettings
+  { killRowChildId :: !String,
+    killRowChildAugmentedManifestDir :: !(Path Abs Dir),
+    killRowChildSuiteName :: !(Maybe Text),
+    killRowChildOutput :: !FilePath
   }
   deriving (Show, Eq, Generic)
 
@@ -302,6 +318,23 @@ resolveMutationSettings Flags {..} =
                     coverageChildBaselineOutput = baselineFile,
                     coverageChildSuiteName = flagMutationSuiteName
                   }
+        _
+          | Just mid <- flagMutationKillRowOne -> do
+              augDir <- case flagMutationAugmentedManifestDir of
+                Just d -> Right d
+                Nothing -> Left "--mutation-kill-row-one requires --mutation-augmented-manifest-dir"
+              output <- case flagMutationKillRowOutput of
+                Just f -> Right f
+                Nothing -> Left "--mutation-kill-row-one requires --mutation-kill-row-output"
+              pure $
+                mkMutation $
+                  MutationModeKillRowChild
+                    KillRowChildSettings
+                      { killRowChildId = mid,
+                        killRowChildAugmentedManifestDir = augDir,
+                        killRowChildSuiteName = flagMutationSuiteName,
+                        killRowChildOutput = output
+                      }
         (False, Nothing, Just mid) -> do
           augDir <- case flagMutationAugmentedManifestDir of
             Just d -> Right d
@@ -403,6 +436,8 @@ data Flags = Flags
     flagMutationCoverageBaselineOutput :: !(Maybe FilePath),
     flagMutationCoverageList :: !Bool,
     flagMutationCoverageListLocations :: !Bool,
+    flagMutationKillRowOne :: !(Maybe String),
+    flagMutationKillRowOutput :: !(Maybe FilePath),
     flagMutationFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -650,6 +685,26 @@ instance HasParser Flags where
           hidden,
           value False
         ]
+    flagMutationKillRowOne <-
+      optional $
+        setting
+          [ help "Run this single mutation's covering tests with the mutation active and record each test's pass/fail (used internally by the redundancy kill-matrix runner)",
+            reader str,
+            option,
+            long "mutation-kill-row-one",
+            metavar "MUTATION_ID",
+            hidden
+          ]
+    flagMutationKillRowOutput <-
+      optional $
+        setting
+          [ help "File path where the kill-row child process writes its per-test kill map (used internally)",
+            reader str,
+            option,
+            long "mutation-kill-row-output",
+            metavar "FILE",
+            hidden
+          ]
     flagMutationFailFast <-
       optional $
         yesNoSwitch

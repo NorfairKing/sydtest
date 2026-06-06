@@ -37,38 +37,45 @@ import Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
   )
 import Test.Syd.Mutation.Driver.OptParse (RedundancySettings (..))
+import Test.Syd.Mutation.Driver.RedundancyKill (runKillRedundancy)
 import Test.Syd.Mutation.Redundancy
 import Test.Syd.Mutation.Runtime (MutationId, renderMutationId)
 import Test.Syd.Mutation.TestId (TestId, renderTestId)
 import Text.Colour
 
--- | Run the @redundancy@ subcommand.
+-- | Run the @redundancy@ subcommand: compute the reports for the chosen basis,
+-- then write @redundancy.json@\/@redundancy.txt@ and print the rendered block.
 runRedundancy :: RedundancySettings -> IO ()
-runRedundancy settings = case redundancySettingBasis settings of
-  BasisCoverage -> runCoverageRedundancy settings
-  BasisKill ->
-    fail
-      "sydtest-mutation-driver redundancy: the 'kill' basis is not yet wired into this subcommand"
+runRedundancy settings = do
+  reports <- case redundancySettingBasis settings of
+    BasisCoverage -> coverageReports settings
+    BasisKill -> runKillRedundancy settings
+  emitReports (redundancySettingOutDir settings) reports
+
+-- | Write @redundancy.json@ + @redundancy.txt@ to the out dir and print the
+-- rendered block to stdout.
+emitReports :: Path Abs Dir -> [RedundancyReport] -> IO ()
+emitReports outDir reports = do
+  ensureDir outDir
+  writeRedundancyReportFile outDir reports
+  let renderedChunks = renderRedundancyReports reports
+  writeRedundancyTxt renderedChunks outDir
+  putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
 
 -- | Coverage-basis redundancy: read the cached augmented manifest(s), build the
--- per-suite reach relation, analyse, and write\/print the reports.
-runCoverageRedundancy :: RedundancySettings -> IO ()
-runCoverageRedundancy RedundancySettings {redundancySettingCoverageDirs, redundancySettingOutDir} = do
+-- per-suite reach relation, and analyse.  No test runs.
+coverageReports :: RedundancySettings -> IO [RedundancyReport]
+coverageReports RedundancySettings {redundancySettingCoverageDirs} = do
   manifests <-
     mapM
       (\dir -> readAugmentedManifestFile (dir </> [reldir|augmented|]))
       redundancySettingCoverageDirs
   let manifest = foldl' mergeAugmentedManifests (AugmentedManifest []) manifests
       relBySuite = coverageRelations manifest
-      reports =
-        [ analyzeRedundancy BasisCoverage suite Map.empty rel
-        | (suite, rel) <- Map.toList relBySuite
-        ]
-  ensureDir redundancySettingOutDir
-  writeRedundancyReportFile redundancySettingOutDir reports
-  let renderedChunks = renderRedundancyReports reports
-  writeRedundancyTxt renderedChunks redundancySettingOutDir
-  putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
+  pure
+    [ analyzeRedundancy BasisCoverage suite Map.empty rel
+    | (suite, rel) <- Map.toList relBySuite
+    ]
 
 -- | Build the per-suite coverage relation from an augmented manifest: for each
 -- suite, a map from each test to the set of mutations it reaches.

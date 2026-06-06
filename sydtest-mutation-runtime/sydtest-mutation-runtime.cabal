@@ -22,6 +22,7 @@ source-repository head
 library
   exposed-modules:
       Test.Syd.Mutation.AugmentedManifest
+      Test.Syd.Mutation.KillRow
       Test.Syd.Mutation.Manifest
       Test.Syd.Mutation.Manifest.Render
       Test.Syd.Mutation.Redundancy

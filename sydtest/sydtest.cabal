@@ -45,6 +45,7 @@ library
       Test.Syd.MutationMode.Common
       Test.Syd.MutationMode.CoverageList
       Test.Syd.MutationMode.CoverageListLocations
+      Test.Syd.MutationMode.KillRow
       Test.Syd.MutationMode.Single
       Test.Syd.MutationMode.SingleCoverage
       Test.Syd.OptParse

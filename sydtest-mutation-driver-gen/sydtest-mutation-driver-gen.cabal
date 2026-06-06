@@ -53,6 +53,7 @@ test-suite sydtest-mutation-driver-gen-test
       Test.Syd.Mutation.Driver.MutateSpec
       Test.Syd.Mutation.Driver.OptParseSpec
       Test.Syd.Mutation.Driver.SuitePkgSpec
+      Test.Syd.Mutation.RedundancySpec
       Paths_sydtest_mutation_driver_gen
   hs-source-dirs:
       test
@@ -64,6 +65,7 @@ test-suite sydtest-mutation-driver-gen-test
     , bytestring
     , containers
     , genvalidity-sydtest
+    , genvalidity-sydtest-aeson
     , path
     , path-io
     , safe-coloured-text

@@ -24,6 +24,7 @@ library
       Test.Syd.Mutation.AugmentedManifest
       Test.Syd.Mutation.Manifest
       Test.Syd.Mutation.Manifest.Render
+      Test.Syd.Mutation.Redundancy
       Test.Syd.Mutation.Runtime
       Test.Syd.Mutation.TestBaselineMap
       Test.Syd.Mutation.TestCoverageMap

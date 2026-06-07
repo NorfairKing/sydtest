@@ -142,14 +142,15 @@ renderRedundancyReport report =
 
     subsumptions = redundancyReportSubsumptions report
     subsumptionBlock =
-      countHeader (length subsumptions) "Dominated tests (catch a strict subset of another test)"
-        ++ [ [ chunk "    • ",
-               chunk (renderTestId (subsumptionDominated s)),
-               chunk "  ⊂  ",
-               fore green (chunk (renderTestId (subsumptionDominator s)))
-             ]
-           | s <- subsumptions
-           ]
+      countHeader (length subsumptions) "Dominated tests (every mutation they kill is also killed by another test)"
+        ++ concat
+          [ [ [chunk "    • ", chunk (renderTestId (subsumptionDominated s))],
+              [ chunk "        every mutation it kills is also killed by ",
+                fore green (chunk (renderTestId (subsumptionDominator s)))
+              ]
+            ]
+          | s <- subsumptions
+          ]
         ++ blankAfter (not (null subsumptions))
 
     minimal = redundancyReportMinimalSuite report

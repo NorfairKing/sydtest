@@ -8,8 +8,9 @@ Equivalent test groups (keep one of each): [33m1[m
     keep:      [32mMoney.deposit.a[m
     redundant: Money.deposit.b
 
-Dominated tests (catch a strict subset of another test): [33m1[m
-    • Money.add.commutes  ⊂  [32mMoney.add.laws[m
+Dominated tests (every mutation they kill is also killed by another test): [33m1[m
+    • Money.add.commutes
+        every mutation it kills is also killed by [32mMoney.add.laws[m
 
 Suggested minimal suite: [32m2[m of 4 tests  (removes [33m2[m; the cover is not unique)
     removable: Money.add.commutes, Money.deposit.b

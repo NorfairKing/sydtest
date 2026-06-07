@@ -11,6 +11,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
@@ -49,7 +50,7 @@ instance GenValid TestLocation where
 
 -- | Encode a list of 'TestLocation's as a JSON array.
 encodeTestLocations :: [TestLocation] -> LB.ByteString
-encodeTestLocations = Aeson.encode
+encodeTestLocations = encodePretty
 
 -- | Decode a JSON array of 'TestLocation's from the bytes of a
 -- @\<suite\>.json@ listing.  Returns 'Nothing' on a decode failure.

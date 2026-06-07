@@ -21,6 +21,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Containers ()
@@ -288,4 +289,4 @@ redundancyReportRelFile = [relfile|redundancy.json|]
 writeRedundancyReportFile :: Path Abs Dir -> [RedundancyReport] -> IO ()
 writeRedundancyReportFile dir reports = do
   ensureDir dir
-  LB.writeFile (fromAbsFile (dir </> redundancyReportRelFile)) (Aeson.encode reports)
+  LB.writeFile (fromAbsFile (dir </> redundancyReportRelFile)) (encodePretty reports)

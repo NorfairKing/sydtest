@@ -11,6 +11,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
@@ -57,7 +58,7 @@ instance Monoid TestBaselineMap where
 
 writeTestBaselineMapFile :: FilePath -> TestBaselineMap -> IO ()
 writeTestBaselineMapFile path m =
-  LB.writeFile path (encodeJSONViaCodec m)
+  LB.writeFile path (encodePretty m)
 
 -- | Read the baseline map strictly (via 'B.readFile' +
 -- 'eitherDecodeJSONViaCodec') so the file handle is closed before this

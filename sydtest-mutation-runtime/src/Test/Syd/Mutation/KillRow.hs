@@ -12,6 +12,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
@@ -74,7 +75,7 @@ buildKillRow tids flags
 -- | Write a 'TestKillRow' to the given file path.
 writeTestKillRowFile :: FilePath -> TestKillRow -> IO ()
 writeTestKillRowFile path m =
-  LB.writeFile path (encodeJSONViaCodec m)
+  LB.writeFile path (encodePretty m)
 
 -- | Read a 'TestKillRow' from the given file path, returning the aeson error
 -- message on parse failure.  Reads strictly so the handle is closed before

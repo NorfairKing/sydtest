@@ -11,6 +11,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Bifunctor (second)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
@@ -58,7 +59,7 @@ instance Monoid TestCoverageMap where
 -- | Write a 'TestCoverageMap' to the given file path.
 writeTestCoverageMapFile :: FilePath -> TestCoverageMap -> IO ()
 writeTestCoverageMapFile path m =
-  LB.writeFile path (encodeJSONViaCodec m)
+  LB.writeFile path (encodePretty m)
 
 -- | Read a 'TestCoverageMap' from the given file path.
 -- Returns the aeson error message on parse failure.

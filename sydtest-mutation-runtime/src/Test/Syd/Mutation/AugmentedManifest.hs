@@ -35,6 +35,7 @@ where
 import Autodocodec
 import Control.Exception (Exception, throwIO)
 import qualified Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
@@ -176,7 +177,7 @@ defaultTimeoutMicros = 30_000_000
 writeAugmentedManifestFile :: Path Abs Dir -> AugmentedManifest -> IO ()
 writeAugmentedManifestFile dir manifest = do
   ensureDir dir
-  LB.writeFile (fromAbsFile (dir </> augmentedManifestRelFile)) (Aeson.encode manifest)
+  LB.writeFile (fromAbsFile (dir </> augmentedManifestRelFile)) (encodePretty manifest)
 
 -- | Thrown by 'readAugmentedManifestFile' when the file cannot be decoded.
 newtype AugmentedManifestDecodeException
@@ -484,7 +485,7 @@ mutationRunReportRelFile = [relfile|report.json|]
 writeMutationRunReport :: Path Abs Dir -> MutationRunReport -> IO ()
 writeMutationRunReport dir report = do
   ensureDir dir
-  LB.writeFile (fromAbsFile (dir </> mutationRunReportRelFile)) (Aeson.encode report)
+  LB.writeFile (fromAbsFile (dir </> mutationRunReportRelFile)) (encodePretty report)
 
 -- | Thrown by 'readMutationRunReport' when @report.json@ cannot be
 -- decoded.  Mirrors 'AugmentedManifestDecodeException'.

@@ -72,6 +72,7 @@ library
   build-depends:
       MonadRandom
     , QuickCheck
+    , aeson-pretty
     , async
     , autodocodec
     , base >=4.7 && <5

@@ -12,6 +12,7 @@ module Test.Syd.ReRun (withRerunByReport) where
 
 import Autodocodec
 import Control.Monad.Writer
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import Data.Map (Map)
@@ -125,7 +126,7 @@ writeReport :: Settings -> ReportForest -> IO ()
 writeReport settings report = do
   reportFile <- getReportFile settings
   ensureDir (parent reportFile)
-  SB.writeFile (fromAbsFile reportFile) (SB.toStrict (encodeJSONViaCodec report))
+  SB.writeFile (fromAbsFile reportFile) (SB.toStrict (encodePretty (toJSONViaCodec report)))
 
 getReportFile :: Settings -> IO (Path Abs File)
 getReportFile setting = case settingReportFile setting of

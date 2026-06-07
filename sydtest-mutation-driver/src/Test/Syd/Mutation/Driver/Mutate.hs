@@ -33,7 +33,7 @@ import qualified Data.Text.Encoding as TE
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Conc (getNumCapabilities)
 import Path
-import Path.IO (copyFile, forgivingAbsence, ignoringAbsence, withSystemTempDir)
+import Path.IO (copyFile, ensureDir, forgivingAbsence, ignoringAbsence, withSystemTempDir)
 import System.Exit (ExitCode (..))
 import System.IO (BufferMode (..), IOMode (..), hFlush, hSetBuffering, stderr, withFile)
 import System.Process.Typed (proc, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
@@ -122,6 +122,7 @@ runMutationMode ::
   IO MutationRunReport
 runMutationMode failFast emitRedundancy augDir outDir childMemLimit suiteExes = do
   hSetBuffering stderr (BlockBuffering Nothing)
+  ensureDir outDir
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
   -- 'suiteExes' before any worker spawns.  An unknown name would otherwise

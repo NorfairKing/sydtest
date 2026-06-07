@@ -259,6 +259,7 @@ import Control.Monad.IO.Class
 import Path
 import Path.IO
 import System.Exit
+import System.IO (hSetEncoding, stderr, stdout, utf8)
 import Test.QuickCheck.IO ()
 import Test.Syd.Def
 import Test.Syd.Expectation
@@ -285,11 +286,21 @@ sydTest :: Spec -> IO ()
 sydTest spec = do
   sets <- getSettings
   case settingMutation sets of
-    Just MutationSettings {mutationFailFast, mutationMode} -> case mutationMode of
-      MutationModeCoverageList -> runCoverageListMode sets spec
-      MutationModeCoverageListLocations -> runCoverageListLocationsMode sets spec
-      MutationModeCoverageChild ch -> runSingleCoverageMode sets mutationFailFast ch spec
-      MutationModeMutateChild ch -> runSingleMutationMode sets ch spec
+    Just MutationSettings {mutationFailFast, mutationMode} -> do
+      -- Mutation children are spawned by the driver, often inside a build
+      -- sandbox with a C\/POSIX locale whose default stdout\/stderr encoding
+      -- cannot encode the Unicode the output writer emits (e.g. the ✓\/✗
+      -- result markers).  Force UTF-8 so a passing-test checkmark can't crash
+      -- the child with @commitAndReleaseBuffer: invalid argument@ before it
+      -- has recorded its result (which would otherwise look like a kill and
+      -- lose the kill-matrix row).
+      hSetEncoding stdout utf8
+      hSetEncoding stderr utf8
+      case mutationMode of
+        MutationModeCoverageList -> runCoverageListMode sets spec
+        MutationModeCoverageListLocations -> runCoverageListLocationsMode sets spec
+        MutationModeCoverageChild ch -> runSingleCoverageMode sets mutationFailFast ch spec
+        MutationModeMutateChild ch -> runSingleMutationMode sets ch spec
     Nothing -> sydTestWith sets spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'

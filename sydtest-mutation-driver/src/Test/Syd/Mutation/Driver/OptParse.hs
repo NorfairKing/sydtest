@@ -522,11 +522,12 @@ defaultCoverageRetry = 3
 defaultFailFast :: Bool
 defaultFailFast = True
 
--- | Default for @--redundancy@.  On by default so a normal @run@ produces the
--- redundant-test analysis; the Nix harness turns it off for suites where the
--- lost within-set fail-fast is too costly.
+-- | Default for @--redundancy@.  Off by default: the redundant-test analysis is
+-- informational (there is nothing to assert on), and collecting it costs the
+-- within-set fail-fast on killed mutants, so a normal run should not pay for it
+-- unless it is explicitly asked for.
 defaultRedundancy :: Bool
-defaultRedundancy = True
+defaultRedundancy = False
 
 -- | Parse the top-level dispatch from argv only.  The driver no longer
 -- reads environment variables or YAML config files; everything goes

@@ -44,5 +44,8 @@ in
     name = "sydtest-mutation-example";
     libraries = [ "sydtest-mutation-example" ];
     tests = [ "sydtest-mutation-example-gen" ];
+    # Opt in (the default is off) so the redundant-test analysis is exercised
+    # end-to-end in CI: this run also produces redundancy.txt/redundancy.json.
+    redundancy = true;
   };
 }

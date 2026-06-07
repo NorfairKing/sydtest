@@ -104,10 +104,12 @@
   # discards report.json before the installPhase runs.
 , failFast ? false
   # Whether the full report run also writes the redundant-test analysis
-  # (redundancy.txt/redundancy.json alongside report.txt).  On by default;
-  # turn it off for suites where the cost (each killed mutant runs its whole
-  # covering test set instead of stopping at the first killer) is too high.
-, redundancy ? true
+  # (redundancy.txt/redundancy.json alongside report.txt).  Off by default: it
+  # is informational only (nothing to assert on) and collecting it costs the
+  # within-set fail-fast on killed mutants (each killed mutant runs its whole
+  # covering test set instead of stopping at the first killer).  Set
+  # 'redundancy = true' to opt in.
+, redundancy ? false
 }:
 
 let

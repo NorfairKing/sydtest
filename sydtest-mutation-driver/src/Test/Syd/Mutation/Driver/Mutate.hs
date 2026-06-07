@@ -22,6 +22,7 @@ import Control.Concurrent.Async (mapConcurrently, race)
 import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
 import Control.Exception (bracket, bracket_)
 import qualified Control.Exception as Exception
+import Control.Monad (when)
 import qualified Data.ByteString as BS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
@@ -32,7 +33,7 @@ import qualified Data.Text.Encoding as TE
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Conc (getNumCapabilities)
 import Path
-import Path.IO (copyFile, ignoringAbsence, withSystemTempDir)
+import Path.IO (copyFile, forgivingAbsence, ignoringAbsence, withSystemTempDir)
 import System.Exit (ExitCode (..))
 import System.IO (BufferMode (..), IOMode (..), hFlush, hSetBuffering, stderr, withFile)
 import System.Process.Typed (proc, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
@@ -49,7 +50,9 @@ import Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
     writeMutationRunReport,
   )
-import Test.Syd.Mutation.Runtime (renderMutationId)
+import Test.Syd.Mutation.Driver.Redundancy (writeRedundancyArtifacts)
+import Test.Syd.Mutation.KillRow (TestKillRow, readTestKillRowFile)
+import Test.Syd.Mutation.Runtime (MutationId, renderMutationId)
 import Test.Syd.MutationMode.Common
   ( MutationFailFast (..),
     MutationResult (..),
@@ -101,6 +104,11 @@ writeReportTxt renderedChunks outDir =
 runMutationMode ::
   -- | Whether to abort on the first surviving or uncovered mutation.
   Bool ->
+  -- | Whether to also collect per-test kills and write the redundant-test
+  -- analysis (redundancy.json\/redundancy.txt) alongside the report.  Only the
+  -- full @run@ does this; the diff-scoped runner passes 'False' (a subset run
+  -- would give a misleading partial matrix).
+  Bool ->
   -- | Augmented-manifest directory.
   Path Abs Dir ->
   -- | Output directory: report.json, report.txt, and per-suite *.log
@@ -112,7 +120,7 @@ runMutationMode ::
   -- exe when spawning a mutation child.
   Map.Map Text (Path Abs File) ->
   IO MutationRunReport
-runMutationMode failFast augDir outDir childMemLimit suiteExes = do
+runMutationMode failFast emitRedundancy augDir outDir childMemLimit suiteExes = do
   hSetBuffering stderr (BlockBuffering Nothing)
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
@@ -140,10 +148,12 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
   -- partial report (after a global fail-fast abort) reflects the work
   -- done.
   groupResultsVar <- newTVarIO (Map.empty :: Map.Map Int [MutationResult])
+  -- Per-mutation-per-suite kill rows, collected when 'emitRedundancy' is set.
+  killRowsVar <- newTVarIO ([] :: [(Text, MutationId, TestKillRow)])
   let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
-          (runOne sem)
+          (runOne sem killRowsVar)
           ( \r ->
               atomically $
                 modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
@@ -195,11 +205,18 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
   -- lands after the caller's stdout summary block would look like trailing
   -- garbage in the build log.
   hFlush stderr
-  case mWorkerException of
+  -- A clean completion (no exception at all) means the kill matrix is whole;
+  -- a fail-fast abort leaves it partial, so we skip the redundancy analysis
+  -- in that case.  A non-fail-fast exception still re-throws.
+  completed <- case mWorkerException of
     Left e -> case Exception.fromException e of
-      Just MutationFailFast -> pure ()
+      Just MutationFailFast -> pure False
       Nothing -> Exception.throwIO e
-    Right () -> pure ()
+    Right () -> pure True
+  when (emitRedundancy && completed) $ do
+    let records = [r | AugmentedMutationGroup rs <- groups, r <- rs]
+    killRows <- readTVarIO killRowsVar
+    writeRedundancyArtifacts outDir (Map.keysSet suiteExes) records killRows
   -- Note: 'runMutationMode' itself does NOT 'exitWith' here, even under
   -- --fail-fast.  Returning the report lets callers print their own final
   -- summary line and decide the exit code.  Callers that want the
@@ -209,7 +226,7 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
   -- when fail-fast trips.
   pure jsonReport
   where
-    runOne sem record =
+    runOne sem killRowsVar record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
         hPutChunksLocaleWith With8BitColours stderr (unlinesChunks (renderMutationProgressEvent (MutationProgressEvent record)))
@@ -224,7 +241,7 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
             -- if any child exits non-zero; timed out (counted as killed)
             -- if any child exceeded its budget without any other child
             -- killing it first; otherwise survived.
-            outcomes <- mapM (runOneSuite record mid) suiteNames
+            outcomes <- mapM (runOneSuite killRowsVar record mid) suiteNames
             pure $ classifyOutcomes record outcomes
 
     classifyOutcomes record outcomes
@@ -253,7 +270,7 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
         isKilled _ = False
         mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- NE.toList outcomes]
 
-    runOneSuite record mid suiteName = do
+    runOneSuite killRowsVar record mid suiteName = do
       exe <- case Map.lookup suiteName suiteExes of
         Just e -> pure (fromAbsFile e)
         Nothing ->
@@ -268,22 +285,30 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
               { unknownCoveringSuiteName = suiteName,
                 unknownCoveringSuiteDeclared = Map.keys suiteExes
               }
-      let rtsArgs = case childMemLimit of
-            Nothing -> []
-            Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
-          suiteNameStr = T.unpack suiteName
-          args =
-            [ "--mutation-one",
-              renderMutationId mid,
-              "--mutation-augmented-manifest-dir",
-              fromAbsDir augDir,
-              "--mutation-suite-name",
-              suiteNameStr
-            ]
-              ++ rtsArgs
       classifySyncExceptionAsKilled $
         withSystemTempDir "mutation-child" $ \tmpDir -> do
           let logPath = tmpDir </> [relfile|child.log|]
+              killRowPath = tmpDir </> [relfile|killrow.json|]
+              rtsArgs = case childMemLimit of
+                Nothing -> []
+                Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
+              -- When collecting redundancy, ask the child to also write its
+              -- per-test kill row (which also makes it run every covering test
+              -- rather than stopping at the first killer).
+              killRowArgs =
+                if emitRedundancy
+                  then ["--mutation-kill-row-output", fromAbsFile killRowPath]
+                  else []
+              args =
+                [ "--mutation-one",
+                  renderMutationId mid,
+                  "--mutation-augmented-manifest-dir",
+                  fromAbsDir augDir,
+                  "--mutation-suite-name",
+                  T.unpack suiteName
+                ]
+                  ++ killRowArgs
+                  ++ rtsArgs
           (outcomeRaw, elapsedMicros) <-
             withFile (fromAbsFile logPath) WriteMode $ \logHandle -> do
               let childProc =
@@ -304,6 +329,15 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
               raw <- startProcessAndWait childProc micros
               endTime <- getMonotonicTimeNSec
               pure (raw, diffMonotonicMicros endTime startTime)
+          -- Collect the kill row when the child completed (not on timeout).
+          -- Best-effort: an unreadable row is skipped, not fatal.
+          case outcomeRaw of
+            Right _ | emitRedundancy -> do
+              mERow <- forgivingAbsence (readTestKillRowFile (fromAbsFile killRowPath))
+              case mERow of
+                Just (Right row) -> atomically $ modifyTVar' killRowsVar ((suiteName, mid, row) :)
+                _ -> pure ()
+            _ -> pure ()
           case outcomeRaw of
             Left () -> do
               -- Timed out: parent killed the child.  Preserve whatever

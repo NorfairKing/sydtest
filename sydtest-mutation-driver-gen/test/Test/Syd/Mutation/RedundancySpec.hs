@@ -17,9 +17,6 @@ import Test.Syd.Validity.Aeson
 
 spec :: Spec
 spec = do
-  describe "RedundancyBasis" $ do
-    genValidSpec @RedundancyBasis
-    jsonSpec @RedundancyBasis
   describe "Subsumption" $ do
     genValidSpec @Subsumption
     jsonSpec @Subsumption
@@ -51,7 +48,7 @@ spec = do
                 (b, Set.fromList [m1, m2]),
                 (c, Set.fromList [m1])
               ]
-          report = analyzeRedundancy BasisKill "" baselines rel
+          report = analyzeRedundancy "" baselines rel
       redundancyReportEquivClasses report `shouldBe` [[a, b]]
       -- C is strictly dominated by A (the faster of the two dominators).
       redundancyReportSubsumptions report
@@ -69,7 +66,7 @@ spec = do
                 (b, Set.fromList [m2]),
                 (c, Set.empty)
               ]
-          report = analyzeRedundancy BasisKill "" Map.empty rel
+          report = analyzeRedundancy "" Map.empty rel
       redundancyReportEquivClasses report `shouldBe` []
       redundancyReportSubsumptions report
         `shouldBe` [Subsumption {subsumptionDominated = b, subsumptionDominator = a, subsumptionStrict = True}]
@@ -84,13 +81,13 @@ spec = do
               [ (a, Set.fromList [m1, m2]),
                 (b, Set.fromList [m1, m2])
               ]
-          report = analyzeRedundancy BasisKill "" Map.empty rel
+          report = analyzeRedundancy "" Map.empty rel
       redundancyReportEquivClasses report `shouldBe` [[a, b]]
       redundancyReportRedundantMutants report `shouldBe` [[m1, m2]]
 
     it "produces an empty report when no mutation is caught" $ do
       let rel = Map.fromList [(a, Set.empty), (b, Set.empty)]
-          report = analyzeRedundancy BasisCoverage "suite" Map.empty rel
+          report = analyzeRedundancy "suite" Map.empty rel
       redundancyReportEquivClasses report `shouldBe` []
       redundancyReportSubsumptions report `shouldBe` []
       redundancyReportMinimalSuite report `shouldBe` []
@@ -100,10 +97,9 @@ spec = do
       redundancyReportSoleKillers report `shouldBe` Map.empty
       redundancyReportRedundantMutants report `shouldBe` []
 
-    it "keeps the basis and suite name it was given" $ do
-      let report = analyzeRedundancy BasisCoverage "money-test" Map.empty (Map.singleton a (Set.singleton m1))
-      redundancyReportBasis report `shouldBe` BasisCoverage
+    it "keeps the suite name it was given" $ do
+      let report = analyzeRedundancy "money-test" Map.empty (Map.singleton a (Set.singleton m1))
       redundancyReportSuite report `shouldBe` "money-test"
-      -- A single test covering the only mutant is the whole minimal suite.
+      -- A single test killing the only mutant is the whole minimal suite.
       redundancyReportMinimalSuite report `shouldBe` [a]
       redundancyReportRemovable report `shouldBe` []

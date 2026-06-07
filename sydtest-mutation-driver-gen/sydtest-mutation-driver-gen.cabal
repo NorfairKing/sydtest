@@ -21,9 +21,9 @@ extra-source-files:
     test_resources/diff-run/empty-selection.golden
     test_resources/diff-run/one-survivor-fail.golden
     test_resources/diff-run/one-uncovered-fail.golden
-    test_resources/redundancy/coverage-basic.golden
     test_resources/redundancy/empty.golden
-    test_resources/redundancy/kill-full.golden
+    test_resources/redundancy/full.golden
+    test_resources/redundancy/minimal.golden
 
 source-repository head
   type: git

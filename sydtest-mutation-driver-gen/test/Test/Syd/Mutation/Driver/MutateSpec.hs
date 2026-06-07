@@ -43,7 +43,7 @@ spec = describe "runMutationMode" $
         (AugmentedManifest [AugmentedMutationGroup [record]])
       result <-
         Exception.try $
-          runMutationMode False dir dir Nothing Map.empty
+          runMutationMode False False dir dir Nothing Map.empty
       case result of
         Left (UnknownCoveringSuite name _) -> name `shouldBe` "absent-suite"
         Right _ -> expectationFailure "expected UnknownCoveringSuite to be thrown"

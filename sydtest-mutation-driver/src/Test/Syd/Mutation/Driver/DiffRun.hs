@@ -120,6 +120,7 @@ runDiff DiffSettings {..} = do
       let suiteExes = Map.map suiteConfigExe suites
       runMutationMode
         diffSettingFailFast
+        False
         augDir
         diffSettingOutDir
         diffSettingChildMemLimit

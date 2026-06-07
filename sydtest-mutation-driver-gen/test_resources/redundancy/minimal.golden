@@ -1,8 +1,8 @@
-[36mRedundant tests[m — basis: coverage (approximate — reaches, may not catch)
+[36mRedundant tests[m (by mutations caught)
 
-Load-bearing (sole reacher — never remove): [32m0[m
+Load-bearing (sole killer — never remove): [32m0[m
 Equivalent test groups (keep one of each): [32m0[m
-Dominated tests (reaches a strict subset of another test): [33m1[m
+Dominated tests (catch a strict subset of another test): [33m1[m
     • Foo.b  ⊂  [32mFoo.a[m
 
 Suggested minimal suite: [32m1[m of 2 tests  (removes [33m1[m; the cover is not unique)

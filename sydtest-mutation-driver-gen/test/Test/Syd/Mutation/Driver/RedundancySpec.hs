@@ -7,16 +7,12 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest
-  ( AugmentedManifest (..),
-    AugmentedMutationGroup (..),
-    AugmentedMutationRecord (..),
+  ( AugmentedMutationRecord (..),
   )
-import Test.Syd.Mutation.Driver.Redundancy (coverageRelations, renderRedundancyReport, renderRedundancyReports)
-import Test.Syd.Mutation.Driver.RedundancyKill (buildKillRelations)
+import Test.Syd.Mutation.Driver.Redundancy (buildKillRelations, renderRedundancyReport, renderRedundancyReports)
 import Test.Syd.Mutation.KillRow (TestKillRow (..))
 import Test.Syd.Mutation.Redundancy
-  ( RedundancyBasis (..),
-    RedundancyReport (..),
+  ( RedundancyReport (..),
     Subsumption (..),
   )
 import Test.Syd.Mutation.Runtime (MutationId (..))
@@ -25,20 +21,6 @@ import Text.Colour (TerminalCapabilities (..), renderChunksText, unlinesChunks)
 
 spec :: Spec
 spec = do
-  describe "coverageRelations" $
-    it "builds the per-suite test -> reached-mutations relation" $ do
-      let recM1 = mkRecord ["m1"] (Map.singleton "suiteA" [tid "Foo.a", tid "Foo.b"])
-          recM2 = mkRecord ["m2"] (Map.singleton "suiteA" [tid "Foo.a"])
-          manifest = AugmentedManifest [AugmentedMutationGroup [recM1, recM2]]
-      coverageRelations manifest
-        `shouldBe` Map.singleton
-          "suiteA"
-          ( Map.fromList
-              [ (tid "Foo.a", Set.fromList [MutationId ["m1"], MutationId ["m2"]]),
-                (tid "Foo.b", Set.fromList [MutationId ["m1"]])
-              ]
-          )
-
   describe "buildKillRelations" $
     it "seeds covering tests, overlays kills, and drops non-runnable suites" $ do
       let recM1 = mkRecord ["m1"] (Map.singleton "s" [tid "Foo.a", tid "Foo.b"])
@@ -59,15 +41,15 @@ spec = do
           )
 
   describe "renderRedundancyReport" $ do
-    it "renders a full kill-basis report" $
+    it "renders a full report" $
       pureGoldenTextFile
-        "test_resources/redundancy/kill-full.golden"
-        (renderColoured (renderRedundancyReport killReport))
+        "test_resources/redundancy/full.golden"
+        (renderColoured (renderRedundancyReport fullReport))
 
-    it "renders a coverage-basis report (approximate wording)" $
+    it "renders a minimal report" $
       pureGoldenTextFile
-        "test_resources/redundancy/coverage-basic.golden"
-        (renderColoured (renderRedundancyReport coverageReport))
+        "test_resources/redundancy/minimal.golden"
+        (renderColoured (renderRedundancyReport minimalReport))
 
     it "renders the empty-coverage message" $
       pureGoldenTextFile
@@ -76,10 +58,9 @@ spec = do
   where
     renderColoured chunks = renderChunksText With24BitColours (unlinesChunks chunks)
 
-    killReport =
+    fullReport =
       RedundancyReport
-        { redundancyReportBasis = BasisKill,
-          redundancyReportSuite = "money-test",
+        { redundancyReportSuite = "money-test",
           redundancyReportEquivClasses = [[tid "Money.deposit.a", tid "Money.deposit.b"]],
           redundancyReportSubsumptions =
             [ Subsumption
@@ -96,10 +77,9 @@ spec = do
             [[MutationId ["Amount", "IntLit", "131"], MutationId ["Amount", "IntLit", "197"]]]
         }
 
-    coverageReport =
+    minimalReport =
       RedundancyReport
-        { redundancyReportBasis = BasisCoverage,
-          redundancyReportSuite = "",
+        { redundancyReportSuite = "",
           redundancyReportEquivClasses = [],
           redundancyReportSubsumptions =
             [ Subsumption
@@ -115,7 +95,7 @@ spec = do
         }
 
 -- | A minimal augmented record carrying only an id and its covering tests;
--- the other fields are irrelevant to 'coverageRelations'.  Duplicated here
+-- the other fields are irrelevant to 'buildKillRelations'.  Duplicated here
 -- rather than shared, per the project's test-helper guidance.
 mkRecord :: [String] -> Map.Map Text [TestId] -> AugmentedMutationRecord
 mkRecord idParts covering =

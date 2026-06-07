@@ -6,16 +6,13 @@
 
 -- | Redundant-test analysis for mutation testing.
 --
--- Given a relation @R(t)@ assigning to each test the set of mutations it is
--- associated with — either the mutations it /reaches/ (coverage basis) or the
--- mutations it actually /catches/ (kill basis) — 'analyzeRedundancy' produces a
--- 'RedundancyReport' describing which tests are redundant under three
--- complementary lenses (equivalence classes, subsumption, and a greedy minimal
--- suite), plus the load-bearing sole-killer tests and the dual
--- redundant-mutant grouping.
+-- Given a relation @R(t)@ assigning to each test the set of mutations it
+-- /catches/ (kills), 'analyzeRedundancy' produces a 'RedundancyReport'
+-- describing which tests are redundant under three complementary lenses
+-- (equivalence classes, subsumption, and a greedy minimal suite), plus the
+-- load-bearing sole-killer tests and the dual redundant-mutant grouping.
 module Test.Syd.Mutation.Redundancy
-  ( RedundancyBasis (..),
-    Subsumption (..),
+  ( Subsumption (..),
     RedundancyReport (..),
     analyzeRedundancy,
     writeRedundancyReportFile,
@@ -35,43 +32,11 @@ import Data.Ord (Down (..), comparing)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
-import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Path
 import Path.IO (ensureDir)
 import Test.Syd.Mutation.Runtime (MutationId)
 import Test.Syd.Mutation.TestId (TestId)
-
--- | Which relation the redundancy analysis was computed over.
---
--- 'BasisCoverage' uses the mutations each test /reaches/: cheap (pure
--- post-processing of cached coverage) but approximate — a test flagged
--- redundant here might still be the only one whose assertion actually
--- /catches/ a mutation it reaches.  'BasisKill' uses the mutations each test
--- actually catches: accurate, but requires running the tests against the
--- mutants to observe per-test pass\/fail.
-data RedundancyBasis = BasisCoverage | BasisKill
-  deriving stock (Show, Eq, Generic)
-  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec RedundancyBasis)
-
-instance Validity RedundancyBasis
-
-instance GenValid RedundancyBasis where
-  genValid = genValidStructurally
-  shrinkValid = shrinkValidStructurally
-
-instance HasCodec RedundancyBasis where
-  codec = bimapCodec dec enc codec
-    where
-      enc :: RedundancyBasis -> Text
-      enc = \case
-        BasisCoverage -> "coverage"
-        BasisKill -> "kill"
-      dec :: Text -> Either String RedundancyBasis
-      dec = \case
-        "coverage" -> Right BasisCoverage
-        "kill" -> Right BasisKill
-        other -> Left ("unknown redundancy basis: " <> T.unpack other)
 
 -- | One strict-subsumption edge: 'subsumptionDominated' is a test whose
 -- associated mutation set is a strict subset of 'subsumptionDominator'\'s, so
@@ -110,9 +75,7 @@ instance HasCodec Subsumption where
 -- relation is expected to be restricted to killed mutants by the caller):
 -- mutations that no test catches are irrelevant to redundancy.
 data RedundancyReport = RedundancyReport
-  { -- | Which relation this was computed over.
-    redundancyReportBasis :: RedundancyBasis,
-    -- | Suite name; @""@ for an anonymous\/single-suite setup.
+  { -- | Suite name; @""@ for an anonymous\/single-suite setup.
     redundancyReportSuite :: Text,
     -- | Groups of tests with /identical/ associated mutation sets (each group
     -- has size ≥ 2 and a non-empty set).  Keep any one member of each group;
@@ -163,8 +126,7 @@ instance HasCodec RedundancyReport where
   codec =
     object "RedundancyReport" $
       RedundancyReport
-        <$> requiredField' "basis" .= redundancyReportBasis
-        <*> optionalFieldWithDefault' "suite" "" .= redundancyReportSuite
+        <$> optionalFieldWithDefault' "suite" "" .= redundancyReportSuite
         <*> optionalFieldWithDefault' "equivalence_classes" [] .= redundancyReportEquivClasses
         <*> optionalFieldWithDefault' "subsumptions" [] .= redundancyReportSubsumptions
         <*> optionalFieldWithDefault' "minimal_suite" [] .= redundancyReportMinimalSuite
@@ -174,26 +136,23 @@ instance HasCodec RedundancyReport where
 
 -- | Analyse the redundancy of a suite's tests.
 --
--- The input @rel@ maps every known test to the set of mutations it is
--- associated with under @basis@, restricted to killed mutants.  Tests that are
--- associated with no killed mutant must still be present (mapped to the empty
--- set) so they can be reported as removable.  @baselines@ gives per-test
+-- The input @rel@ maps every known test to the set of mutations it catches
+-- (kills).  Tests that catch no mutation must still be present (mapped to the
+-- empty set) so they can be reported as removable.  @baselines@ gives per-test
 -- monotonic-clock baselines used only to break ties (fastest test wins) so the
 -- output is deterministic and the suggested representatives are cheap; a test
 -- with no recorded baseline sorts last.
 analyzeRedundancy ::
-  RedundancyBasis ->
   Text ->
   Map.Map TestId Word ->
   Map.Map TestId (Set MutationId) ->
   RedundancyReport
-analyzeRedundancy basis suite baselines rel
+analyzeRedundancy suite baselines rel
   | Set.null universe =
       -- No mutation is caught by any test: redundancy is vacuous.  Report
       -- nothing rather than declaring every test removable.
       RedundancyReport
-        { redundancyReportBasis = basis,
-          redundancyReportSuite = suite,
+        { redundancyReportSuite = suite,
           redundancyReportEquivClasses = [],
           redundancyReportSubsumptions = [],
           redundancyReportMinimalSuite = [],
@@ -203,8 +162,7 @@ analyzeRedundancy basis suite baselines rel
         }
   | otherwise =
       RedundancyReport
-        { redundancyReportBasis = basis,
-          redundancyReportSuite = suite,
+        { redundancyReportSuite = suite,
           redundancyReportEquivClasses = equivClasses,
           redundancyReportSubsumptions = subsumptions,
           redundancyReportMinimalSuite = minimalSuite,

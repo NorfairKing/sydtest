@@ -1,20 +1,18 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE RecordWildCards #-}
 
--- | Parent-side runner for the @redundancy@ subcommand: redundant-test
--- analysis.
+-- | Redundant-test reporting for the mutation phase.
 --
--- The @coverage@ basis is pure post-processing of the cached augmented
--- manifest(s): it builds, per suite, the relation mapping each test to the
--- mutations it /reaches/, then runs 'analyzeRedundancy'.  No test runs happen,
--- so it is instant and needs no prior mutation run.  The @kill@ basis is in
--- "Test.Syd.Mutation.Driver.RedundancyKill".
+-- The mutation phase already runs each mutation's covering tests; when it
+-- collects each test's pass\/fail (a 'TestKillRow' per mutation per suite),
+-- 'buildKillRelations' aggregates those rows into the per-suite
+-- @test -> killed-mutations@ relation, 'analyzeRedundancy' turns each into a
+-- 'RedundancyReport', and 'writeRedundancyArtifacts' writes\/prints them
+-- alongside the mutation report.  No separate command or run is involved.
 module Test.Syd.Mutation.Driver.Redundancy
-  ( runRedundancy,
-    coverageRelations,
+  ( buildKillRelations,
+    writeRedundancyArtifacts,
     renderRedundancyReports,
     renderRedundancyReport,
   )
@@ -29,75 +27,65 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Path
 import Path.IO (ensureDir)
-import Test.Syd.Mutation.AugmentedManifest
-  ( AugmentedManifest (..),
-    AugmentedMutationGroup (..),
-    AugmentedMutationRecord (..),
-    mergeAugmentedManifests,
-    readAugmentedManifestFile,
-  )
-import Test.Syd.Mutation.Driver.OptParse (RedundancySettings (..))
-import Test.Syd.Mutation.Driver.RedundancyKill (runKillRedundancy)
+import Test.Syd.Mutation.AugmentedManifest (AugmentedMutationRecord (..))
+import Test.Syd.Mutation.KillRow (TestKillRow (..))
 import Test.Syd.Mutation.Redundancy
 import Test.Syd.Mutation.Runtime (MutationId, renderMutationId)
 import Test.Syd.Mutation.TestId (TestId, renderTestId)
 import Text.Colour
 
--- | Run the @redundancy@ subcommand: compute the reports for the chosen basis,
--- then write @redundancy.json@\/@redundancy.txt@ and print the rendered block.
-runRedundancy :: RedundancySettings -> IO ()
-runRedundancy settings = do
-  reports <- case redundancySettingBasis settings of
-    BasisCoverage -> coverageReports settings
-    BasisKill -> runKillRedundancy settings
-  emitReports (redundancySettingOutDir settings) reports
+-- | Aggregate the kill matrix into the per-suite @test -> killed-mutations@
+-- relation.  Seeded with every covering test mapped to the empty set (so a test
+-- that catches nothing still appears, as removable), then overlaid with the
+-- mutations each test actually killed.  Restricted to the given runnable suites.
+buildKillRelations ::
+  Set Text ->
+  [AugmentedMutationRecord] ->
+  [(Text, MutationId, TestKillRow)] ->
+  Map.Map Text (Map.Map TestId (Set MutationId))
+buildKillRelations runnableSuites records rows =
+  Map.unionWith (Map.unionWith Set.union) seedRel killsRel
+  where
+    seedRel =
+      Map.fromListWith
+        (Map.unionWith Set.union)
+        [ (suite, Map.singleton tid Set.empty)
+        | record <- records,
+          (suite, tids) <- Map.toList (augmentedMutationRecordCoveringTests record),
+          suite `Set.member` runnableSuites,
+          tid <- tids
+        ]
+    killsRel =
+      Map.fromListWith
+        (Map.unionWith Set.union)
+        [ (suite, Map.singleton tid (Set.singleton mid))
+        | (suite, mid, TestKillRow killMap) <- rows,
+          suite `Set.member` runnableSuites,
+          (tid, killed) <- Map.toList killMap,
+          killed
+        ]
 
--- | Write @redundancy.json@ + @redundancy.txt@ to the out dir and print the
--- rendered block to stdout.
-emitReports :: Path Abs Dir -> [RedundancyReport] -> IO ()
-emitReports outDir reports = do
+-- | Build the per-suite redundancy reports from the kill matrix, write
+-- @redundancy.json@ + @redundancy.txt@ into the out dir, and print the rendered
+-- block to stdout.
+writeRedundancyArtifacts ::
+  Path Abs Dir ->
+  Set Text ->
+  [AugmentedMutationRecord] ->
+  [(Text, MutationId, TestKillRow)] ->
+  IO ()
+writeRedundancyArtifacts outDir runnableSuites records rows = do
+  let relBySuite = buildKillRelations runnableSuites records rows
+      reports =
+        [ analyzeRedundancy suite Map.empty rel
+        | (suite, rel) <- Map.toList relBySuite
+        ]
+      renderedChunks = renderRedundancyReports reports
   ensureDir outDir
   writeRedundancyReportFile outDir reports
-  let renderedChunks = renderRedundancyReports reports
-  writeRedundancyTxt renderedChunks outDir
-  putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
-
--- | Coverage-basis redundancy: read the cached augmented manifest(s), build the
--- per-suite reach relation, and analyse.  No test runs.
-coverageReports :: RedundancySettings -> IO [RedundancyReport]
-coverageReports RedundancySettings {redundancySettingCoverageDirs} = do
-  manifests <-
-    mapM
-      (\dir -> readAugmentedManifestFile (dir </> [reldir|augmented|]))
-      redundancySettingCoverageDirs
-  let manifest = foldl' mergeAugmentedManifests (AugmentedManifest []) manifests
-      relBySuite = coverageRelations manifest
-  pure
-    [ analyzeRedundancy BasisCoverage suite Map.empty rel
-    | (suite, rel) <- Map.toList relBySuite
-    ]
-
--- | Build the per-suite coverage relation from an augmented manifest: for each
--- suite, a map from each test to the set of mutations it reaches.
-coverageRelations :: AugmentedManifest -> Map.Map Text (Map.Map TestId (Set MutationId))
-coverageRelations (AugmentedManifest groups) =
-  Map.fromListWith
-    (Map.unionWith Set.union)
-    [ (suite, Map.singleton tid (Set.singleton (augmentedMutationRecordId rec)))
-    | AugmentedMutationGroup recs <- groups,
-      rec <- recs,
-      (suite, tids) <- Map.toList (augmentedMutationRecordCoveringTests rec),
-      tid <- tids
-    ]
-
--- | Write @redundancy.txt@ to the out dir.  Writes bytes directly so we do not
--- depend on the locale's encoding (the report contains em-dashes and
--- box-drawing characters), mirroring the mutation report writer.
-writeRedundancyTxt :: [[Chunk]] -> Path Abs Dir -> IO ()
-writeRedundancyTxt renderedChunks outDir =
   let renderedText = renderChunksText With8BitColours (unlinesChunks renderedChunks)
-      reportFile = outDir </> [relfile|redundancy.txt|]
-   in BS.writeFile (fromAbsFile reportFile) (TE.encodeUtf8 renderedText)
+  BS.writeFile (fromAbsFile (outDir </> [relfile|redundancy.txt|])) (TE.encodeUtf8 renderedText)
+  putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
 
 -- | Render every suite's redundancy report as a block of coloured lines.
 renderRedundancyReports :: [RedundancyReport] -> [[Chunk]]
@@ -125,31 +113,17 @@ renderRedundancyReport report =
       redundantMutantsBlock
     ]
   where
-    basis = redundancyReportBasis report
-    -- Verbs differ by basis: coverage measures reach, kill measures catch.
-    catchVerb = case basis of
-      BasisCoverage -> "reaches"
-      BasisKill -> "catches"
-    soleNoun = case basis of
-      BasisCoverage -> "sole reacher"
-      BasisKill -> "sole killer"
-    basisLabel = case basis of
-      BasisCoverage -> "coverage (approximate — reaches, may not catch)"
-      BasisKill -> "kill (accurate)"
-
-    headerLine =
-      [ fore cyan (chunk "Redundant tests"),
-        chunk " — basis: ",
-        chunk basisLabel
-      ]
+    headerLine = [fore cyan (chunk "Redundant tests"), chunk " (by mutations caught)"]
     suiteLine =
-      [[chunk "  suite: ", fore cyan (chunk (redundancyReportSuite report))] | not (T.null (redundancyReportSuite report))]
+      [ [chunk "  suite: ", fore cyan (chunk (redundancyReportSuite report))]
+      | not (T.null (redundancyReportSuite report))
+      ]
 
     bullet t = [chunk "    • ", chunk t]
 
     soleKillers = redundancyReportSoleKillers report
     soleKillersBlock =
-      countHeader (Map.size soleKillers) ("Load-bearing (" <> soleNoun <> " — never remove)")
+      countHeader (Map.size soleKillers) "Load-bearing (sole killer — never remove)"
         ++ [ bullet (renderTestId t <> "  (" <> T.pack (show (length ms)) <> " mutation" <> plural (length ms) <> ")")
            | (t, ms) <- Map.toAscList soleKillers
            ]
@@ -168,7 +142,7 @@ renderRedundancyReport report =
 
     subsumptions = redundancyReportSubsumptions report
     subsumptionBlock =
-      countHeader (length subsumptions) ("Dominated tests (" <> catchVerb <> " a strict subset of another test)")
+      countHeader (length subsumptions) "Dominated tests (catch a strict subset of another test)"
         ++ [ [ chunk "    • ",
                chunk (renderTestId (subsumptionDominated s)),
                chunk "  ⊂  ",
@@ -208,7 +182,6 @@ renderRedundancyReport report =
 
     plural n = if n == 1 then "" else "s"
     blankAfter b = [[] | b]
-    -- A coloured "<Label>: <n>" header line.
     countHeader n label =
       [ [ chunk (label <> ": "),
           fore (if n == 0 then green else yellow) (chunk (T.pack (show n)))

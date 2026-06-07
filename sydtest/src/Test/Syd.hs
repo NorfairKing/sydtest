@@ -266,7 +266,6 @@ import Test.Syd.HList
 import Test.Syd.Modify
 import Test.Syd.MutationMode.CoverageList (runCoverageListMode)
 import Test.Syd.MutationMode.CoverageListLocations (runCoverageListLocationsMode)
-import Test.Syd.MutationMode.KillRow (runKillRowMode)
 import Test.Syd.MutationMode.Single (runSingleMutationMode)
 import Test.Syd.MutationMode.SingleCoverage (runSingleCoverageMode)
 import Test.Syd.OptParse
@@ -291,7 +290,6 @@ sydTest spec = do
       MutationModeCoverageListLocations -> runCoverageListLocationsMode sets spec
       MutationModeCoverageChild ch -> runSingleCoverageMode sets mutationFailFast ch spec
       MutationModeMutateChild ch -> runSingleMutationMode sets ch spec
-      MutationModeKillRowChild ch -> runKillRowMode sets ch spec
     Nothing -> sydTestWith sets spec
 
 -- | Evaluate a test suite definition and then run it, with given 'Settings'

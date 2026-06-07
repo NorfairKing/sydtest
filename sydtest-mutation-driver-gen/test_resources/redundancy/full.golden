@@ -1,4 +1,4 @@
-[36mRedundant tests[m — basis: kill (accurate)
+[36mRedundant tests[m (by mutations caught)
   suite: [36mmoney-test[m
 
 Load-bearing (sole killer — never remove): [33m1[m
@@ -8,7 +8,7 @@ Equivalent test groups (keep one of each): [33m1[m
     keep:      [32mMoney.deposit.a[m
     redundant: Money.deposit.b
 
-Dominated tests (catches a strict subset of another test): [33m1[m
+Dominated tests (catch a strict subset of another test): [33m1[m
     • Money.add.commutes  ⊂  [32mMoney.add.laws[m
 
 Suggested minimal suite: [32m2[m of 4 tests  (removes [33m2[m; the cover is not unique)

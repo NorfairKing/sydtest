@@ -56,14 +56,6 @@
         # nix/mutationCheck.nix's '.diff' passthru.
         mutation-sydtest-mutation-example-diff =
           self.checks.${system}.mutation-sydtest-mutation-example.diff;
-        # Redundant-test analyser for the in-repo example check.
-        # 'nix run .#mutation-sydtest-mutation-example-redundancy' reports
-        # tests that are redundant with respect to mutation testing
-        # ('--basis coverage' by default; pass '--basis kill' for the
-        # accurate kill matrix).  See nix/mutationCheck.nix's '.redundancy'
-        # passthru.
-        mutation-sydtest-mutation-example-redundancy =
-          self.checks.${system}.mutation-sydtest-mutation-example.redundancy;
       };
       checks.${system} = {
         forwardCompatibility = horizonPkgs.sydtestReleaseWithoutMutation;

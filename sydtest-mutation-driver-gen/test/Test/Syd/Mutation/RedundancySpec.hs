@@ -3,12 +3,13 @@
 
 module Test.Syd.Mutation.RedundancySpec (spec) where
 
+import Data.Either (isLeft)
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Data.Text (Text)
 import Test.Syd
-import Test.Syd.Mutation.KillRow (TestKillRow)
+import Test.Syd.Mutation.KillRow (TestKillRow (..), buildKillRow)
 import Test.Syd.Mutation.Redundancy
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId (..))
@@ -26,6 +27,16 @@ spec = do
   describe "TestKillRow" $ do
     genValidSpec @TestKillRow
     jsonSpec @TestKillRow
+  describe "buildKillRow" $ do
+    let tid :: Text -> TestId
+        tid t = TestId ((t, 0) :| [])
+    it "zips aligned ids and flags into a row" $
+      buildKillRow [tid "a", tid "b"] [True, False]
+        `shouldBe` Right (TestKillRow (Map.fromList [(tid "a", True), (tid "b", False)]))
+    it "returns Left on a length mismatch rather than throwing (must not flip the verdict)" $
+      buildKillRow [tid "a", tid "b"] [True] `shouldSatisfy` isLeft
+    it "is empty for no covering tests" $
+      buildKillRow [] [] `shouldBe` Right (TestKillRow Map.empty)
 
   describe "analyzeRedundancy" $ do
     let tid :: Text -> TestId

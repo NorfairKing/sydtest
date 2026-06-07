@@ -21,6 +21,7 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, isNothing)
 import qualified Data.Set as Set
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
+import System.IO (hPutStrLn, stderr)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
   ( augmentedMutationRecordCoveringTests,
@@ -28,7 +29,7 @@ import Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
   )
 import Test.Syd.Mutation.Forest (filterTestForestByTrie, flattenTestForestWithIds, testIdTrieFromList)
-import Test.Syd.Mutation.KillRow (TestKillRow (..), writeTestKillRowFile)
+import Test.Syd.Mutation.KillRow (buildKillRow, writeTestKillRowFile)
 import Test.Syd.Mutation.Runtime (parseMutationId, setActiveMutation)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.OptParse
@@ -104,23 +105,19 @@ runSingleMutationMode settings mutChild spec = do
 -- (assigned from the full definition forest, matching the coverage phase);
 -- @resultForest@ is the filtered run's result.  They line up positionally
 -- because filtering and the synchronous run both preserve source order and
--- randomisation is disabled.  A length mismatch means that invariant was
--- violated, so we fail loudly rather than write a misaligned row.
+-- randomisation is disabled.
+--
+-- On a length mismatch ('buildKillRow' returns 'Left') we skip the row and
+-- warn — never crash.  Crashing here would make the child exit non-zero, which
+-- the parent records as a /kill/, silently changing this mutation's
+-- killed\/survived verdict for the sake of an optional analysis.
 writeKillRow :: Settings -> [TestId] -> ResultForest -> FilePath -> IO ()
-writeKillRow settings orderedCovering resultForest outFile
-  | null orderedCovering = writeTestKillRowFile outFile (TestKillRow Map.empty)
-  | length orderedCovering /= length leaves =
-      fail $
-        "runSingleMutationMode: covering tests ("
-          ++ show (length orderedCovering)
-          ++ ") and result leaves ("
-          ++ show (length leaves)
-          ++ ") disagree"
-  | otherwise =
-      writeTestKillRowFile outFile (TestKillRow (Map.fromList (zip orderedCovering killedFlags)))
+writeKillRow settings orderedCovering resultForest outFile =
+  case buildKillRow orderedCovering killedFlags of
+    Right row -> writeTestKillRowFile outFile row
+    Left err -> hPutStrLn stderr ("runSingleMutationMode: skipping kill row: " ++ err)
   where
-    leaves = collectResultLeaves resultForest
-    killedFlags = map (testRunReportFailed settings . timedValue) leaves
+    killedFlags = map (testRunReportFailed settings . timedValue) (collectResultLeaves resultForest)
 
 -- | Collect each leaf's timed 'TestRunReport' from a 'ResultForest', in source
 -- order (left-to-right, depth-first).

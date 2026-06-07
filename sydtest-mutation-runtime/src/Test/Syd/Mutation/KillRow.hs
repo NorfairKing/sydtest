@@ -4,6 +4,7 @@
 
 module Test.Syd.Mutation.KillRow
   ( TestKillRow (..),
+    buildKillRow,
     readTestKillRowFile,
     writeTestKillRowFile,
   )
@@ -49,6 +50,26 @@ instance HasCodec TestKillRow where
               <$> requiredField' "test_id" .= fst
               <*> requiredField' "killed" .= snd
       )
+
+-- | Pair the canonical covering 'TestId's (in source order) with the per-test
+-- killed flags (in result-forest order) into a 'TestKillRow'.
+--
+-- The two lists are expected to line up positionally; a length mismatch means
+-- that invariant was violated (the id-assignment and result walks disagreed),
+-- so we return 'Left' rather than silently producing a misaligned row.  Callers
+-- treat 'Left' as "no row for this mutation" — they must NOT let it change the
+-- mutation's killed\/survived verdict.
+buildKillRow :: [TestId] -> [Bool] -> Either String TestKillRow
+buildKillRow tids flags
+  | length tids /= length flags =
+      Left
+        ( "buildKillRow: covering tests ("
+            ++ show (length tids)
+            ++ ") and result leaves ("
+            ++ show (length flags)
+            ++ ") disagree"
+        )
+  | otherwise = Right (TestKillRow (Map.fromList (zip tids flags)))
 
 -- | Write a 'TestKillRow' to the given file path.
 writeTestKillRowFile :: FilePath -> TestKillRow -> IO ()

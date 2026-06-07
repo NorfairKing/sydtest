@@ -1,0 +1,12 @@
+[36mRedundant tests[m (by mutations caught)
+
+Load-bearing (sole killer — never remove): [32m0[m
+Equivalent test groups (keep one of each): [32m0[m
+Dominated tests (every mutation they kill is also killed by another test): [33m1[m
+    • Foo.b
+        every mutation it kills is also killed by [32mFoo.a[m
+
+Suggested minimal suite: [32m1[m of 2 tests  (removes [33m1[m; the cover is not unique)
+    removable: Foo.b
+
+Redundant mutants (killed by identical test sets): [32m0[m

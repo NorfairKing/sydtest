@@ -1,8 +1,8 @@
-{ mkDerivation, async, autodocodec, base, bytestring, containers
-, deepseq, dlist, fast-myers-diff, filepath, lib, MonadRandom, mtl
-, opt-env-conf, path, path-io, pretty-show, QuickCheck
-, quickcheck-io, random, random-shuffle, safe, safe-coloured-text
-, safe-coloured-text-terminfo, stm, svg-builder
+{ mkDerivation, aeson-pretty, async, autodocodec, base, bytestring
+, containers, deepseq, dlist, fast-myers-diff, filepath, lib
+, MonadRandom, mtl, opt-env-conf, path, path-io, pretty-show
+, QuickCheck, quickcheck-io, random, random-shuffle, safe
+, safe-coloured-text, safe-coloured-text-terminfo, stm, svg-builder
 , sydtest-mutation-runtime, text, transformers, vector
 }:
 mkDerivation {
@@ -10,10 +10,10 @@ mkDerivation {
   version = "0.25.0.1";
   src = ./.;
   libraryHaskellDepends = [
-    async autodocodec base bytestring containers deepseq dlist
-    fast-myers-diff filepath MonadRandom mtl opt-env-conf path path-io
-    pretty-show QuickCheck quickcheck-io random random-shuffle safe
-    safe-coloured-text safe-coloured-text-terminfo stm svg-builder
+    aeson-pretty async autodocodec base bytestring containers deepseq
+    dlist fast-myers-diff filepath MonadRandom mtl opt-env-conf path
+    path-io pretty-show QuickCheck quickcheck-io random random-shuffle
+    safe safe-coloured-text safe-coloured-text-terminfo stm svg-builder
     sydtest-mutation-runtime text transformers vector
   ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

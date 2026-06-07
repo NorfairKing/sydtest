@@ -103,6 +103,13 @@
   # fail-fast aborts the run on the first surviving/uncovered mutation which
   # discards report.json before the installPhase runs.
 , failFast ? false
+  # Whether the full report run also writes the redundant-test analysis
+  # (redundancy.txt/redundancy.json alongside report.txt).  Off by default: it
+  # is informational only (nothing to assert on) and collecting it costs the
+  # within-set fail-fast on killed mutants (each killed mutant runs its whole
+  # covering test set instead of stopping at the first killer).  Set
+  # 'redundancy = true' to opt in.
+, redundancy ? false
 }:
 
 let
@@ -224,6 +231,7 @@ let
     pkgs.lib.optionalString (coverageRetry != null)
       "--coverage-retry=${toString coverageRetry}";
   failFastFlag = if failFast then "--fail-fast" else "--no-fail-fast";
+  redundancyFlag = if redundancy then "--redundancy" else "--no-redundancy";
 
   # The coverage cache, split into one derivation per test-package plus a
   # cheap merge.  Both steps run ONLY the coverage phase (never the mutation
@@ -333,6 +341,7 @@ let
           ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
           --child-mem-limit=${testProcessMemLimit} \
           ${failFastFlag} \
+          ${redundancyFlag} \
           ${coverageJobsFlag} \
           ${coverageRetryFlag} \
           --mutation-augmented-manifest-dir=augmented \
@@ -398,7 +407,9 @@ let
   # on its own:
   #
   # - '.diff'              the diff-scoped runner (nix run)
-  # - '.report'           the full mutation report (report.txt/report.json)
+  # - '.report'           the full mutation report (report.txt/report.json),
+  #                       which also includes the redundant-test analysis
+  #                       (redundancy.txt/redundancy.json)
   # - '.coverage'         the merged coverage (augmented/ + test-locations/);
   #                       its own per-package passthrus ('.coverage.<pkg>')
   #                       give each test-package's coverage on its own

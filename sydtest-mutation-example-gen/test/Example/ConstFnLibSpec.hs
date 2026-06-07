@@ -41,8 +41,35 @@ spec = do
       majorityOf5 True True True True True `shouldBe` True
     it "is False when all 5 are False" $
       majorityOf5 False False False False False `shouldBe` False
+    -- Exhaustive over all 32 boolean inputs against an independent reference,
+    -- so that every per-element mutation (each argument forced True\/False, and
+    -- dropping an element from the list) makes some input the swing vote and is
+    -- caught.  The reference lives in this (uninstrumented) test package, so it
+    -- is not itself mutated.
+    it "matches the reference majority on every boolean input" $
+      sequence_
+        [ majorityOf5 a b c d e `shouldBe` referenceMajority [a, b, c, d, e]
+        | a <- bools,
+          b <- bools,
+          c <- bools,
+          d <- bools,
+          e <- bools
+        ]
   describe "majorityOf5Wrapper" $ do
     it "agrees with majorityOf5 on a 3-out-of-5 tuple" $
       majorityOf5Wrapper (True, True, True, False, False) `shouldBe` True
     it "agrees with majorityOf5 on a 2-out-of-5 tuple" $
       majorityOf5Wrapper (True, True, False, False, False) `shouldBe` False
+    it "matches the reference majority on every boolean input" $
+      sequence_
+        [ majorityOf5Wrapper (a, b, c, d, e) `shouldBe` referenceMajority [a, b, c, d, e]
+        | a <- bools,
+          b <- bools,
+          c <- bools,
+          d <- bools,
+          e <- bools
+        ]
+  where
+    bools = [False, True]
+    -- A majority of a five-element boolean list: at least three Trues.
+    referenceMajority xs = length (filter id xs) >= 3

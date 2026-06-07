@@ -136,7 +136,14 @@ data CoverageChildSettings = CoverageChildSettings
 data MutationChildSettings = MutationChildSettings
   { mutationChildId :: !String,
     mutationChildAugmentedManifestDir :: !(Path Abs Dir),
-    mutationChildSuiteName :: !(Maybe Text)
+    mutationChildSuiteName :: !(Maybe Text),
+    -- | When set, the child also writes its per-test pass\/fail map (the
+    -- kill-matrix row for this mutation, a
+    -- 'Test.Syd.Mutation.KillRow.TestKillRow') to this file.  The parent uses
+    -- it to build the redundant-test analysis.  Supplying it makes the child
+    -- run its covering tests with within-set fail-fast off (so every covering
+    -- test runs and is recorded).
+    mutationChildKillRowOutput :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -312,7 +319,8 @@ resolveMutationSettings Flags {..} =
                 MutationChildSettings
                   { mutationChildId = mid,
                     mutationChildAugmentedManifestDir = augDir,
-                    mutationChildSuiteName = flagMutationSuiteName
+                    mutationChildSuiteName = flagMutationSuiteName,
+                    mutationChildKillRowOutput = flagMutationKillRowOutput
                   }
         (False, Nothing, Nothing) -> pure Nothing
 
@@ -403,6 +411,7 @@ data Flags = Flags
     flagMutationCoverageBaselineOutput :: !(Maybe FilePath),
     flagMutationCoverageList :: !Bool,
     flagMutationCoverageListLocations :: !Bool,
+    flagMutationKillRowOutput :: !(Maybe FilePath),
     flagMutationFailFast :: !(Maybe Bool)
   }
   deriving (Show, Eq, Generic)
@@ -650,6 +659,16 @@ instance HasParser Flags where
           hidden,
           value False
         ]
+    flagMutationKillRowOutput <-
+      optional $
+        setting
+          [ help "File path where the mutation child also writes its per-test kill map, for the redundant-test analysis (used internally)",
+            reader str,
+            option,
+            long "mutation-kill-row-output",
+            metavar "FILE",
+            hidden
+          ]
     flagMutationFailFast <-
       optional $
         yesNoSwitch

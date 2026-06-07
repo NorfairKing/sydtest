@@ -37,6 +37,7 @@ tests:
     - bytestring
     - containers
     - genvalidity-sydtest
+    - genvalidity-sydtest-aeson
     - path
     - path-io
     - safe-coloured-text

@@ -20,6 +20,7 @@ module Test.Syd.Mutation.Driver.OptParse
     MutationDriverSettings (..),
     defaultCoverageRetry,
     defaultFailFast,
+    defaultRedundancy,
 
     -- * 'coverage' subcommand
     CoverageSettings (..),
@@ -113,7 +114,12 @@ data MutationDriverSettings = MutationDriverSettings
     mutationDriverSettingCoverageRetry :: !Word,
     mutationDriverSettingAugmentedManifestDir :: !(Path Abs Dir),
     mutationDriverSettingOutDir :: !(Path Abs Dir),
-    mutationDriverSettingFailFast :: !Bool
+    mutationDriverSettingFailFast :: !Bool,
+    -- | Whether to also collect per-test kills and write the redundant-test
+    -- analysis (redundancy.json\/redundancy.txt).  Costs the within-set
+    -- fail-fast on killed mutants, so it can be turned off for expensive
+    -- suites.
+    mutationDriverSettingRedundancy :: !Bool
   }
   deriving (Show, Eq, Generic)
 
@@ -241,6 +247,12 @@ mutationDriverSettingsParser = do
       [ help "Whether to abort on the first surviving or uncovered mutation",
         long "fail-fast",
         value defaultFailFast
+      ]
+  mutationDriverSettingRedundancy <-
+    yesNoSwitch
+      [ help "Whether to also write the redundant-test analysis (redundancy.json/redundancy.txt); costs the within-set fail-fast on killed mutants",
+        long "redundancy",
+        value defaultRedundancy
       ]
   pure MutationDriverSettings {..}
 
@@ -509,6 +521,13 @@ defaultCoverageRetry = 3
 -- flip to False locally for the full report.
 defaultFailFast :: Bool
 defaultFailFast = True
+
+-- | Default for @--redundancy@.  Off by default: the redundant-test analysis is
+-- informational (there is nothing to assert on), and collecting it costs the
+-- within-set fail-fast on killed mutants, so a normal run should not pay for it
+-- unless it is explicitly asked for.
+defaultRedundancy :: Bool
+defaultRedundancy = False
 
 -- | Parse the top-level dispatch from argv only.  The driver no longer
 -- reads environment variables or YAML config files; everything goes

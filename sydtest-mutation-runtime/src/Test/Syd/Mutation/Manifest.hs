@@ -18,6 +18,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
@@ -156,7 +157,7 @@ writeManifestFile :: Path Abs Dir -> String -> MutationManifest -> IO ()
 writeManifestFile dir moduleName manifest = do
   ensureDir dir
   fileName <- parseRelFile (moduleName ++ ".json")
-  LB.writeFile (fromAbsFile (dir </> fileName)) (Aeson.encode manifest)
+  LB.writeFile (fromAbsFile (dir </> fileName)) (encodePretty manifest)
 
 -- | Read a 'MutationManifest' from a file, returning the aeson error on
 -- parse failure.
@@ -190,7 +191,7 @@ writeCoverageFile :: Path Abs Dir -> String -> MutationManifest -> IO ()
 writeCoverageFile dir moduleName manifest = do
   ensureDir dir
   fileName <- parseRelFile (moduleName ++ ".coverage.json")
-  LB.writeFile (fromAbsFile (dir </> fileName)) (Aeson.encode manifest)
+  LB.writeFile (fromAbsFile (dir </> fileName)) (encodePretty manifest)
 
 -- | Read and concatenate all per-module coverage files (@*.coverage.json@) from a directory.
 -- Plain manifest files (@*.json@) are excluded.

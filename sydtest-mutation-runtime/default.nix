@@ -1,5 +1,5 @@
-{ mkDerivation, aeson, autodocodec, base, bytestring, containers
-, fast-myers-diff, genvalidity, genvalidity-containers
+{ mkDerivation, aeson, aeson-pretty, autodocodec, base, bytestring
+, containers, fast-myers-diff, genvalidity, genvalidity-containers
 , genvalidity-path, genvalidity-text, lib, path, path-io
 , QuickCheck, safe-coloured-text, text, unordered-containers
 , vector
@@ -9,8 +9,8 @@ mkDerivation {
   version = "0.0.0.0";
   src = ./.;
   libraryHaskellDepends = [
-    aeson autodocodec base bytestring containers fast-myers-diff
-    genvalidity genvalidity-containers genvalidity-path
+    aeson aeson-pretty autodocodec base bytestring containers
+    fast-myers-diff genvalidity genvalidity-containers genvalidity-path
     genvalidity-text path path-io QuickCheck safe-coloured-text text
     unordered-containers vector
   ];

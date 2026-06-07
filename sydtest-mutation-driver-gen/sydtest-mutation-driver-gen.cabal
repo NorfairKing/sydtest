@@ -21,6 +21,9 @@ extra-source-files:
     test_resources/diff-run/empty-selection.golden
     test_resources/diff-run/one-survivor-fail.golden
     test_resources/diff-run/one-uncovered-fail.golden
+    test_resources/redundancy/empty.golden
+    test_resources/redundancy/full.golden
+    test_resources/redundancy/minimal.golden
 
 source-repository head
   type: git
@@ -52,7 +55,9 @@ test-suite sydtest-mutation-driver-gen-test
       Test.Syd.Mutation.Driver.DiffSpec
       Test.Syd.Mutation.Driver.MutateSpec
       Test.Syd.Mutation.Driver.OptParseSpec
+      Test.Syd.Mutation.Driver.RedundancySpec
       Test.Syd.Mutation.Driver.SuitePkgSpec
+      Test.Syd.Mutation.RedundancySpec
       Paths_sydtest_mutation_driver_gen
   hs-source-dirs:
       test
@@ -64,6 +69,7 @@ test-suite sydtest-mutation-driver-gen-test
     , bytestring
     , containers
     , genvalidity-sydtest
+    , genvalidity-sydtest-aeson
     , path
     , path-io
     , safe-coloured-text

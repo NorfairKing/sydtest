@@ -46,7 +46,7 @@ import Test.Syd.Mutation.Driver.Diff
     parseUnifiedDiff,
     selectMutationsBreakdown,
   )
-import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
+import Test.Syd.Mutation.Driver.Mutate (MutationRunSettings (..), runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
   ( DiffSettings (..),
     DiffSource (..),
@@ -119,11 +119,16 @@ runDiff DiffSettings {..} = do
       writeAugmentedManifestFile augDir filtered
       let suiteExes = Map.map suiteConfigExe suites
       runMutationMode
-        diffSettingFailFast
-        augDir
-        diffSettingOutDir
-        diffSettingChildMemLimit
-        suiteExes
+        MutationRunSettings
+          { mutationRunFailFast = diffSettingFailFast,
+            -- The diff runner mutates only a subset, so a redundancy analysis
+            -- over it would be a misleading partial matrix: never emit it here.
+            mutationRunEmitRedundancy = False,
+            mutationRunAugmentedManifestDir = augDir,
+            mutationRunOutDir = diffSettingOutDir,
+            mutationRunChildMemLimit = diffSettingChildMemLimit,
+            mutationRunSuiteExes = suiteExes
+          }
 
   -- 6. Final summary block: PASS/FAIL header + report paths, written to
   -- stdout so they're the last thing in the CI build log.  Hard-code

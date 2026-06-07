@@ -35,7 +35,7 @@ import Test.Syd.Mutation.Driver.AssertScore (runAssertScore)
 import Test.Syd.Mutation.Driver.Components (runInstallComponents, runListComponents)
 import Test.Syd.Mutation.Driver.Coverage (runCoverageMode)
 import Test.Syd.Mutation.Driver.DiffRun (runDiff)
-import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
+import Test.Syd.Mutation.Driver.Mutate (MutationRunSettings (..), runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 
@@ -96,12 +96,14 @@ runDriver MutationDriverSettings {..} = do
   report <-
     withMaybeCurrentDir firstSuiteResourceDir $
       runMutationMode
-        mutationDriverSettingFailFast
-        mutationDriverSettingRedundancy
-        mutationDriverSettingAugmentedManifestDir
-        mutationDriverSettingOutDir
-        mutationDriverSettingChildMemLimit
-        suiteExesByName
+        MutationRunSettings
+          { mutationRunFailFast = mutationDriverSettingFailFast,
+            mutationRunEmitRedundancy = mutationDriverSettingRedundancy,
+            mutationRunAugmentedManifestDir = mutationDriverSettingAugmentedManifestDir,
+            mutationRunOutDir = mutationDriverSettingOutDir,
+            mutationRunChildMemLimit = mutationDriverSettingChildMemLimit,
+            mutationRunSuiteExes = suiteExesByName
+          }
   hFlush stdout
   when
     ( mutationDriverSettingFailFast

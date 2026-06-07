@@ -12,7 +12,7 @@ import Test.Syd.Mutation.AugmentedManifest
     AugmentedMutationRecord (..),
     writeAugmentedManifestFile,
   )
-import Test.Syd.Mutation.Driver.Mutate (UnknownCoveringSuite (..), runMutationMode)
+import Test.Syd.Mutation.Driver.Mutate (MutationRunSettings (..), UnknownCoveringSuite (..), runMutationMode)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
 spec :: Spec
@@ -43,7 +43,15 @@ spec = describe "runMutationMode" $
         (AugmentedManifest [AugmentedMutationGroup [record]])
       result <-
         Exception.try $
-          runMutationMode False False dir dir Nothing Map.empty
+          runMutationMode
+            MutationRunSettings
+              { mutationRunFailFast = False,
+                mutationRunEmitRedundancy = False,
+                mutationRunAugmentedManifestDir = dir,
+                mutationRunOutDir = dir,
+                mutationRunChildMemLimit = Nothing,
+                mutationRunSuiteExes = Map.empty
+              }
       case result of
         Left (UnknownCoveringSuite name _) -> name `shouldBe` "absent-suite"
         Right _ -> expectationFailure "expected UnknownCoveringSuite to be thrown"

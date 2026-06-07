@@ -97,7 +97,7 @@ runDriver MutationDriverSettings {..} = do
     withMaybeCurrentDir firstSuiteResourceDir $
       runMutationMode
         mutationDriverSettingFailFast
-        True
+        mutationDriverSettingRedundancy
         mutationDriverSettingAugmentedManifestDir
         mutationDriverSettingOutDir
         mutationDriverSettingChildMemLimit

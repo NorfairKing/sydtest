@@ -103,6 +103,11 @@
   # fail-fast aborts the run on the first surviving/uncovered mutation which
   # discards report.json before the installPhase runs.
 , failFast ? false
+  # Whether the full report run also writes the redundant-test analysis
+  # (redundancy.txt/redundancy.json alongside report.txt).  On by default;
+  # turn it off for suites where the cost (each killed mutant runs its whole
+  # covering test set instead of stopping at the first killer) is too high.
+, redundancy ? true
 }:
 
 let
@@ -224,6 +229,7 @@ let
     pkgs.lib.optionalString (coverageRetry != null)
       "--coverage-retry=${toString coverageRetry}";
   failFastFlag = if failFast then "--fail-fast" else "--no-fail-fast";
+  redundancyFlag = if redundancy then "--redundancy" else "--no-redundancy";
 
   # The coverage cache, split into one derivation per test-package plus a
   # cheap merge.  Both steps run ONLY the coverage phase (never the mutation
@@ -333,6 +339,7 @@ let
           ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
           --child-mem-limit=${testProcessMemLimit} \
           ${failFastFlag} \
+          ${redundancyFlag} \
           ${coverageJobsFlag} \
           ${coverageRetryFlag} \
           --mutation-augmented-manifest-dir=augmented \

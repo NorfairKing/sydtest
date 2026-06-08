@@ -24,6 +24,7 @@ library
       Example.BoolLib
       Example.CaseLib
       Example.ConstFnLib
+      Example.DerivingLib
       Example.DoLib
       Example.ExceptionLib
       Example.FunctionExceptionLib

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.1.0] - 2026-06-08
+
+### Fixed
+
+* The instrumenter no longer mutates compiler-generated code.  Stock- and
+  anyclass-derived instance methods (whose `MatchGroup` carries a `Generated`
+  origin) and the dictionary/evidence `VarBind`s the typechecker materialises
+  for an instance (e.g. `$dShow`, `$dEnum`) were being instrumented, with
+  source spans pointing at the `deriving` clause or the instance head.  That
+  produced nonsense diffs like `deriving (Show, (\_ _ -> False), ...)` and
+  `instance (\_ -> []) where`, and the resulting mutants — living in generated
+  code rather than the user's own source — could never be killed by a test, so
+  they surfaced as permanently uncovered mutations.  Such bindings are now
+  skipped.
+
 ## [0.2.0.0] - 2026-06-04
 
 ### Added

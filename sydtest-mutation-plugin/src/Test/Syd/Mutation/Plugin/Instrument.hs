@@ -39,6 +39,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import GHC
 import GHC.Builtin.Types (charTy, mkListTy)
+import GHC.Core.Predicate (isEvVar)
 import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
 import GHC.Driver.Env (HscEnv (..))
@@ -50,6 +51,7 @@ import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
 import GHC.Tc.Utils.Monad (addErrAt, getTopEnv)
 import GHC.Types.Annotations (AnnEnv, AnnTarget (..), findAnns)
+import GHC.Types.Basic (Origin, isGenerated)
 import GHC.Types.Error (isEmptyMessages, mkPlainError, noHints)
 import GHC.Types.Id (idName)
 import GHC.Types.Name (getOccString)
@@ -340,6 +342,21 @@ instrumentBinds = mapBagM (traverse instrumentBind)
 
 instrumentBind :: HsBind GhcTc -> InstrM (HsBind GhcTc)
 instrumentBind = \case
+  -- Skip compiler-generated bindings entirely.  Stock/anyclass-derived
+  -- instance methods and the default-method copies GHC fills into an explicit
+  -- instance both land in 'tcg_binds' as 'FunBind's whose 'MatchGroup' carries
+  -- a 'Generated' 'Origin', with source spans pointing at the @deriving@ clause
+  -- or the instance head.  Instrumenting them is meaningless: the diffs are
+  -- nonsense (e.g. @deriving (Show, (\\_ _ -> False), ...)@ or @(\\_ -> [])@
+  -- replacing a whole instance head) and the mutants can never be killed by a
+  -- test of the user's own source, so they are pure noise in the report.
+  --
+  -- User-written instance methods (e.g. an explicit @validate = ...@) keep a
+  -- 'FromSource' origin and are still instrumented.  Note we must NOT apply
+  -- this filter in 'instrumentMatchGroup', because the renamer's @do@-block
+  -- expansion produces 'Generated' lambda 'MatchGroup's whose bodies are the
+  -- user's own code and do need instrumenting.
+  b@(FunBind _ _ mg) | isGenerated (matchGroupOrigin mg) -> pure b
   FunBind x name mg -> do
     let funName = idName (unLoc name)
     -- 'withLocalDisable' is a no-op outside an enclosing local-let scope (the
@@ -349,6 +366,15 @@ instrumentBind = \case
     mg' <- withLocalDisable funName (withFunBindEnv funName (instrumentMatchGroup mg))
     pure (FunBind x name mg')
   PatBind x pat mult rhs -> PatBind x pat mult <$> instrumentGRHSs rhs
+  -- Skip evidence bindings.  The typechecker materialises the dictionaries an
+  -- instance needs as @VarBind@s (e.g. @$dShow@, @$dEnum@) whose source spans
+  -- point at the @deriving@ clause or the instance head and whose right-hand
+  -- sides reference the (list- and bool-returning) method components of the
+  -- dictionary.  Instrumenting them produces the same nonsense mutants as the
+  -- derived methods themselves (@deriving (Show, (\\_ -> []), ...)@), so leave
+  -- evidence alone.  User-written @x = e@ bindings are never evidence, so they
+  -- are still instrumented.
+  b@(VarBind _ var _) | isEvVar var -> pure b
   VarBind x var rhs -> VarBind x var <$> withLocalDisable (idName var) (instrumentLExpr rhs)
   PatSynBind x psb -> pure (PatSynBind x psb)
   -- At GhcTc, XHsBindsLR carries an AbsBinds (see XXHsBindsLR instance).
@@ -589,6 +615,12 @@ splitOnComma :: String -> [String]
 splitOnComma s = case break (== ',') s of
   (w, []) -> [w]
   (w, _ : rest) -> w : splitOnComma rest
+
+-- | The 'Origin' (source vs compiler-generated) recorded on a typechecked
+-- 'MatchGroup'.  Used by 'instrumentBind' to skip derived and default-method
+-- bindings.
+matchGroupOrigin :: MatchGroup GhcTc (LHsExpr GhcTc) -> Origin
+matchGroupOrigin (MG x _) = mg_origin x
 
 instrumentMatchGroup ::
   MatchGroup GhcTc (LHsExpr GhcTc) ->

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.26.0.0] - 2026-06-09
+
+### Changed
+
+* `renderMutationProgressEvent` now takes a `Bool` (verbose) first argument.
+  The mutation runner prints a concise one-line progress message per
+  mutation by default and the full source diff of each mutation only when
+  the new `--debug` driver flag is set, so a long run no longer floods the
+  log with the diffs of killed mutations.
+
 ## [0.25.0.1] - 2026-06-04
 
 ### Changed

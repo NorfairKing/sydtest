@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.3.0.0] - 2026-06-09
+
+### Added
+
+* Per-operator configuration under the `operators` config object:
+
+  ```yaml
+  operators:
+    ConstEmptyList:
+      skip-strings: true
+    Arith:
+      enable: false
+  ```
+
+  Every operator takes an `enable` toggle (`enable: false` disables it, the
+  same as listing it in `disabled-mutations`).  Each operator reads its own
+  remaining keys, exposed as an opaque `operatorConfigExtra :: Map Text Value`.
+  The `ConstEmptyList` operator interprets two such keys: `skip-strings`
+  (do not target `[Char]`/`String` expressions at all — keeps genuine `[a]`,
+  `a /= Char`, list mutations) and `skip-literal-strings` (skip only
+  syntactic string literals).
+
+### Changed
+
+* `InstrumentEnv` and `runInstrument` now carry the per-operator
+  configuration (`Map Text OperatorConfig`) rather than individual flags.
+* The `OptParse` settings expose `OperatorConfig`, `operatorsConfigDisabled`,
+  and `operatorExtraFlag`; the old `OperatorsConfig`/`ConstEmptyListConfig`
+  types are gone.
+
 ## [0.2.1.0] - 2026-06-08
 
 ### Fixed

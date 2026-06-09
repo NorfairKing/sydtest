@@ -3,6 +3,9 @@
 
 module Test.Syd.Mutation.Plugin.OptParseSpec (spec) where
 
+import qualified Data.Aeson as JSON
+import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.Map as Map
 import OptEnvConf.Test
 import Path
 import Test.Syd
@@ -43,3 +46,37 @@ spec = describe "Settings parser" $ do
       [("MUTATION_PLUGIN_MANIFEST_DIR", "/tmp/foo/")]
       Nothing
       defaultSettings {settingManifestDir = Just dir}
+
+  it "reads per-operator enable and operator-specific extra from 'operators'" $ do
+    -- operators:
+    --   Arith: { enable: false }
+    --   ConstEmptyList: { skip-strings: true }
+    let operatorsObject =
+          KeyMap.fromList
+            [ ("Arith", JSON.Object (KeyMap.fromList [("enable", JSON.Bool False)])),
+              ("ConstEmptyList", JSON.Object (KeyMap.fromList [("skip-strings", JSON.Bool True)]))
+            ]
+        config = KeyMap.fromList [("operators", JSON.Object operatorsObject)]
+        expectedOperators =
+          Map.fromList
+            [ ("Arith", OperatorConfig {operatorConfigEnable = False, operatorConfigExtra = Map.empty}),
+              ( "ConstEmptyList",
+                OperatorConfig
+                  { operatorConfigEnable = True,
+                    operatorConfigExtra = Map.fromList [("skip-strings", JSON.Bool True)]
+                  }
+              )
+            ]
+    -- Test 'parseSettings' directly: 'settingsParser' wraps it in
+    -- 'withLocalYamlConfig', which loads config from a file rather than the
+    -- object supplied here.
+    parserTest
+      parseSettings
+      []
+      []
+      (Just config)
+      defaultSettings {settingOperators = expectedOperators}
+    -- And the consumed views: Arith disabled, ConstEmptyList skip-strings on.
+    operatorsConfigDisabled expectedOperators `shouldBe` ["Arith"]
+    operatorExtraFlag "skip-strings" (operatorConfigExtra (expectedOperators Map.! "ConstEmptyList"))
+      `shouldBe` True

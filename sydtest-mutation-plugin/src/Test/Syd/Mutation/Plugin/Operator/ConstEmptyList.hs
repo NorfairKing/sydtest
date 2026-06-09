@@ -4,11 +4,14 @@
 module Test.Syd.Mutation.Plugin.Operator.ConstEmptyList (theOperator) where
 
 import Control.Monad.Reader (asks)
+import qualified Data.Map as Map
 import qualified Data.Text as T
 import GHC
-import GHC.Builtin.Types (listTyCon)
+import GHC.Builtin.Types (charTyCon, listTyCon)
+import GHC.Core.Type (tyConAppTyCon_maybe)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
-import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResult)
+import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, unwrapWrap, viewConstFnResult)
+import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraFlag)
 
 -- | Replace an expression whose type is @arg1 -> ... -> argN -> [a]@
 -- (with @N >= 0@) with the constant function returning @[]@.
@@ -34,9 +37,19 @@ action ::
 action le elTy ConstFnMatch {cfnArgTys, cfnResTy} = do
   opAppCtx <- asks instrumentEnvOpAppCtx
   appDepth <- asks instrumentEnvAppDepth
-  let arity = length cfnArgTys
+  -- This operator interprets its own config entry's extra keys.
+  opsConfig <- asks instrumentEnvOperatorsConfig
+  let extra = maybe Map.empty operatorConfigExtra (Map.lookup "ConstEmptyList" opsConfig)
+      skipStrings = operatorExtraFlag "skip-strings" extra
+      skipLiteralStrings = operatorExtraFlag "skip-literal-strings" extra
+      arity = length cfnArgTys
+      -- 'skip-strings' drops every @[Char]@-typed expression; the narrower
+      -- 'skip-literal-strings' drops only syntactic string literals.
+      skippedAsString =
+        (skipStrings && isCharElemTy elTy)
+          || (skipLiteralStrings && isCharElemTy elTy && isStringLiteralExpr le)
   -- See 'ConstNothing' for the dominance rule.
-  if arity >= 1 && appDepth >= arity
+  if (arity >= 1 && appDepth >= arity) || skippedAsString
     then pure []
     else
       let emptyExpr = noLocA (ExplicitList elTy [])
@@ -65,3 +78,24 @@ action le elTy ConstFnMatch {cfnArgTys, cfnResTy} = do
             [] -> "[]"
             _ -> "\\" ++ unwords (replicate arity "_") ++ " -> []"
        in pure [(wholeTy, mutated, origLabel, replLabel, delta)]
+
+-- | Whether the list element type is 'Char' (i.e. the list is a
+-- @[Char]@/'String').  Used to honour @skip-strings@.
+isCharElemTy :: Type -> Bool
+isCharElemTy ty = tyConAppTyCon_maybe ty == Just charTyCon
+
+-- | Whether the expression is (syntactically) a string literal.  Strips
+-- evidence/parens wrappers and recognises the @fromString \"...\"@ form
+-- that @OverloadedStrings@ produces.  Used to honour
+-- @skip-literal-strings@.
+isStringLiteralExpr :: LHsExpr GhcTc -> Bool
+isStringLiteralExpr = go . unLoc
+  where
+    go e = case unwrapWrap e of
+      HsLit _ HsString {} -> True
+      HsPar _ inner -> go (unLoc inner)
+      -- @OverloadedStrings@: @fromString "..."@.
+      HsApp _ _ arg -> case unwrapWrap (unLoc arg) of
+        HsLit _ HsString {} -> True
+        _ -> False
+      _ -> False

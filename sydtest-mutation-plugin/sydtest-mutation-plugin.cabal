@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-mutation-plugin
-version:        0.2.1.0
+version:        0.3.0.0
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -48,7 +48,8 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , bytestring
     , containers
     , directory
@@ -78,7 +79,8 @@ test-suite sydtest-mutation-plugin-test
   build-tool-depends:
       sydtest-discover:sydtest-discover
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
     , containers
     , ghc
     , opt-env-conf-test

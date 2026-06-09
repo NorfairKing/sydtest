@@ -64,6 +64,7 @@ import Path
 import Path.IO (forgivingAbsence, resolveFile')
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
+import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
 -- ---------------------------------------------------------------------------
@@ -154,6 +155,10 @@ data InstrumentEnv = InstrumentEnv
     -- 'ExpandedThingTc' wrapper in the typechecked AST.  Enabled by
     -- @--skip-th-splices@.
     instrumentEnvSkipThSplices :: Bool,
+    -- | Per-operator configuration (keyed by operator name) from the
+    -- @operators@ config object.  Operators read their own entry's
+    -- 'operatorConfigExtra' to interpret their options.
+    instrumentEnvOperatorsConfig :: Map Text OperatorConfig,
     -- | Splice 'RealSrcSpan's collected from the parsed AST (one entry per
     -- @$(...)@, @[name|...|]@, or 'SpliceD').  Only populated when
     -- 'instrumentEnvSkipThSplices' is True; used by 'recordMutation' to drop
@@ -265,6 +270,8 @@ runInstrument ::
   Bool ->
   -- | Skip TH splices and quasi-quotes.
   Bool ->
+  -- | Per-operator configuration, keyed by operator name.
+  Map Text OperatorConfig ->
   -- | Splice spans collected at parse time, used to filter mutations.
   [RealSrcSpan] ->
   -- | Unqualified identifier names whose call expressions are ignored: no
@@ -273,7 +280,7 @@ runInstrument ::
   [String] ->
   InstrM a ->
   TcM (a, [MutationGroup])
-runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices spliceSpans ignore action = do
+runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices operatorsConfig spliceSpans ignore action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -298,6 +305,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrumentEnvSourceFile = mSrcFile,
         instrumentEnvDebug = debug,
         instrumentEnvSkipThSplices = skipThSplices,
+        instrumentEnvOperatorsConfig = operatorsConfig,
         instrumentEnvSpliceSpans = spliceSpans,
         instrumentEnvIgnore = ignore,
         instrumentEnvInGuard = False,

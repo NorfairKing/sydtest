@@ -12,6 +12,7 @@ module Test.Syd.Mutation.Plugin.Operator.Util
     mkConstLambda,
     arrowTy,
     prefixFormPreview,
+    unwrapWrap,
   )
 where
 

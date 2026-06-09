@@ -1,17 +1,27 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Test.Syd.Mutation.Plugin.OptParse
   ( Settings (..),
+    OperatorConfig (..),
+    operatorsConfigDisabled,
+    operatorExtraFlag,
     defaultSettings,
     parseSettings,
     resolveSettings,
   )
 where
 
+import Data.Aeson (Object, Value (..))
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
 import Data.List.NonEmpty (NonEmpty)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import OptEnvConf
@@ -48,10 +58,68 @@ data Settings = Settings
     settingIgnore :: ![String],
     -- | Skip mutations inside TH splices and quasi-quotes.
     settingSkipThSplices :: !Bool,
+    -- | Per-operator configuration, keyed by operator name, read from the
+    -- @operators@ config object.
+    settingOperators :: !(Map Text OperatorConfig),
     -- | Print each mutation site as it is recorded.
     settingDebug :: !Bool
   }
   deriving (Show, Eq, Generic)
+
+-- | Configuration for a single mutation operator, read from one entry of
+-- the @operators@ config object:
+--
+-- > operators:
+-- >   ConstEmptyList:
+-- >     enable: true
+-- >     skip-strings: true
+-- >   Arith:
+-- >     enable: false
+--
+-- @enable@ is common to every operator; the remaining keys are an opaque
+-- 'operatorConfigExtra' blob that each operator interprets itself (e.g.
+-- @ConstEmptyList@ reads @skip-strings@).  An operator absent from the
+-- config behaves as @enable: true@ with no extra.
+data OperatorConfig = OperatorConfig
+  { -- | Whether the operator runs.  @enable: false@ disables it exactly as
+    -- if its name were in @disabled-mutations@.
+    operatorConfigEnable :: !Bool,
+    -- | Operator-specific config keys (everything under the operator other
+    -- than @enable@), interpreted by the operator.
+    operatorConfigExtra :: !(Map Text Value)
+  }
+  deriving (Show, Eq, Generic)
+
+-- | Names of operators that 'OperatorConfig' explicitly disables.
+operatorsConfigDisabled :: Map Text OperatorConfig -> [String]
+operatorsConfigDisabled m =
+  [T.unpack opName | (opName, cfg) <- Map.toList m, not (operatorConfigEnable cfg)]
+
+-- | Read a boolean flag from an operator's 'operatorConfigExtra', defaulting
+-- to 'False'.  A small helper for operators interpreting their own config.
+operatorExtraFlag :: Text -> Map Text Value -> Bool
+operatorExtraFlag k m = case Map.lookup k m of
+  Just (Bool b) -> b
+  _ -> False
+
+-- | Decode the raw @operators@ config object into a per-operator map.
+decodeOperatorsConfig :: Object -> Map Text OperatorConfig
+decodeOperatorsConfig obj =
+  Map.fromList
+    [(Key.toText k, decodeOperatorConfig v) | (k, v) <- KeyMap.toList obj]
+  where
+    decodeOperatorConfig :: Value -> OperatorConfig
+    decodeOperatorConfig = \case
+      Object o ->
+        OperatorConfig
+          { operatorConfigEnable = case KeyMap.lookup "enable" o of
+              Just (Bool b) -> b
+              _ -> True,
+            operatorConfigExtra =
+              Map.fromList
+                [(Key.toText k, val) | (k, val) <- KeyMap.toList o, k /= "enable"]
+          }
+      _ -> OperatorConfig {operatorConfigEnable = True, operatorConfigExtra = Map.empty}
 
 -- | The settings the plugin uses when no @--config=PATH@ is passed and
 -- no environment variables are set.  Equivalent to running the parser
@@ -65,6 +133,7 @@ defaultSettings =
       settingDisabledMutations = [],
       settingIgnore = [],
       settingSkipThSplices = True,
+      settingOperators = Map.empty,
       settingDebug = False
     }
 
@@ -158,6 +227,14 @@ parseSettings =
           conf "skip-th-splices",
           value True
         ]
+    settingOperators <-
+      maybe Map.empty decodeOperatorsConfig
+        <$> optional
+          ( setting
+              [ help "Per-operator config object: operators.<Name>.{enable, <operator-specific keys>}",
+                conf "operators"
+              ]
+          )
     settingDebug <-
       yesNoSwitch
         [ help "Print each mutation site as it is recorded",

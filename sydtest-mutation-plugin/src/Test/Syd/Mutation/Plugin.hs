@@ -26,6 +26,7 @@ import Test.Syd.Mutation.Plugin.Instrument
 import Test.Syd.Mutation.Plugin.Operators (allOperators)
 import Test.Syd.Mutation.Plugin.OptParse
   ( Settings (..),
+    operatorsConfigDisabled,
     resolveSettings,
   )
 
@@ -230,11 +231,16 @@ mutationTypeCheckAction opts ms tcGblEnv = do
       settingDisabledMutations = disabledFromConfig,
       settingIgnore = ignore,
       settingSkipThSplices = skipThSplices,
+      settingOperators = operatorsConfig,
       settingDebug = debug,
       settingSkipInstrumentation = skipInstrumentation,
       settingManifestDir = manifestDir
     } <-
     liftIO $ resolveSettings opts
+  -- Operators turned off via @operators.<Name>.enable: false@ are disabled
+  -- exactly as if listed in @disabled-mutations@.  Operator-specific options
+  -- ride along in each operator's config entry and are read by the operator.
+  let disabledFromOperatorsConfig = operatorsConfigDisabled operatorsConfig
   if "Paths_" `isPrefixOf` mn || mn `elem` exceptions || skipInstrumentation
     then pure tcGblEnv
     else do
@@ -249,7 +255,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
           liftIO $ putStrLn $ "mutation: skipping " ++ mn ++ " (DisableMutations)"
           pure tcGblEnv
         else do
-          let disabledNames = disabledFromConfig ++ [n | DisableNamed n <- disabledFromModAnns]
+          let disabledNames = disabledFromConfig ++ disabledFromOperatorsConfig ++ [n | DisableNamed n <- disabledFromModAnns]
           liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
           let mSrcPath = ml_hs_file (ms_location ms)
           spliceSpans <-
@@ -257,7 +263,7 @@ mutationTypeCheckAction opts ms tcGblEnv = do
               then liftIO $ Map.findWithDefault [] mn <$> readIORef spliceSpansMap
               else pure []
           (binds', groups) <-
-            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices spliceSpans ignore $
+            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices operatorsConfig spliceSpans ignore $
               instrumentModule (tcg_binds tcGblEnv)
           let totalMutations = sum [length rs | MutationGroup rs <- groups]
           liftIO $ do

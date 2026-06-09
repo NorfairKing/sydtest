@@ -11,7 +11,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Path ()
@@ -53,5 +53,5 @@ encodeTestLocations = Aeson.encode
 
 -- | Decode a JSON array of 'TestLocation's from the bytes of a
 -- @\<suite\>.json@ listing.  Returns 'Nothing' on a decode failure.
-decodeTestLocations :: B.ByteString -> Maybe [TestLocation]
+decodeTestLocations :: SB.ByteString -> Maybe [TestLocation]
 decodeTestLocations = Aeson.decodeStrict

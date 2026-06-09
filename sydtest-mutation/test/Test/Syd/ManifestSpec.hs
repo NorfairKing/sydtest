@@ -4,7 +4,7 @@
 module Test.Syd.ManifestSpec (spec) where
 
 import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import Test.Syd
 import Test.Syd.Mutation.Manifest
 import Test.Syd.Validity
@@ -23,7 +23,7 @@ spec = do
 
   describe "MutationManifest forward compatibility" $
     it "decodes a manifest written before optional fields were added" $ do
-      bytes <- B.readFile "test_resources/legacy-mutation-manifest.json"
+      bytes <- SB.readFile "test_resources/legacy-mutation-manifest.json"
       case Aeson.eitherDecodeStrict bytes of
         Left err -> expectationFailure $ "failed to decode legacy manifest: " ++ err
         Right (MutationManifest groups) -> case groups of

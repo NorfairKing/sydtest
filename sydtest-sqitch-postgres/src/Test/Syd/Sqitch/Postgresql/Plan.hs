@@ -7,7 +7,7 @@ module Test.Syd.Sqitch.Postgresql.Plan
   )
 where
 
-import qualified Data.ByteString as ByteString
+import qualified Data.ByteString as SB
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
@@ -70,7 +70,7 @@ readSqitchPlan ::
   Path Abs File ->
   IO [PlanStep]
 readSqitchPlan mGrandfatherTag path = do
-  contents <- Text.decodeUtf8Lenient <$> ByteString.readFile (fromAbsFile path)
+  contents <- Text.decodeUtf8Lenient <$> SB.readFile (fromAbsFile path)
   let allLines = Text.lines contents
       -- When there is no grandfather tag, no change is grandfathered;
       -- this is modelled by starting "past the tag" immediately.

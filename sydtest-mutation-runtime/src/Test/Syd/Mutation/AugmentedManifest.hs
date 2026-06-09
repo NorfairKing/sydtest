@@ -35,7 +35,7 @@ where
 import Autodocodec
 import Control.Exception (Exception, throwIO)
 import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Map ()
@@ -187,7 +187,7 @@ instance Exception AugmentedManifestDecodeException
 
 -- | Read from @<dir>/manifest-augmented.json@.
 --
--- Reads strictly (via 'B.readFile' + 'Aeson.decodeStrict') so the file
+-- Reads strictly (via 'SB.readFile' + 'Aeson.decodeStrict') so the file
 -- handle is closed before this function returns.  This is a defensive
 -- measure: under heavy concurrency the original 'LB.readFile' +
 -- 'Aeson.decode' path was a suspected (but unproven) contributor to a
@@ -196,7 +196,7 @@ instance Exception AugmentedManifestDecodeException
 readAugmentedManifestFile :: Path Abs Dir -> IO AugmentedManifest
 readAugmentedManifestFile dir = do
   let path = dir </> augmentedManifestRelFile
-  result <- Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
+  result <- Aeson.decodeStrict <$> SB.readFile (fromAbsFile path)
   case result of
     Nothing -> throwIO (AugmentedManifestDecodeException (fromAbsFile path))
     Just m -> pure m
@@ -496,7 +496,7 @@ instance Exception MutationRunReportDecodeException
 
 -- | Read @report.json@ from the given directory.
 --
--- Reads strictly (via 'B.readFile' + 'Aeson.decodeStrict') so the file
+-- Reads strictly (via 'SB.readFile' + 'Aeson.decodeStrict') so the file
 -- handle is closed before this function returns.  Throws
 -- 'MutationRunReportDecodeException' on a decode failure rather than
 -- silently producing a 'Maybe', so a caller that depends on the report
@@ -505,7 +505,7 @@ instance Exception MutationRunReportDecodeException
 readMutationRunReport :: Path Abs Dir -> IO MutationRunReport
 readMutationRunReport dir = do
   let path = dir </> mutationRunReportRelFile
-  result <- Aeson.decodeStrict <$> B.readFile (fromAbsFile path)
+  result <- Aeson.decodeStrict <$> SB.readFile (fromAbsFile path)
   case result of
     Nothing -> throwIO (MutationRunReportDecodeException (fromAbsFile path))
     Just m -> pure m

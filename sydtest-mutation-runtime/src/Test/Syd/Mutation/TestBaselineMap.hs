@@ -11,7 +11,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Containers ()
@@ -59,7 +59,7 @@ writeTestBaselineMapFile :: FilePath -> TestBaselineMap -> IO ()
 writeTestBaselineMapFile path m =
   LB.writeFile path (encodeJSONViaCodec m)
 
--- | Read the baseline map strictly (via 'B.readFile' +
+-- | Read the baseline map strictly (via 'SB.readFile' +
 -- 'eitherDecodeJSONViaCodec') so the file handle is closed before this
 -- function returns.  Defensive against a suspected (but unproven) contributor
 -- to 'BlockedIndefinitelyOnMVar' loops at the coverage/mutation phase
@@ -67,4 +67,4 @@ writeTestBaselineMapFile path m =
 -- failure.
 readTestBaselineMapFile :: FilePath -> IO (Either String TestBaselineMap)
 readTestBaselineMapFile path =
-  eitherDecodeJSONViaCodec . LB.fromStrict <$> B.readFile path
+  eitherDecodeJSONViaCodec . LB.fromStrict <$> SB.readFile path

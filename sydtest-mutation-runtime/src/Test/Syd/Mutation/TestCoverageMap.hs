@@ -12,7 +12,7 @@ where
 import Autodocodec
 import qualified Data.Aeson as Aeson
 import Data.Bifunctor (second)
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Containers ()
@@ -63,10 +63,10 @@ writeTestCoverageMapFile path m =
 -- | Read a 'TestCoverageMap' from the given file path.
 -- Returns the aeson error message on parse failure.
 --
--- Reads strictly (via 'B.readFile' + 'eitherDecodeJSONViaCodec') so the file
+-- Reads strictly (via 'SB.readFile' + 'eitherDecodeJSONViaCodec') so the file
 -- handle is closed before this function returns.  Defensive against a
 -- suspected (but unproven) contributor to 'BlockedIndefinitelyOnMVar'
 -- loops at the coverage/mutation phase boundary on large projects.
 readTestCoverageMapFile :: FilePath -> IO (Either String TestCoverageMap)
 readTestCoverageMapFile path =
-  eitherDecodeJSONViaCodec . LB.fromStrict <$> B.readFile path
+  eitherDecodeJSONViaCodec . LB.fromStrict <$> SB.readFile path

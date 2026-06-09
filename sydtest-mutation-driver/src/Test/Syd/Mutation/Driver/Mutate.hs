@@ -22,7 +22,7 @@ import Control.Concurrent.Async (mapConcurrently, race)
 import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
 import Control.Exception (bracket, bracket_)
 import qualified Control.Exception as Exception
-import qualified Data.ByteString as BS
+import qualified Data.ByteString as SB
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Maybe (listToMaybe)
@@ -85,7 +85,7 @@ writeReportTxt :: [[Chunk]] -> Path Abs Dir -> IO ()
 writeReportTxt renderedChunks outDir =
   let renderedText = renderChunksText With8BitColours (unlinesChunks renderedChunks)
       reportFile = outDir </> [relfile|report.txt|]
-   in BS.writeFile (fromAbsFile reportFile) (TE.encodeUtf8 renderedText)
+   in SB.writeFile (fromAbsFile reportFile) (TE.encodeUtf8 renderedText)
 
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.

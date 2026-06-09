@@ -18,7 +18,7 @@ where
 
 import Autodocodec
 import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import Data.GenValidity
 import Data.GenValidity.Containers ()
@@ -163,7 +163,7 @@ writeManifestFile dir moduleName manifest = do
 --
 -- Reads strictly so the file handle is closed before this function returns.
 readManifestFile :: Path Abs File -> IO (Either String MutationManifest)
-readManifestFile path = Aeson.eitherDecodeStrict <$> B.readFile (fromAbsFile path)
+readManifestFile path = Aeson.eitherDecodeStrict <$> SB.readFile (fromAbsFile path)
 
 -- | Read and concatenate all per-module manifests from a directory.
 -- Files that fail to parse are skipped with a warning to stderr.

@@ -4,7 +4,7 @@
 module Test.Syd.Mutation.Driver.ComponentsSpec (spec) where
 
 import qualified Control.Exception as Exception
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import Path
 import Path.IO (createDirIfMissing, doesFileExist, withSystemTempDir)
 import Test.Syd
@@ -23,7 +23,7 @@ spec = do
     it "returns executable names in declaration order" $
       withSystemTempDir "components-exes" $ \dir -> do
         let cabalFile = dir </> [relfile|pkg.cabal|]
-        B.writeFile (fromAbsFile cabalFile) $
+        SB.writeFile (fromAbsFile cabalFile) $
           mconcat
             [ "cabal-version: 2.0\n",
               "name: pkg\n",
@@ -42,7 +42,7 @@ spec = do
     it "returns test-suite names" $
       withSystemTempDir "components-tests" $ \dir -> do
         let cabalFile = dir </> [relfile|pkg.cabal|]
-        B.writeFile (fromAbsFile cabalFile) $
+        SB.writeFile (fromAbsFile cabalFile) $
           mconcat
             [ "cabal-version: 2.0\n",
               "name: pkg\n",
@@ -59,7 +59,7 @@ spec = do
     it "returns an empty list when the package declares no components of that kind" $
       withSystemTempDir "components-empty" $ \dir -> do
         let cabalFile = dir </> [relfile|pkg.cabal|]
-        B.writeFile (fromAbsFile cabalFile) $
+        SB.writeFile (fromAbsFile cabalFile) $
           mconcat
             [ "cabal-version: 2.0\n",
               "name: pkg\n",
@@ -79,7 +79,7 @@ spec = do
         let cabalFile = dir </> [relfile|pkg.cabal|]
             buildDir = dir </> [reldir|dist/build|]
             outDir = dir </> [reldir|out|]
-        B.writeFile (fromAbsFile cabalFile) $
+        SB.writeFile (fromAbsFile cabalFile) $
           mconcat
             [ "cabal-version: 2.0\n",
               "name: pkg\n",
@@ -94,14 +94,14 @@ spec = do
             ]
         createDirIfMissing True (buildDir </> [reldir|foo|])
         createDirIfMissing True (buildDir </> [reldir|bar|])
-        B.writeFile (fromAbsFile (buildDir </> [relfile|foo/foo|])) "FOO"
-        B.writeFile (fromAbsFile (buildDir </> [relfile|bar/bar|])) "BAR"
+        SB.writeFile (fromAbsFile (buildDir </> [relfile|foo/foo|])) "FOO"
+        SB.writeFile (fromAbsFile (buildDir </> [relfile|bar/bar|])) "BAR"
         runInstallComponentsWithBuildDir ComponentExecutables cabalFile buildDir outDir
         copiedFoo <- doesFileExist (outDir </> [relfile|foo|])
         copiedBar <- doesFileExist (outDir </> [relfile|bar|])
         copiedFoo `shouldBe` True
         copiedBar `shouldBe` True
-        fooBytes <- B.readFile (fromAbsFile (outDir </> [relfile|foo|]))
+        fooBytes <- SB.readFile (fromAbsFile (outDir </> [relfile|foo|]))
         fooBytes `shouldBe` "FOO"
 
     it "throws MissingBuiltComponent when a declared executable's binary is absent" $
@@ -109,7 +109,7 @@ spec = do
         let cabalFile = dir </> [relfile|pkg.cabal|]
             buildDir = dir </> [reldir|dist/build|]
             outDir = dir </> [reldir|out|]
-        B.writeFile (fromAbsFile cabalFile) $
+        SB.writeFile (fromAbsFile cabalFile) $
           mconcat
             [ "cabal-version: 2.0\n",
               "name: pkg\n",
@@ -131,7 +131,7 @@ spec = do
         let cabalFile = dir </> [relfile|pkg.cabal|]
             buildDir = dir </> [reldir|dist/build|]
             outDir = dir </> [reldir|nested/out|]
-        B.writeFile (fromAbsFile cabalFile) $
+        SB.writeFile (fromAbsFile cabalFile) $
           mconcat
             [ "cabal-version: 2.0\n",
               "name: pkg\n",
@@ -142,7 +142,7 @@ spec = do
               "  build-depends: base\n"
             ]
         createDirIfMissing True (buildDir </> [reldir|foo|])
-        B.writeFile (fromAbsFile (buildDir </> [relfile|foo/foo|])) "FOO"
+        SB.writeFile (fromAbsFile (buildDir </> [relfile|foo/foo|])) "FOO"
         runInstallComponentsWithBuildDir ComponentExecutables cabalFile buildDir outDir
         copied <- doesFileExist (outDir </> [relfile|foo|])
         copied `shouldBe` True
@@ -152,7 +152,7 @@ spec = do
         let cabalFile = dir </> [relfile|pkg.cabal|]
             buildDir = dir </> [reldir|dist/build|]
             outDir = dir </> [reldir|out|]
-        B.writeFile (fromAbsFile cabalFile) $
+        SB.writeFile (fromAbsFile cabalFile) $
           mconcat
             [ "cabal-version: 2.0\n",
               "name: pkg\n",
@@ -168,22 +168,22 @@ spec = do
     it "returns <pname>.cabal when it exists" $
       withSystemTempDir "find-preferred" $ \dir -> do
         let expected = dir </> [relfile|foo.cabal|]
-        B.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: foo\n"
+        SB.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: foo\n"
         actual <- findCabalFile "foo" dir
         actual `shouldBe` expected
 
     it "prefers <pname>.cabal over a differently-named .cabal also in the directory" $
       withSystemTempDir "find-prefer-over-other" $ \dir -> do
         let expected = dir </> [relfile|foo.cabal|]
-        B.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: foo\n"
-        B.writeFile (fromAbsFile (dir </> [relfile|other.cabal|])) "cabal-version: 2.0\nname: other\n"
+        SB.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: foo\n"
+        SB.writeFile (fromAbsFile (dir </> [relfile|other.cabal|])) "cabal-version: 2.0\nname: other\n"
         actual <- findCabalFile "foo" dir
         actual `shouldBe` expected
 
     it "falls back to the single other .cabal file when <pname>.cabal is absent" $
       withSystemTempDir "find-fallback" $ \dir -> do
         let expected = dir </> [relfile|differently-named.cabal|]
-        B.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: x\n"
+        SB.writeFile (fromAbsFile expected) "cabal-version: 2.0\nname: x\n"
         actual <- findCabalFile "foo" dir
         actual `shouldBe` expected
 
@@ -199,8 +199,8 @@ spec = do
 
     it "throws AmbiguousCabalFile when <pname>.cabal is absent and multiple other .cabal files match" $
       withSystemTempDir "find-ambiguous" $ \dir -> do
-        B.writeFile (fromAbsFile (dir </> [relfile|a.cabal|])) "cabal-version: 2.0\nname: a\n"
-        B.writeFile (fromAbsFile (dir </> [relfile|b.cabal|])) "cabal-version: 2.0\nname: b\n"
+        SB.writeFile (fromAbsFile (dir </> [relfile|a.cabal|])) "cabal-version: 2.0\nname: a\n"
+        SB.writeFile (fromAbsFile (dir </> [relfile|b.cabal|])) "cabal-version: 2.0\nname: b\n"
         result <-
           (Exception.try :: IO (Path Abs File) -> IO (Either CabalFileLookupError (Path Abs File))) $
             findCabalFile "foo" dir

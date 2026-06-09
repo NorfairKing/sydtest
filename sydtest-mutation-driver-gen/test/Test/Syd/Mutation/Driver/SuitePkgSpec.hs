@@ -5,7 +5,7 @@
 module Test.Syd.Mutation.Driver.SuitePkgSpec (spec) where
 
 import qualified Control.Exception as Exception
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import qualified Data.Map.Strict as Map
 import Path
 import Path.IO (createDirIfMissing, withSystemTempDir)
@@ -22,8 +22,8 @@ spec = describe "walkSuitePkgs" $ do
           testDir = root </> [reldir|test|]
       createDirIfMissing True testDir
       createDirIfMissing True rd
-      B.writeFile (fromAbsFile (testDir </> [relfile|first-test|])) ""
-      B.writeFile (fromAbsFile (testDir </> [relfile|second-test|])) ""
+      SB.writeFile (fromAbsFile (testDir </> [relfile|first-test|])) ""
+      SB.writeFile (fromAbsFile (testDir </> [relfile|second-test|])) ""
       result <-
         walkSuitePkgs
           [ SuitePkgSpec
@@ -79,7 +79,7 @@ spec = describe "walkSuitePkgs" $ do
       createDirIfMissing True rootA -- no 'test' subdir
       createDirIfMissing True (rootB </> [reldir|test|])
       createDirIfMissing True rd
-      B.writeFile (fromAbsFile (rootB </> [relfile|test/only|])) ""
+      SB.writeFile (fromAbsFile (rootB </> [relfile|test/only|])) ""
       result <-
         walkSuitePkgs
           [ SuitePkgSpec "a" rootA rd,
@@ -95,8 +95,8 @@ spec = describe "walkSuitePkgs" $ do
       createDirIfMissing True (rootA </> [reldir|test|])
       createDirIfMissing True (rootB </> [reldir|test|])
       createDirIfMissing True rd
-      B.writeFile (fromAbsFile (rootA </> [relfile|test/clash|])) ""
-      B.writeFile (fromAbsFile (rootB </> [relfile|test/clash|])) ""
+      SB.writeFile (fromAbsFile (rootA </> [relfile|test/clash|])) ""
+      SB.writeFile (fromAbsFile (rootB </> [relfile|test/clash|])) ""
       result <-
         ( Exception.try ::
             IO (Map.Map a SuiteConfig) ->

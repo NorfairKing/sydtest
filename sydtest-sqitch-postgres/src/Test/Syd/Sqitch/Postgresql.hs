@@ -59,7 +59,7 @@ where
 
 import Control.Monad (forM_, unless)
 import Control.Monad.Logger (runNoLoggingT)
-import qualified Data.ByteString as ByteString
+import qualified Data.ByteString as SB
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -189,5 +189,5 @@ readDeployScript settings scriptName = do
   deployDir <- parseRelDir "deploy"
   fileRel <- parseRelFile (Text.unpack scriptName <> ".sql")
   Text.decodeUtf8Lenient
-    <$> ByteString.readFile
+    <$> SB.readFile
       (fromAbsFile (sqitchSettingsProjectDir settings </> deployDir </> fileRel))

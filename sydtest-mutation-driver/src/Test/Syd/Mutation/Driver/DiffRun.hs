@@ -20,7 +20,7 @@ module Test.Syd.Mutation.Driver.DiffRun
   )
 where
 
-import qualified Data.ByteString as B
+import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -250,7 +250,7 @@ readTestLocations coverageDirs suiteName = do
   maps <-
     mapM
       ( \path -> do
-          mbs <- forgivingAbsence (B.readFile (fromAbsFile path))
+          mbs <- forgivingAbsence (SB.readFile (fromAbsFile path))
           case mbs of
             Nothing -> pure Map.empty
             Just bs -> case decodeTestLocations bs of

@@ -27,7 +27,6 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8Lenient)
-import qualified Data.Text.IO as TIO
 import Path
 import Path.IO (forgivingAbsence, withSystemTempDir)
 import System.Exit (ExitCode (..), exitWith)
@@ -35,6 +34,11 @@ import System.IO (hFlush, stderr, stdout)
 import System.Process.Typed (proc, readProcessStdout_)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
+    AugmentedMutationRecord (..),
+    MutationGroupReport (..),
+    MutationOutcome (..),
+    MutationRunReport (..),
+    SurvivedMutation (..),
     filterAugmentedManifestByIds,
     mergeAugmentedManifests,
     readAugmentedManifestFile,
@@ -50,11 +54,11 @@ import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
   ( DiffSettings (..),
     DiffSource (..),
-    SuiteConfig (..),
   )
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.Mutation.TestLocation (TestLocation (..), decodeTestLocations)
+import Test.Syd.MutationMode.Common (formatMutationLog)
 import Text.Colour
   ( Chunk,
     TerminalCapabilities (..),
@@ -64,6 +68,7 @@ import Text.Colour
     green,
     hPutChunksLocaleWith,
     putChunksLocaleWith,
+    red,
     unlinesChunks,
   )
 
@@ -117,13 +122,14 @@ runDiff DiffSettings {..} = do
   report <-
     withSystemTempDir "mutation-diff-augmented" $ \augDir -> do
       writeAugmentedManifestFile augDir filtered
-      let suiteExes = Map.map suiteConfigExe suites
       runMutationMode
         diffSettingFailFast
+        diffSettingDebug
         augDir
         diffSettingOutDir
         diffSettingChildMemLimit
-        suiteExes
+        diffSettingMutationJobs
+        suites
 
   -- 6. Final summary block: PASS/FAIL header + report paths, written to
   -- stdout so they're the last thing in the CI build log.  Hard-code
@@ -137,6 +143,7 @@ runDiff DiffSettings {..} = do
         renderDiffFinalSummary
           numSelected
           assertion
+          report
           (T.pack (fromAbsFile txtPath))
           (T.pack (fromAbsFile jsonPath))
   -- 'runMutationMode' already flushed stderr; flush again so any further
@@ -161,6 +168,14 @@ runDiff DiffSettings {..} = do
 -- no-op.  For a non-empty selection, the header comes from
 -- 'assertScoreResult'.
 --
+-- When the run produced survivors, their full per-mutation detail (the
+-- same diff blocks 'renderMutationRunReport' prints) is repeated here,
+-- between the header and the report paths.  The full report body printed
+-- earlier by 'runMutationMode' lists survivors before the uncovered and
+-- skipped sections, so in a long CI log the survivors scroll off the
+-- bottom; pinning a survivors-only block to the very end means the thing
+-- that failed the run is the last thing the log shows.
+--
 -- Pure so it can be golden-tested without spinning up a real run; the
 -- output is exactly the @stdout@ block the CI log ends with.
 renderDiffFinalSummary ::
@@ -169,23 +184,41 @@ renderDiffFinalSummary ::
   -- | Assertion result for the produced report.  Ignored when 0
   -- mutations were selected.
   AssertScoreResult ->
+  -- | The produced report, for the survivors-only detail block.
+  MutationRunReport ->
   -- | Path to @report.txt@ in the out dir.
   Text ->
   -- | Path to @report.json@ in the out dir.
   Text ->
   [[Chunk]]
-renderDiffFinalSummary numSelected assertion txtPath jsonPath =
+renderDiffFinalSummary numSelected assertion report txtPath jsonPath =
   [ [],
     header,
-    [],
-    [chunk "Full report:             ", chunk txtPath],
-    [chunk "Machine-readable report: ", chunk jsonPath]
+    []
   ]
+    ++ survivorsBlock
+    ++ [ [chunk "Full report:             ", chunk txtPath],
+         [chunk "Machine-readable report: ", chunk jsonPath]
+       ]
   where
     header
       | numSelected == 0 =
           [fore green (chunk "PASS: "), chunk "nothing to mutation-test in this diff."]
       | otherwise = assertScoreHeader assertion
+    survivors =
+      [ s
+      | g <- mutationRunReportGroups report,
+        OutcomeSurvived s <- mutationGroupReportOutcomes g
+      ]
+    survivorsBlock
+      | null survivors = []
+      | otherwise =
+          [[fore red (chunk "Surviving mutations:")]]
+            ++ concatMap renderSurvivor survivors
+            ++ [[]]
+    renderSurvivor s =
+      let rec = survivedMutationRecord s
+       in [] : formatMutationLog (augmentedMutationRecordId rec) rec
 
 -- | Render the one-line "N changed hunks; selected M mutations" progress
 -- message as coloured chunks, matching the rest of the driver's output.
@@ -212,8 +245,8 @@ renderDiffSelection numHunks numSource numTest numTotal =
 -- | Obtain the unified diff text from the configured source.
 obtainDiff :: DiffSource -> IO Text
 obtainDiff = \case
-  DiffSourceFile f -> TIO.readFile (fromAbsFile f)
-  DiffSourceStdin -> TIO.getContents
+  DiffSourceFile f -> decodeUtf8Lenient <$> SB.readFile (fromAbsFile f)
+  DiffSourceStdin -> decodeUtf8Lenient . LB.toStrict <$> LB.getContents
   DiffSourceGitMergeBase base -> gitMergeBaseDiff base
 
 -- | Compute @git diff <merge-base>@ where @<merge-base>@ is the merge-base of

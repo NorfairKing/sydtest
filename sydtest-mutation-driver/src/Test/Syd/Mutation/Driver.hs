@@ -80,27 +80,23 @@ runDriver MutationDriverSettings {..} = do
         mutationDriverSettingFailFast
     )
     suitesAsc
-  -- Mutation phase: cd into the first suite's resource directory (in
-  -- Map.toAscList order, which is sorted by key), then run the mutation
-  -- parent.  The child suite-exe map is the same map of declared suites.
-  let firstSuiteResourceDir = case suitesAsc of
-        ((_, sc) : _) -> suiteConfigResourceDir sc
-        [] -> Nothing
-      suiteExesByName = Map.map suiteConfigExe suites
-  -- 'runMutationMode' prints the report to stdout and writes
-  -- report.json + report.txt + per-suite *.log files to the out dir.
-  -- It returns the run report; under --fail-fast we then exit non-zero
-  -- ourselves, preserving the historical behaviour of the @run@
-  -- subcommand (a downstream @assert-score@ step is the gate when
-  -- --fail-fast is off).
+  -- Mutation phase: 'runMutationMode' spawns each covering suite's mutation
+  -- child in that suite's own resource directory (it carries the full
+  -- 'SuiteConfig' map, not just the exes), so no parent-side 'cd' is needed
+  -- here.  It prints the report to stdout and writes report.json +
+  -- report.txt + per-suite *.log files to the out dir.  It returns the run
+  -- report; under --fail-fast we then exit non-zero ourselves, preserving
+  -- the historical behaviour of the @run@ subcommand (a downstream
+  -- @assert-score@ step is the gate when --fail-fast is off).
   report <-
-    withMaybeCurrentDir firstSuiteResourceDir $
-      runMutationMode
-        mutationDriverSettingFailFast
-        mutationDriverSettingAugmentedManifestDir
-        mutationDriverSettingOutDir
-        mutationDriverSettingChildMemLimit
-        suiteExesByName
+    runMutationMode
+      mutationDriverSettingFailFast
+      mutationDriverSettingDebug
+      mutationDriverSettingAugmentedManifestDir
+      mutationDriverSettingOutDir
+      mutationDriverSettingChildMemLimit
+      mutationDriverSettingMutationJobs
+      suites
   hFlush stdout
   when
     ( mutationDriverSettingFailFast

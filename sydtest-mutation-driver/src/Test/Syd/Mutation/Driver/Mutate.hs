@@ -35,7 +35,7 @@ import Path
 import Path.IO (copyFile, ignoringAbsence, withSystemTempDir)
 import System.Exit (ExitCode (..))
 import System.IO (BufferMode (..), IOMode (..), hFlush, hSetBuffering, stderr, withFile)
-import System.Process.Typed (proc, setStderr, setStdout, startProcess, stopProcess, useHandleOpen, waitExitCode)
+import System.Process.Typed (proc, setStderr, setStdout, setWorkingDir, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationGroup (..),
@@ -49,6 +49,7 @@ import Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
     writeMutationRunReport,
   )
+import Test.Syd.Mutation.Driver.OptParse (SuiteConfig (..))
 import Test.Syd.Mutation.Runtime (renderMutationId)
 import Test.Syd.MutationMode.Common
   ( MutationFailFast (..),
@@ -101,6 +102,14 @@ writeReportTxt renderedChunks outDir =
 runMutationMode ::
   -- | Whether to abort on the first surviving or uncovered mutation.
   Bool ->
+  -- | Debug mode.  A concise one-line progress message is printed for
+  -- every mutation regardless, so a long run shows steady activity; in
+  -- debug mode each of those lines is followed by the mutation's full
+  -- source diff.  Off by default because that per-mutation diff — for
+  -- the killed mutations that are the overwhelming majority of a healthy
+  -- run — floods the build log and buries the survivors; the final
+  -- report still lists every survivor in full.
+  Bool ->
   -- | Augmented-manifest directory.
   Path Abs Dir ->
   -- | Output directory: report.json, report.txt, and per-suite *.log
@@ -108,15 +117,27 @@ runMutationMode ::
   Path Abs Dir ->
   -- | Optional RTS heap cap to apply to each mutation child.
   Maybe String ->
-  -- | Map of suite name to exe path; used to find each covering suite's
-  -- exe when spawning a mutation child.
-  Map.Map Text (Path Abs File) ->
+  -- | Maximum number of mutation children to run concurrently.  'Nothing'
+  -- uses 'getNumCapabilities'.  Capping this matters for suites that spin up
+  -- a resource per test (e.g. a tmp-postgres): at full core-count
+  -- concurrency that resource flakes under contention, which surfaces as a
+  -- spuriously-failing test and therefore a /false kill/ — non-reproducible
+  -- and inconsistent with a lower-volume diff-scoped run.  Mirrors the
+  -- coverage phase's @--coverage-jobs@.
+  Maybe Word ->
+  -- | Map of suite name to its config (exe + resource dir).  The exe is
+  -- spawned for each covering suite; the resource dir becomes the child's
+  -- working directory, so a mutation child enumerates the same spec forest
+  -- and resolves the same relative resource paths that the coverage phase
+  -- did — without which the recorded covering-test ids may not match the
+  -- forest the child sees, producing false survivors.
+  Map.Map Text SuiteConfig ->
   IO MutationRunReport
-runMutationMode failFast augDir outDir childMemLimit suiteExes = do
+runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteConfigs = do
   hSetBuffering stderr (BlockBuffering Nothing)
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
-  -- 'suiteExes' before any worker spawns.  An unknown name would otherwise
+  -- 'suiteConfigs' before any worker spawns.  An unknown name would otherwise
   -- surface as an 'ErrorCall' from inside a 'mapConcurrently' worker, which
   -- is harder to attribute.
   let referenced =
@@ -125,16 +146,18 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
           | AugmentedMutationGroup rs <- groups,
             r <- rs
           ]
-      missing = Map.difference referenced suiteExes
+      missing = Map.difference referenced suiteConfigs
   case Map.keys missing of
     [] -> pure ()
     (name : _) ->
       Exception.throwIO
         UnknownCoveringSuite
           { unknownCoveringSuiteName = name,
-            unknownCoveringSuiteDeclared = Map.keys suiteExes
+            unknownCoveringSuiteDeclared = Map.keys suiteConfigs
           }
-  n <- getNumCapabilities
+  n <- case mutationJobs of
+    Just j | j > 0 -> pure (fromIntegral j)
+    _ -> getNumCapabilities
   sem <- newQSem n
   -- Each group's per-mutation results, accumulated in source order so a
   -- partial report (after a global fail-fast abort) reflects the work
@@ -212,7 +235,7 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
     runOne sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
-        hPutChunksLocaleWith With8BitColours stderr (unlinesChunks (renderMutationProgressEvent (MutationProgressEvent record)))
+        hPutChunksLocaleWith With8BitColours stderr (unlinesChunks (renderMutationProgressEvent debug (MutationProgressEvent record)))
         -- Only run suites that have at least one covering test for this
         -- mutation.
         let coveringBySuite =
@@ -254,19 +277,20 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
         mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- NE.toList outcomes]
 
     runOneSuite record mid suiteName = do
-      exe <- case Map.lookup suiteName suiteExes of
-        Just e -> pure (fromAbsFile e)
+      (exe, mResourceDir) <- case Map.lookup suiteName suiteConfigs of
+        Just SuiteConfig {suiteConfigExe, suiteConfigResourceDir} ->
+          pure (fromAbsFile suiteConfigExe, suiteConfigResourceDir)
         Nothing ->
           -- Should be unreachable: 'runMutationMode' validates up-front
           -- that every covering-suite name in the manifest is in
-          -- 'suiteExes'.  If this fires, the manifest is being mutated
+          -- 'suiteConfigs'.  If this fires, the manifest is being mutated
           -- between that check and this lookup, or the validation has a
           -- bug — either way, throw an attributable exception rather
           -- than 'error'.
           Exception.throwIO
             UnknownCoveringSuite
               { unknownCoveringSuiteName = suiteName,
-                unknownCoveringSuiteDeclared = Map.keys suiteExes
+                unknownCoveringSuiteDeclared = Map.keys suiteConfigs
               }
       let rtsArgs = case childMemLimit of
             Nothing -> []
@@ -287,9 +311,14 @@ runMutationMode failFast augDir outDir childMemLimit suiteExes = do
           (outcomeRaw, elapsedMicros) <-
             withFile (fromAbsFile logPath) WriteMode $ \logHandle -> do
               let childProc =
-                    setStdout (useHandleOpen logHandle) $
-                      setStderr (useHandleOpen logHandle) $
-                        proc exe args
+                    -- Run the child in the suite's resource directory, so it
+                    -- enumerates the same spec forest (and resolves the same
+                    -- relative resource paths) the coverage phase recorded
+                    -- covering-test ids against.
+                    maybe id (setWorkingDir . fromAbsDir) mResourceDir $
+                      setStdout (useHandleOpen logHandle) $
+                        setStderr (useHandleOpen logHandle) $
+                          proc exe args
                   -- Per-mutation monotonic-clock budget computed by the
                   -- coverage phase.
                   timeoutMicros = augmentedMutationRecordTimeoutMicros record

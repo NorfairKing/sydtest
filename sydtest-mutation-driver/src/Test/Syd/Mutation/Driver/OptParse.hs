@@ -110,10 +110,16 @@ data MutationDriverSettings = MutationDriverSettings
     mutationDriverSettingSuitePkgs :: ![SuitePkgSpec],
     mutationDriverSettingChildMemLimit :: !(Maybe String),
     mutationDriverSettingCoverageJobs :: !(Maybe Word),
+    -- | Max mutation children to run concurrently ('Nothing' =
+    -- 'getNumCapabilities').
+    mutationDriverSettingMutationJobs :: !(Maybe Word),
     mutationDriverSettingCoverageRetry :: !Word,
     mutationDriverSettingAugmentedManifestDir :: !(Path Abs Dir),
     mutationDriverSettingOutDir :: !(Path Abs Dir),
-    mutationDriverSettingFailFast :: !Bool
+    mutationDriverSettingFailFast :: !Bool,
+    -- | Print each mutation's full source diff as it is tested (concise
+    -- one-line progress is always printed regardless).
+    mutationDriverSettingDebug :: !Bool
   }
   deriving (Show, Eq, Generic)
 
@@ -165,10 +171,16 @@ data DiffSettings = DiffSettings
     diffSettingCoverageDirs :: ![Path Abs Dir],
     -- | RTS heap cap for each mutation child.
     diffSettingChildMemLimit :: !(Maybe String),
+    -- | Max mutation children to run concurrently ('Nothing' =
+    -- 'getNumCapabilities').
+    diffSettingMutationJobs :: !(Maybe Word),
     -- | Output directory for report.json\/report.txt\/per-suite logs.
     diffSettingOutDir :: !(Path Abs Dir),
     -- | Whether to abort on the first surviving or uncovered mutation.
-    diffSettingFailFast :: !Bool
+    diffSettingFailFast :: !Bool,
+    -- | Print each mutation's full source diff as it is tested (concise
+    -- one-line progress is always printed regardless).
+    diffSettingDebug :: !Bool
   }
   deriving (Show, Eq, Generic)
 
@@ -215,6 +227,7 @@ mutationDriverSettingsParser = do
           long "coverage-jobs",
           metavar "INT"
         ]
+  mutationDriverSettingMutationJobs <- mutationJobsParser
   mutationDriverSettingCoverageRetry <-
     setting
       [ help "How many times to retry a failing coverage child before giving up",
@@ -242,6 +255,7 @@ mutationDriverSettingsParser = do
         long "fail-fast",
         value defaultFailFast
       ]
+  mutationDriverSettingDebug <- debugSwitch
   pure MutationDriverSettings {..}
 
 -- | CLI parser for the @coverage@ subcommand.  Shares the coverage-relevant
@@ -328,6 +342,7 @@ diffSettingsParser = do
           long "child-mem-limit",
           metavar "LIMIT"
         ]
+  diffSettingMutationJobs <- mutationJobsParser
   diffSettingOutDir <-
     directoryPathSetting
       [ help "Output directory: where the driver writes report.txt, report.json, and per-suite *.log files (required)",
@@ -340,7 +355,35 @@ diffSettingsParser = do
         long "fail-fast",
         value defaultFailFast
       ]
+  diffSettingDebug <- debugSwitch
   pure DiffSettings {..}
+
+-- | The @--mutation-jobs@ option, shared by the @run@ and @diff@
+-- subcommands: cap how many mutation children run concurrently.  Absent =
+-- 'getNumCapabilities'.  Capping avoids the false kills that DB-backed
+-- suites produce when their per-test resource (e.g. tmp-postgres) flakes
+-- under full core-count contention.
+mutationJobsParser :: Parser (Maybe Word)
+mutationJobsParser =
+  optional $
+    setting
+      [ help "Maximum number of mutation children to run concurrently (default: number of capabilities)",
+        reader auto,
+        option,
+        long "mutation-jobs",
+        metavar "INT"
+      ]
+
+-- | The @--debug@ switch, shared by the @run@ and @diff@ subcommands:
+-- additionally print each mutation's full source diff as it is tested.
+debugSwitch :: Parser Bool
+debugSwitch =
+  setting
+    [ help "Print each mutation's full source diff as it is tested (off by default; concise progress is always shown)",
+      switch True,
+      long "debug",
+      value False
+    ]
 
 -- | Parse the diff source.  Precedence: an explicit @--diff FILE@ wins, then
 -- @--diff-stdin@, otherwise the default git merge-base computation against

@@ -64,6 +64,14 @@
 #       OOM-ing on hosts where 'getNumCapabilities' is high but test suites
 #       spawn expensive per-test resources (e.g. tmp-postgres). Pass 'null'
 #       to fall back to the harness default of 'getNumCapabilities'.
+# - mutationJobs: maximum number of mutation children to run concurrently.
+#       Defaults to the same value as 'coverageJobs'. The mutation phase has
+#       the same contention hazard as coverage: at full core-count
+#       concurrency a per-test resource (e.g. tmp-postgres) flakes, which
+#       surfaces as a spuriously-failing test and therefore a FALSE KILL —
+#       non-reproducible and inconsistent with a lower-volume diff-scoped
+#       run. Cap it for the same reason you cap 'coverageJobs'. Pass 'null'
+#       to fall back to the harness default of 'getNumCapabilities'.
 # - coverageRetry: how many times to retry a failing coverage child before
 #       giving up. Defaults to the harness default (3). Useful when test
 #       suites flake on contended resources (e.g. tmp-postgres' port binding)
@@ -97,6 +105,9 @@
   # Passed to the driver via the YAML config's 'childMemLimit'.
 , testProcessMemLimit ? "4g"
 , coverageJobs ? 4
+  # Maximum number of mutation children to run concurrently during the
+  # mutation phase. Defaults to 'coverageJobs' (the same contention cap).
+, mutationJobs ? coverageJobs
 , coverageRetry ? null
   # Whether to enable fail-fast in the harness run. Defaults to false because
   # e2e checks want the full report (driven by assertMutationScore), and
@@ -220,6 +231,10 @@ let
   coverageJobsFlag =
     pkgs.lib.optionalString (coverageJobs != null)
       "--coverage-jobs=${toString coverageJobs}";
+
+  mutationJobsFlag =
+    pkgs.lib.optionalString (mutationJobs != null)
+      "--mutation-jobs=${toString mutationJobs}";
   coverageRetryFlag =
     pkgs.lib.optionalString (coverageRetry != null)
       "--coverage-retry=${toString coverageRetry}";
@@ -334,6 +349,7 @@ let
           --child-mem-limit=${testProcessMemLimit} \
           ${failFastFlag} \
           ${coverageJobsFlag} \
+          ${mutationJobsFlag} \
           ${coverageRetryFlag} \
           --mutation-augmented-manifest-dir=augmented \
           --out-dir="$out"
@@ -385,6 +401,7 @@ let
           (pkg: ''--coverage-dir="${perPackageCoverage pkg}"'')
           testPackages} \
         --child-mem-limit=${testProcessMemLimit} \
+        ${mutationJobsFlag} \
         "''${out_dir_args[@]}" \
         "$@"
     '';

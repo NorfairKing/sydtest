@@ -386,12 +386,20 @@ renderMutationRunReport
           [chunk "  2. Disable it: same annotations and config keys as for survivors above."]
         ]
 
-renderMutationProgressEvent :: MutationProgressEvent -> [[Chunk]]
-renderMutationProgressEvent (MutationProgressEvent rec) =
+-- | Render the per-mutation progress line emitted as each mutation is
+-- tested.  The first argument is whether to be verbose: in concise mode
+-- (the default) this is the single locating line @Testing mutation
+-- \<operator\> at \<file\>:\<line\>:\<cols\>@, so a long run still shows
+-- steady progress without flooding the log; in verbose\/debug mode the
+-- full source diff of the mutation follows — the same block the report
+-- prints for a survivor.
+renderMutationProgressEvent :: Bool -> MutationProgressEvent -> [[Chunk]]
+renderMutationProgressEvent verbose (MutationProgressEvent rec) =
   let logLines = formatMutationLog (augmentedMutationRecordId rec) rec
-   in case logLines of
+      withPrefix = case logLines of
         [] -> [[chunk "Testing mutation"]]
         (firstLine : rest) -> (chunk "Testing mutation " : firstLine) : rest
+   in if verbose then withPrefix else take 1 withPrefix
 
 -- | Progress event for the coverage phase.
 data CoverageProgressEvent

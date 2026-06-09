@@ -2,12 +2,18 @@
 
 module Test.Syd.Mutation.Driver.DiffRunSpec (spec) where
 
+import qualified Data.Map.Strict as Map
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest
-  ( MutationRunReport (..),
+  ( AugmentedMutationRecord (..),
+    MutationGroupReport (..),
+    MutationOutcome (..),
+    MutationRunReport (..),
+    SurvivedMutation (..),
   )
 import Test.Syd.Mutation.Driver.AssertScore (assertScoreResult)
 import Test.Syd.Mutation.Driver.DiffRun (renderDiffFinalSummary)
+import Test.Syd.Mutation.Runtime (MutationId (..))
 import Text.Colour (TerminalCapabilities (..), renderChunksText, unlinesChunks)
 
 -- | These golden files capture the final block of the diff runner's
@@ -65,7 +71,39 @@ spec = describe "renderDiffFinalSummary" $ do
           mutationRunReportTimedOut = 0,
           mutationRunReportUncovered = 0,
           mutationRunReportSkipped = 0,
-          mutationRunReportGroups = []
+          mutationRunReportGroups =
+            [ MutationGroupReport
+                { mutationGroupReportOutcomes =
+                    [OutcomeSurvived survivor]
+                }
+            ]
+        }
+
+    survivor =
+      SurvivedMutation
+        { survivedMutationRecord = survivorRecord,
+          survivedMutationLogFile = Nothing
+        }
+
+    survivorRecord =
+      AugmentedMutationRecord
+        { augmentedMutationRecordId =
+            MutationId ["Example.Lib", "BoolLit", "12", "8", "12"],
+          augmentedMutationRecordOperator = "BoolLit",
+          augmentedMutationRecordOriginal = "True",
+          augmentedMutationRecordReplacement = "False",
+          augmentedMutationRecordModule = "Example.Lib",
+          augmentedMutationRecordLine = 12,
+          augmentedMutationRecordEndLine = 12,
+          augmentedMutationRecordColStart = 8,
+          augmentedMutationRecordColEnd = 12,
+          augmentedMutationRecordSourceFile = Nothing,
+          augmentedMutationRecordSourceLines = [],
+          augmentedMutationRecordMutatedLines = [],
+          augmentedMutationRecordContextBefore = [],
+          augmentedMutationRecordContextAfter = [],
+          augmentedMutationRecordCoveringTests = Map.empty,
+          augmentedMutationRecordTimeoutMicros = 30000000
         }
 
     reportOneUncovered =
@@ -87,5 +125,5 @@ spec = describe "renderDiffFinalSummary" $ do
     -- terminal — not the colour-stripped version.
     renderColoured n report =
       let assertion = assertScoreResult True report
-          chunks = renderDiffFinalSummary n assertion txtPath jsonPath
+          chunks = renderDiffFinalSummary n assertion report txtPath jsonPath
        in renderChunksText With24BitColours (unlinesChunks chunks)

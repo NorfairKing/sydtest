@@ -96,7 +96,7 @@
 # against the package's <pname>.cabal file. The driver's YAML config is
 # likewise assembled at build time via 'jq'.
 
-{ name
+{ name ? "mutation"
 , packages ? [ ]
 , libraries ? [ ]
 , tests ? [ ]
@@ -148,11 +148,16 @@ let
     builtins.listToAttrs (map
       (pkg: {
         name = pkg;
-        value = addManifest
+        # Rename the instrumented-library compile derivation so the build log
+        # says which phase ('instrument') and package it is, instead of the
+        # bare '<pname>-<version>' the Haskell builder would give it.
+        value = (addManifest
           {
             inherit configFile ghcMemLimit;
           }
-          super.${pkg};
+          super.${pkg}).overrideAttrs (_: {
+          name = "${name}-instrument-${pkg}";
+        });
       })
       libraryPackages);
 
@@ -172,7 +177,7 @@ let
   # Test-suite component names are discovered at build time by parsing the
   # package's cabal file with the driver's list-components subcommand.
   builtTestPkg = pkgName:
-    pkgs.haskell.lib.overrideCabal
+    (pkgs.haskell.lib.overrideCabal
       (pkgs.haskell.lib.dontBenchmark
         (pkgs.haskell.lib.doCheck instrumentedHaskellPackages.${pkgName}))
       (old: {
@@ -181,7 +186,11 @@ let
           ${driver}/bin/sydtest-mutation-driver install-components \
             test-suites "${old.pname}" "$out/test"
         '';
-      });
+      })).overrideAttrs (_: {
+      # Distinguish the test-suite compile from the library 'instrument'
+      # build above: same package, but built with --enable-tests.
+      name = "${name}-testsuite-${pkgName}";
+    });
 
   manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
 
@@ -197,7 +206,7 @@ let
   # whose $out is the resulting directory.
   unpackedSrcFor = pkgName:
     pkgs.srcOnly {
-      name = "${pkgName}-resource-dir";
+      name = "${name}-resource-${pkgName}";
       src = instrumentedHaskellPackages.${pkgName}.src;
       stdenv = pkgs.stdenvNoCC;
     };
@@ -265,7 +274,7 @@ let
   # resolves relative paths the same way the driver does.
   perPackageCoverage = pkg:
     pkgs.stdenv.mkDerivation {
-      name = "${name}-${pkg}-mutation-coverage";
+      name = "${name}-coverage-${pkg}";
       dontUnpack = true;
       buildInputs = [ (builtTestPkg pkg) driver ];
       nativeBuildInputs = collectedTestToolDepends;
@@ -319,7 +328,7 @@ let
   # 'coverage' is both the aggregate view and the namespace for its
   # per-package inputs ('coverage.<pkg>').
   coverage =
-    (pkgs.runCommand "${name}-mutation-coverage" { } (
+    (pkgs.runCommand "${name}-coverage" { } (
       pkgs.lib.concatMapStringsSep "\n"
         (pkg: ''
           mkdir -p "$out"
@@ -344,7 +353,7 @@ let
   # baseline.
   perLibraryReport = libPkg:
     pkgs.stdenv.mkDerivation {
-      name = "${name}-${libPkg}-mutation-report";
+      name = "${name}-mutation-${libPkg}";
       dontUnpack = true;
       buildInputs = testPkgInputs ++ [ driver ];
       # Test executables spawn tools (postgresql, git, nix, ...) at
@@ -449,7 +458,7 @@ let
   checkByLib =
     builtins.mapAttrs
       (libPkg: rep: assertMutationScore {
-        name = "${name}-${libPkg}";
+        name = "${name}-check-${libPkg}";
         inherit assertNoneUncovered;
         report = rep;
       })

@@ -12,8 +12,12 @@
 # The returned derivation carries the building blocks as passthru attributes,
 # so each piece can be built and inspected on its own:
 #
-# - 'passthru.report': the full mutation report ('report.txt'/'report.json'),
-#   the same derivation the sealed check is built from.
+# - 'passthru.report': an attrset, keyed by instrumented-library package name,
+#   of per-library mutation reports ('report.txt'/'report.json' each).  The
+#   mutation phase is split per library: 'passthru.report.<lib>' is the report
+#   for one library, the same derivation that library's sealed check is built
+#   from.  The returned derivation itself is an aggregate that symlinks every
+#   per-library piece under '<lib>/', so building it builds them all.
 #
 # - 'passthru.coverage': a separate, much cheaper set of derivations that run
 #   only the coverage phase and emit the augmented manifest ('augmented/', the
@@ -242,9 +246,9 @@ let
 
   # The coverage cache, split into one derivation per test-package plus a
   # cheap merge.  Both steps run ONLY the coverage phase (never the mutation
-  # phase), so the cache is much cheaper than the full check ('drv' below) and
-  # is what '.diff' depends on — the diff-scoped runner never needs the full
-  # mutation run to have happened.
+  # phase), so the cache is much cheaper than the full per-library reports
+  # ('perLibraryReport' below) and is what '.diff' depends on — the diff-scoped
+  # runner never needs the full mutation run to have happened.
   #
   # Splitting per test-package means editing one package's tests only
   # invalidates that package's coverage derivation, the others stay cached, and
@@ -326,9 +330,21 @@ let
       passthru = (old.passthru or { }) // perPackageCoverageByName;
     });
 
-  drv =
+  # One mutation-report derivation per instrumented library.  Each runs the
+  # driver's 'run' subcommand with ONLY that library's --manifest (but all
+  # --suite-pkg test suites), so the expensive mutation phase is split per
+  # library instead of being one run "for them all together": the per-library
+  # runs build in parallel and a surviving-mutation or crash is attributed to a
+  # single library rather than the whole batch.
+  #
+  # The instrumented test executables are shared — built once against the
+  # all-instrumented overlay (every library's 'ifMutation' call sites are
+  # compiled in).  Passing one library's manifest restricts which mutations the
+  # driver toggles to that library, with no recompilation: the others stay at
+  # baseline.
+  perLibraryReport = libPkg:
     pkgs.stdenv.mkDerivation {
-      name = "${name}-mutation-report";
+      name = "${name}-${libPkg}-mutation-report";
       dontUnpack = true;
       buildInputs = testPkgInputs ++ [ driver ];
       # Test executables spawn tools (postgresql, git, nix, ...) at
@@ -344,7 +360,7 @@ let
         runHook preBuild
 
         ${driver}/bin/sydtest-mutation-driver run \
-          ${pkgs.lib.concatStringsSep " " manifestFlags} \
+          --manifest=${toString instrumentedHaskellPackages.${libPkg}.manifest} \
           ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
           --child-mem-limit=${testProcessMemLimit} \
           ${failFastFlag} \
@@ -361,7 +377,27 @@ let
       dontInstall = true;
     };
 
-  report = drv;
+  # The per-library reports keyed by instrumented-library package name, exposed
+  # as the '.report.<lib>' passthru so each library's report can be built and
+  # inspected on its own.
+  reportByLib =
+    builtins.listToAttrs (map
+      (libPkg: { name = libPkg; value = perLibraryReport libPkg; })
+      libraryPackages);
+
+  # An aggregate view over a per-library attrset: a cheap derivation that
+  # symlinks each library's derivation under '$out/<lib>', so building it forces
+  # every per-library piece while each stays reachable for inspection.
+  aggregateNamed = aggName: drvsByLib:
+    pkgs.runCommand aggName { } (
+      pkgs.lib.concatStringsSep "\n"
+        (pkgs.lib.mapAttrsToList
+          (libPkg: d: ''
+            mkdir -p "$out"
+            ln -s "${d}" "$out/${libPkg}"
+          '')
+          drvsByLib)
+    );
 
   # The diff-scoped runner: 'nix run' this to mutation-test only the subset
   # of mutations implied by a diff (default: 'git diff' against the
@@ -407,7 +443,17 @@ let
     '';
   };
 
-  check = assertMutationScore { inherit name assertNoneUncovered report; };
+  # One assertMutationScore check per library, keyed by library name.  Each
+  # fails the build if that library has surviving (or, by default, uncovered)
+  # mutations; the aggregate below fails if any per-library check fails.
+  checkByLib =
+    builtins.mapAttrs
+      (libPkg: rep: assertMutationScore {
+        name = "${name}-${libPkg}";
+        inherit assertNoneUncovered;
+        report = rep;
+      })
+      reportByLib;
 
   # Attach the building blocks as passthrus on whichever derivation we return,
   # so a single 'mutationCheck { ... }' call yields not just the sealed
@@ -415,16 +461,19 @@ let
   # on its own:
   #
   # - '.diff'              the diff-scoped runner (nix run)
-  # - '.report'           the full mutation report (report.txt/report.json)
+  # - '.report'           an attrset keyed by instrumented-library name; each
+  #                       '.report.<lib>' is that library's mutation report
+  #                       (report.txt/report.json)
   # - '.coverage'         the merged coverage (augmented/ + test-locations/);
   #                       its own per-package passthrus ('.coverage.<pkg>')
   #                       give each test-package's coverage on its own
   withPassthru = drv': drv'.overrideAttrs (old: {
     passthru = (old.passthru or { }) // {
-      inherit diff report coverage;
+      inherit diff coverage;
+      report = reportByLib;
     };
   });
 in
 if assertAllKilled
-then withPassthru check
-else withPassthru report
+then withPassthru (aggregateNamed "${name}-mutation-check" checkByLib)
+else withPassthru (aggregateNamed "${name}-mutation-report" reportByLib)

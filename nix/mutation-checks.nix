@@ -4,8 +4,10 @@
 #
 # Each check instruments the library packages with the mutation plugin, builds
 # the corresponding test executables against the instrumented libraries, runs
-# the suites in mutation mode, and writes report.txt and report.json to the
-# 'report' output.
+# the suites in mutation mode, and writes report.txt and report.json. The
+# mutation run is split per instrumented library: a check that lists several
+# 'libraries' produces one report derivation each, exposed as
+# 'passthru.report.<lib>', aggregated under the returned derivation.
 #
 # The checks do NOT fail on surviving mutations; they only fail if a test suite
 # crashes or the derivation build fails. Inspect the 'report' output to see

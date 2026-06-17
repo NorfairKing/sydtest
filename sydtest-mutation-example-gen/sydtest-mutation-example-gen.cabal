@@ -46,6 +46,7 @@ test-suite sydtest-mutation-example-gen-test
       Example.LocalDisableLibSpec
       Example.LogicLibSpec
       Example.OtherwiseLibSpec
+      Example.SwitchArgsLibSpec
       Paths_sydtest_mutation_example_gen
   hs-source-dirs:
       test

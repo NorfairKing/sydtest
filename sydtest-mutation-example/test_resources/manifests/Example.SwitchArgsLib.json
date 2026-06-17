@@ -1,0 +1,188 @@
+[
+  [
+    {
+      "col_end": 29,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | The same constructor applied to three textually identical arguments.",
+        "-- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing."
+      ],
+      "context_before": [
+        "-- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one",
+        "-- mutant per pair: swapping (r, g), (r, b), and (g, b).",
+        "makeColour :: Int -> Int -> Int -> RGB"
+      ],
+      "end_line": 30,
+      "id": [
+        "Example.SwitchArgsLib",
+        "SwitchFunctionArguments",
+        "30",
+        "20",
+        "29",
+        "g r",
+        "1"
+      ],
+      "line": 30,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "makeColour r g b = RGB g r b"
+      ],
+      "operator": "SwitchFunctionArguments",
+      "original": "r g",
+      "replacement": "g r",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "makeColour r g b = RGB r g b"
+      ]
+    },
+    {
+      "col_end": 29,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | The same constructor applied to three textually identical arguments.",
+        "-- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing."
+      ],
+      "context_before": [
+        "-- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one",
+        "-- mutant per pair: swapping (r, g), (r, b), and (g, b).",
+        "makeColour :: Int -> Int -> Int -> RGB"
+      ],
+      "end_line": 30,
+      "id": [
+        "Example.SwitchArgsLib",
+        "SwitchFunctionArguments",
+        "30",
+        "20",
+        "29",
+        "b r",
+        "2"
+      ],
+      "line": 30,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "makeColour r g b = RGB b g r"
+      ],
+      "operator": "SwitchFunctionArguments",
+      "original": "r b",
+      "replacement": "b r",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "makeColour r g b = RGB r g b"
+      ]
+    },
+    {
+      "col_end": 29,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | The same constructor applied to three textually identical arguments.",
+        "-- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing."
+      ],
+      "context_before": [
+        "-- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one",
+        "-- mutant per pair: swapping (r, g), (r, b), and (g, b).",
+        "makeColour :: Int -> Int -> Int -> RGB"
+      ],
+      "end_line": 30,
+      "id": [
+        "Example.SwitchArgsLib",
+        "SwitchFunctionArguments",
+        "30",
+        "20",
+        "29",
+        "b g",
+        "3"
+      ],
+      "line": 30,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "makeColour r g b = RGB r b g"
+      ],
+      "operator": "SwitchFunctionArguments",
+      "original": "g b",
+      "replacement": "b g",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "makeColour r g b = RGB r g b"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 32,
+      "col_start": 25,
+      "context_after": [
+        "",
+        "-- | A colour built from three 'Int' components.",
+        "data RGB = RGB Int Int Int"
+      ],
+      "context_before": [
+        "-- mutation must be produced exactly once -- not once for the parenthesis node",
+        "-- and once for the inner application.",
+        "parenDivide :: Int -> Int -> Int"
+      ],
+      "end_line": 21,
+      "id": [
+        "Example.SwitchArgsLib",
+        "SwitchFunctionArguments",
+        "21",
+        "25",
+        "32",
+        "b a",
+        "1"
+      ],
+      "line": 21,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "parenDivide a b = succ (div b a)"
+      ],
+      "operator": "SwitchFunctionArguments",
+      "original": "a b",
+      "replacement": "b a",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "parenDivide a b = succ (div a b)"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 24,
+      "col_start": 17,
+      "context_after": [
+        "",
+        "-- | A parenthesised application: the parentheses around @div a b@ are",
+        "-- required for precedence, so GHC keeps an 'HsPar' node around it.  The swap"
+      ],
+      "context_before": [
+        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@",
+        "-- instead of @div a b@.",
+        "divideThe :: Int -> Int -> Int"
+      ],
+      "end_line": 14,
+      "id": [
+        "Example.SwitchArgsLib",
+        "SwitchFunctionArguments",
+        "14",
+        "17",
+        "24",
+        "b a",
+        "1"
+      ],
+      "line": 14,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "divideThe a b = div b a"
+      ],
+      "operator": "SwitchFunctionArguments",
+      "original": "a b",
+      "replacement": "b a",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "divideThe a b = div a b"
+      ]
+    }
+  ]
+]

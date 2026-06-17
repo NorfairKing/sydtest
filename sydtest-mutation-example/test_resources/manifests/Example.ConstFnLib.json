@@ -13,17 +13,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "26",
         "28",
         "\\_ -> True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter (\\_ -> True) [a, b, c, d, e]) in n >= 3"
@@ -49,17 +49,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "26",
         "28",
         "\\_ -> False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter (\\_ -> False) [a, b, c, d, e]) in n >= 3"
@@ -87,17 +87,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "30",
         "31",
         "True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [True, b, c, d, e]) in n >= 3"
@@ -123,17 +123,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "30",
         "31",
         "False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [False, b, c, d, e]) in n >= 3"
@@ -161,17 +161,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "71",
+        "73",
         "30",
         "31",
         "not (e)",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [not (a), b, c, d, e]) in n >= 3"
@@ -199,17 +199,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "33",
         "34",
         "True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, True, c, d, e]) in n >= 3"
@@ -235,17 +235,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "33",
         "34",
         "False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, False, c, d, e]) in n >= 3"
@@ -273,17 +273,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "71",
+        "73",
         "33",
         "34",
         "not (e)",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, not (b), c, d, e]) in n >= 3"
@@ -311,17 +311,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "36",
         "37",
         "True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, True, d, e]) in n >= 3"
@@ -347,17 +347,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "36",
         "37",
         "False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, False, d, e]) in n >= 3"
@@ -385,17 +385,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "71",
+        "73",
         "36",
         "37",
         "not (e)",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, not (c), d, e]) in n >= 3"
@@ -423,17 +423,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "39",
         "40",
         "True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, True, e]) in n >= 3"
@@ -459,17 +459,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "39",
         "40",
         "False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, False, e]) in n >= 3"
@@ -497,17 +497,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "71",
+        "73",
         "39",
         "40",
         "not (e)",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, not (d), e]) in n >= 3"
@@ -535,17 +535,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "42",
         "43",
         "True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, True]) in n >= 3"
@@ -571,17 +571,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "42",
         "43",
         "False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, False]) in n >= 3"
@@ -609,17 +609,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "71",
+        "73",
         "42",
         "43",
         "not (e)",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, not (e)]) in n >= 3"
@@ -647,17 +647,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstEmptyList",
-        "71",
+        "73",
         "29",
         "44",
         "[]",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id []) in n >= 3"
@@ -685,17 +685,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ListLit",
-        "71",
+        "73",
         "29",
         "44",
         "0 elements",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [],
       "operator": "ListLit",
@@ -719,17 +719,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ListLit",
-        "71",
+        "73",
         "29",
         "44",
         "4 elements",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [],
       "operator": "ListLit",
@@ -753,17 +753,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ListLit",
-        "71",
+        "73",
         "29",
         "44",
         "4 elements",
         "3"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [],
       "operator": "ListLit",
@@ -789,17 +789,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstEmptyList",
-        "71",
+        "73",
         "19",
         "44",
         "[]",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length ([]) in n >= 3"
@@ -827,17 +827,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstEmptyList",
-        "71",
+        "73",
         "18",
         "45",
         "[]",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length [] in n >= 3"
@@ -865,17 +865,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "IntLit",
-        "71",
+        "73",
         "54",
         "55",
         "0",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n >= 0"
@@ -901,17 +901,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "IntLit",
-        "71",
+        "73",
         "54",
         "55",
         "1",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n >= 1"
@@ -937,17 +937,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "IntLit",
-        "71",
+        "73",
         "54",
         "55",
         "-3",
         "3"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n >= -3"
@@ -975,17 +975,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Cmp",
-        "71",
+        "73",
         "49",
         "55",
         "<",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n < 3"
@@ -1011,17 +1011,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Cmp",
-        "71",
+        "73",
         "49",
         "55",
         "<=",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n <= 3"
@@ -1047,17 +1047,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Cmp",
-        "71",
+        "73",
         "49",
         "55",
         ">",
         "3"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n > 3"
@@ -1085,17 +1085,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "49",
         "55",
         "True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in True"
@@ -1121,17 +1121,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "49",
         "55",
         "False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in False"
@@ -1159,17 +1159,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "71",
+        "73",
         "49",
         "55",
         "not (e)",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in not (n >= 3)"
@@ -1197,17 +1197,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "3",
         "55",
         "True",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  True"
@@ -1233,17 +1233,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "71",
+        "73",
         "3",
         "55",
         "False",
         "2"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  False"
@@ -1271,17 +1271,17 @@
         "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
         "majorityOf5 a b c d e ="
       ],
-      "end_line": 71,
+      "end_line": 73,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "71",
+        "73",
         "3",
         "55",
         "not (e)",
         "1"
       ],
-      "line": 71,
+      "line": 73,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "  not (let n = length (filter id [a, b, c, d, e]) in n >= 3)"
@@ -1301,21 +1301,21 @@
       "col_start": 50,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "50",
         "51",
         "True",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 True b c d e"
@@ -1333,21 +1333,21 @@
       "col_start": 50,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "50",
         "51",
         "False",
         "2"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 False b c d e"
@@ -1367,21 +1367,21 @@
       "col_start": 50,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "81",
+        "89",
         "50",
         "51",
         "not (e)",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 not (a) b c d e"
@@ -1401,21 +1401,21 @@
       "col_start": 52,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "52",
         "53",
         "True",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a True c d e"
@@ -1433,21 +1433,21 @@
       "col_start": 52,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "52",
         "53",
         "False",
         "2"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a False c d e"
@@ -1467,21 +1467,21 @@
       "col_start": 52,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "81",
+        "89",
         "52",
         "53",
         "not (e)",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a not (b) c d e"
@@ -1501,21 +1501,21 @@
       "col_start": 54,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "54",
         "55",
         "True",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b True d e"
@@ -1533,21 +1533,21 @@
       "col_start": 54,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "54",
         "55",
         "False",
         "2"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b False d e"
@@ -1567,21 +1567,21 @@
       "col_start": 54,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "81",
+        "89",
         "54",
         "55",
         "not (e)",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b not (c) d e"
@@ -1601,21 +1601,21 @@
       "col_start": 56,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "56",
         "57",
         "True",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c True e"
@@ -1633,21 +1633,21 @@
       "col_start": 56,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "56",
         "57",
         "False",
         "2"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c False e"
@@ -1667,21 +1667,21 @@
       "col_start": 56,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "81",
+        "89",
         "56",
         "57",
         "not (e)",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c not (d) e"
@@ -1701,21 +1701,21 @@
       "col_start": 58,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "58",
         "59",
         "True",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d True"
@@ -1733,21 +1733,21 @@
       "col_start": 58,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "58",
         "59",
         "False",
         "2"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d False"
@@ -1767,21 +1767,21 @@
       "col_start": 58,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "81",
+        "89",
         "58",
         "59",
         "not (e)",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d not (e)"
@@ -1801,21 +1801,21 @@
       "col_start": 38,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "38",
         "59",
         "True",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = True"
@@ -1833,21 +1833,21 @@
       "col_start": 38,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "81",
+        "89",
         "38",
         "59",
         "False",
         "2"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = False"
@@ -1867,21 +1867,21 @@
       "col_start": 38,
       "context_after": [],
       "context_before": [
-        "--     @(\\\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses",
-        "--     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).",
+        "-- behaviour.",
+        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 81,
+      "end_line": 89,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "81",
+        "89",
         "38",
         "59",
         "not (e)",
         "1"
       ],
-      "line": 81,
+      "line": 89,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = not (majorityOf5 a b c d e)"
@@ -2391,21 +2391,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "65",
+        "67",
         "30",
         "31",
         "True",
         "1"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = implies True b"
@@ -2427,21 +2427,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "65",
+        "67",
         "30",
         "31",
         "False",
         "2"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = implies False b"
@@ -2465,21 +2465,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "65",
+        "67",
         "30",
         "31",
         "not (e)",
         "1"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = implies not (a) b"
@@ -2503,21 +2503,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "65",
+        "67",
         "32",
         "33",
         "True",
         "1"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = implies a True"
@@ -2539,21 +2539,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "65",
+        "67",
         "32",
         "33",
         "False",
         "2"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = implies a False"
@@ -2577,21 +2577,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "65",
+        "67",
         "32",
         "33",
         "not (e)",
         "1"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = implies a not (b)"
@@ -2615,21 +2615,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "65",
+        "67",
         "22",
         "33",
         "True",
         "1"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = True"
@@ -2651,21 +2651,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "65",
+        "67",
         "22",
         "33",
         "False",
         "2"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = False"
@@ -2689,21 +2689,21 @@
         "-- mutation produces a well-formed prefix-form preview."
       ],
       "context_before": [
-        "--   * 'ConstBool' arity 2 produces @(\\\\_ _ -> True)@ and",
-        "--     @(\\\\_ _ -> False)@ mutants.",
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
         "impliesPair :: (Bool, Bool) -> Bool"
       ],
-      "end_line": 65,
+      "end_line": 67,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "65",
+        "67",
         "22",
         "33",
         "not (e)",
         "1"
       ],
-      "line": 65,
+      "line": 67,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = not (implies a b)"
@@ -2711,6 +2711,44 @@
       "operator": "Negate",
       "original": "e",
       "replacement": "not (e)",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "impliesPair (a, b) = implies a b"
+      ]
+    }
+  ],
+  [
+    {
+      "col_end": 33,
+      "col_start": 22,
+      "context_after": [
+        "",
+        "-- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5",
+        "-- mutation produces a well-formed prefix-form preview."
+      ],
+      "context_before": [
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
+        "impliesPair :: (Bool, Bool) -> Bool"
+      ],
+      "end_line": 67,
+      "id": [
+        "Example.ConstFnLib",
+        "SwitchFunctionArguments",
+        "67",
+        "22",
+        "33",
+        "b a",
+        "1"
+      ],
+      "line": 67,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "impliesPair (a, b) = implies b a"
+      ],
+      "operator": "SwitchFunctionArguments",
+      "original": "a b",
+      "replacement": "b a",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "impliesPair (a, b) = implies a b"

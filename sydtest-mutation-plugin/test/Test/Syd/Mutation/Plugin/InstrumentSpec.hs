@@ -174,3 +174,51 @@ spec = do
         5
         [mkSpan 2 1 2 2, mkSpan 4 1 4 2]
         `shouldBe` ["a", "c", "e"]
+
+  describe "applySwapSpans" $ do
+    it "swaps two single-line arguments of a prefix application" $
+      -- "foo aaa bbb", swapping "aaa" (cols 5-8) and "bbb" (cols 9-12).
+      applySwapSpans
+        ["foo aaa bbb"]
+        1
+        1
+        1
+        12
+        (mkSpan 1 5 1 8)
+        (mkSpan 1 9 1 12)
+        `shouldBe` ["foo bbb aaa"]
+
+    it "swaps regardless of the order the spans are given in" $
+      applySwapSpans
+        ["foo aaa bbb"]
+        1
+        1
+        1
+        12
+        (mkSpan 1 9 1 12)
+        (mkSpan 1 5 1 8)
+        `shouldBe` ["foo bbb aaa"]
+
+    it "preserves text before and after the matched expression" $
+      -- "  r = foo aaa bbb", the application spans cols 7-18.
+      applySwapSpans
+        ["  r = foo aaa bbb"]
+        1
+        1
+        7
+        18
+        (mkSpan 1 11 1 14)
+        (mkSpan 1 15 1 18)
+        `shouldBe` ["  r = foo bbb aaa"]
+
+    it "keeps a non-swapped middle argument in place" $
+      -- "f aa bb cc", swapping the outer two ("aa" cols 3-5, "cc" cols 9-11).
+      applySwapSpans
+        ["f aa bb cc"]
+        1
+        1
+        1
+        11
+        (mkSpan 1 3 1 5)
+        (mkSpan 1 9 1 11)
+        `shouldBe` ["f cc bb aa"]

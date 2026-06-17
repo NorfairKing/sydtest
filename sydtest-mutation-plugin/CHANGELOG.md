@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0.0] - 2026-06-17
+
+### Added
+
+* A `SwitchFunctionArguments` mutation operator: at a prefix function (or
+  constructor) application, for every pair of value arguments that have the
+  same type, it emits a mutant that swaps those two arguments.  Only the
+  maximal application spine is mutated, and pairs whose arguments have
+  identical source text are skipped (swapping them would be a no-op).
+
 ## [0.3.0.0] - 2026-06-09
 
 ### Added

@@ -1,0 +1,57 @@
+[36m# Example.SwitchArgsLib[m
+5 mutations in 3 groups
+
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #1
+[36m@@ -27,7 +27,7 @@[m
+ -- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one
+ -- mutant per pair: swapping (r, g), (r, b), and (g, b).
+ makeColour :: Int -> Int -> Int -> RGB
+[31m-[m[31mmakeColour r g b = RGB[m[41m [m[1;91mr[m[31m g[m[31m b[m
+[32m+[m[32mmakeColour r g b = RGB[m[32m g[m[42m [m[1;92mr[m[32m b[m
+ 
+ -- | The same constructor applied to three textually identical arguments.
+ -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
+
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #2
+[36m@@ -27,7 +27,7 @@[m
+ -- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one
+ -- mutant per pair: swapping (r, g), (r, b), and (g, b).
+ makeColour :: Int -> Int -> Int -> RGB
+[31m-[m[31mmakeColour r g b = RGB [m[1;91mr[m[31m g [m[1;91mb[m
+[32m+[m[32mmakeColour r g b = RGB [m[1;92mb[m[32m g [m[1;92mr[m
+ 
+ -- | The same constructor applied to three textually identical arguments.
+ -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
+
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #3
+[36m@@ -27,7 +27,7 @@[m
+ -- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one
+ -- mutant per pair: swapping (r, g), (r, b), and (g, b).
+ makeColour :: Int -> Int -> Int -> RGB
+[31m-[m[31mmakeColour r g b = RGB r[m[41m [m[1;91mg[m[31m b[m
+[32m+[m[32mmakeColour r g b = RGB r[m[32m b[m[1;92m g[m
+ 
+ -- | The same constructor applied to three textually identical arguments.
+ -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
+
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:21:25-32 #1
+[36m@@ -18,7 +18,7 @@[m
+ -- mutation must be produced exactly once -- not once for the parenthesis node
+ -- and once for the inner application.
+ parenDivide :: Int -> Int -> Int
+[31m-[m[31mparenDivide a b = succ (div[m[41m [m[1;91ma[m[31m b[m[31m)[m
+[32m+[m[32mparenDivide a b = succ (div[m[32m b[m[42m [m[1;92ma[m[32m)[m
+ 
+ -- | A colour built from three 'Int' components.
+ data RGB = RGB Int Int Int
+
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:14:17-24 #1
+[36m@@ -11,7 +11,7 @@[m
+ -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
+ -- instead of @div a b@.
+ divideThe :: Int -> Int -> Int
+[31m-[m[31mdivideThe a b = div[m[41m [m[1;91ma[m[31m b[m
+[32m+[m[32mdivideThe a b = div[m[32m b[m[1;92m a[m
+ 
+ -- | A parenthesised application: the parentheses around @div a b@ are
+ -- required for precedence, so GHC keeps an 'HsPar' node around it.  The swap

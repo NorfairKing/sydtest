@@ -14,6 +14,7 @@ module Test.Syd.Mutation.Plugin.Instrument
     runInstrument,
     instrumentModule,
     applySpanRemoval,
+    applySwapSpans,
     parseFunMutationAnns,
     FunMutationAnns (..),
     LocalDisable (..),
@@ -96,6 +97,11 @@ data SrcSpanDelta
     -- @not a || b@), so we replace the whole @OpApp@ span with a prefix-form
     -- rewrite instead.
     ReplaceOuterSpan RealSrcSpan Text
+  | -- | Swap the source text at two sub-spans (both within the matched
+    -- expression's span) with each other, leaving everything else
+    -- untouched.  Used by the 'SwitchFunctionArguments' operator to swap two
+    -- equal-typed arguments of a function application.
+    SwapSpans RealSrcSpan RealSrcSpan
 
 -- ---------------------------------------------------------------------------
 -- Operator
@@ -1168,6 +1174,54 @@ applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta o
   -- bounds already cover the outer span and 'applyTokenReplace' does the
   -- right thing.
   ReplaceOuterSpan _ newText -> applyTokenReplace colS colE newText spanLines
+  SwapSpans spanX spanY ->
+    applySwapSpans allLines outerStart outerEnd colS colE spanX spanY
+
+-- | Render the matched expression's display span (@outerStart@..@outerEnd@,
+-- columns @colS@..@colE@) with the source text at two sub-spans swapped, and
+-- everything else left intact.
+--
+-- The two sub-spans must lie within the display span and must not overlap.
+-- Like 'applyTokenReplace', a multi-line result is collapsed onto a single
+-- line (intermediate lines joined with single spaces), which is enough for
+-- the manifest preview.  Out-of-range line/column references resolve to
+-- empty text rather than crashing, matching 'applySpanRemoval'.
+applySwapSpans :: [Text] -> Int -> Int -> Int -> Int -> RealSrcSpan -> RealSrcSpan -> [Text]
+applySwapSpans allLines outerStart outerEnd colS colE spanX spanY =
+  let (spanA, spanB) = orderSpans spanX spanY
+      lineAt n = case drop (n - 1) allLines of
+        (l : _) -> l
+        [] -> T.empty
+      slice (l1, c1) (l2, c2)
+        | l1 == l2 = T.take (c2 - c1) (T.drop (c1 - 1) (lineAt l1))
+        | otherwise =
+            let firstPart = T.drop (c1 - 1) (lineAt l1)
+                middleParts = map lineAt [l1 + 1 .. l2 - 1]
+                lastPart = T.take (c2 - 1) (lineAt l2)
+             in T.intercalate " " (firstPart : middleParts ++ [lastPart])
+      aStart = (srcSpanStartLine spanA, srcSpanStartCol spanA)
+      aEnd = (srcSpanEndLine spanA, srcSpanEndCol spanA)
+      bStart = (srcSpanStartLine spanB, srcSpanStartCol spanB)
+      bEnd = (srcSpanEndLine spanB, srcSpanEndCol spanB)
+      -- Everything before the matched expression on its first line, and
+      -- everything after it on its last line, is preserved verbatim.
+      linePrefix = T.take (colS - 1) (lineAt outerStart)
+      lineSuffix = T.drop (colE - 1) (lineAt outerEnd)
+      -- Text from the matched expression's start up to the earlier span,
+      -- the gap between the spans, and the tail after the later span.
+      prefix = slice (outerStart, colS) aStart
+      midText = slice aEnd bStart
+      suffix = slice bEnd (outerEnd, colE)
+      aText = slice aStart aEnd
+      bText = slice bStart bEnd
+   in [linePrefix <> prefix <> bText <> midText <> aText <> suffix <> lineSuffix]
+
+-- | Order two spans so the first one starts no later than the second.
+orderSpans :: RealSrcSpan -> RealSrcSpan -> (RealSrcSpan, RealSrcSpan)
+orderSpans s1 s2 =
+  if (srcSpanStartLine s1, srcSpanStartCol s1) <= (srcSpanStartLine s2, srcSpanStartCol s2)
+    then (s1, s2)
+    else (s2, s1)
 
 -- | Wrap the matched span text with @prefix@ before and @suffix@ after.
 -- For multi-line spans only the prefix lands on the first line and the

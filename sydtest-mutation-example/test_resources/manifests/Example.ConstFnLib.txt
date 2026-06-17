@@ -1,8 +1,8 @@
 [36m# Example.ConstFnLib[m
-84 mutations in 56 groups
+85 mutations in 57 groups
 
-ConstBool at src/Example/ConstFnLib.hs:71:26-28 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:26-28 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -12,8 +12,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:26-28 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:26-28 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:26-28 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -23,8 +23,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:26-28 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:30-31 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:30-31 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -34,8 +34,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:30-31 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:30-31 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:30-31 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -45,8 +45,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:30-31 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Negate at src/Example/ConstFnLib.hs:71:30-31 #1
-[36m@@ -68,7 +68,7 @@[m
+Negate at src/Example/ConstFnLib.hs:73:30-31 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -56,8 +56,8 @@ Negate at src/Example/ConstFnLib.hs:71:30-31 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:33-34 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:33-34 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -67,8 +67,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:33-34 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:33-34 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:33-34 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -78,8 +78,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:33-34 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Negate at src/Example/ConstFnLib.hs:71:33-34 #1
-[36m@@ -68,7 +68,7 @@[m
+Negate at src/Example/ConstFnLib.hs:73:33-34 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -89,8 +89,8 @@ Negate at src/Example/ConstFnLib.hs:71:33-34 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:36-37 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:36-37 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -100,8 +100,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:36-37 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:36-37 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:36-37 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -111,8 +111,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:36-37 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Negate at src/Example/ConstFnLib.hs:71:36-37 #1
-[36m@@ -68,7 +68,7 @@[m
+Negate at src/Example/ConstFnLib.hs:73:36-37 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -122,8 +122,8 @@ Negate at src/Example/ConstFnLib.hs:71:36-37 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:39-40 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:39-40 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -133,8 +133,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:39-40 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:39-40 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:39-40 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -144,8 +144,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:39-40 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Negate at src/Example/ConstFnLib.hs:71:39-40 #1
-[36m@@ -68,7 +68,7 @@[m
+Negate at src/Example/ConstFnLib.hs:73:39-40 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -155,8 +155,8 @@ Negate at src/Example/ConstFnLib.hs:71:39-40 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:42-43 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:42-43 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -166,8 +166,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:42-43 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:42-43 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:42-43 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -177,8 +177,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:42-43 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Negate at src/Example/ConstFnLib.hs:71:42-43 #1
-[36m@@ -68,7 +68,7 @@[m
+Negate at src/Example/ConstFnLib.hs:73:42-43 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -188,8 +188,8 @@ Negate at src/Example/ConstFnLib.hs:71:42-43 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstEmptyList at src/Example/ConstFnLib.hs:71:29-44 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstEmptyList at src/Example/ConstFnLib.hs:73:29-44 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -199,8 +199,8 @@ ConstEmptyList at src/Example/ConstFnLib.hs:71:29-44 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ListLit at src/Example/ConstFnLib.hs:71:29-44 #1
-[36m@@ -68,7 +68,6 @@[m
+ListLit at src/Example/ConstFnLib.hs:73:29-44 #1
+[36m@@ -70,7 +70,6 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -209,8 +209,8 @@ ListLit at src/Example/ConstFnLib.hs:71:29-44 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ListLit at src/Example/ConstFnLib.hs:71:29-44 #2
-[36m@@ -68,7 +68,6 @@[m
+ListLit at src/Example/ConstFnLib.hs:73:29-44 #2
+[36m@@ -70,7 +70,6 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -219,8 +219,8 @@ ListLit at src/Example/ConstFnLib.hs:71:29-44 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ListLit at src/Example/ConstFnLib.hs:71:29-44 #3
-[36m@@ -68,7 +68,6 @@[m
+ListLit at src/Example/ConstFnLib.hs:73:29-44 #3
+[36m@@ -70,7 +70,6 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -229,8 +229,8 @@ ListLit at src/Example/ConstFnLib.hs:71:29-44 #3
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstEmptyList at src/Example/ConstFnLib.hs:71:19-44 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstEmptyList at src/Example/ConstFnLib.hs:73:19-44 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -240,8 +240,8 @@ ConstEmptyList at src/Example/ConstFnLib.hs:71:19-44 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstEmptyList at src/Example/ConstFnLib.hs:71:18-45 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstEmptyList at src/Example/ConstFnLib.hs:73:18-45 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -251,8 +251,8 @@ ConstEmptyList at src/Example/ConstFnLib.hs:71:18-45 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-IntLit at src/Example/ConstFnLib.hs:71:54-55 #1
-[36m@@ -68,7 +68,7 @@[m
+IntLit at src/Example/ConstFnLib.hs:73:54-55 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -262,8 +262,8 @@ IntLit at src/Example/ConstFnLib.hs:71:54-55 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-IntLit at src/Example/ConstFnLib.hs:71:54-55 #2
-[36m@@ -68,7 +68,7 @@[m
+IntLit at src/Example/ConstFnLib.hs:73:54-55 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -273,8 +273,8 @@ IntLit at src/Example/ConstFnLib.hs:71:54-55 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-IntLit at src/Example/ConstFnLib.hs:71:54-55 #3
-[36m@@ -68,7 +68,7 @@[m
+IntLit at src/Example/ConstFnLib.hs:73:54-55 #3
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -284,8 +284,8 @@ IntLit at src/Example/ConstFnLib.hs:71:54-55 #3
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Cmp at src/Example/ConstFnLib.hs:71:49-55 #1
-[36m@@ -68,7 +68,7 @@[m
+Cmp at src/Example/ConstFnLib.hs:73:49-55 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -295,8 +295,8 @@ Cmp at src/Example/ConstFnLib.hs:71:49-55 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Cmp at src/Example/ConstFnLib.hs:71:49-55 #2
-[36m@@ -68,7 +68,7 @@[m
+Cmp at src/Example/ConstFnLib.hs:73:49-55 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -306,8 +306,8 @@ Cmp at src/Example/ConstFnLib.hs:71:49-55 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Cmp at src/Example/ConstFnLib.hs:71:49-55 #3
-[36m@@ -68,7 +68,7 @@[m
+Cmp at src/Example/ConstFnLib.hs:73:49-55 #3
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -317,8 +317,8 @@ Cmp at src/Example/ConstFnLib.hs:71:49-55 #3
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:49-55 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:49-55 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -328,8 +328,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:49-55 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:49-55 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:49-55 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -339,8 +339,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:49-55 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Negate at src/Example/ConstFnLib.hs:71:49-55 #1
-[36m@@ -68,7 +68,7 @@[m
+Negate at src/Example/ConstFnLib.hs:73:49-55 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -350,8 +350,8 @@ Negate at src/Example/ConstFnLib.hs:71:49-55 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:3-55 #1
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:3-55 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -361,8 +361,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:3-55 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:71:3-55 #2
-[36m@@ -68,7 +68,7 @@[m
+ConstBool at src/Example/ConstFnLib.hs:73:3-55 #2
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -372,8 +372,8 @@ ConstBool at src/Example/ConstFnLib.hs:71:3-55 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-Negate at src/Example/ConstFnLib.hs:71:3-55 #1
-[36m@@ -68,7 +68,7 @@[m
+Negate at src/Example/ConstFnLib.hs:73:3-55 #1
+[36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
  majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
  majorityOf5 a b c d e =
@@ -383,146 +383,146 @@ Negate at src/Example/ConstFnLib.hs:71:3-55 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:81:50-51 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:50-51 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;91ma[m[31m b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m b c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:50-51 #2
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:50-51 #2
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[31ma[m[31m b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m b c d e[m
 
-Negate at src/Example/ConstFnLib.hs:81:50-51 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+Negate at src/Example/ConstFnLib.hs:89:50-51 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5[m[31m [m[31ma[m[31m b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32ma[m[1;92m)[m[32m b c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:52-53 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:52-53 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;91mb[m[31m c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:52-53 #2
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:52-53 #2
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;91mb[m[31m c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m c d e[m
 
-Negate at src/Example/ConstFnLib.hs:81:52-53 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+Negate at src/Example/ConstFnLib.hs:89:52-53 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a[m[31m [m[31mb[m[31m c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m[32m c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:54-55 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:54-55 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;91mc[m[31m d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:54-55 #2
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:54-55 #2
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;91mc[m[31m d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m d e[m
 
-Negate at src/Example/ConstFnLib.hs:81:54-55 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+Negate at src/Example/ConstFnLib.hs:89:54-55 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b[m[31m [m[31mc[m[31m d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mc[m[1;92m)[m[32m d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:56-57 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:56-57 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;91md[m[31m e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:56-57 #2
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:56-57 #2
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;91md[m[31m e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m e[m
 
-Negate at src/Example/ConstFnLib.hs:81:56-57 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+Negate at src/Example/ConstFnLib.hs:89:56-57 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c[m[31m [m[31md[m[31m e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32md[m[1;92m)[m[32m e[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:58-59 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:58-59 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[1;92mT[m[1;92mr[m[1;92mu[m[32me[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:58-59 #2
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:58-59 #2
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[1;92mF[m[1;92ma[m[1;92ml[m[1;92ms[m[32me[m
 
-Negate at src/Example/ConstFnLib.hs:81:58-59 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+Negate at src/Example/ConstFnLib.hs:89:58-59 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d[m[31m [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32me[m[1;92m)[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:38-59 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:38-59 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = [m[1;91mm[m[1;91ma[m[1;91mj[m[1;91mo[m[31mr[m[1;91mityOf[m[1;91m5 a b[m[1;91m c [m[1;91md[m[41m [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = [m[1;92mT[m[32mr[m[1;92mu[m[32me[m
 
-ConstBool at src/Example/ConstFnLib.hs:81:38-59 #2
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+ConstBool at src/Example/ConstFnLib.hs:89:38-59 #2
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) =[m[41m [m[1;91mm[m[1;91ma[m[1;91mjor[m[1;91mityOf[m[1;91m5[m[31m [m[31ma[m[41m [m[1;91mb[m[1;91m c [m[1;91md[m[41m [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) =[m[32m [m[1;92mF[m[32ma[m[1;92mls[m[32me[m
 
-Negate at src/Example/ConstFnLib.hs:81:38-59 #1
-[36m@@ -78,4 +78,4 @@[m
- --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
- --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+Negate at src/Example/ConstFnLib.hs:89:38-59 #1
+[36m@@ -86,4 +86,4 @@[m
+ -- behaviour.
+ {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) =[m[31m [m[31mmajorityOf5 a b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mmajorityOf5 a b c d e[m[1;92m)[m
@@ -670,10 +670,10 @@ Negate at src/Example/ConstFnLib.hs:55:15-25 #1
  -- | A wrapper around 'implies' whose body references 'implies' at arity 2
  -- as a bare (un-applied) name.
 
-ConstBool at src/Example/ConstFnLib.hs:65:30-31 #1
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+ConstBool at src/Example/ConstFnLib.hs:67:30-31 #1
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = implies [m[1;91ma[m[31m b[m
 [32m+[m[32mimpliesPair (a, b) = implies [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m b[m
@@ -681,10 +681,10 @@ ConstBool at src/Example/ConstFnLib.hs:65:30-31 #1
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-ConstBool at src/Example/ConstFnLib.hs:65:30-31 #2
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+ConstBool at src/Example/ConstFnLib.hs:67:30-31 #2
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = implies [m[31ma[m[31m b[m
 [32m+[m[32mimpliesPair (a, b) = implies [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m b[m
@@ -692,10 +692,10 @@ ConstBool at src/Example/ConstFnLib.hs:65:30-31 #2
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-Negate at src/Example/ConstFnLib.hs:65:30-31 #1
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+Negate at src/Example/ConstFnLib.hs:67:30-31 #1
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = implies[m[31m [m[31ma[m[31m b[m
 [32m+[m[32mimpliesPair (a, b) = implies[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32ma[m[1;92m)[m[32m b[m
@@ -703,10 +703,10 @@ Negate at src/Example/ConstFnLib.hs:65:30-31 #1
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-ConstBool at src/Example/ConstFnLib.hs:65:32-33 #1
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+ConstBool at src/Example/ConstFnLib.hs:67:32-33 #1
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = implies a [m[1;91mb[m
 [32m+[m[32mimpliesPair (a, b) = implies a [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m
@@ -714,10 +714,10 @@ ConstBool at src/Example/ConstFnLib.hs:65:32-33 #1
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-ConstBool at src/Example/ConstFnLib.hs:65:32-33 #2
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+ConstBool at src/Example/ConstFnLib.hs:67:32-33 #2
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = implies a [m[1;91mb[m
 [32m+[m[32mimpliesPair (a, b) = implies a [m[1;92mF[m[1;92ma[m[1;92mlse[m
@@ -725,10 +725,10 @@ ConstBool at src/Example/ConstFnLib.hs:65:32-33 #2
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-Negate at src/Example/ConstFnLib.hs:65:32-33 #1
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+Negate at src/Example/ConstFnLib.hs:67:32-33 #1
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = implies a[m[31m [m[31mb[m
 [32m+[m[32mimpliesPair (a, b) = implies a[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m
@@ -736,10 +736,10 @@ Negate at src/Example/ConstFnLib.hs:65:32-33 #1
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-ConstBool at src/Example/ConstFnLib.hs:65:22-33 #1
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+ConstBool at src/Example/ConstFnLib.hs:67:22-33 #1
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = [m[1;91mi[m[1;91mmpl[m[1;91mi[m[31me[m[1;91ms[m[41m [m[1;91ma b[m
 [32m+[m[32mimpliesPair (a, b) = [m[1;92mT[m[1;92mru[m[32me[m
@@ -747,10 +747,10 @@ ConstBool at src/Example/ConstFnLib.hs:65:22-33 #1
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-ConstBool at src/Example/ConstFnLib.hs:65:22-33 #2
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+ConstBool at src/Example/ConstFnLib.hs:67:22-33 #2
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = [m[1;91mi[m[1;91mm[m[1;91mp[m[31ml[m[1;91mi[m[1;91me[m[31ms[m[41m [m[1;91ma[m[41m [m[1;91mb[m
 [32m+[m[32mimpliesPair (a, b) = [m[1;92mFa[m[32ml[m[32ms[m[1;92me[m
@@ -758,13 +758,24 @@ ConstBool at src/Example/ConstFnLib.hs:65:22-33 #2
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
 
-Negate at src/Example/ConstFnLib.hs:65:22-33 #1
-[36m@@ -62,7 +62,7 @@[m
- --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
- --     @(\\_ _ -> False)@ mutants.
+Negate at src/Example/ConstFnLib.hs:67:22-33 #1
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) =[m[31m [m[31mimplies a b[m
 [32m+[m[32mimpliesPair (a, b) =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mimplies a b[m[1;92m)[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+SwitchFunctionArguments at src/Example/ConstFnLib.hs:67:22-33 #1
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
+ impliesPair :: (Bool, Bool) -> Bool
+[31m-[m[31mimpliesPair (a, b) = implies[m[41m [m[1;91ma[m[31m b[m
+[32m+[m[32mimpliesPair (a, b) = implies[m[32m b[m[1;92m a[m
  
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.

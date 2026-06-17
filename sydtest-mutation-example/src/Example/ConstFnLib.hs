@@ -61,6 +61,8 @@ implies a b = not a || b
 --
 --   * 'ConstBool' arity 2 produces @(\\_ _ -> True)@ and
 --     @(\\_ _ -> False)@ mutants.
+--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
 impliesPair :: (Bool, Bool) -> Bool
 impliesPair (a, b) = implies a b
 
@@ -77,5 +79,11 @@ majorityOf5 a b c d e =
 --   * 'ConstBool' arity 5 produces @(\\_ _ _ _ _ -> True)@ and
 --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
 --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
+--
+-- 'SwitchFunctionArguments' is disabled here: 'majorityOf5' is symmetric in
+-- its arguments, so swapping any two of them yields an equivalent mutant that
+-- no test can kill.  See 'Example.SwitchArgsLib' for the operator's killable
+-- behaviour.
+{-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
 majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e

@@ -1301,21 +1301,21 @@
       "col_start": 50,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "50",
         "51",
         "True",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 True b c d e"
@@ -1333,21 +1333,21 @@
       "col_start": 50,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "50",
         "51",
         "False",
         "2"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 False b c d e"
@@ -1367,21 +1367,21 @@
       "col_start": 50,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "89",
+        "91",
         "50",
         "51",
         "not (e)",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 not (a) b c d e"
@@ -1401,21 +1401,21 @@
       "col_start": 52,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "52",
         "53",
         "True",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a True c d e"
@@ -1433,21 +1433,21 @@
       "col_start": 52,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "52",
         "53",
         "False",
         "2"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a False c d e"
@@ -1467,21 +1467,21 @@
       "col_start": 52,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "89",
+        "91",
         "52",
         "53",
         "not (e)",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a not (b) c d e"
@@ -1501,21 +1501,21 @@
       "col_start": 54,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "54",
         "55",
         "True",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b True d e"
@@ -1533,21 +1533,21 @@
       "col_start": 54,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "54",
         "55",
         "False",
         "2"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b False d e"
@@ -1567,21 +1567,21 @@
       "col_start": 54,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "89",
+        "91",
         "54",
         "55",
         "not (e)",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b not (c) d e"
@@ -1601,21 +1601,21 @@
       "col_start": 56,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "56",
         "57",
         "True",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c True e"
@@ -1633,21 +1633,21 @@
       "col_start": 56,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "56",
         "57",
         "False",
         "2"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c False e"
@@ -1667,21 +1667,21 @@
       "col_start": 56,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "89",
+        "91",
         "56",
         "57",
         "not (e)",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c not (d) e"
@@ -1701,21 +1701,21 @@
       "col_start": 58,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "58",
         "59",
         "True",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d True"
@@ -1733,21 +1733,21 @@
       "col_start": 58,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "58",
         "59",
         "False",
         "2"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d False"
@@ -1767,21 +1767,21 @@
       "col_start": 58,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "89",
+        "91",
         "58",
         "59",
         "not (e)",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d not (e)"
@@ -1801,21 +1801,21 @@
       "col_start": 38,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "38",
         "59",
         "True",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = True"
@@ -1833,21 +1833,21 @@
       "col_start": 38,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "ConstBool",
-        "89",
+        "91",
         "38",
         "59",
         "False",
         "2"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = False"
@@ -1867,21 +1867,21 @@
       "col_start": 38,
       "context_after": [],
       "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
         "-- behaviour.",
-        "{-# ANN majorityOf5Wrapper (\"DisableMutation: SwitchFunctionArguments\" :: String) #-}",
         "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
       ],
-      "end_line": 89,
+      "end_line": 91,
       "id": [
         "Example.ConstFnLib",
         "Negate",
-        "89",
+        "91",
         "38",
         "59",
         "not (e)",
         "1"
       ],
-      "line": 89,
+      "line": 91,
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = not (majorityOf5 a b c d e)"

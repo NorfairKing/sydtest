@@ -80,3 +80,11 @@ spec = describe "Settings parser" $ do
     operatorsConfigDisabled expectedOperators `shouldBe` ["Arith"]
     operatorExtraFlag "skip-strings" (operatorConfigExtra (expectedOperators Map.! "ConstEmptyList"))
       `shouldBe` True
+
+  it "reads a list-of-strings operator key with operatorExtraStrings" $ do
+    let extra = Map.fromList [("skip-calls-to", JSON.toJSON (["max", "min"] :: [String]))]
+    operatorExtraStrings "skip-calls-to" extra `shouldBe` ["max", "min"]
+    -- A missing key and a non-array value both yield the empty list.
+    operatorExtraStrings "absent" extra `shouldBe` []
+    operatorExtraStrings "skip-calls-to" (Map.fromList [("skip-calls-to", JSON.Bool True)])
+      `shouldBe` []

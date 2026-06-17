@@ -14,3 +14,12 @@ debug: true
 ignore:
   - mark
   - markM
+
+# Exercises 'SwitchFunctionArguments' suppression: 'majorityOf5' (in
+# Example.ConstFnLib) is symmetric in its arguments, so swapping any two
+# produces an equivalent, unkillable mutant.  Listing it here skips the swap
+# at every call to it.
+operators:
+  SwitchFunctionArguments:
+    skip-calls-to:
+      - majorityOf5

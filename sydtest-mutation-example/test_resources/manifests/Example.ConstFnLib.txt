@@ -383,146 +383,146 @@ Negate at src/Example/ConstFnLib.hs:73:3-55 #1
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
-ConstBool at src/Example/ConstFnLib.hs:89:50-51 #1
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:50-51 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;91ma[m[31m b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m b c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:50-51 #2
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:50-51 #2
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[31ma[m[31m b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m b c d e[m
 
-Negate at src/Example/ConstFnLib.hs:89:50-51 #1
-[36m@@ -86,4 +86,4 @@[m
+Negate at src/Example/ConstFnLib.hs:91:50-51 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5[m[31m [m[31ma[m[31m b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32ma[m[1;92m)[m[32m b c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:52-53 #1
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:52-53 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;91mb[m[31m c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:52-53 #2
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:52-53 #2
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;91mb[m[31m c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m c d e[m
 
-Negate at src/Example/ConstFnLib.hs:89:52-53 #1
-[36m@@ -86,4 +86,4 @@[m
+Negate at src/Example/ConstFnLib.hs:91:52-53 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a[m[31m [m[31mb[m[31m c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m[32m c d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:54-55 #1
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:54-55 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;91mc[m[31m d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:54-55 #2
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:54-55 #2
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;91mc[m[31m d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m d e[m
 
-Negate at src/Example/ConstFnLib.hs:89:54-55 #1
-[36m@@ -86,4 +86,4 @@[m
+Negate at src/Example/ConstFnLib.hs:91:54-55 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b[m[31m [m[31mc[m[31m d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mc[m[1;92m)[m[32m d e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:56-57 #1
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:56-57 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;91md[m[31m e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;92mT[m[1;92mr[m[1;92mu[m[1;92me[m[32m e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:56-57 #2
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:56-57 #2
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;91md[m[31m e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c [m[1;92mF[m[1;92ma[m[1;92mls[m[1;92me[m[32m e[m
 
-Negate at src/Example/ConstFnLib.hs:89:56-57 #1
-[36m@@ -86,4 +86,4 @@[m
+Negate at src/Example/ConstFnLib.hs:91:56-57 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c[m[31m [m[31md[m[31m e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32md[m[1;92m)[m[32m e[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:58-59 #1
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:58-59 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[1;92mT[m[1;92mr[m[1;92mu[m[32me[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:58-59 #2
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:58-59 #2
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[1;92mF[m[1;92ma[m[1;92ml[m[1;92ms[m[32me[m
 
-Negate at src/Example/ConstFnLib.hs:89:58-59 #1
-[36m@@ -86,4 +86,4 @@[m
+Negate at src/Example/ConstFnLib.hs:91:58-59 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d[m[31m [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32me[m[1;92m)[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:38-59 #1
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:38-59 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = [m[1;91mm[m[1;91ma[m[1;91mj[m[1;91mo[m[31mr[m[1;91mityOf[m[1;91m5 a b[m[1;91m c [m[1;91md[m[41m [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = [m[1;92mT[m[32mr[m[1;92mu[m[32me[m
 
-ConstBool at src/Example/ConstFnLib.hs:89:38-59 #2
-[36m@@ -86,4 +86,4 @@[m
+ConstBool at src/Example/ConstFnLib.hs:91:38-59 #2
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) =[m[41m [m[1;91mm[m[1;91ma[m[1;91mjor[m[1;91mityOf[m[1;91m5[m[31m [m[31ma[m[41m [m[1;91mb[m[1;91m c [m[1;91md[m[41m [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) =[m[32m [m[1;92mF[m[32ma[m[1;92mls[m[32me[m
 
-Negate at src/Example/ConstFnLib.hs:89:38-59 #1
-[36m@@ -86,4 +86,4 @@[m
+Negate at src/Example/ConstFnLib.hs:91:38-59 #1
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
  -- behaviour.
- {-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) =[m[31m [m[31mmajorityOf5 a b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mmajorityOf5 a b c d e[m[1;92m)[m

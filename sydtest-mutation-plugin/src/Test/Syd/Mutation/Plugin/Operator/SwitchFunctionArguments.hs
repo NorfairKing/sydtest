@@ -3,12 +3,16 @@
 module Test.Syd.Mutation.Plugin.Operator.SwitchFunctionArguments (theOperator) where
 
 import Control.Monad.Reader (asks)
+import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC
 import GHC.Core.TyCo.Compare (eqType)
 import GHC.Hs.Syn.Type (lhsExprType)
+import GHC.Types.Id (idName)
+import GHC.Types.Name (getOccString, nameModule_maybe)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraStrings)
 
 -- | Swap two arguments of the same type in a prefix function application.
 --
@@ -29,6 +33,22 @@ import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), Mutation
 --     swap the full spine already covers.
 --   * Pairs whose two arguments have identical source text are skipped:
 --     swapping them produces an identical program and an unkillable mutant.
+--
+-- Symmetric functions (@max@, @min@, set union, a majority predicate, ...)
+-- produce /equivalent/ mutants — swapping their arguments cannot change the
+-- result, so no test can ever kill the mutant.  Because symmetry is a
+-- semantic property the plugin cannot detect, calls to such functions are
+-- suppressed by listing the function's name under the operator's
+-- @skip-calls-to@ config key:
+--
+-- > operators:
+-- >   SwitchFunctionArguments:
+-- >     skip-calls-to:
+-- >       - max
+-- >       - Data.Set.union
+--
+-- A name matches either bare (@max@, matching any module) or fully qualified
+-- (@GHC.Base.max@).
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
@@ -53,7 +73,15 @@ action le headExpr args pairs = do
   -- would duplicate one the full spine already produces.
   appDepth <- asks instrumentEnvAppDepth
   srcLines <- asks (maybe [] snd . instrumentEnvSourceFile)
-  if appDepth /= 0
+  -- Suppress calls to functions the user has marked symmetric (their swaps
+  -- are equivalent, unkillable mutants).  See this module's haddock.
+  opsConfig <- asks instrumentEnvOperatorsConfig
+  let extra = maybe Map.empty operatorConfigExtra (Map.lookup "SwitchFunctionArguments" opsConfig)
+      skipCallsTo = operatorExtraStrings "skip-calls-to" extra
+      skipThisCall = case headFunctionName headExpr of
+        Just n -> any (`elem` skipCallsTo) (nameMatchCandidates n)
+        Nothing -> False
+  if appDepth /= 0 || skipThisCall
     then pure []
     else
       let ty = lhsExprType le
@@ -103,6 +131,30 @@ collectApp = go []
     go acc le = case unLoc le of
       HsApp _ f a -> go (a : acc) f
       _ -> (le, acc)
+
+-- | The 'Name' of the function (or constructor) at the head of an
+-- application, peeling the type- and dictionary-application wrappers the
+-- typechecker leaves around the 'HsVar'.  'Nothing' for heads that are not a
+-- plain variable (e.g. a lambda or a data constructor at 'ConLikeTc').
+headFunctionName :: LHsExpr GhcTc -> Maybe Name
+headFunctionName = go
+  where
+    go le = case unLoc le of
+      HsVar _ (L _ v) -> Just (idName v)
+      XExpr (WrapExpr (HsWrap _ e)) -> go (noLocA e)
+      HsAppType _ f _ -> go f
+      HsPar _ e -> go e
+      _ -> Nothing
+
+-- | The strings a @skip-calls-to@ entry may use to refer to a name: the bare
+-- occurrence (@max@) and, when the name has a defining module, the fully
+-- qualified form (@GHC.Base.max@).
+nameMatchCandidates :: Name -> [Text]
+nameMatchCandidates n =
+  let occ = T.pack (getOccString n)
+   in case nameModule_maybe n of
+        Just m -> [occ, T.pack (moduleNameString (moduleName m)) <> "." <> occ]
+        Nothing -> [occ]
 
 -- | Indices @(i, j)@ with @i < j@ whose arguments have the same type.
 sameTypePairs :: [LHsExpr GhcTc] -> [(Int, Int)]

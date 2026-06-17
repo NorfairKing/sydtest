@@ -80,10 +80,12 @@ majorityOf5 a b c d e =
 --     @(\\_ _ _ _ _ -> False)@ mutants.  At a non-infix site this uses
 --     the plain 'TokenReplace' delta (no 'ReplaceOuterSpan' is needed).
 --
--- 'SwitchFunctionArguments' is disabled here: 'majorityOf5' is symmetric in
--- its arguments, so swapping any two of them yields an equivalent mutant that
--- no test can kill.  See 'Example.SwitchArgsLib' for the operator's killable
+-- 'SwitchFunctionArguments' would also fire on @majorityOf5 a b c d e@, but
+-- 'majorityOf5' is symmetric in its arguments, so swapping any two yields an
+-- equivalent mutant that no test can kill.  Rather than annotate the call
+-- site, @majorityOf5@ is listed under the operator's @skip-calls-to@ key in
+-- the mutation config (see @nix/mutation.yaml@), which suppresses the swap at
+-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
 -- behaviour.
-{-# ANN majorityOf5Wrapper ("DisableMutation: SwitchFunctionArguments" :: String) #-}
 majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e

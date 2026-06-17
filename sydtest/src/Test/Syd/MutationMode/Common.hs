@@ -379,7 +379,11 @@ renderMutationRunReport
           [chunk "     or for the whole module:"],
           [chunk "       {-# ANN module (\"DisableMutations\" :: String) #-}"],
           [chunk "     or globally in the plugin config (sydtest-mutation-plugin.yaml):"],
-          [chunk "       disabled-mutations: [<Operator>]"]
+          [chunk "       disabled-mutations: [<Operator>]"],
+          [chunk "  3. Suppress an equivalent mutant: if the operator swapped the arguments of a"],
+          [chunk "     symmetric function (SwitchFunctionArguments on e.g. max or set union), no test"],
+          [chunk "     can kill it.  List the function under the operator's skip-calls-to config key:"],
+          [chunk "       operators: {SwitchFunctionArguments: {skip-calls-to: [<function>]}}"]
         ]
       remediationUncoveredBody =
         [ [chunk "  1. Cover it: add a test that exercises the mutation site so the coverage phase records a covering test."],

@@ -9,6 +9,7 @@ module Test.Syd.Mutation.Plugin.OptParse
     OperatorConfig (..),
     operatorsConfigDisabled,
     operatorExtraFlag,
+    operatorExtraStrings,
     defaultSettings,
     parseSettings,
     resolveSettings,
@@ -18,6 +19,7 @@ where
 import Data.Aeson (Object, Value (..))
 import qualified Data.Aeson.Key as Key
 import qualified Data.Aeson.KeyMap as KeyMap
+import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -101,6 +103,15 @@ operatorExtraFlag :: Text -> Map Text Value -> Bool
 operatorExtraFlag k m = case Map.lookup k m of
   Just (Bool b) -> b
   _ -> False
+
+-- | Read a list-of-strings key from an operator's 'operatorConfigExtra',
+-- defaulting to the empty list.  Accepts a YAML/JSON array of strings; any
+-- non-string elements are ignored.  Used by operators that take a list of
+-- function names (e.g. 'SwitchFunctionArguments' reads @skip-calls-to@).
+operatorExtraStrings :: Text -> Map Text Value -> [Text]
+operatorExtraStrings k m = case Map.lookup k m of
+  Just (Array arr) -> [t | String t <- toList arr]
+  _ -> []
 
 -- | Decode the raw @operators@ config object into a per-operator map.
 decodeOperatorsConfig :: Object -> Map Text OperatorConfig

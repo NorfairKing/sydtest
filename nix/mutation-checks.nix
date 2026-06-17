@@ -47,4 +47,18 @@ in
     libraries = [ "sydtest-mutation-example" ];
     tests = [ "sydtest-mutation-example-gen" ];
   };
+
+  # Cross-package regression: 'sydtest-mutation-example-cross' has NO test
+  # suite of its own.  Its only coverage comes from a spec
+  # ('Example.CrossLibSpec') that lives in the *different*
+  # 'sydtest-mutation-example-gen' package.  The per-library report for the
+  # cross library must attribute that cross-package coverage and KILL its
+  # mutations; before the per-package-coverage fix it reported them uncovered.
+  # 'assertAllKilled' (the default) therefore fails the build if cross-package
+  # coverage regresses (the mutations would then show up uncovered/surviving).
+  mutation-sydtest-mutation-example-cross = mutationCheck {
+    name = "sydtest-mutation-example-cross";
+    libraries = [ "sydtest-mutation-example-cross" ];
+    tests = [ "sydtest-mutation-example-gen" ];
+  };
 }

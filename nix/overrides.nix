@@ -92,6 +92,7 @@ let
     "sydtest-mutation-driver" = sydtestPkg "sydtest-mutation-driver";
     "sydtest-mutation-driver-gen" = sydtestPkg "sydtest-mutation-driver-gen";
     "sydtest-mutation-example" = sydtestPkg "sydtest-mutation-example";
+    "sydtest-mutation-example-cross" = sydtestPkg "sydtest-mutation-example-cross";
     "sydtest-mutation-example-gen" = sydtestPkg "sydtest-mutation-example-gen";
     "sydtest-mutation-plugin" = sydtestPkg "sydtest-mutation-plugin";
     "sydtest-mutation-runtime" = sydtestPkg "sydtest-mutation-runtime";
@@ -137,6 +138,7 @@ let
     "sydtest-mutation-driver"
     "sydtest-mutation-driver-gen"
     "sydtest-mutation-example"
+    "sydtest-mutation-example-cross"
     "sydtest-mutation-example-gen"
     "sydtest-mutation-plugin"
     "sydtest-mutation-runtime"

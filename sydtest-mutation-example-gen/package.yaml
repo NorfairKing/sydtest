@@ -28,4 +28,5 @@ tests:
     - QuickCheck
     - sydtest
     - sydtest-mutation-example
+    - sydtest-mutation-example-cross
     - sydtest-mutation-example-gen

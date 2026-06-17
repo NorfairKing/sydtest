@@ -30,6 +30,7 @@ packages:
 - sydtest-mutation-driver
 - sydtest-mutation-driver-gen
 - sydtest-mutation-example
+- sydtest-mutation-example-cross
 - sydtest-mutation-example-gen
 
 ghc-options:

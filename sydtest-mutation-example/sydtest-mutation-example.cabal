@@ -34,6 +34,7 @@ library
       Example.LocalDisableLib
       Example.LogicLib
       Example.OtherwiseLib
+      Example.RemoveClauseLib
       Example.SwitchArgsLib
       Example.UntestedLib
   other-modules:

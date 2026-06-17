@@ -5,7 +5,7 @@ module Test.Syd.Mutation.Plugin.Operator.RemoveAction (theOperator) where
 import Control.Monad.Reader (asks)
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
 
 -- | Remove one non-binding action from a do block.
@@ -25,7 +25,7 @@ theOperator =
   MutationOperator
     { operatorName = "RemoveAction",
       operatorDescription = "Remove one non-binding action from a do block",
-      operatorMatch = \le ->
+      operatorKind = ExpressionOperator $ \le ->
         case viewThenChain le of
           Just (lhs, rest) ->
             Just (mutateChain (lhsExprType le) lhs rest)

@@ -38,6 +38,7 @@ library
       Test.Syd.Mutation.Plugin.Operator.Negate
       Test.Syd.Mutation.Plugin.Operator.RemoveAction
       Test.Syd.Mutation.Plugin.Operator.RemoveCase
+      Test.Syd.Mutation.Plugin.Operator.RemoveClause
       Test.Syd.Mutation.Plugin.Operator.SwitchFunctionArguments
       Test.Syd.Mutation.Plugin.Operator.Util
       Test.Syd.Mutation.Plugin.Operators

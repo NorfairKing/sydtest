@@ -4,14 +4,14 @@ module Test.Syd.Mutation.Plugin.Operator.ListLit (theOperator) where
 
 import GHC
 import GHC.Builtin.Types (mkListTy)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
     { operatorName = "ListLit",
       operatorDescription = "Shrink a list literal by removing elements or emptying it",
-      operatorMatch = \case
+      operatorKind = ExpressionOperator $ \case
         (L ann (ExplicitList elTy es))
           | length es >= 2 ->
               Just (action ann elTy es)

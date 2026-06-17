@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTyCon, falseDataCon, trueDataCon)
 import GHC.Types.Name (getOccString)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), OpAppCtx (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResult)
 
 -- | Replace an expression whose type is @arg1 -> ... -> argN -> Bool@
@@ -29,7 +29,7 @@ theOperator =
   MutationOperator
     { operatorName = "ConstBool",
       operatorDescription = "Replace a Bool-typed expression (or a function returning Bool) with a constant True or False",
-      operatorMatch = \le ->
+      operatorKind = ExpressionOperator $ \le ->
         case viewConstFnResult 0 boolTyCon le of
           Just m
             | not (isArity0BoolLit m le) -> Just (action le m)

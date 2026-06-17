@@ -1,5 +1,5 @@
 [36m# Example.ConstFnLib[m
-85 mutations in 57 groups
+87 mutations in 58 groups
 
 ConstBool at src/Example/ConstFnLib.hs:73:26-28 #1
 [36m@@ -70,7 +70,7 @@[m
@@ -853,6 +853,26 @@ MaybeOp at src/Example/ConstFnLib.hs:22:20-26 #1
  safeHead [] = Nothing
 [31m-[m[31msafeHead (x : _) = [m[1;91mJ[m[1;91mu[m[1;91ms[m[31mt[m[1;91m x[m
 [32m+[m[32msafeHead (x : _) = [m[1;92mNo[m[32mt[m[1;92mh[m[1;92ming[m
+ 
+ -- | Get the first character of a 'String' as 'Maybe'.
+ --
+
+RemoveClause at src/Example/ConstFnLib.hs:21:1-22 #1
+[36m@@ -18,7 +18,6 @@[m
+ -- 'Nothing'; the @Just x@ branch is constructor-headed so 'ConstNothing'
+ -- skips it ('MaybeOp' handles that one).
+ safeHead :: [a] -> Maybe a
+[31m-safeHead [] = Nothing[m
+ safeHead (x : _) = Just x
+ 
+ -- | Get the first character of a 'String' as 'Maybe'.
+
+RemoveClause at src/Example/ConstFnLib.hs:22:1-26 #2
+[36m@@ -19,7 +19,6 @@[m
+ -- skips it ('MaybeOp' handles that one).
+ safeHead :: [a] -> Maybe a
+ safeHead [] = Nothing
+[31m-safeHead (x : _) = Just x[m
  
  -- | Get the first character of a 'String' as 'Maybe'.
  --

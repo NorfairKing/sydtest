@@ -6,14 +6,14 @@ import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy, falseDataCon, trueDataCon)
 import GHC.Types.Name (getOccString)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
     { operatorName = "BoolLit",
       operatorDescription = "Replace a boolean literal with its negation",
-      operatorMatch = fmap action . extractBoolLit
+      operatorKind = ExpressionOperator $ fmap action . extractBoolLit
     }
 
 -- | Extract the OccName of a boolean literal, unwrapping HsWrap and

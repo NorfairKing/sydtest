@@ -1,0 +1,102 @@
+[
+  [
+    {
+      "binding": "describeSize",
+      "col_end": 24,
+      "col_start": 1,
+      "context_after": [
+        "describeSize [_] = Single",
+        "describeSize _ = Many"
+      ],
+      "context_before": [
+        "-- clause (a different 'Size'); removing the @_@ clause makes the function",
+        "-- non-exhaustive for longer lists.  Each is killed by the matching test.",
+        "describeSize :: [a] -> Size"
+      ],
+      "end_line": 17,
+      "id": [
+        "Example.RemoveClauseLib",
+        "RemoveClause",
+        "17",
+        "1",
+        "24",
+        "2 clauses (removed #1)",
+        "1"
+      ],
+      "line": 17,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [],
+      "operator": "RemoveClause",
+      "original": "3 clauses",
+      "replacement": "2 clauses (removed #1)",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize [] = Empty"
+      ]
+    },
+    {
+      "binding": "describeSize",
+      "col_end": 26,
+      "col_start": 1,
+      "context_after": [
+        "describeSize _ = Many"
+      ],
+      "context_before": [
+        "-- non-exhaustive for longer lists.  Each is killed by the matching test.",
+        "describeSize :: [a] -> Size",
+        "describeSize [] = Empty"
+      ],
+      "end_line": 18,
+      "id": [
+        "Example.RemoveClauseLib",
+        "RemoveClause",
+        "18",
+        "1",
+        "26",
+        "2 clauses (removed #2)",
+        "2"
+      ],
+      "line": 18,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [],
+      "operator": "RemoveClause",
+      "original": "3 clauses",
+      "replacement": "2 clauses (removed #2)",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize [_] = Single"
+      ]
+    },
+    {
+      "binding": "describeSize",
+      "col_end": 22,
+      "col_start": 1,
+      "context_after": [],
+      "context_before": [
+        "describeSize :: [a] -> Size",
+        "describeSize [] = Empty",
+        "describeSize [_] = Single"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.RemoveClauseLib",
+        "RemoveClause",
+        "19",
+        "1",
+        "22",
+        "2 clauses (removed #3)",
+        "3"
+      ],
+      "line": 19,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [],
+      "operator": "RemoveClause",
+      "original": "3 clauses",
+      "replacement": "2 clauses (removed #3)",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize _ = Many"
+      ]
+    }
+  ]
+]

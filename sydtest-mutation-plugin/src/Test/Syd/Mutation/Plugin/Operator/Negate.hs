@@ -13,14 +13,14 @@ import GHC.Tc.Utils.TcType (tcEqType)
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (greName)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..), liftTcM)
 
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
     { operatorName = "Negate",
       operatorDescription = "Wrap a Bool-typed expression with not",
-      operatorMatch = \le ->
+      operatorKind = ExpressionOperator $ \le ->
         -- Don't match Bool literals or existing negations — BoolLit and the
         -- recursive instrumentation already handle those; wrapping them again
         -- would produce redundant mutations.

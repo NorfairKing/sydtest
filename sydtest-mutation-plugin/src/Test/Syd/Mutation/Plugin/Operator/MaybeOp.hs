@@ -7,14 +7,14 @@ import GHC
 import GHC.Builtin.Types (nothingDataCon)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Types.Name (getOccString)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
     { operatorName = "MaybeOp",
       operatorDescription = "Replace Just e with Nothing",
-      operatorMatch = \case
+      operatorKind = ExpressionOperator $ \case
         le@(L _ (HsApp _ f _))
           | Just occ <- funOccName f,
             occ == "Just" ->

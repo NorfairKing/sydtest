@@ -4,6 +4,18 @@
 
 ### Added
 
+* A `RemoveClause` mutation operator: for a function binding with two or more
+  equations, it emits one mutant per equation that removes that equation.
+  Because a clause is a binding-level `Match` rather than an expression, the
+  removal is implemented by prepending an `ifMutation mid False True` guard to
+  the clause: when the mutation is active every guard of the clause fails, so
+  the clause matches no input and control falls through to the next equation
+  (or to a non-exhaustive `MatchFail` for the last matching clause).  The guard
+  sits after the clause's patterns, so coverage is attributed only to tests
+  that actually reach the clause.  Disable it like any other operator via
+  `disabled-mutations`, a module `{-# ANN #-}`, or
+  `operators.RemoveClause.enable: false`.
+
 * A `SwitchFunctionArguments` mutation operator: at a prefix function (or
   constructor) application, for every pair of value arguments that have the
   same type, it emits a mutant that swaps those two arguments.  Only the

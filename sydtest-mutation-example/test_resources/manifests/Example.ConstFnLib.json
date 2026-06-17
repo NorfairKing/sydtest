@@ -3105,6 +3105,78 @@
   ],
   [
     {
+      "binding": "safeHead",
+      "col_end": 22,
+      "col_start": 1,
+      "context_after": [
+        "safeHead (x : _) = Just x",
+        "",
+        "-- | Get the first character of a 'String' as 'Maybe'."
+      ],
+      "context_before": [
+        "-- 'Nothing'; the @Just x@ branch is constructor-headed so 'ConstNothing'",
+        "-- skips it ('MaybeOp' handles that one).",
+        "safeHead :: [a] -> Maybe a"
+      ],
+      "end_line": 21,
+      "id": [
+        "Example.ConstFnLib",
+        "RemoveClause",
+        "21",
+        "1",
+        "22",
+        "1 clauses (removed #1)",
+        "1"
+      ],
+      "line": 21,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [],
+      "operator": "RemoveClause",
+      "original": "2 clauses",
+      "replacement": "1 clauses (removed #1)",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "safeHead [] = Nothing"
+      ]
+    },
+    {
+      "binding": "safeHead",
+      "col_end": 26,
+      "col_start": 1,
+      "context_after": [
+        "",
+        "-- | Get the first character of a 'String' as 'Maybe'.",
+        "--"
+      ],
+      "context_before": [
+        "-- skips it ('MaybeOp' handles that one).",
+        "safeHead :: [a] -> Maybe a",
+        "safeHead [] = Nothing"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.ConstFnLib",
+        "RemoveClause",
+        "22",
+        "1",
+        "26",
+        "1 clauses (removed #2)",
+        "2"
+      ],
+      "line": 22,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [],
+      "operator": "RemoveClause",
+      "original": "2 clauses",
+      "replacement": "1 clauses (removed #2)",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "safeHead (x : _) = Just x"
+      ]
+    }
+  ],
+  [
+    {
       "binding": "firstChar",
       "col_end": 25,
       "col_start": 24,

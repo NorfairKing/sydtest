@@ -11,7 +11,7 @@ import GHC.Core.TyCo.Compare (eqType)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Types.Id (idName)
 import GHC.Types.Name (getOccString, nameModule_maybe)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraStrings)
 
 -- | Swap two arguments of the same type in a prefix function application.
@@ -54,7 +54,7 @@ theOperator =
   MutationOperator
     { operatorName = "SwitchFunctionArguments",
       operatorDescription = "Swap two same-typed arguments of a function application",
-      operatorMatch = \le -> case collectApp le of
+      operatorKind = ExpressionOperator $ \le -> case collectApp le of
         (headExpr, args)
           | pairs@(_ : _) <- sameTypePairs args ->
               Just (action le headExpr args pairs)

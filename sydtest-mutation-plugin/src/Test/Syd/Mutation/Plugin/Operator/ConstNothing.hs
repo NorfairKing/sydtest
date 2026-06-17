@@ -7,7 +7,7 @@ import Control.Monad.Reader (asks)
 import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (maybeTyCon, nothingDataCon)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), OpAppCtx (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResult)
 
 -- | Replace an expression whose type is @arg1 -> ... -> argN -> Maybe a@
@@ -30,7 +30,7 @@ theOperator =
   MutationOperator
     { operatorName = "ConstNothing",
       operatorDescription = "Replace a Maybe-typed expression (or a function returning Maybe) with a constant Nothing",
-      operatorMatch = \le ->
+      operatorKind = ExpressionOperator $ \le ->
         case viewConstFnResult 0 maybeTyCon le of
           Just m -> Just (action le m)
           Nothing -> Nothing

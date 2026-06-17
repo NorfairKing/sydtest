@@ -4,14 +4,14 @@ module Test.Syd.Mutation.Plugin.Operator.RemoveCase (theOperator) where
 
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
     { operatorName = "RemoveCase",
       operatorDescription = "Remove one alternative from a case expression",
-      operatorMatch = \case
+      operatorKind = ExpressionOperator $ \case
         le@(L ann (HsCase x scrut (MG mgx (L lann alts))))
           | length alts >= 2 ->
               Just (action ann x scrut mgx lann alts (lhsExprType le))

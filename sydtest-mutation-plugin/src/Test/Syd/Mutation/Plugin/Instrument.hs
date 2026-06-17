@@ -6,7 +6,10 @@
 module Test.Syd.Mutation.Plugin.Instrument
   ( MutationRecord (..),
     MutationOperator (..),
+    MutationOperatorKind (..),
     MutationAlt (..),
+    ClauseAlt (..),
+    wrapWithIfMutation,
     SrcSpanDelta (..),
     InstrumentEnv (..),
     OpAppCtx (..),
@@ -131,22 +134,63 @@ data MutationAlt = MutationAlt
     mutAltMitigation :: Maybe Text
   }
 
--- | A single mutation operator.
---
--- 'operatorMatch' inspects a type-checked expression and, if it is a candidate
--- for this operator, returns the mutation alternatives to generate at it.
--- Returning 'Nothing' means "not a candidate".
---
--- The matched expression has already been recursively instrumented by the
--- time 'operatorMatch' is called, so the operator only needs to inspect the
--- top-level shape.
+-- | A single mutation operator: its name and description (shared by every
+-- kind) together with the kind-specific way it finds and makes mutations.
 data MutationOperator = MutationOperator
-  { operatorName :: String,
+  { -- | The operator's name, used as the key in config and reports.
+    operatorName :: String,
     operatorDescription :: String,
-    -- | @Just action@ if this expression is a mutation candidate, @Nothing@ otherwise.
-    -- The action runs in 'InstrM' so it can look up replacement operator ids via
-    -- 'TcM' when needed (e.g. swapping @(+)@ for @(-)@).
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [MutationAlt])
+    -- | What the operator mutates, and how it finds candidates.
+    operatorKind :: MutationOperatorKind
+  }
+
+-- | The kinds of mutation operator, distinguished by the AST level they mutate.
+-- Each carries a match function that, given a node, returns the mutation
+-- alternatives to generate at it, or 'Nothing' if the node is not a candidate.
+data MutationOperatorKind
+  = -- | Mutates a single typechecked expression in place, wrapped as
+    -- @ifMutation \@ty mutant original@.  All of the original operators are of
+    -- this kind.  The matched expression has already had its children
+    -- recursively instrumented by the time the match function is called, so the
+    -- operator only needs to inspect the top-level shape.  The action runs in
+    -- 'InstrM' so it can look up replacement operator ids via 'TcM' when needed
+    -- (e.g. swapping @(+)@ for @(-)@).
+    ExpressionOperator (LHsExpr GhcTc -> Maybe (InstrM [MutationAlt]))
+  | -- | Mutates a function binding's set of clauses (its 'MatchGroup') rather
+    -- than a single expression.  A function-declaration mutation cannot be
+    -- expressed through the expression-level @ifMutation@ swap because a clause
+    -- is not an 'LHsExpr'; see 'ClauseAlt' for how its mutants are applied.
+    FunctionDeclarationOperator (MatchGroup GhcTc (LHsExpr GhcTc) -> Maybe (InstrM [ClauseAlt]))
+
+-- | A single clause-level mutation alternative produced by a
+-- 'FunctionDeclarationOperator' at one function binding.
+--
+-- Unlike an expression 'MutationAlt' — whose mutant is a self-contained
+-- replacement expression the framework wraps in @ifMutation@ — a clause mutant
+-- generally has to refer to its own 'MutationId' (e.g. to gate a clause on
+-- @ifMutation mid False True@).  So instead of a ready-made AST, a 'ClauseAlt'
+-- carries 'clauseAltApply': given the 'MutationId' the framework assigned and
+-- the match group built so far, it returns the match group with this mutation
+-- layered in.  The framework folds 'clauseAltApply' over every alternative, so
+-- all of a binding's clause mutations coexist in one compiled match group, each
+-- selectable at runtime by its own id — the clause-level analogue of the nested
+-- @ifMutation@ wrappers on the expression side.
+data ClauseAlt = ClauseAlt
+  { -- | Source span of the affected clause, used to build the 'MutationId' and
+    -- the manifest record.
+    clauseAltSpan :: SrcSpan,
+    -- | Human-readable description of the original code, for the manifest.
+    clauseAltOriginal :: String,
+    -- | Human-readable description of the replacement, for the manifest.
+    clauseAltReplacement :: String,
+    -- | How the source text changes, for the manifest preview.
+    clauseAltDelta :: SrcSpanDelta,
+    -- | Optional mitigation hint.
+    clauseAltMitigation :: Maybe Text,
+    -- | Layer this mutation (identified by the given 'MutationId') into the
+    -- match group built so far.  Must preserve the number and order of clauses
+    -- so later alternatives still address the right clause by position.
+    clauseAltApply :: MutationId -> MatchGroup GhcTc (LHsExpr GhcTc) -> InstrM (MatchGroup GhcTc (LHsExpr GhcTc))
   }
 
 -- ---------------------------------------------------------------------------
@@ -166,7 +210,9 @@ data InstrumentEnv = InstrumentEnv
     instrumentEnvIfMutationId :: Id,
     -- | DataCon for Test.Syd.Mutation.Runtime.MutationId, looked up once per module.
     instrumentEnvMutationIdCon :: DataCon,
-    -- | Operators to try at each expression site.
+    -- | Operators to try.  Both kinds live in one list; the expression walker
+    -- uses the 'ExpressionOperator's and the binding walker the
+    -- 'FunctionDeclarationOperator's.
     instrumentEnvOperators :: [MutationOperator],
     -- | Annotation environment for reading {-# ANN #-} annotations.
     instrumentEnvAnnEnv :: AnnEnv,
@@ -403,7 +449,13 @@ instrumentBind = \case
     -- 'instrumentEnvInLocalLet' flag is false at module top-level), so it only fires
     -- on truly local bindings.  Inside, 'withFunBindEnv' sees no annotations
     -- (locals can't be ANN'd) and leaves the disable map intact.
-    mg' <- withCurrentBinding funName (withLocalDisable funName (withFunBindEnv funName (instrumentMatchGroup mg)))
+    -- Instrument the clause bodies first, then (for a multi-clause binding)
+    -- layer the RemoveClause mutations on top.  Doing clause removal here in
+    -- 'instrumentBind' rather than in the shared 'instrumentMatchGroup' scopes
+    -- it to function equations only: the 'MatchGroup's of @\\case@ lambdas and
+    -- @case@ expressions also flow through 'instrumentMatchGroup' but must not
+    -- gain removal guards (case alternatives are 'RemoveCase'\'s job).
+    mg' <- withCurrentBinding funName (withLocalDisable funName (withFunBindEnv funName (instrumentMatchGroup mg >>= applyFunctionDeclarationOperators)))
     pure (FunBind x name mg')
   PatBind x pat mult rhs -> PatBind x pat mult <$> instrumentGRHSs rhs
   -- Skip evidence bindings.  The typechecker materialises the dictionaries an
@@ -686,6 +738,66 @@ instrumentMatch ::
   InstrM (Match GhcTc (LHsExpr GhcTc))
 instrumentMatch = \case
   Match x ctx pats body -> Match x ctx pats <$> instrumentGRHSs body
+
+-- | Try every 'FunctionDeclarationOperator' in turn on one function binding's
+-- (already-instrumented) match group, layering each operator's mutations in.
+--
+-- The expression-level analogue is 'tryMutateWith'; the difference is that a
+-- clause mutant is applied via 'clauseAltApply' (it has to refer to its own
+-- 'MutationId') rather than wrapped in an @ifMutation@ around a ready-made
+-- expression.
+applyFunctionDeclarationOperators ::
+  MatchGroup GhcTc (LHsExpr GhcTc) ->
+  InstrM (MatchGroup GhcTc (LHsExpr GhcTc))
+applyFunctionDeclarationOperators mg0 = do
+  operators <- asks instrumentEnvOperators
+  foldM applyFunctionDeclarationOperator mg0 operators
+
+-- | Try one operator on a function binding.  Expression operators are ignored
+-- here (they fire on expressions, in 'applyOperator').
+applyFunctionDeclarationOperator ::
+  MatchGroup GhcTc (LHsExpr GhcTc) ->
+  MutationOperator ->
+  InstrM (MatchGroup GhcTc (LHsExpr GhcTc))
+applyFunctionDeclarationOperator mg op = case operatorKind op of
+  ExpressionOperator _ -> pure mg
+  FunctionDeclarationOperator match -> case match mg of
+    Nothing -> pure mg
+    Just action -> do
+      alts <- action
+      case alts of
+        [] -> pure mg
+        _ -> applyClauseAlts (operatorName op) mg alts
+
+-- | Record each clause alternative and fold its 'clauseAltApply' into the match
+-- group, so all of a binding's clause mutations coexist and each is selectable
+-- at runtime by its own id.  The clause-level analogue of 'applyAlts'.
+applyClauseAlts ::
+  String ->
+  MatchGroup GhcTc (LHsExpr GhcTc) ->
+  [ClauseAlt] ->
+  InstrM (MatchGroup GhcTc (LHsExpr GhcTc))
+applyClauseAlts opName mg0 alts = do
+  (mg', records) <- go 1 mg0 alts
+  tell [MutationGroup records]
+  pure mg'
+  where
+    go _ mg [] = pure (mg, [])
+    go altIndex mg (alt : rest) = do
+      (mid, mRec) <-
+        recordMutationAt
+          (clauseAltSpan alt)
+          opName
+          (clauseAltOriginal alt)
+          (clauseAltReplacement alt)
+          (clauseAltDelta alt)
+          (clauseAltMitigation alt)
+          altIndex
+      -- A filtered-out alternative (TH splice / 'UnhelpfulSpan') yields no
+      -- record and is left unapplied, exactly as on the expression side.
+      mg' <- maybe (pure mg) (const (clauseAltApply alt mid mg)) mRec
+      (mg'', records) <- go (altIndex + 1) mg' rest
+      pure (mg'', maybe records (: records) mRec)
 
 instrumentGRHSs ::
   GRHSs GhcTc (LHsExpr GhcTc) ->
@@ -997,29 +1109,33 @@ tryMutateWith operators origExpr fallthroughExpr =
 -- (instrumented children).  See the ordering-invariant note on
 -- 'instrumentLExpr' for why this split is necessary.
 applyOperator :: LHsExpr GhcTc -> LHsExpr GhcTc -> MutationOperator -> InstrM (LHsExpr GhcTc)
-applyOperator origExpr fallthrough op = case operatorMatch op origExpr of
-  Nothing -> pure fallthrough
-  Just action -> do
-    alts <- action
-    case alts of
-      -- The operator's action chose to produce no alternatives (e.g.
-      -- RemoveAction declining to remove an action whose head is on the
-      -- 'ignore' list).  This is a deliberate non-candidate, not a
-      -- validation failure, so it must be silent.
-      [] -> pure fallthrough
-      _ -> do
-        hscEnv <- liftTcM getTopEnv
-        validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) alts
-        case validated of
-          [] -> do
-            liftTcM $
-              liftIO $
-                putStrLn $
-                  "mutation: WARNING all replacements dropped for operator "
-                    ++ operatorName op
-                    ++ locStr (getLocA origExpr)
-            pure fallthrough
-          (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
+applyOperator origExpr fallthrough op = case operatorKind op of
+  -- Function-declaration operators do not fire on expressions; they are applied
+  -- to function bindings by 'applyFunctionDeclarationOperators'.
+  FunctionDeclarationOperator _ -> pure fallthrough
+  ExpressionOperator match -> case match origExpr of
+    Nothing -> pure fallthrough
+    Just action -> do
+      alts <- action
+      case alts of
+        -- The operator's action chose to produce no alternatives (e.g.
+        -- RemoveAction declining to remove an action whose head is on the
+        -- 'ignore' list).  This is a deliberate non-candidate, not a
+        -- validation failure, so it must be silent.
+        [] -> pure fallthrough
+        _ -> do
+          hscEnv <- liftTcM getTopEnv
+          validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) alts
+          case validated of
+            [] -> do
+              liftTcM $
+                liftIO $
+                  putStrLn $
+                    "mutation: WARNING all replacements dropped for operator "
+                      ++ operatorName op
+                      ++ locStr (getLocA origExpr)
+              pure fallthrough
+            (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
 
 -- | Desugar a mutated expression and accept it only when desugaring is silent.
 --
@@ -1113,9 +1229,28 @@ recordMutation ::
   -- collide.
   Int ->
   InstrM (MutationId, Maybe MutationRecord)
-recordMutation le op MutationAlt {mutAltOriginal = origStr, mutAltReplacement = replStr, mutAltDelta = delta, mutAltMitigation = mitigation} altIndex = do
+recordMutation le op MutationAlt {mutAltOriginal = origStr, mutAltReplacement = replStr, mutAltDelta = delta, mutAltMitigation = mitigation} altIndex =
+  recordMutationAt (getLocA le) op origStr replStr delta mitigation altIndex
+
+-- | The core of 'recordMutation', taking the mutation's source span and
+-- description directly rather than via an 'LHsExpr' \/ 'MutationAlt'.  Used by
+-- both the expression-level operator path ('recordMutation') and the
+-- binding-level RemoveClause operator, which has no 'LHsExpr' to point at.
+recordMutationAt ::
+  SrcSpan ->
+  String ->
+  -- | Human-readable description of the original code, for the manifest.
+  String ->
+  -- | Human-readable description of the replacement, for the manifest.
+  String ->
+  SrcSpanDelta ->
+  -- | Optional mitigation hint.
+  Maybe Text ->
+  -- | 1-based index of this alternative within the operator's match.
+  Int ->
+  InstrM (MutationId, Maybe MutationRecord)
+recordMutationAt sp op origStr replStr delta mitigation altIndex = do
   InstrumentEnv {instrumentEnvModule, instrumentEnvSourceFile, instrumentEnvSkipThSplices, instrumentEnvSpliceSpans, instrumentEnvCurrentBinding} <- ask
-  let sp = getLocA le
   case sp of
     RealSrcSpan rss _
       | instrumentEnvSkipThSplices && any (`containsSpan` rss) instrumentEnvSpliceSpans ->

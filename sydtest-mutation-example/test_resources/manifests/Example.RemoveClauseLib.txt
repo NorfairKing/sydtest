@@ -1,0 +1,26 @@
+[36m# Example.RemoveClauseLib[m
+3 mutations in 1 group
+
+RemoveClause at src/Example/RemoveClauseLib.hs:17:1-24 #1
+[36m@@ -14,6 +14,5 @@[m
+ -- clause (a different 'Size'); removing the @_@ clause makes the function
+ -- non-exhaustive for longer lists.  Each is killed by the matching test.
+ describeSize :: [a] -> Size
+[31m-describeSize [] = Empty[m
+ describeSize [_] = Single
+ describeSize _ = Many
+
+RemoveClause at src/Example/RemoveClauseLib.hs:18:1-26 #2
+[36m@@ -15,5 +15,4 @@[m
+ -- non-exhaustive for longer lists.  Each is killed by the matching test.
+ describeSize :: [a] -> Size
+ describeSize [] = Empty
+[31m-describeSize [_] = Single[m
+ describeSize _ = Many
+
+RemoveClause at src/Example/RemoveClauseLib.hs:19:1-22 #3
+[36m@@ -16,4 +16,3 @@[m
+ describeSize :: [a] -> Size
+ describeSize [] = Empty
+ describeSize [_] = Single
+[31m-describeSize _ = Many[m

@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (charTyCon, listTyCon)
 import GHC.Core.Type (tyConAppTyCon_maybe)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), OpAppCtx (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, unwrapWrap, viewConstFnResult)
 import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraFlag)
 
@@ -23,7 +23,7 @@ theOperator =
   MutationOperator
     { operatorName = "ConstEmptyList",
       operatorDescription = "Replace a list-typed expression (or a function returning a list) with a constant []",
-      operatorMatch = \le ->
+      operatorKind = ExpressionOperator $ \le ->
         case viewConstFnResult 0 listTyCon le of
           Just m@ConstFnMatch {cfnTyConArgs = [elTy]} -> Just (action le elTy m)
           _ -> Nothing

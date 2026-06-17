@@ -5,7 +5,7 @@ module Test.Syd.Mutation.Plugin.Operator.Cmp (theOperator) where
 import Control.Monad.Reader (ask)
 import qualified Data.Text as T
 import GHC.Builtin.Types (boolTy)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..), liftTcM)
 import Test.Syd.Mutation.Plugin.Operator.Util (TcOpApp (..), matchTcOpApp, mkOpReplacement)
 
 theOperator :: MutationOperator
@@ -13,7 +13,7 @@ theOperator =
   MutationOperator
     { operatorName = "Cmp",
       operatorDescription = "Replace a comparison operator with another in the same class",
-      operatorMatch = \le -> case matchTcOpApp le of
+      operatorKind = ExpressionOperator $ \le -> case matchTcOpApp le of
         Just tcOp@(TcOpApp {tcOpAppOcc = occ})
           | not (null (replacementsFor occ)) ->
               Just (action tcOp (replacementsFor occ))

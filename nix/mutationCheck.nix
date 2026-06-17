@@ -306,6 +306,12 @@ let
 
   perPackageCoverages = map perPackageCoverage testPackages;
 
+  # One --coverage-dir flag per per-package coverage derivation.  Both the
+  # per-library report ('run') and the diff runner ('diff') hand the same set
+  # of per-package coverage directories to the driver, which unions them.
+  coverageDirFlags =
+    pkgs.lib.concatMapStringsSep " " (cov: "--coverage-dir=${cov}") perPackageCoverages;
+
   # The same per-package coverage derivations, keyed by package name, so a
   # single package's coverage can be built and inspected on its own via the
   # 'coverage' derivation's per-package passthrus (e.g.
@@ -361,21 +367,24 @@ let
       # PATH so children can find them.
       nativeBuildInputs = collectedTestToolDepends;
       # The driver writes report.txt, report.json, and every per-suite
-      # *.log file directly into --out-dir.  The augmented manifest is an
-      # intermediate artefact that lives in a workdir-local directory the
-      # driver creates itself.  (The diff-scoped runner does not read it from
-      # here — it reads the per-package coverage derivations instead.)
+      # *.log file directly into --out-dir.  It does NOT gather coverage here:
+      # coverage is the per-package 'coverage' derivations ('perPackageCoverages',
+      # the same ones '.diff' consumes), passed in via --coverage-dir.  The driver
+      # unions them (which is where a suite in one package covering another
+      # package's mutations is recorded) and restricts the union to this library's
+      # --manifest.  Reusing them means coverage is computed once per test package
+      # rather than re-run inside every per-library report.  The augmented manifest
+      # it assembles lives in a workdir-local directory the driver creates itself.
       buildPhase = ''
         runHook preBuild
 
         ${driver}/bin/sydtest-mutation-driver run \
           --manifest=${toString instrumentedHaskellPackages.${libPkg}.manifest} \
           ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
+          ${coverageDirFlags} \
           --child-mem-limit=${testProcessMemLimit} \
           ${failFastFlag} \
-          ${coverageJobsFlag} \
           ${mutationJobsFlag} \
-          ${coverageRetryFlag} \
           --mutation-augmented-manifest-dir=augmented \
           --out-dir="$out"
 
@@ -442,9 +451,7 @@ let
       esac
       sydtest-mutation-driver diff \
         ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
-        ${pkgs.lib.concatMapStringsSep " "
-          (pkg: ''--coverage-dir="${perPackageCoverage pkg}"'')
-          testPackages} \
+        ${coverageDirFlags} \
         --child-mem-limit=${testProcessMemLimit} \
         ${mutationJobsFlag} \
         "''${out_dir_args[@]}" \

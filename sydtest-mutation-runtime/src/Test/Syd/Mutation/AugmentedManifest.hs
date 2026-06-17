@@ -11,6 +11,7 @@ module Test.Syd.Mutation.AugmentedManifest
     AugmentedMutationGroup (..),
     AugmentedManifest (..),
     mergeAugmentedManifests,
+    readAndUnionCoverageDirs,
     filterAugmentedManifestByIds,
     writeAugmentedManifestFile,
     readAugmentedManifestFile,
@@ -273,6 +274,19 @@ mergeAugmentedManifests (AugmentedManifest base) (AugmentedManifest new) =
     mergeCoveringTests baseTids newTids =
       let baseSet = Set.fromList baseTids
        in baseTids ++ filter (`Set.notMember` baseSet) newTids
+
+-- | Read and union the augmented manifests from a list of per-package coverage
+-- directories.  Each directory is a @coverage@-subcommand output holding
+-- @augmented/manifest-augmented.json@; unioning them with
+-- 'mergeAugmentedManifests' combines the per-suite @covering_tests@ so a
+-- mutation covered by a test in any package is recorded — including
+-- cross-package coverage (a suite in one package covering another package's
+-- mutation).  The @run@ subcommand (per-library report) and the @diff@
+-- subcommand both consume the per-package coverage this way.
+readAndUnionCoverageDirs :: [Path Abs Dir] -> IO AugmentedManifest
+readAndUnionCoverageDirs coverageDirs =
+  foldl' mergeAugmentedManifests mempty
+    <$> mapM (\dir -> readAugmentedManifestFile (dir </> [reldir|augmented|])) coverageDirs
 
 -- | O(n) lookup by 'MutationId' across every group.
 lookupAugmentedMutationRecord :: MutationId -> AugmentedManifest -> Maybe AugmentedMutationRecord

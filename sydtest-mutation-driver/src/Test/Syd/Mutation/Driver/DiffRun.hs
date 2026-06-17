@@ -33,15 +33,13 @@ import System.Exit (ExitCode (..), exitWith)
 import System.IO (hFlush, stderr, stdout)
 import System.Process.Typed (proc, readProcessStdout_)
 import Test.Syd.Mutation.AugmentedManifest
-  ( AugmentedManifest (..),
-    AugmentedMutationRecord (..),
+  ( AugmentedMutationRecord (..),
     MutationGroupReport (..),
     MutationOutcome (..),
     MutationRunReport (..),
     SurvivedMutation (..),
     filterAugmentedManifestByIds,
-    mergeAugmentedManifests,
-    readAugmentedManifestFile,
+    readAndUnionCoverageDirs,
     writeAugmentedManifestFile,
   )
 import Test.Syd.Mutation.Driver.AssertScore (AssertScoreResult (..), assertScoreResult)
@@ -88,11 +86,7 @@ runDiff DiffSettings {..} = do
   -- manifests in-memory, and read each suite's test-location listing from
   -- whichever directory provides it.  Consuming the per-package coverage
   -- directly avoids a separate merge derivation.
-  manifests <-
-    mapM
-      (\dir -> readAugmentedManifestFile (dir </> [reldir|augmented|]))
-      diffSettingCoverageDirs
-  let manifest = foldl mergeAugmentedManifests (AugmentedManifest []) manifests
+  manifest <- readAndUnionCoverageDirs diffSettingCoverageDirs
   testLocationsBySuite <-
     Map.traverseWithKey
       (\suiteName _ -> readTestLocations diffSettingCoverageDirs suiteName)

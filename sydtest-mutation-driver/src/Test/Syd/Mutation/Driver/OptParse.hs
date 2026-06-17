@@ -108,12 +108,20 @@ parseSuitePkgSpec s = case splitOnEq s of
 data MutationDriverSettings = MutationDriverSettings
   { mutationDriverSettingManifests :: ![Path Abs Dir],
     mutationDriverSettingSuitePkgs :: ![SuitePkgSpec],
+    -- | Pre-computed per-package coverage directories (each holding
+    -- @augmented/@), as produced by the @coverage@ subcommand.  The @run@
+    -- subcommand does NOT gather coverage itself: it unions these directories'
+    -- augmented manifests, restricts them to the mutations in
+    -- @mutationDriverSettingManifests@, and runs only the mutation phase.  This
+    -- both honours the cross-package coverage the per-package @coverage@ runs
+    -- capture (a test suite in one package covering another package's
+    -- mutations) and avoids recomputing coverage once per instrumented library.
+    -- At least one is required.
+    mutationDriverSettingCoverageDirs :: ![Path Abs Dir],
     mutationDriverSettingChildMemLimit :: !(Maybe String),
-    mutationDriverSettingCoverageJobs :: !(Maybe Word),
     -- | Max mutation children to run concurrently ('Nothing' =
     -- 'getNumCapabilities').
     mutationDriverSettingMutationJobs :: !(Maybe Word),
-    mutationDriverSettingCoverageRetry :: !Word,
     mutationDriverSettingAugmentedManifestDir :: !(Path Abs Dir),
     mutationDriverSettingOutDir :: !(Path Abs Dir),
     mutationDriverSettingFailFast :: !Bool,
@@ -209,6 +217,14 @@ mutationDriverSettingsParser = do
           long "suite-pkg",
           metavar "PNAME=ROOT=RESOURCE_DIR"
         ]
+  mutationDriverSettingCoverageDirs <-
+    many $
+      directoryPathSetting
+        [ help "Pre-computed per-package coverage directory (holding augmented/), from the 'coverage' subcommand; the union of these IS the coverage (the run subcommand does not gather coverage itself). At least one is required (may be repeated).",
+          option,
+          long "coverage-dir",
+          metavar "DIR"
+        ]
   mutationDriverSettingChildMemLimit <-
     optional $
       setting
@@ -218,25 +234,7 @@ mutationDriverSettingsParser = do
           long "child-mem-limit",
           metavar "LIMIT"
         ]
-  mutationDriverSettingCoverageJobs <-
-    optional $
-      setting
-        [ help "Maximum number of coverage children to run concurrently",
-          reader auto,
-          option,
-          long "coverage-jobs",
-          metavar "INT"
-        ]
   mutationDriverSettingMutationJobs <- mutationJobsParser
-  mutationDriverSettingCoverageRetry <-
-    setting
-      [ help "How many times to retry a failing coverage child before giving up",
-        reader auto,
-        option,
-        long "coverage-retry",
-        metavar "INT",
-        value defaultCoverageRetry
-      ]
   mutationDriverSettingAugmentedManifestDir <-
     directoryPathSetting
       [ help "Directory for manifest-augmented.json (required)",

@@ -77,7 +77,13 @@ data AugmentedMutationRecord = AugmentedMutationRecord
     -- | Monotonic-clock timeout (in microseconds) to apply to a mutation child
     -- running this mutation.  Derived during the coverage phase as
     -- @max 30_000_000 (10 * sum baselines_of_covering_tests)@.
-    augmentedMutationRecordTimeoutMicros :: Word
+    augmentedMutationRecordTimeoutMicros :: Word,
+    -- | Source name of the enclosing top-level binding, if known.  Carried
+    -- through from 'mutRecBinding' so the report can suggest the exact
+    -- @{-# ANN \<binding\> ... #-}@ disable annotation.
+    augmentedMutationRecordBinding :: Maybe Text,
+    -- | Optional mitigation hint, carried through from 'mutRecMitigation'.
+    augmentedMutationRecordMitigation :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec AugmentedMutationRecord)
@@ -106,6 +112,8 @@ instance HasCodec AugmentedMutationRecord where
         <*> optionalFieldWithDefault' "context_after" [] .= augmentedMutationRecordContextAfter
         <*> optionalFieldWithDefaultWith' "covering_tests" coveringTestsCodec Map.empty .= augmentedMutationRecordCoveringTests
         <*> requiredField' "timeout_micros" .= augmentedMutationRecordTimeoutMicros
+        <*> optionalField' "binding" .= augmentedMutationRecordBinding
+        <*> optionalField' "mitigation" .= augmentedMutationRecordMitigation
 
 instance Validity AugmentedMutationRecord
 
@@ -513,7 +521,7 @@ readMutationRunReport dir = do
 -- | Convert a 'MutationRecord' with coverage data to an 'AugmentedMutationRecord'.
 -- Records with 'mutRecCoveringTests' = 'Nothing' are dropped.
 fromMutationRecord :: MutationRecord -> Maybe AugmentedMutationRecord
-fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecEndLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLines, mutRecMutatedLines, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests} =
+fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mutRecReplacement, mutRecModule, mutRecLine, mutRecEndLine, mutRecColStart, mutRecColEnd, mutRecSourceFile, mutRecSourceLines, mutRecMutatedLines, mutRecContextBefore, mutRecContextAfter, mutRecCoveringTests, mutRecBinding, mutRecMitigation} =
   case mutRecCoveringTests of
     Nothing -> Nothing
     Just ts ->
@@ -538,7 +546,9 @@ fromMutationRecord MutationRecord {mutRecId, mutRecOperator, mutRecOriginal, mut
             -- code path constructs the record from a raw MutationRecord
             -- that has no baseline info, so we use the floor as a safe
             -- initial value.
-            augmentedMutationRecordTimeoutMicros = defaultTimeoutMicros
+            augmentedMutationRecordTimeoutMicros = defaultTimeoutMicros,
+            augmentedMutationRecordBinding = mutRecBinding,
+            augmentedMutationRecordMitigation = mutRecMitigation
           }
 
 -- | A mutation that is about to be tested, used as the progress log event.

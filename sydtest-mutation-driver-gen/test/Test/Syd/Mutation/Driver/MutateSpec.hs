@@ -59,7 +59,9 @@ spec = describe "runMutationMode" $ do
                     augmentedMutationRecordContextAfter = [],
                     augmentedMutationRecordCoveringTests =
                       Map.singleton "suite" [TestId (("t", 0) :| [])],
-                    augmentedMutationRecordTimeoutMicros = 30000000
+                    augmentedMutationRecordTimeoutMicros = 30000000,
+                    augmentedMutationRecordBinding = Nothing,
+                    augmentedMutationRecordMitigation = Nothing
                   }
           writeAugmentedManifestFile
             manifestDir
@@ -104,7 +106,9 @@ spec = describe "runMutationMode" $ do
                 augmentedMutationRecordContextBefore = [],
                 augmentedMutationRecordContextAfter = [],
                 augmentedMutationRecordCoveringTests = Map.singleton "absent-suite" [],
-                augmentedMutationRecordTimeoutMicros = 30000000
+                augmentedMutationRecordTimeoutMicros = 30000000,
+                augmentedMutationRecordBinding = Nothing,
+                augmentedMutationRecordMitigation = Nothing
               }
       writeAugmentedManifestFile
         dir

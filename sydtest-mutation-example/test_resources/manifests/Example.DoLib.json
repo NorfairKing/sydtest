@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "greet",
       "col_end": 27,
       "col_start": 14,
       "context_after": [
@@ -39,6 +40,7 @@
   ],
   [
     {
+      "binding": "greet",
       "col_end": 19,
       "col_start": 12,
       "context_after": [
@@ -76,6 +78,7 @@
   ],
   [
     {
+      "binding": "greet",
       "col_end": 14,
       "col_start": 10,
       "context_after": [
@@ -110,6 +113,7 @@
       ]
     },
     {
+      "binding": "greet",
       "col_end": 14,
       "col_start": 10,
       "context_after": [
@@ -146,6 +150,7 @@
   ],
   [
     {
+      "binding": "greet",
       "col_end": 14,
       "col_start": 10,
       "context_after": [
@@ -182,6 +187,7 @@
   ],
   [
     {
+      "binding": "greet",
       "col_end": 28,
       "col_start": 25,
       "context_after": [
@@ -218,6 +224,7 @@
   ],
   [
     {
+      "binding": "greet",
       "col_end": 16,
       "col_start": 12,
       "context_after": [],
@@ -252,6 +259,7 @@
   ],
   [
     {
+      "binding": "greet",
       "col_end": 41,
       "col_start": 7,
       "context_after": [
@@ -286,6 +294,7 @@
   ],
   [
     {
+      "binding": "greet",
       "col_end": 16,
       "col_start": 10,
       "context_after": [],

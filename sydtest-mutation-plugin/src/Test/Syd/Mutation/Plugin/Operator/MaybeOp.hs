@@ -7,7 +7,7 @@ import GHC
 import GHC.Builtin.Types (nothingDataCon)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Types.Name (getOccString)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
@@ -35,11 +35,20 @@ funOccName = \case
 
 action ::
   LHsExpr GhcTc ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action le =
   -- lhsExprType gives Maybe a, which is the type for the ifMutation wrapper.
   -- nlHsDataCon for nothingDataCon produces Nothing; the desugarer handles
   -- the polymorphic type instantiation via the surrounding type context.
   let mayTy = lhsExprType le
       nothingExpr = nlHsDataCon nothingDataCon
-   in pure [(mayTy, nothingExpr, "Just e", "Nothing", TokenReplace "Nothing")]
+   in pure
+        [ MutationAlt
+            { mutAltType = mayTy,
+              mutAltExpr = nothingExpr,
+              mutAltOriginal = "Just e",
+              mutAltReplacement = "Nothing",
+              mutAltDelta = TokenReplace "Nothing",
+              mutAltMitigation = Nothing
+            }
+        ]

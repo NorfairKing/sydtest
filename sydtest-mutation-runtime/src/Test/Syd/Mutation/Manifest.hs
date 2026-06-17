@@ -68,7 +68,16 @@ data MutationRecord = MutationRecord
     -- | Tests whose execution reaches this mutation site, keyed by test suite
     -- name.  The empty string @""@ is used for anonymous\/single-suite setups.
     -- 'Nothing' means coverage has not been collected yet.
-    mutRecCoveringTests :: Maybe (Map.Map Text [TestId])
+    mutRecCoveringTests :: Maybe (Map.Map Text [TestId]),
+    -- | Source name ('OccName') of the enclosing top-level binding, if known.
+    -- Used by the report to suggest the exact @{-# ANN \<binding\> ... #-}@
+    -- disable annotation for this mutation.
+    mutRecBinding :: Maybe Text,
+    -- | Optional human-readable hint about how this specific mutation can be
+    -- mitigated other than by killing it (e.g. that it is an equivalent
+    -- mutant and which config key suppresses it).  Set by the operator that
+    -- produced the mutation.
+    mutRecMitigation :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationRecord)
@@ -102,6 +111,8 @@ instance HasCodec MutationRecord where
         <*> optionalFieldWithDefault' "context_before" [] .= mutRecContextBefore
         <*> optionalFieldWithDefault' "context_after" [] .= mutRecContextAfter
         <*> optionalFieldWith' "covering_tests" coveringTestsMapCodec .= mutRecCoveringTests
+        <*> optionalField' "binding" .= mutRecBinding
+        <*> optionalField' "mitigation" .= mutRecMitigation
 
 -- | Codec for 'Path Rel File' as a JSON string.
 relFileCodec :: JSONCodec (Path Rel File)

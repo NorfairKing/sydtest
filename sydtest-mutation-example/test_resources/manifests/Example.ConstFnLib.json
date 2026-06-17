@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "majorityOf5",
       "col_end": 28,
       "col_start": 26,
       "context_after": [
@@ -37,6 +38,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 28,
       "col_start": 26,
       "context_after": [
@@ -75,6 +77,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 31,
       "col_start": 30,
       "context_after": [
@@ -111,6 +114,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 31,
       "col_start": 30,
       "context_after": [
@@ -149,6 +153,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 31,
       "col_start": 30,
       "context_after": [
@@ -187,6 +192,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 34,
       "col_start": 33,
       "context_after": [
@@ -223,6 +229,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 34,
       "col_start": 33,
       "context_after": [
@@ -261,6 +268,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 34,
       "col_start": 33,
       "context_after": [
@@ -299,6 +307,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 37,
       "col_start": 36,
       "context_after": [
@@ -335,6 +344,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 37,
       "col_start": 36,
       "context_after": [
@@ -373,6 +383,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 37,
       "col_start": 36,
       "context_after": [
@@ -411,6 +422,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 40,
       "col_start": 39,
       "context_after": [
@@ -447,6 +459,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 40,
       "col_start": 39,
       "context_after": [
@@ -485,6 +498,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 40,
       "col_start": 39,
       "context_after": [
@@ -523,6 +537,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 43,
       "col_start": 42,
       "context_after": [
@@ -559,6 +574,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 43,
       "col_start": 42,
       "context_after": [
@@ -597,6 +613,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 43,
       "col_start": 42,
       "context_after": [
@@ -635,6 +652,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 44,
       "col_start": 29,
       "context_after": [
@@ -673,6 +691,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 44,
       "col_start": 29,
       "context_after": [
@@ -707,6 +726,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 44,
       "col_start": 29,
       "context_after": [
@@ -741,6 +761,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 44,
       "col_start": 29,
       "context_after": [
@@ -777,6 +798,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 44,
       "col_start": 19,
       "context_after": [
@@ -815,6 +837,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 45,
       "col_start": 18,
       "context_after": [
@@ -853,6 +876,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 54,
       "context_after": [
@@ -889,6 +913,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 54,
       "context_after": [
@@ -925,6 +950,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 54,
       "context_after": [
@@ -963,6 +989,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 49,
       "context_after": [
@@ -999,6 +1026,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 49,
       "context_after": [
@@ -1035,6 +1063,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 49,
       "context_after": [
@@ -1073,6 +1102,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 49,
       "context_after": [
@@ -1109,6 +1139,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 49,
       "context_after": [
@@ -1147,6 +1178,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 49,
       "context_after": [
@@ -1185,6 +1217,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 3,
       "context_after": [
@@ -1221,6 +1254,7 @@
       ]
     },
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 3,
       "context_after": [
@@ -1259,6 +1293,7 @@
   ],
   [
     {
+      "binding": "majorityOf5",
       "col_end": 55,
       "col_start": 3,
       "context_after": [
@@ -1297,6 +1332,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 51,
       "col_start": 50,
       "context_after": [],
@@ -1329,6 +1365,7 @@
       ]
     },
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 51,
       "col_start": 50,
       "context_after": [],
@@ -1363,6 +1400,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 51,
       "col_start": 50,
       "context_after": [],
@@ -1397,6 +1435,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 53,
       "col_start": 52,
       "context_after": [],
@@ -1429,6 +1468,7 @@
       ]
     },
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 53,
       "col_start": 52,
       "context_after": [],
@@ -1463,6 +1503,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 53,
       "col_start": 52,
       "context_after": [],
@@ -1497,6 +1538,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 55,
       "col_start": 54,
       "context_after": [],
@@ -1529,6 +1571,7 @@
       ]
     },
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 55,
       "col_start": 54,
       "context_after": [],
@@ -1563,6 +1606,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 55,
       "col_start": 54,
       "context_after": [],
@@ -1597,6 +1641,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 57,
       "col_start": 56,
       "context_after": [],
@@ -1629,6 +1674,7 @@
       ]
     },
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 57,
       "col_start": 56,
       "context_after": [],
@@ -1663,6 +1709,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 57,
       "col_start": 56,
       "context_after": [],
@@ -1697,6 +1744,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 59,
       "col_start": 58,
       "context_after": [],
@@ -1729,6 +1777,7 @@
       ]
     },
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 59,
       "col_start": 58,
       "context_after": [],
@@ -1763,6 +1812,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 59,
       "col_start": 58,
       "context_after": [],
@@ -1797,6 +1847,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 59,
       "col_start": 38,
       "context_after": [],
@@ -1829,6 +1880,7 @@
       ]
     },
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 59,
       "col_start": 38,
       "context_after": [],
@@ -1863,6 +1915,7 @@
   ],
   [
     {
+      "binding": "majorityOf5Wrapper",
       "col_end": 59,
       "col_start": 38,
       "context_after": [],
@@ -1897,6 +1950,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -1933,6 +1987,7 @@
       ]
     },
     {
+      "binding": "implies",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -1971,6 +2026,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -2009,6 +2065,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 20,
       "col_start": 15,
       "context_after": [
@@ -2045,6 +2102,7 @@
       ]
     },
     {
+      "binding": "implies",
       "col_end": 20,
       "col_start": 15,
       "context_after": [
@@ -2083,6 +2141,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 20,
       "col_start": 15,
       "context_after": [
@@ -2121,6 +2180,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 25,
       "col_start": 24,
       "context_after": [
@@ -2157,6 +2217,7 @@
       ]
     },
     {
+      "binding": "implies",
       "col_end": 25,
       "col_start": 24,
       "context_after": [
@@ -2195,6 +2256,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 25,
       "col_start": 24,
       "context_after": [
@@ -2233,6 +2295,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 25,
       "col_start": 15,
       "context_after": [
@@ -2269,6 +2332,7 @@
       ]
     },
     {
+      "binding": "implies",
       "col_end": 25,
       "col_start": 15,
       "context_after": [
@@ -2307,6 +2371,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 25,
       "col_start": 15,
       "context_after": [
@@ -2345,6 +2410,7 @@
   ],
   [
     {
+      "binding": "implies",
       "col_end": 25,
       "col_start": 15,
       "context_after": [
@@ -2383,6 +2449,7 @@
   ],
   [
     {
+      "binding": "impliesPair",
       "col_end": 31,
       "col_start": 30,
       "context_after": [
@@ -2419,6 +2486,7 @@
       ]
     },
     {
+      "binding": "impliesPair",
       "col_end": 31,
       "col_start": 30,
       "context_after": [
@@ -2457,6 +2525,7 @@
   ],
   [
     {
+      "binding": "impliesPair",
       "col_end": 31,
       "col_start": 30,
       "context_after": [
@@ -2495,6 +2564,7 @@
   ],
   [
     {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 32,
       "context_after": [
@@ -2531,6 +2601,7 @@
       ]
     },
     {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 32,
       "context_after": [
@@ -2569,6 +2640,7 @@
   ],
   [
     {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 32,
       "context_after": [
@@ -2607,6 +2679,7 @@
   ],
   [
     {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 22,
       "context_after": [
@@ -2643,6 +2716,7 @@
       ]
     },
     {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 22,
       "context_after": [
@@ -2681,6 +2755,7 @@
   ],
   [
     {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 22,
       "context_after": [
@@ -2719,6 +2794,7 @@
   ],
   [
     {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 22,
       "context_after": [
@@ -2742,6 +2818,7 @@
         "1"
       ],
       "line": 67,
+      "mitigation": "If `implies` is symmetric in these arguments this is an equivalent mutant that no test can kill; add `implies` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstFnLib",
       "mutated_lines": [
         "impliesPair (a, b) = implies b a"
@@ -2757,6 +2834,7 @@
   ],
   [
     {
+      "binding": "keepDigits",
       "col_end": 20,
       "col_start": 14,
       "context_after": [
@@ -2795,6 +2873,7 @@
   ],
   [
     {
+      "binding": "keepDigits",
       "col_end": 28,
       "col_start": 21,
       "context_after": [
@@ -2831,6 +2910,7 @@
       ]
     },
     {
+      "binding": "keepDigits",
       "col_end": 28,
       "col_start": 21,
       "context_after": [
@@ -2869,6 +2949,7 @@
   ],
   [
     {
+      "binding": "keepDigits",
       "col_end": 28,
       "col_start": 14,
       "context_after": [
@@ -2907,6 +2988,7 @@
   ],
   [
     {
+      "binding": "digitsOf",
       "col_end": 26,
       "col_start": 25,
       "context_after": [
@@ -2945,6 +3027,7 @@
   ],
   [
     {
+      "binding": "digitsOf",
       "col_end": 26,
       "col_start": 14,
       "context_after": [
@@ -2983,6 +3066,7 @@
   ],
   [
     {
+      "binding": "safeHead",
       "col_end": 26,
       "col_start": 20,
       "context_after": [
@@ -3021,6 +3105,7 @@
   ],
   [
     {
+      "binding": "firstChar",
       "col_end": 25,
       "col_start": 24,
       "context_after": [
@@ -3059,6 +3144,7 @@
   ],
   [
     {
+      "binding": "firstChar",
       "col_end": 25,
       "col_start": 15,
       "context_after": [

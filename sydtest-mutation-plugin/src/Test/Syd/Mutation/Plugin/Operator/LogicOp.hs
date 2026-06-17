@@ -4,9 +4,8 @@ module Test.Syd.Mutation.Plugin.Operator.LogicOp (theOperator) where
 
 import Control.Monad.Reader (ask)
 import qualified Data.Text as T
-import GHC
 import GHC.Builtin.Types (boolTy)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
 import Test.Syd.Mutation.Plugin.Operator.Util (TcOpApp (..), matchTcOpApp, mkOpReplacement)
 
 theOperator :: MutationOperator
@@ -26,7 +25,7 @@ logicOps = ["&&", "||"]
 
 action ::
   TcOpApp ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action TcOpApp {tcOpAppLhs, tcOpAppOp, tcOpAppRhs, tcOpAppOcc, tcOpAppOpSrcSpan} = do
   InstrumentEnv {instrumentEnvRdrEnv} <- ask
   let replacements = filter (/= tcOpAppOcc) logicOps
@@ -36,6 +35,14 @@ action TcOpApp {tcOpAppLhs, tcOpAppOp, tcOpAppRhs, tcOpAppOcc, tcOpAppOpSrcSpan}
   mapM
     ( \replOcc -> do
         repl <- liftTcM $ mkOpReplacement instrumentEnvRdrEnv tcOpAppLhs tcOpAppOp tcOpAppRhs replOcc
-        pure (boolTy, repl, tcOpAppOcc, replOcc, delta replOcc)
+        pure
+          MutationAlt
+            { mutAltType = boolTy,
+              mutAltExpr = repl,
+              mutAltOriginal = tcOpAppOcc,
+              mutAltReplacement = replOcc,
+              mutAltDelta = delta replOcc,
+              mutAltMitigation = Nothing
+            }
     )
     replacements

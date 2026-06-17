@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "withBindKept",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -35,6 +36,7 @@
       ]
     },
     {
+      "binding": "withBindKept",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -71,6 +73,7 @@
   ],
   [
     {
+      "binding": "withBindKept",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -107,6 +110,7 @@
   ],
   [
     {
+      "binding": "withBindKept",
       "col_end": 13,
       "col_start": 8,
       "context_after": [],
@@ -139,6 +143,7 @@
       ]
     },
     {
+      "binding": "withBindKept",
       "col_end": 13,
       "col_start": 8,
       "context_after": [],
@@ -173,6 +178,7 @@
   ],
   [
     {
+      "binding": "withBindKept",
       "col_end": 13,
       "col_start": 8,
       "context_after": [],
@@ -207,6 +213,7 @@
   ],
   [
     {
+      "binding": "withBindDisabled",
       "col_end": 13,
       "col_start": 8,
       "context_after": [
@@ -243,6 +250,7 @@
       ]
     },
     {
+      "binding": "withBindDisabled",
       "col_end": 13,
       "col_start": 8,
       "context_after": [
@@ -281,6 +289,7 @@
   ],
   [
     {
+      "binding": "withBindDisabled",
       "col_end": 13,
       "col_start": 8,
       "context_after": [
@@ -319,6 +328,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -355,6 +365,7 @@
       ]
     },
     {
+      "binding": "withInnerKept",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -393,6 +404,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -431,6 +443,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 20,
       "col_start": 15,
       "context_after": [
@@ -467,6 +480,7 @@
       ]
     },
     {
+      "binding": "withInnerKept",
       "col_end": 20,
       "col_start": 15,
       "context_after": [
@@ -505,6 +519,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 20,
       "col_start": 15,
       "context_after": [
@@ -543,6 +558,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -579,6 +595,7 @@
       ]
     },
     {
+      "binding": "withInnerKept",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -617,6 +634,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -655,6 +673,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -692,6 +711,7 @@
       ]
     },
     {
+      "binding": "withInnerKept",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -731,6 +751,7 @@
   ],
   [
     {
+      "binding": "withInnerKept",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -771,6 +792,7 @@
   ],
   [
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 20,
       "col_start": 19,
       "context_after": [
@@ -809,6 +831,7 @@
   ],
   [
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 20,
       "col_start": 15,
       "context_after": [
@@ -847,6 +870,7 @@
   ],
   [
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -883,6 +907,7 @@
       ]
     },
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -921,6 +946,7 @@
   ],
   [
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -959,6 +985,7 @@
   ],
   [
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -996,6 +1023,7 @@
       ]
     },
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -1035,6 +1063,7 @@
   ],
   [
     {
+      "binding": "withInnerBoolLitDisabled",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -1075,6 +1104,7 @@
   ],
   [
     {
+      "binding": "withInnerDisabled",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -1111,6 +1141,7 @@
       ]
     },
     {
+      "binding": "withInnerDisabled",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -1149,6 +1180,7 @@
   ],
   [
     {
+      "binding": "withInnerDisabled",
       "col_end": 12,
       "col_start": 7,
       "context_after": [
@@ -1187,6 +1219,7 @@
   ],
   [
     {
+      "binding": "withInnerDisabled",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -1224,6 +1257,7 @@
       ]
     },
     {
+      "binding": "withInnerDisabled",
       "col_end": 12,
       "col_start": 3,
       "context_after": [
@@ -1263,6 +1297,7 @@
   ],
   [
     {
+      "binding": "withInnerDisabled",
       "col_end": 12,
       "col_start": 3,
       "context_after": [

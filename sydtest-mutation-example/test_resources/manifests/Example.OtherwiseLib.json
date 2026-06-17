@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "classify",
       "col_end": 10,
       "col_start": 9,
       "context_after": [
@@ -38,6 +39,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 10,
       "col_start": 5,
       "context_after": [
@@ -73,6 +75,7 @@
       ]
     },
     {
+      "binding": "classify",
       "col_end": 10,
       "col_start": 5,
       "context_after": [
@@ -108,6 +111,7 @@
       ]
     },
     {
+      "binding": "classify",
       "col_end": 10,
       "col_start": 5,
       "context_after": [
@@ -145,6 +149,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 10,
       "col_start": 5,
       "context_after": [
@@ -182,6 +187,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 10,
       "col_start": 5,
       "context_after": [
@@ -219,6 +225,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 23,
       "col_start": 13,
       "context_after": [
@@ -256,6 +263,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 11,
       "col_start": 10,
       "context_after": [
@@ -292,6 +300,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 11,
       "col_start": 5,
       "context_after": [
@@ -328,6 +337,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 11,
       "col_start": 5,
       "context_after": [
@@ -364,6 +374,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 20,
       "col_start": 14,
       "context_after": [
@@ -400,6 +411,7 @@
   ],
   [
     {
+      "binding": "classify",
       "col_end": 27,
       "col_start": 17,
       "context_after": [],

@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (charTyCon, listTyCon)
 import GHC.Core.Type (tyConAppTyCon_maybe)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, unwrapWrap, viewConstFnResult)
 import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraFlag)
 
@@ -33,7 +33,7 @@ action ::
   LHsExpr GhcTc ->
   Type ->
   ConstFnMatch ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action le elTy ConstFnMatch {cfnArgTys, cfnResTy} = do
   opAppCtx <- asks instrumentEnvOpAppCtx
   appDepth <- asks instrumentEnvAppDepth
@@ -77,7 +77,16 @@ action le elTy ConstFnMatch {cfnArgTys, cfnResTy} = do
           replLabel = case cfnArgTys of
             [] -> "[]"
             _ -> "\\" ++ unwords (replicate arity "_") ++ " -> []"
-       in pure [(wholeTy, mutated, origLabel, replLabel, delta)]
+       in pure
+            [ MutationAlt
+                { mutAltType = wholeTy,
+                  mutAltExpr = mutated,
+                  mutAltOriginal = origLabel,
+                  mutAltReplacement = replLabel,
+                  mutAltDelta = delta,
+                  mutAltMitigation = Nothing
+                }
+            ]
 
 -- | Whether the list element type is 'Char' (i.e. the list is a
 -- @[Char]@/'String').  Used to honour @skip-strings@.

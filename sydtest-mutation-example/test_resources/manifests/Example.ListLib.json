@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "tripleConcat",
       "col_end": 31,
       "col_start": 30,
       "context_after": [],
@@ -35,6 +36,7 @@
   ],
   [
     {
+      "binding": "tripleConcat",
       "col_end": 34,
       "col_start": 33,
       "context_after": [],
@@ -69,6 +71,7 @@
   ],
   [
     {
+      "binding": "tripleConcat",
       "col_end": 37,
       "col_start": 36,
       "context_after": [],
@@ -103,6 +106,7 @@
   ],
   [
     {
+      "binding": "tripleConcat",
       "col_end": 38,
       "col_start": 29,
       "context_after": [],
@@ -137,6 +141,7 @@
   ],
   [
     {
+      "binding": "tripleConcat",
       "col_end": 38,
       "col_start": 29,
       "context_after": [],
@@ -167,6 +172,7 @@
       ]
     },
     {
+      "binding": "tripleConcat",
       "col_end": 38,
       "col_start": 29,
       "context_after": [],
@@ -197,6 +203,7 @@
       ]
     },
     {
+      "binding": "tripleConcat",
       "col_end": 38,
       "col_start": 29,
       "context_after": [],
@@ -229,6 +236,7 @@
   ],
   [
     {
+      "binding": "tripleConcat",
       "col_end": 38,
       "col_start": 22,
       "context_after": [],
@@ -263,6 +271,7 @@
   ],
   [
     {
+      "binding": "pairConcat",
       "col_end": 27,
       "col_start": 26,
       "context_after": [
@@ -301,6 +310,7 @@
   ],
   [
     {
+      "binding": "pairConcat",
       "col_end": 30,
       "col_start": 29,
       "context_after": [
@@ -339,6 +349,7 @@
   ],
   [
     {
+      "binding": "pairConcat",
       "col_end": 31,
       "col_start": 25,
       "context_after": [
@@ -377,6 +388,7 @@
   ],
   [
     {
+      "binding": "pairConcat",
       "col_end": 31,
       "col_start": 25,
       "context_after": [
@@ -411,6 +423,7 @@
       ]
     },
     {
+      "binding": "pairConcat",
       "col_end": 31,
       "col_start": 25,
       "context_after": [
@@ -447,6 +460,7 @@
   ],
   [
     {
+      "binding": "pairConcat",
       "col_end": 31,
       "col_start": 18,
       "context_after": [

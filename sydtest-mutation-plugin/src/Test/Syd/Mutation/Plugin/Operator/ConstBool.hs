@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTyCon, falseDataCon, trueDataCon)
 import GHC.Types.Name (getOccString)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResult)
 
 -- | Replace an expression whose type is @arg1 -> ... -> argN -> Bool@
@@ -56,7 +56,7 @@ isBoolLit = \case
 action ::
   LHsExpr GhcTc ->
   ConstFnMatch ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action le ConstFnMatch {cfnArgTys, cfnResTy} = do
   InstrumentEnv {instrumentEnvInGuard, instrumentEnvOpAppCtx, instrumentEnvAppDepth} <- ask
   let arity = length cfnArgTys
@@ -89,7 +89,14 @@ action le ConstFnMatch {cfnArgTys, cfnResTy} = do
                 (origLabel, replLabel) = case cfnArgTys of
                   [] -> ("e", boolName)
                   _ -> ("f", "\\" ++ unwords (replicate arity "_") ++ " -> " ++ boolName)
-             in (wholeTy, mutated, origLabel, replLabel, delta)
+             in MutationAlt
+                  { mutAltType = wholeTy,
+                    mutAltExpr = mutated,
+                    mutAltOriginal = origLabel,
+                    mutAltReplacement = replLabel,
+                    mutAltDelta = delta,
+                    mutAltMitigation = Nothing
+                  }
           trueAlt = mkAlt trueDataCon "True"
           falseAlt = mkAlt falseDataCon "False"
           -- The guard carveout applies only at arity 0; a Bool-typed lambda is

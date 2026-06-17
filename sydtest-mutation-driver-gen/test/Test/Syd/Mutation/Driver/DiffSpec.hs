@@ -47,7 +47,9 @@ mkRecord idParts mSrc (line, endLine) covering =
       augmentedMutationRecordContextBefore = [],
       augmentedMutationRecordContextAfter = [],
       augmentedMutationRecordCoveringTests = covering,
-      augmentedMutationRecordTimeoutMicros = 30000000
+      augmentedMutationRecordTimeoutMicros = 30000000,
+      augmentedMutationRecordBinding = Nothing,
+      augmentedMutationRecordMitigation = Nothing
     }
 
 tid :: Text -> TestId

@@ -6,6 +6,7 @@
 module Test.Syd.Mutation.Plugin.Instrument
   ( MutationRecord (..),
     MutationOperator (..),
+    MutationAlt (..),
     SrcSpanDelta (..),
     InstrumentEnv (..),
     OpAppCtx (..),
@@ -106,11 +107,34 @@ data SrcSpanDelta
 -- ---------------------------------------------------------------------------
 -- Operator
 
+-- | A single mutation alternative produced by an operator at one site.
+--
+-- An operator returns a list of these (one per distinct mutation to generate
+-- at the site).  Each gets its own 'MutationId' and is wrapped independently
+-- as a nested 'ifMutation' call; 'tryMutateWith' validates each by desugaring
+-- and silently drops any that produce diagnostics (e.g. overflowed literals).
+data MutationAlt = MutationAlt
+  { -- | The result type of the matched expression (used to type the
+    -- @ifMutation@ wrapper).
+    mutAltType :: Type,
+    -- | The mutated replacement expression.
+    mutAltExpr :: LHsExpr GhcTc,
+    -- | Human-readable description of the original code, for the manifest.
+    mutAltOriginal :: String,
+    -- | Human-readable description of the replacement, for the manifest.
+    mutAltReplacement :: String,
+    -- | How the source text changes, for the manifest preview.
+    mutAltDelta :: SrcSpanDelta,
+    -- | Optional hint about how this mutation can be mitigated other than by
+    -- killing it (e.g. that it is an equivalent mutant and which config key
+    -- suppresses it).  'Nothing' for most operators.
+    mutAltMitigation :: Maybe Text
+  }
+
 -- | A single mutation operator.
 --
 -- 'operatorMatch' inspects a type-checked expression and, if it is a candidate
--- for this operator, returns the mutated replacement together with the
--- human-readable original and replacement strings used in the manifest.
+-- for this operator, returns the mutation alternatives to generate at it.
 -- Returning 'Nothing' means "not a candidate".
 --
 -- The matched expression has already been recursively instrumented by the
@@ -122,12 +146,7 @@ data MutationOperator = MutationOperator
     -- | @Just action@ if this expression is a mutation candidate, @Nothing@ otherwise.
     -- The action runs in 'InstrM' so it can look up replacement operator ids via
     -- 'TcM' when needed (e.g. swapping @(+)@ for @(-)@).
-    -- The action returns a list of @(ty, mutated, originalStr, replacementStr, delta)@
-    -- tuples, one per distinct mutation to generate at this site.  Each gets its own
-    -- 'MutationId' and is wrapped independently as a nested 'ifMutation' call.
-    -- 'tryMutateWith' will validate each alternative via desugaring and silently drop
-    -- any that produce diagnostics (e.g. overflowed literals).
-    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)])
+    operatorMatch :: LHsExpr GhcTc -> Maybe (InstrM [MutationAlt])
   }
 
 -- ---------------------------------------------------------------------------
@@ -135,6 +154,12 @@ data MutationOperator = MutationOperator
 
 data InstrumentEnv = InstrumentEnv
   { instrumentEnvModule :: Module,
+    -- | Source name ('OccName' string) of the enclosing top-level binding we
+    -- are currently instrumenting, if any.  Set on entry to each top-level
+    -- 'FunBind' \/ 'VarBind' \/ 'AbsBinds' (but not for nested local bindings,
+    -- which keep the top-level name).  Recorded in each mutation so the report
+    -- can suggest the exact @{-# ANN \<binding\> ... #-}@ disable annotation.
+    instrumentEnvCurrentBinding :: Maybe String,
     -- | The module's 'GlobalRdrEnv', used by operators to look up replacement ids.
     instrumentEnvRdrEnv :: GlobalRdrEnv,
     -- | Id for Test.Syd.Mutation.Runtime.ifMutation, looked up once per module.
@@ -302,6 +327,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
     runReaderT
     InstrumentEnv
       { instrumentEnvModule = modul,
+        instrumentEnvCurrentBinding = Nothing,
         instrumentEnvRdrEnv = rdrEnv,
         instrumentEnvIfMutationId = ifMutId,
         instrumentEnvMutationIdCon = mutIdCon,
@@ -377,7 +403,7 @@ instrumentBind = \case
     -- 'instrumentEnvInLocalLet' flag is false at module top-level), so it only fires
     -- on truly local bindings.  Inside, 'withFunBindEnv' sees no annotations
     -- (locals can't be ANN'd) and leaves the disable map intact.
-    mg' <- withLocalDisable funName (withFunBindEnv funName (instrumentMatchGroup mg))
+    mg' <- withCurrentBinding funName (withLocalDisable funName (withFunBindEnv funName (instrumentMatchGroup mg)))
     pure (FunBind x name mg')
   PatBind x pat mult rhs -> PatBind x pat mult <$> instrumentGRHSs rhs
   -- Skip evidence bindings.  The typechecker materialises the dictionaries an
@@ -389,7 +415,7 @@ instrumentBind = \case
   -- evidence alone.  User-written @x = e@ bindings are never evidence, so they
   -- are still instrumented.
   b@(VarBind _ var _) | isEvVar var -> pure b
-  VarBind x var rhs -> VarBind x var <$> withLocalDisable (idName var) (instrumentLExpr rhs)
+  VarBind x var rhs -> VarBind x var <$> withCurrentBinding (idName var) (withLocalDisable (idName var) (instrumentLExpr rhs))
   PatSynBind x psb -> pure (PatSynBind x psb)
   -- At GhcTc, XHsBindsLR carries an AbsBinds (see XXHsBindsLR instance).
   -- {-# ANN f #-} annotations attach to the poly Id (abe_poly), but the inner
@@ -399,6 +425,19 @@ instrumentBind = \case
     let polyNames = map (idName . abe_poly) abs_exports
     binds' <- foldr withFunBindEnv (mapBagM (traverse instrumentBind) abs_binds) polyNames
     pure (XHsBindsLR ab {abs_binds = binds'})
+
+-- | Record @name@ as the enclosing top-level binding for the wrapped action,
+-- so mutations inside it carry the binding name for the report's disable-hint.
+--
+-- A no-op once we are inside a local @let@ \/ @where@
+-- ('instrumentEnvInLocalLet' is True): a nested binding keeps the enclosing
+-- top-level name, which is the one a @{-# ANN ... #-}@ would target.
+withCurrentBinding :: Name -> InstrM a -> InstrM a
+withCurrentBinding name action = do
+  inLocal <- asks instrumentEnvInLocalLet
+  if inLocal
+    then action
+    else local (\env -> env {instrumentEnvCurrentBinding = Just (getOccString name)}) action
 
 -- | If @bindName@'s source-level name is a key in 'instrumentEnvLocalDisables',
 -- narrow 'instrumentEnvOperators' for the wrapped action and remove the entry from
@@ -1001,8 +1040,8 @@ applyOperator origExpr fallthrough op = case operatorMatch op origExpr of
 -- Any test built with @-Werror=incomplete-patterns@ (or that exercises the
 -- runtime @MatchFail@) would kill the mutant anyway, so producing it would
 -- just add noise to the manifest.
-validateAlt :: HscEnv -> (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> IO Bool
-validateAlt hscEnv (_, mutated, _, _, _) = do
+validateAlt :: HscEnv -> MutationAlt -> IO Bool
+validateAlt hscEnv MutationAlt {mutAltExpr = mutated} = do
   let dflags' =
         foldl
           wopt_set
@@ -1042,7 +1081,7 @@ containsSpan outer inner =
 -- 3-element list both have replStr "2 elements", and without an index the
 -- 'MutationId's would collide.  The index is appended as the last component
 -- of the id.
-applyAlts :: String -> NonEmpty (Type, LHsExpr GhcTc, String, String, SrcSpanDelta) -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+applyAlts :: String -> NonEmpty MutationAlt -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
 applyAlts opName alts original = do
   (wrapped, records) <- go 1 alts
   -- Every applyAlts call emits exactly one mutation group, even if a
@@ -1052,12 +1091,12 @@ applyAlts opName alts original = do
   tell [MutationGroup records]
   pure wrapped
   where
-    go altIndex ((ty, mutated, origStr, replStr, delta) :| rest) = do
-      (mid, mRec) <- recordMutation original opName origStr replStr delta altIndex
+    go altIndex (alt :| rest) = do
+      (mid, mRec) <- recordMutation original opName alt altIndex
       (innerExpr, innerRecs) <- case rest of
         [] -> pure (original, [])
         (a : as) -> go (altIndex + 1) (a :| as)
-      outer <- wrapWithIfMutation ty mid mutated innerExpr
+      outer <- wrapWithIfMutation (mutAltType alt) mid (mutAltExpr alt) innerExpr
       let recs = maybe innerRecs (: innerRecs) mRec
       pure (outer, recs)
 
@@ -1068,16 +1107,14 @@ applyAlts opName alts original = do
 recordMutation ::
   LHsExpr GhcTc ->
   String ->
-  String ->
-  String ->
-  SrcSpanDelta ->
+  MutationAlt ->
   -- | 1-based index of this alternative within the operator's match.
   -- Appended to the id so alternatives with identical @replStr@ text do not
   -- collide.
   Int ->
   InstrM (MutationId, Maybe MutationRecord)
-recordMutation le op origStr replStr delta altIndex = do
-  InstrumentEnv {instrumentEnvModule, instrumentEnvSourceFile, instrumentEnvSkipThSplices, instrumentEnvSpliceSpans} <- ask
+recordMutation le op MutationAlt {mutAltOriginal = origStr, mutAltReplacement = replStr, mutAltDelta = delta, mutAltMitigation = mitigation} altIndex = do
+  InstrumentEnv {instrumentEnvModule, instrumentEnvSourceFile, instrumentEnvSkipThSplices, instrumentEnvSpliceSpans, instrumentEnvCurrentBinding} <- ask
   let sp = getLocA le
   case sp of
     RealSrcSpan rss _
@@ -1142,7 +1179,9 @@ recordMutation le op origStr replStr delta altIndex = do
                 mutRecMutatedLines = mutatedLines,
                 mutRecContextBefore = ctxBefore,
                 mutRecContextAfter = ctxAfter,
-                mutRecCoveringTests = Nothing
+                mutRecCoveringTests = Nothing,
+                mutRecBinding = T.pack <$> instrumentEnvCurrentBinding,
+                mutRecMitigation = mitigation
               }
       liftTcM $
         liftIO $ do

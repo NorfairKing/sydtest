@@ -4,7 +4,7 @@ module Test.Syd.Mutation.Plugin.Operator.RemoveCase (theOperator) where
 
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
@@ -26,7 +26,7 @@ action ::
   SrcSpanAnnL ->
   [LMatch GhcTc (LHsExpr GhcTc)] ->
   Type ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action ann x scrut mgx lann alts ty =
   let n = length alts
       mkMutation i alt =
@@ -35,10 +35,12 @@ action ann x scrut mgx lann alts ty =
             removedSpan = case getLocA alt of
               RealSrcSpan rss _ -> [rss]
               UnhelpfulSpan _ -> []
-         in ( ty,
-              L ann (HsCase x scrut mg'),
-              show n ++ " alternatives",
-              show (n - 1) ++ " alternatives (removed #" ++ show (i + 1) ++ ")",
-              SpanRemoval removedSpan
-            )
+         in MutationAlt
+              { mutAltType = ty,
+                mutAltExpr = L ann (HsCase x scrut mg'),
+                mutAltOriginal = show n ++ " alternatives",
+                mutAltReplacement = show (n - 1) ++ " alternatives (removed #" ++ show (i + 1) ++ ")",
+                mutAltDelta = SpanRemoval removedSpan,
+                mutAltMitigation = Nothing
+              }
    in pure [mkMutation i alt | (i, alt) <- zip [0 ..] alts]

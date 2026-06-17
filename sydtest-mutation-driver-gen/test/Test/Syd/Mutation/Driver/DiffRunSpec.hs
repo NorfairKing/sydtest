@@ -103,7 +103,9 @@ spec = describe "renderDiffFinalSummary" $ do
           augmentedMutationRecordContextBefore = [],
           augmentedMutationRecordContextAfter = [],
           augmentedMutationRecordCoveringTests = Map.empty,
-          augmentedMutationRecordTimeoutMicros = 30000000
+          augmentedMutationRecordTimeoutMicros = 30000000,
+          augmentedMutationRecordBinding = Nothing,
+          augmentedMutationRecordMitigation = Nothing
         }
 
     reportOneUncovered =

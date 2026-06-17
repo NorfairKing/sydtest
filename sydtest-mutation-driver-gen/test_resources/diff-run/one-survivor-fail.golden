@@ -6,6 +6,7 @@
 BoolLit at Example/Lib.hs:12:8-12
 [31m    - True[m
 [32m    + False[m
+  disable: add [33mBoolLit[m to disabled-mutations in the plugin config
 
 Full report:             /run/report.txt
 Machine-readable report: /run/report.json

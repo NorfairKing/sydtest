@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.26.1.0] - 2026-06-17
+
+### Added
+
+* The mutation run report now prints, under each surviving mutation, the
+  exact disable annotation for it (using the mutation's operator and enclosing
+  binding) and any mitigation hint the operator attached to it.  Exposed as
+  `survivorMitigationLines` from `Test.Syd.MutationMode`.
+
 ## [0.26.0.0] - 2026-06-09
 
 ### Changed

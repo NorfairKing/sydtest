@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "addOne",
       "col_end": 17,
       "col_start": 16,
       "context_after": [],
@@ -33,6 +34,7 @@
       ]
     },
     {
+      "binding": "addOne",
       "col_end": 17,
       "col_start": 16,
       "context_after": [],
@@ -67,6 +69,7 @@
   ],
   [
     {
+      "binding": "addOne",
       "col_end": 17,
       "col_start": 12,
       "context_after": [],
@@ -99,6 +102,7 @@
       ]
     },
     {
+      "binding": "addOne",
       "col_end": 17,
       "col_start": 12,
       "context_after": [],

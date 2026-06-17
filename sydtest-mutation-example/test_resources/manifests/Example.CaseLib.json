@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "describeList",
       "col_end": 26,
       "col_start": 24,
       "context_after": [
@@ -39,6 +40,7 @@
   ],
   [
     {
+      "binding": "describeList",
       "col_end": 16,
       "col_start": 9,
       "context_after": [
@@ -76,6 +78,7 @@
   ],
   [
     {
+      "binding": "describeList",
       "col_end": 21,
       "col_start": 10,
       "context_after": [
@@ -112,6 +115,7 @@
   ],
   [
     {
+      "binding": "describeList",
       "col_end": 16,
       "col_start": 8,
       "context_after": [],
@@ -146,6 +150,7 @@
   ],
   [
     {
+      "binding": "describeList",
       "col_end": 16,
       "col_start": 19,
       "context_after": [],
@@ -183,6 +188,7 @@
   ],
   [
     {
+      "binding": "describeList",
       "col_end": 16,
       "col_start": 19,
       "context_after": [],
@@ -220,6 +226,7 @@
       ]
     },
     {
+      "binding": "describeList",
       "col_end": 16,
       "col_start": 19,
       "context_after": [],

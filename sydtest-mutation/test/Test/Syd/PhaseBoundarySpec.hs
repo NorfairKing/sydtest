@@ -97,7 +97,9 @@ spec = describe "phase boundary smoke (bug #1)" $ do
                 augmentedMutationRecordContextAfter = [],
                 augmentedMutationRecordCoveringTests =
                   Map.singleton (T.pack ("suite-" ++ show suite)) [],
-                augmentedMutationRecordTimeoutMicros = 30000000
+                augmentedMutationRecordTimeoutMicros = 30000000,
+                augmentedMutationRecordBinding = Nothing,
+                augmentedMutationRecordMitigation = Nothing
               }
           newSuite :: Int -> Int -> AugmentedManifest
           newSuite suite recs =

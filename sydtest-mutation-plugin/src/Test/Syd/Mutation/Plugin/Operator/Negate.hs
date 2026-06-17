@@ -13,7 +13,7 @@ import GHC.Tc.Utils.TcType (tcEqType)
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (greName)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..), liftTcM)
 
 theOperator :: MutationOperator
 theOperator =
@@ -36,7 +36,7 @@ theOperator =
 
 action ::
   LHsExpr GhcTc ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action le = do
   InstrumentEnv {instrumentEnvRdrEnv} <- ask
   notId <- liftTcM $ case lookupOccEnv instrumentEnvRdrEnv (mkVarOcc "not") of
@@ -47,4 +47,13 @@ action le = do
   -- Wrap with parentheses so the rendered @mutated_lines@ keeps the right
   -- precedence: @not n < 0@ reparses as @(not n) < 0@, but the AST mutant
   -- is @not (n < 0)@. The @WrapWithText@ delta produces @not (n < 0)@.
-  pure [(boolTy, negated, "e", "not (e)", WrapWithText "not (" ")")]
+  pure
+    [ MutationAlt
+        { mutAltType = boolTy,
+          mutAltExpr = negated,
+          mutAltOriginal = "e",
+          mutAltReplacement = "not (e)",
+          mutAltDelta = WrapWithText "not (" ")",
+          mutAltMitigation = Nothing
+        }
+    ]

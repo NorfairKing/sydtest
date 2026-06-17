@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "negateWrapped",
       "col_end": 21,
       "col_start": 17,
       "context_after": [],
@@ -35,6 +36,7 @@
   ],
   [
     {
+      "binding": "negateWrapped",
       "col_end": 25,
       "col_start": 22,
       "context_after": [],
@@ -67,6 +69,7 @@
       ]
     },
     {
+      "binding": "negateWrapped",
       "col_end": 25,
       "col_start": 22,
       "context_after": [],
@@ -101,6 +104,7 @@
   ],
   [
     {
+      "binding": "negateWrapped",
       "col_end": 25,
       "col_start": 17,
       "context_after": [],
@@ -135,6 +139,7 @@
   ],
   [
     {
+      "binding": "wrapFalse",
       "col_end": 23,
       "col_start": 18,
       "context_after": [
@@ -173,6 +178,7 @@
   ],
   [
     {
+      "binding": "wrapFalse",
       "col_end": 23,
       "col_start": 13,
       "context_after": [
@@ -211,6 +217,7 @@
   ],
   [
     {
+      "binding": "wrapTrue",
       "col_end": 21,
       "col_start": 17,
       "context_after": [
@@ -249,6 +256,7 @@
   ],
   [
     {
+      "binding": "wrapTrue",
       "col_end": 21,
       "col_start": 12,
       "context_after": [

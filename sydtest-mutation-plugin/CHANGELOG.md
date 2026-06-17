@@ -10,6 +10,23 @@
   maximal application spine is mutated, and pairs whose arguments have
   identical source text are skipped (swapping them would be a no-op).
 
+  Symmetric functions make this operator produce equivalent (unkillable)
+  mutants, so it reads a `skip-calls-to` list of function names from its
+  per-operator config and skips swapping the arguments of any call to a
+  listed function:
+
+  ```yaml
+  operators:
+    SwitchFunctionArguments:
+      skip-calls-to: [max, Data.Set.union]
+  ```
+
+* Mutations now carry an optional `mitigation` hint and the enclosing
+  `binding` name in the manifest.  `SwitchFunctionArguments` sets a mitigation
+  message pointing at `skip-calls-to`; the binding name lets the run report
+  print the exact `{-# ANN <binding> ("DisableMutation: <Operator>" ...) #-}`
+  annotation for each surviving mutation.
+
 ## [0.3.0.0] - 2026-06-09
 
 ### Added

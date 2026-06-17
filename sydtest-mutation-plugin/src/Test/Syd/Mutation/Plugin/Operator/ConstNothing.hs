@@ -7,7 +7,7 @@ import Control.Monad.Reader (asks)
 import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (maybeTyCon, nothingDataCon)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), OpAppCtx (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResult)
 
 -- | Replace an expression whose type is @arg1 -> ... -> argN -> Maybe a@
@@ -39,7 +39,7 @@ theOperator =
 action ::
   LHsExpr GhcTc ->
   ConstFnMatch ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action le ConstFnMatch {cfnArgTys, cfnResTy} = do
   opAppCtx <- asks instrumentEnvOpAppCtx
   appDepth <- asks instrumentEnvAppDepth
@@ -72,4 +72,13 @@ action le ConstFnMatch {cfnArgTys, cfnResTy} = do
           replLabel = case cfnArgTys of
             [] -> "Nothing"
             _ -> "\\" ++ unwords (replicate arity "_") ++ " -> Nothing"
-       in pure [(wholeTy, mutated, origLabel, replLabel, delta)]
+       in pure
+            [ MutationAlt
+                { mutAltType = wholeTy,
+                  mutAltExpr = mutated,
+                  mutAltOriginal = origLabel,
+                  mutAltReplacement = replLabel,
+                  mutAltDelta = delta,
+                  mutAltMitigation = Nothing
+                }
+            ]

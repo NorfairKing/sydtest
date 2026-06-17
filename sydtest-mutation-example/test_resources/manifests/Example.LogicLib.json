@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "eitherPositive",
       "col_end": 27,
       "col_start": 26,
       "context_after": [],
@@ -35,6 +36,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 27,
       "col_start": 22,
       "context_after": [],
@@ -67,6 +69,7 @@
       ]
     },
     {
+      "binding": "eitherPositive",
       "col_end": 27,
       "col_start": 22,
       "context_after": [],
@@ -99,6 +102,7 @@
       ]
     },
     {
+      "binding": "eitherPositive",
       "col_end": 27,
       "col_start": 22,
       "context_after": [],
@@ -133,6 +137,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 27,
       "col_start": 22,
       "context_after": [],
@@ -165,6 +170,7 @@
       ]
     },
     {
+      "binding": "eitherPositive",
       "col_end": 27,
       "col_start": 22,
       "context_after": [],
@@ -199,6 +205,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 27,
       "col_start": 22,
       "context_after": [],
@@ -233,6 +240,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 35,
       "context_after": [],
@@ -267,6 +275,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 31,
       "context_after": [],
@@ -299,6 +308,7 @@
       ]
     },
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 31,
       "context_after": [],
@@ -331,6 +341,7 @@
       ]
     },
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 31,
       "context_after": [],
@@ -365,6 +376,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 31,
       "context_after": [],
@@ -397,6 +409,7 @@
       ]
     },
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 31,
       "context_after": [],
@@ -431,6 +444,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 31,
       "context_after": [],
@@ -465,6 +479,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 22,
       "context_after": [],
@@ -497,6 +512,7 @@
       ]
     },
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 22,
       "context_after": [],
@@ -531,6 +547,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 22,
       "context_after": [],
@@ -565,6 +582,7 @@
   ],
   [
     {
+      "binding": "eitherPositive",
       "col_end": 36,
       "col_start": 22,
       "context_after": [],
@@ -599,6 +617,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 25,
       "col_start": 24,
       "context_after": [
@@ -637,6 +656,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 25,
       "col_start": 20,
       "context_after": [
@@ -673,6 +693,7 @@
       ]
     },
     {
+      "binding": "bothPositive",
       "col_end": 25,
       "col_start": 20,
       "context_after": [
@@ -709,6 +730,7 @@
       ]
     },
     {
+      "binding": "bothPositive",
       "col_end": 25,
       "col_start": 20,
       "context_after": [
@@ -747,6 +769,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 25,
       "col_start": 20,
       "context_after": [
@@ -783,6 +806,7 @@
       ]
     },
     {
+      "binding": "bothPositive",
       "col_end": 25,
       "col_start": 20,
       "context_after": [
@@ -821,6 +845,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 25,
       "col_start": 20,
       "context_after": [
@@ -859,6 +884,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 33,
       "context_after": [
@@ -897,6 +923,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 29,
       "context_after": [
@@ -933,6 +960,7 @@
       ]
     },
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 29,
       "context_after": [
@@ -969,6 +997,7 @@
       ]
     },
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 29,
       "context_after": [
@@ -1007,6 +1036,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 29,
       "context_after": [
@@ -1043,6 +1073,7 @@
       ]
     },
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 29,
       "context_after": [
@@ -1081,6 +1112,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 29,
       "context_after": [
@@ -1119,6 +1151,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 20,
       "context_after": [
@@ -1155,6 +1188,7 @@
       ]
     },
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 20,
       "context_after": [
@@ -1193,6 +1227,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 20,
       "context_after": [
@@ -1231,6 +1266,7 @@
   ],
   [
     {
+      "binding": "bothPositive",
       "col_end": 34,
       "col_start": 20,
       "context_after": [

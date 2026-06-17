@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "makeColour",
       "col_end": 29,
       "col_start": 20,
       "context_after": [
@@ -37,6 +38,7 @@
       ]
     },
     {
+      "binding": "makeColour",
       "col_end": 29,
       "col_start": 20,
       "context_after": [
@@ -73,6 +75,7 @@
       ]
     },
     {
+      "binding": "makeColour",
       "col_end": 29,
       "col_start": 20,
       "context_after": [
@@ -111,6 +114,7 @@
   ],
   [
     {
+      "binding": "parenDivide",
       "col_end": 32,
       "col_start": 25,
       "context_after": [
@@ -134,6 +138,7 @@
         "1"
       ],
       "line": 21,
+      "mitigation": "If `div` is symmetric in these arguments this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
         "parenDivide a b = succ (div b a)"
@@ -149,6 +154,7 @@
   ],
   [
     {
+      "binding": "divideThe",
       "col_end": 24,
       "col_start": 17,
       "context_after": [
@@ -172,6 +178,7 @@
         "1"
       ],
       "line": 14,
+      "mitigation": "If `div` is symmetric in these arguments this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
         "divideThe a b = div b a"

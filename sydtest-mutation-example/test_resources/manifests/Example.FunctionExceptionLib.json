@@ -1,6 +1,7 @@
 [
   [
     {
+      "binding": "addOneArithDisabled",
       "col_end": 30,
       "col_start": 29,
       "context_after": [
@@ -37,6 +38,7 @@
       ]
     },
     {
+      "binding": "addOneArithDisabled",
       "col_end": 30,
       "col_start": 29,
       "context_after": [

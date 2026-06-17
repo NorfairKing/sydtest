@@ -11,7 +11,7 @@ import GHC.Core.TyCo.Compare (eqType)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Types.Id (idName)
 import GHC.Types.Name (getOccString, nameModule_maybe)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraStrings)
 
 -- | Swap two arguments of the same type in a prefix function application.
@@ -66,7 +66,7 @@ action ::
   LHsExpr GhcTc ->
   [LHsExpr GhcTc] ->
   [(Int, Int)] ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action le headExpr args pairs = do
   -- Only fire on the outermost application spine.  Inside @f a b@, the
   -- function side @f a@ is visited with depth >= 1; emitting a swap there
@@ -86,13 +86,19 @@ action le headExpr args pairs = do
     else
       let ty = lhsExprType le
           haveSrc = not (null srcLines)
+          -- Hint shown for any surviving swap: if the called function is
+          -- symmetric the mutant is equivalent and unkillable, and listing the
+          -- function under 'skip-calls-to' suppresses it.
+          mitigation = mitigationFor headExpr
        in pure
-            [ ( ty,
-                foldl mkHsApp headExpr (swapAt i j argI argJ args),
-                origStr,
-                replStr,
-                SwapSpans spanI spanJ
-              )
+            [ MutationAlt
+                { mutAltType = ty,
+                  mutAltExpr = foldl mkHsApp headExpr (swapAt i j argI argJ args),
+                  mutAltOriginal = origStr,
+                  mutAltReplacement = replStr,
+                  mutAltDelta = SwapSpans spanI spanJ,
+                  mutAltMitigation = mitigation
+                }
             | (i, j) <- pairs,
               Just argI <- [indexArg args i],
               Just argJ <- [indexArg args j],
@@ -131,6 +137,26 @@ collectApp = go []
     go acc le = case unLoc le of
       HsApp _ f a -> go (a : acc) f
       _ -> (le, acc)
+
+-- | The mitigation hint recorded on every swap mutation at a call: if the
+-- called function turns out to be symmetric in these arguments the mutant is
+-- equivalent (unkillable), and listing the function under @skip-calls-to@
+-- suppresses it.  'Nothing' when the head is not a named function (so there is
+-- no name to suggest), e.g. a data constructor.
+mitigationFor :: LHsExpr GhcTc -> Maybe Text
+mitigationFor headExpr = do
+  n <- headFunctionName headExpr
+  let fn = getOccString n
+  pure $
+    T.pack $
+      concat
+        [ "If `",
+          fn,
+          "` is symmetric in these arguments this is an equivalent mutant ",
+          "that no test can kill; add `",
+          fn,
+          "` to this operator's `skip-calls-to` config to suppress it."
+        ]
 
 -- | The 'Name' of the function (or constructor) at the head of an
 -- application, peeling the type- and dictionary-application wrappers the

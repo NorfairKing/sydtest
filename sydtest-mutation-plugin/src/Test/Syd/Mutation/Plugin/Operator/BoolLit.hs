@@ -6,7 +6,7 @@ import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTy, falseDataCon, trueDataCon)
 import GHC.Types.Name (getOccString)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
@@ -32,9 +32,18 @@ boolLits = ["True", "False"]
 
 action ::
   String ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action origOcc =
   let repl = if origOcc == "True" then falseDataCon else trueDataCon
       replOcc = if origOcc == "True" then "False" else "True"
       replExpr = nlHsDataCon repl
-   in pure [(boolTy, replExpr, origOcc, replOcc, TokenReplace (T.pack replOcc))]
+   in pure
+        [ MutationAlt
+            { mutAltType = boolTy,
+              mutAltExpr = replExpr,
+              mutAltOriginal = origOcc,
+              mutAltReplacement = replOcc,
+              mutAltDelta = TokenReplace (T.pack replOcc),
+              mutAltMitigation = Nothing
+            }
+        ]

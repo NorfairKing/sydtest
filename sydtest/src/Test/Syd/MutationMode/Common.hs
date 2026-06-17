@@ -32,6 +32,7 @@ module Test.Syd.MutationMode.Common
     renderMutationProgressEvent,
     renderUnifiedDiff,
     formatMutationLog,
+    survivorMitigationLines,
 
     -- * Coverage progress events
     CoverageProgressEvent (..),
@@ -339,7 +340,7 @@ renderMutationRunReport
       renderSurvivor sm =
         let rec = survivedMutationRecord sm
             mid = augmentedMutationRecordId rec
-         in [] : formatMutationLog mid rec
+         in ([] : formatMutationLog mid rec) ++ survivorMitigationLines rec
       renderTimedOut tm =
         let rec = timedOutMutationRecord tm
             mid = augmentedMutationRecordId rec
@@ -379,11 +380,7 @@ renderMutationRunReport
           [chunk "     or for the whole module:"],
           [chunk "       {-# ANN module (\"DisableMutations\" :: String) #-}"],
           [chunk "     or globally in the plugin config (sydtest-mutation-plugin.yaml):"],
-          [chunk "       disabled-mutations: [<Operator>]"],
-          [chunk "  3. Suppress an equivalent mutant: if the operator swapped the arguments of a"],
-          [chunk "     symmetric function (SwitchFunctionArguments on e.g. max or set union), no test"],
-          [chunk "     can kill it.  List the function under the operator's skip-calls-to config key:"],
-          [chunk "       operators: {SwitchFunctionArguments: {skip-calls-to: [<function>]}}"]
+          [chunk "       disabled-mutations: [<Operator>]"]
         ]
       remediationUncoveredBody =
         [ [chunk "  1. Cover it: add a test that exercises the mutation site so the coverage phase records a covering test."],
@@ -472,6 +469,28 @@ emitCoverageEvent settings ev =
     (settingTerminalCapabilities settings)
     stderr
     (unlinesChunks (renderCoverageProgressEvent ev))
+
+-- | Per-survivor mitigation guidance, appended under a surviving mutation in
+-- the report: the exact disable annotation for this mutation (using its
+-- operator and, when known, its enclosing binding) and any mitigation hint the
+-- operator attached (e.g. an equivalent-mutant suppression).
+survivorMitigationLines :: AugmentedMutationRecord -> [[Chunk]]
+survivorMitigationLines rec = disableLine : mitigationLines
+  where
+    op = augmentedMutationRecordOperator rec
+    disableLine = case augmentedMutationRecordBinding rec of
+      Just b ->
+        [ chunk "  disable: ",
+          fore yellow (chunk (T.pack (concat ["{-# ANN ", T.unpack b, " (\"DisableMutation: ", T.unpack op, "\" :: String) #-}"])))
+        ]
+      Nothing ->
+        [ chunk "  disable: add ",
+          fore yellow (chunk op),
+          chunk " to disabled-mutations in the plugin config"
+        ]
+    mitigationLines = case augmentedMutationRecordMitigation rec of
+      Nothing -> []
+      Just m -> [[chunk "  mitigation: ", chunk m]]
 
 formatMutationLog :: MutationId -> AugmentedMutationRecord -> [[Chunk]]
 formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationRecordOperator, augmentedMutationRecordOriginal, augmentedMutationRecordReplacement, augmentedMutationRecordSourceLines, augmentedMutationRecordMutatedLines, augmentedMutationRecordSourceFile, augmentedMutationRecordLine, augmentedMutationRecordContextBefore, augmentedMutationRecordContextAfter} =

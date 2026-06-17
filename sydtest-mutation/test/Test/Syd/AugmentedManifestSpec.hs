@@ -78,7 +78,9 @@ spec = do
                             ""
                             [ TestId (("add", 0) :| [("adds two numbers", 0)]),
                               TestId (("add", 0) :| [("commutativity", 1)])
-                            ]
+                            ],
+                      mutRecBinding = Nothing,
+                      mutRecMitigation = Nothing
                     }
                 ],
               MutationGroup
@@ -97,7 +99,9 @@ spec = do
                       mutRecMutatedLines = [],
                       mutRecContextBefore = [],
                       mutRecContextAfter = [],
-                      mutRecCoveringTests = Nothing
+                      mutRecCoveringTests = Nothing,
+                      mutRecBinding = Nothing,
+                      mutRecMitigation = Nothing
                     }
                 ]
             ]
@@ -132,7 +136,9 @@ spec = do
                           [ TestId (("add", 0) :| [("adds two numbers", 0)]),
                             TestId (("add", 0) :| [("commutativity", 1)])
                           ],
-                      augmentedMutationRecordTimeoutMicros = 30000000
+                      augmentedMutationRecordTimeoutMicros = 30000000,
+                      augmentedMutationRecordBinding = Nothing,
+                      augmentedMutationRecordMitigation = Nothing
                     }
                 ]
             ]
@@ -167,7 +173,9 @@ spec = do
                       [ TestId (("add", 0) :| [("adds two numbers", 0)]),
                         TestId (("add", 0) :| [("commutativity", 1)])
                       ],
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             uncovered =
               AugmentedMutationRecord
@@ -186,7 +194,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
          in encodePretty
               MutationRunReport

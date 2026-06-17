@@ -58,7 +58,7 @@ import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.Mutation.TestLocation (TestLocation (..), decodeTestLocations)
-import Test.Syd.MutationMode.Common (formatMutationLog)
+import Test.Syd.MutationMode.Common (formatMutationLog, survivorMitigationLines)
 import Text.Colour
   ( Chunk,
     TerminalCapabilities (..),
@@ -218,7 +218,8 @@ renderDiffFinalSummary numSelected assertion report txtPath jsonPath =
             ++ [[]]
     renderSurvivor s =
       let rec = survivedMutationRecord s
-       in [] : formatMutationLog (augmentedMutationRecordId rec) rec
+       in ([] : formatMutationLog (augmentedMutationRecordId rec) rec)
+            ++ survivorMitigationLines rec
 
 -- | Render the one-line "N changed hunks; selected M mutations" progress
 -- message as coloured chunks, matching the rest of the driver's output.

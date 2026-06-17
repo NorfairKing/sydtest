@@ -39,7 +39,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             rendered = unlines (map (T.unpack . renderChunksText WithoutColours) (formatMutationLog (MutationId ["only-two", "parts"]) aRecord))
         rendered `shouldBe` "only-two/parts\n"
@@ -61,7 +63,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             rendered = unlines (map (T.unpack . renderChunksText WithoutColours) (formatMutationLog (MutationId ["a", "b", "c"]) aRecord))
         rendered `shouldBe` "a/b/c\n"
@@ -83,7 +87,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             rendered = unlines (map (T.unpack . renderChunksText WithoutColours) (formatMutationLog (MutationId ["a", "b", "c", "d"]) aRecord))
         rendered `shouldBe` "a/b/c/d\n"
@@ -107,7 +113,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             rendered = unlines (map (T.unpack . renderChunksText WithoutColours) (formatMutationLog (MutationId ["Foo.Bar", "ArithOp", "42", "10", "12", "extra"]) record))
         rendered
@@ -136,7 +144,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             rendered = unlines (map (T.unpack . renderChunksText WithoutColours) (formatMutationLog (MutationId ["Foo.Bar", "ArithOp", "42", "10", "12", "replStr", "2", "trailing"]) record))
         rendered
@@ -165,7 +175,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             rendered = unlines (map (T.unpack . renderChunksText WithoutColours) (formatMutationLog (MutationId ["Foo.Bar", "ArithOp", "42", "10", "12"]) record))
         rendered
@@ -200,7 +212,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             rendered = unlines (map (T.unpack . renderChunksText WithoutColours) (formatMutationLog (MutationId ["Foo.Bar", "ListLit", "19", "29", "38", "2 elements", "2"]) record))
         rendered
@@ -228,7 +242,9 @@ spec = do
                   augmentedMutationRecordContextBefore = [],
                   augmentedMutationRecordContextAfter = [],
                   augmentedMutationRecordCoveringTests = Map.empty,
-                  augmentedMutationRecordTimeoutMicros = 30000000
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
                 }
             firstId = MutationId ["Foo.Bar", "ListLit", "19", "29", "38", "2 elements", "1"]
             secondId = MutationId ["Foo.Bar", "ListLit", "19", "29", "38", "2 elements", "2"]
@@ -265,7 +281,9 @@ spec = do
                         [ "  in result"
                         ],
                       augmentedMutationRecordCoveringTests = Map.empty,
-                      augmentedMutationRecordTimeoutMicros = 30000000
+                      augmentedMutationRecordTimeoutMicros = 30000000,
+                      augmentedMutationRecordBinding = Nothing,
+                      augmentedMutationRecordMitigation = Nothing
                     }
 
   describe "renderUnifiedDiff" $ do

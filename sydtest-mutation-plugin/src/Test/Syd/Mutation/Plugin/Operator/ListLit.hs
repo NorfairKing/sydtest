@@ -4,7 +4,7 @@ module Test.Syd.Mutation.Plugin.Operator.ListLit (theOperator) where
 
 import GHC
 import GHC.Builtin.Types (mkListTy)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
 
 theOperator :: MutationOperator
 theOperator =
@@ -22,7 +22,7 @@ action ::
   SrcSpanAnnA ->
   Type ->
   [LHsExpr GhcTc] ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 action ann elTy es =
   let listTy = mkListTy elTy
       n = length es
@@ -30,12 +30,14 @@ action ann elTy es =
         RealSrcSpan rss _ -> [rss]
         UnhelpfulSpan _ -> []
       mkList xs delta =
-        ( listTy,
-          L ann (ExplicitList elTy xs),
-          show n ++ " elements",
-          show (length xs) ++ " elements",
-          delta
-        )
+        MutationAlt
+          { mutAltType = listTy,
+            mutAltExpr = L ann (ExplicitList elTy xs),
+            mutAltOriginal = show n ++ " elements",
+            mutAltReplacement = show (length xs) ++ " elements",
+            mutAltDelta = delta,
+            mutAltMitigation = Nothing
+          }
       -- Always produce: empty list, drop-head.
       -- Only add drop-last if it gives a different length than drop-head
       -- (i.e. n > 2; when n == 2 both give one element).

@@ -5,7 +5,7 @@ module Test.Syd.Mutation.Plugin.Operator.RemoveAction (theOperator) where
 import Control.Monad.Reader (asks)
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
-import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationOperator (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
 
 -- | Remove one non-binding action from a do block.
@@ -61,7 +61,7 @@ mutateChain ::
   Type ->
   LHsExpr GhcTc ->
   LHsExpr GhcTc ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 mutateChain ty lhs rest = do
   ignore <- asks instrumentEnvIgnore
   let lhsIgnored = case opOccName lhs of
@@ -74,12 +74,14 @@ mutateChain ty lhs rest = do
             RealSrcSpan rss _ -> [rss]
             UnhelpfulSpan _ -> []
        in pure
-            [ ( ty,
-                rest,
-                "a >> rest",
-                "rest",
-                SpanRemoval removedSpan
-              )
+            [ MutationAlt
+                { mutAltType = ty,
+                  mutAltExpr = rest,
+                  mutAltOriginal = "a >> rest",
+                  mutAltReplacement = "rest",
+                  mutAltDelta = SpanRemoval removedSpan,
+                  mutAltMitigation = Nothing
+                }
             ]
 
 -- | Fallback: also support @HsDo@ if it ever shows up unexpanded
@@ -87,7 +89,7 @@ mutateChain ty lhs rest = do
 -- operator was written for that.
 matchRawHsDo ::
   LHsExpr GhcTc ->
-  Maybe (InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)])
+  Maybe (InstrM [MutationAlt])
 matchRawHsDo = \case
   le@(L ann (HsDo x ctx (L lann stmts)))
     | any isRemovableStmt stmts ->
@@ -112,7 +114,7 @@ rawDoAction ::
   SrcSpanAnnL ->
   [ExprLStmt GhcTc] ->
   Type ->
-  InstrM [(Type, LHsExpr GhcTc, String, String, SrcSpanDelta)]
+  InstrM [MutationAlt]
 rawDoAction ann x ctx lann stmts ty = do
   -- Do not offer to remove a statement whose head is on the 'ignore' list:
   -- removing @logDebug "x"@ and the like is the noise the ignore filter
@@ -129,10 +131,12 @@ rawDoAction ann x ctx lann stmts ty = do
             removedSpan = case getLocA s of
               RealSrcSpan rss _ -> [rss]
               UnhelpfulSpan _ -> []
-         in ( ty,
-              L ann (HsDo x ctx (L lann stmts')),
-              show n ++ " statements",
-              show (n - 1) ++ " statements (removed #" ++ show (i + 1) ++ ")",
-              SpanRemoval removedSpan
-            )
+         in MutationAlt
+              { mutAltType = ty,
+                mutAltExpr = L ann (HsDo x ctx (L lann stmts')),
+                mutAltOriginal = show n ++ " statements",
+                mutAltReplacement = show (n - 1) ++ " statements (removed #" ++ show (i + 1) ++ ")",
+                mutAltDelta = SpanRemoval removedSpan,
+                mutAltMitigation = Nothing
+              }
   pure [mkMutation i s | (i, s) <- removable]

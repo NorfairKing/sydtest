@@ -11,18 +11,27 @@ debug: true
 # Example.IgnoreLib: 'mark' is a no-op marker, and calls to it must be
 # left untouched even when wrapped by '$' (which expands to a typecheck
 # 'ExpandedThingTc' node).
+#
+# Exercises the three forms of name matching in the ignore filter:
+#   * 'mark' bare (matches any module),
+#   * 'markM' fully qualified by its (local) defining module,
+#   * 'censor' fully qualified by the module it is imported through
+#     (Control.Monad.Writer), which differs from where it is defined
+#     (Control.Monad.Writer.Class).
 ignore:
   - mark
-  - markM
+  - Example.IgnoreLib.markM
+  - Control.Monad.Writer.censor
 
 # Exercises 'SwitchFunctionArguments' suppression: 'majorityOf5' (in
 # Example.ConstFnLib) is symmetric in its arguments, so swapping any two
 # produces an equivalent, unkillable mutant.  Listing it here skips the swap
-# at every call to it.
+# at every call to it.  Given fully qualified (by its defining module) to
+# exercise fully-qualified name matching in skip-calls-to.
 operators:
   SwitchFunctionArguments:
     skip-calls-to:
-      - majorityOf5
+      - Example.ConstFnLib.majorityOf5
   # Exercises 'ElideCall' suppression: 'same' (in Example.ElideCallLib) is a
   # user-defined identity, so eliding a call to it produces an equivalent,
   # unkillable mutant.  Listing it here skips the elision at every call to it.

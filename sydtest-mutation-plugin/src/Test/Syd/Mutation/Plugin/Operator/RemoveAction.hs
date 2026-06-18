@@ -6,7 +6,7 @@ import Control.Monad.Reader (asks)
 import GHC
 import GHC.Hs.Syn.Type (lhsExprType)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
-import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
+import Test.Syd.Mutation.Plugin.Operator.Util (headNameMatches, opOccName)
 
 -- | Remove one non-binding action from a do block.
 --
@@ -64,9 +64,8 @@ mutateChain ::
   InstrM [MutationAlt]
 mutateChain ty lhs rest = do
   ignore <- asks instrumentEnvIgnore
-  let lhsIgnored = case opOccName lhs of
-        Just occ -> occ `elem` ignore
-        Nothing -> False
+  rdrEnv <- asks instrumentEnvRdrEnv
+  let lhsIgnored = headNameMatches rdrEnv ignore lhs
   if lhsIgnored
     then pure []
     else
@@ -121,9 +120,8 @@ rawDoAction ann x ctx lann stmts ty = do
   -- exists to silence.  Mirrors the guard in 'mutateChain' for the expanded
   -- @(>>)@ form.
   ignore <- asks instrumentEnvIgnore
-  let stmtIgnored s = case bodyStmtExpr s >>= opOccName of
-        Just occ -> occ `elem` ignore
-        Nothing -> False
+  rdrEnv <- asks instrumentEnvRdrEnv
+  let stmtIgnored s = maybe False (headNameMatches rdrEnv ignore) (bodyStmtExpr s)
       removable = [(i, s) | (i, s) <- zip [0 ..] stmts, isRemovableStmt s, not (stmtIgnored s)]
       n = length stmts
       mkMutation i s =

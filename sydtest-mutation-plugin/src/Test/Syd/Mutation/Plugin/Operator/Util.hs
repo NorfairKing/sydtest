@@ -16,17 +16,20 @@ module Test.Syd.Mutation.Plugin.Operator.Util
     collectApp,
     headFunctionName,
     nameMatchCandidates,
+    headNameMatches,
     spanText,
   )
 where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.List (nub)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (manyDataConTy)
 import GHC.Core.TyCo.Rep (Scaled (..))
 import GHC.Core.Type (isForAllTy, mkVisFunTyMany, splitFunTy_maybe, splitTyConApp_maybe)
+import GHC.Data.Bag (bagToList)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Tc.Types (TcM)
 import GHC.Tc.Utils.Env (tcLookupId)
@@ -34,36 +37,50 @@ import GHC.Types.Basic (DoPmc (..), GenReason (..), Origin (..))
 import GHC.Types.Id (idName)
 import GHC.Types.Name (getOccString, nameModule_maybe)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
-import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
+import GHC.Types.Name.Reader (GlobalRdrEnv, greName, gre_imp, importSpecModule, lookupGRE_Name)
 import GHC.Types.SourceText (mkIntegralLit)
 
--- | Extract the OccName string of the operator at the head of an application
--- chain.  At GhcTc the operator often has type and dictionary arguments
--- attached (e.g. @(+) \@Int $dNumInt@), so we walk through 'HsApp',
--- 'HsAppType', and 'WrapExpr' wrappers to find the underlying 'HsVar'.
+-- | The 'Name' at the head of an application chain.  At GhcTc the head often
+-- has type and dictionary arguments attached (e.g. @(+) \@Int $dNumInt@), so we
+-- walk through 'HsApp', 'HsAppType', and 'WrapExpr' wrappers to find the
+-- underlying 'HsVar'.
 --
--- Also peels through @XExpr (ExpandedThingTc orig expanded)@: GHC 9.6+
--- expands source-level @f $ x@ and similar rebindable-syntax forms into
--- @HsApp@ chains wrapped in 'ExpandedThingTc'.  Without this case, a call
--- like @logInfo $ ...@ would look like a "no head" expression, and the
--- ignore filter (which dispatches on 'opOccName') would let mutations
--- leak into the argument subtree.
+-- Also peels through @XExpr (ExpandedThingTc orig expanded)@: GHC 9.6+ expands
+-- source-level @f $ x@ and similar rebindable-syntax forms into @HsApp@ chains
+-- wrapped in 'ExpandedThingTc'.  Without this case, a call like @logInfo $ ...@
+-- would look like a "no head" expression, and the ignore filter (which
+-- dispatches on this head) would let mutations leak into the argument subtree.
 --
 -- Treats @($)@ specially: at GhcTc, @f $ x@ is expanded into the application
 -- chain @($) f x@, but the syntactic "head" the user thinks of is @f@, not
 -- @($)@.  Whenever we encounter @($) f x@ (or any further nesting of @$@s),
--- we recurse on the first argument instead of returning @"$"@.
-opOccName :: LHsExpr GhcTc -> Maybe String
-opOccName = \case
-  L _ (HsVar _ (L _ v)) -> Just (getOccString v)
-  L _ (XExpr (WrapExpr (HsWrap _ e))) -> opOccName (noLocA e)
-  L _ (XExpr (ExpandedThingTc _ e)) -> opOccName (noLocA e)
+-- we recurse on the first argument instead of returning @($)@.
+opName :: LHsExpr GhcTc -> Maybe Name
+opName = \case
+  L _ (HsVar _ (L _ v)) -> Just (idName v)
+  L _ (XExpr (WrapExpr (HsWrap _ e))) -> opName (noLocA e)
+  L _ (XExpr (ExpandedThingTc _ e)) -> opName (noLocA e)
   L _ (HsApp _ f a)
-    | Just "$" <- opOccName f -> opOccName a
-    | otherwise -> opOccName f
-  L _ (HsAppType _ f _) -> opOccName f
-  L _ (HsPar _ e) -> opOccName e
+    | Just n <- opName f, getOccString n == "$" -> opName a
+    | otherwise -> opName f
+  L _ (HsAppType _ f _) -> opName f
+  L _ (HsPar _ e) -> opName e
   _ -> Nothing
+
+-- | The unqualified @OccName@ string of the head returned by 'opName', if any.
+-- Used where only the bare operator/identifier name matters, e.g. the infix
+-- operator extraction in 'matchTcOpApp' and the @(>>)@ check in 'RemoveAction'.
+opOccName :: LHsExpr GhcTc -> Maybe String
+opOccName = fmap getOccString . opName
+
+-- | Does the head of @le@ (as found by 'opName') match any of the given
+-- names?  Each name matches either the bare @OccName@ (e.g. @mark@, matching
+-- any module) or a fully-qualified @Module.name@ form — by the defining module
+-- or by an import module — via 'nameMatchCandidates'.  Used by the @ignore@
+-- filter and by 'RemoveAction'.
+headNameMatches :: GlobalRdrEnv -> [String] -> LHsExpr GhcTc -> Bool
+headNameMatches rdrEnv names le =
+  any ((`elem` names) . T.unpack) (maybe [] (nameMatchCandidates rdrEnv) (opName le))
 
 -- | A view of a binary infix operator application as it appears in the
 -- typechecked AST.  At GhcTc, GHC always expands the source-level @OpApp@ into
@@ -369,15 +386,22 @@ headFunctionName = go
       HsPar _ e -> go e
       _ -> Nothing
 
--- | The strings a @skip-calls-to@ entry may use to refer to a name: the bare
--- occurrence (@max@) and, when the name has a defining module, the fully
--- qualified form (@GHC.Base.max@).
-nameMatchCandidates :: Name -> [Text]
-nameMatchCandidates n =
+-- | The strings a @skip-calls-to@ or @ignore@ entry may use to refer to a
+-- name: the bare occurrence (@union@), the fully-qualified form using the
+-- name's /defining/ module (@Data.Set.Internal.union@), and the
+-- fully-qualified forms using each module the name is /imported through/ at
+-- this use site (@Data.Set.union@).  Including the import modules lets a user
+-- qualify a re-exported function by the module they actually import it from,
+-- not only by the internal module it happens to be defined in.
+nameMatchCandidates :: GlobalRdrEnv -> Name -> [Text]
+nameMatchCandidates rdrEnv n =
   let occ = T.pack (getOccString n)
-   in case nameModule_maybe n of
-        Just m -> [occ, T.pack (moduleNameString (moduleName m)) <> "." <> occ]
-        Nothing -> [occ]
+      definingMods = maybe [] (\m -> [moduleName m]) (nameModule_maybe n)
+      importMods = case lookupGRE_Name rdrEnv n of
+        Just gre -> map importSpecModule (bagToList (gre_imp gre))
+        Nothing -> []
+      qualify m = T.pack (moduleNameString m) <> "." <> occ
+   in occ : map qualify (nub (definingMods ++ importMods))
 
 -- | The exact source text covered by a 'RealSrcSpan'.  Multi-line spans are
 -- joined with single spaces, which is enough for the no-op comparison and the

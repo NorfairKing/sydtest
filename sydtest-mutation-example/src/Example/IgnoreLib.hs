@@ -4,10 +4,11 @@ module Example.IgnoreLib
     markDollar,
     markM,
     markAction,
+    censored,
   )
 where
 
-import Control.Monad.Writer (Writer, execWriter, tell)
+import Control.Monad.Writer (Writer, censor, execWriter, tell)
 
 -- | A two-argument no-op marker with a polymorphic payload.  Listed
 -- under 'ignore:' in the plugin config so mutations are suppressed at
@@ -60,3 +61,15 @@ markAction :: String
 markAction = execWriter $ do
   markM "tag"
   tell "body"
+
+-- | A use of 'censor'.  'censor' is re-exported by 'Control.Monad.Writer'
+-- from @Control.Monad.Writer.Class@ where it is defined, so its /defining/
+-- module differs from the module it is imported through.  Listing
+-- @Control.Monad.Writer.censor@ (the import module) in the @ignore@ config
+-- exercises fully-qualified matching by import module: with it ignored, the
+-- whole call and its argument subtree are left alone (no 'ElideCall' eliding
+-- @censor reverse (tell "x")@ to @tell "x"@, no mutation of the string
+-- literal), so this binding yields no mutations.  'censor' is used nowhere
+-- else, so ignoring it cannot disturb other modules' manifests.
+censored :: Writer String ()
+censored = censor reverse (tell "x")

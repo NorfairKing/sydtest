@@ -57,8 +57,9 @@ import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraStri
 -- >     skip-calls-to:
 -- >       - fromIntegral
 --
--- A name matches either bare (@fromIntegral@) or fully qualified
--- (@GHC.Real.fromIntegral@).
+-- A name matches either bare (@fromIntegral@, matching any module) or fully
+-- qualified (@GHC.Real.fromIntegral@).  A qualifier may be either the
+-- function's defining module or a module it is imported through.
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
@@ -78,13 +79,14 @@ action ::
 action le arg = do
   srcLines <- asks (maybe [] snd . instrumentEnvSourceFile)
   opsConfig <- asks instrumentEnvOperatorsConfig
+  rdrEnv <- asks instrumentEnvRdrEnv
   let extra = maybe Map.empty operatorConfigExtra (Map.lookup "ElideCall" opsConfig)
       -- @id@ is always an equivalent (unkillable) mutant, so it is skipped by
       -- default; other identity-like functions can be added by the user.
       skipCallsTo = "id" : operatorExtraStrings "skip-calls-to" extra
       (headExpr, _) = collectApp le
       skipThisCall = case headFunctionName headExpr of
-        Just n -> any (`elem` skipCallsTo) (nameMatchCandidates n)
+        Just n -> any (`elem` skipCallsTo) (nameMatchCandidates rdrEnv n)
         Nothing -> False
   case (skipThisCall, getLocA le, getLocA arg) of
     (False, RealSrcSpan callSp _, RealSrcSpan argSp _)

@@ -48,7 +48,10 @@ import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraStri
 -- >       - Data.Set.union
 --
 -- A name matches either bare (@max@, matching any module) or fully qualified
--- (@GHC.Base.max@).
+-- (@Data.Set.union@).  A qualifier may be either the function's defining
+-- module or a module it is imported through, so a re-exported function works
+-- under the module you import it from (@Data.Set.union@) as well as the
+-- internal module it is defined in (@Data.Set.Internal.union@).
 theOperator :: MutationOperator
 theOperator =
   MutationOperator
@@ -76,10 +79,11 @@ action le headExpr args pairs = do
   -- Suppress calls to functions the user has marked symmetric (their swaps
   -- are equivalent, unkillable mutants).  See this module's haddock.
   opsConfig <- asks instrumentEnvOperatorsConfig
+  rdrEnv <- asks instrumentEnvRdrEnv
   let extra = maybe Map.empty operatorConfigExtra (Map.lookup "SwitchFunctionArguments" opsConfig)
       skipCallsTo = operatorExtraStrings "skip-calls-to" extra
       skipThisCall = case headFunctionName headExpr of
-        Just n -> any (`elem` skipCallsTo) (nameMatchCandidates n)
+        Just n -> any (`elem` skipCallsTo) (nameMatchCandidates rdrEnv n)
         Nothing -> False
   if appDepth /= 0 || skipThisCall
     then pure []

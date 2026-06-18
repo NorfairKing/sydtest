@@ -54,9 +54,12 @@ data Settings = Settings
     settingExceptions :: ![String],
     -- | Mutation operator names disabled globally.
     settingDisabledMutations :: ![String],
-    -- | Unqualified identifier names whose calls (and argument subtrees)
-    -- the plugin leaves untouched.  See 'Test.Syd.Mutation.Plugin.Instrument'
-    -- for how this is consumed.
+    -- | Identifier names whose calls (and argument subtrees) the plugin
+    -- leaves untouched.  Each name matches either bare (e.g. @logDebug@,
+    -- matching any module) or fully qualified (e.g.
+    -- @Control.Monad.Logger.logDebug@); a qualifier may be either the
+    -- function's defining module or a module it is imported through.  See
+    -- 'Test.Syd.Mutation.Plugin.Instrument' for how this is consumed.
     settingIgnore :: ![String],
     -- | Skip mutations inside TH splices and quasi-quotes.
     settingSkipThSplices :: !Bool,

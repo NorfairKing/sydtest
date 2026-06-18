@@ -69,7 +69,7 @@ import GHC.Utils.Outputable (text)
 import Path
 import Path.IO (forgivingAbsence, resolveFile')
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..), controlOperatorName)
-import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
+import Test.Syd.Mutation.Plugin.Operator.Util (headNameMatches)
 import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
@@ -885,14 +885,16 @@ instrumentLExpr le = do
   -- into @do { k }@) and on every sub-expression of the arguments (so the
   -- string literal, an inner @show n@, etc. are also left alone).
   --
-  -- 'opOccName' peels through HsApp/HsAppType/WrapExpr/HsPar wrappers to find
-  -- the head identifier's unqualified 'OccName' string.  We match against the
-  -- bare name (no module qualifier), so users configure e.g. "logDebug"
-  -- regardless of whether it's imported qualified or unqualified.
+  -- 'headNameMatches' peels through HsApp/HsAppType/WrapExpr/HsPar wrappers to
+  -- find the head identifier and matches a configured name either bare (e.g.
+  -- "logDebug", matching any module) or fully qualified by the function's
+  -- defining module or the module it is imported through (e.g.
+  -- "Control.Monad.Logger.logDebug").
   expressionToIgnore <- asks instrumentEnvIgnore
-  case opOccName le of
-    Just occ | occ `elem` expressionToIgnore -> pure le
-    _ -> instrumentLExprGo le
+  rdrEnv <- asks instrumentEnvRdrEnv
+  if headNameMatches rdrEnv expressionToIgnore le
+    then pure le
+    else instrumentLExprGo le
 
 instrumentLExprGo :: LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
 instrumentLExprGo le = do

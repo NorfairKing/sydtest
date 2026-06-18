@@ -32,17 +32,29 @@ spec = do
       impliesPair (True, True) `shouldBe` True
     it "accepts (False, False)" $
       impliesPair (False, False) `shouldBe` True
-  describe "majorityOf5" $ do
-    it "is True when 3 of 5 are True" $
-      majorityOf5 True True True False False `shouldBe` True
-    it "is False when only 2 of 5 are True" $
-      majorityOf5 True True False False False `shouldBe` False
-    it "is True when all 5 are True" $
-      majorityOf5 True True True True True `shouldBe` True
-    it "is False when all 5 are False" $
-      majorityOf5 False False False False False `shouldBe` False
-  describe "majorityOf5Wrapper" $ do
-    it "agrees with majorityOf5 on a 3-out-of-5 tuple" $
-      majorityOf5Wrapper (True, True, True, False, False) `shouldBe` True
-    it "agrees with majorityOf5 on a 2-out-of-5 tuple" $
-      majorityOf5Wrapper (True, True, False, False, False) `shouldBe` False
+  -- Exhaustive over all 32 boolean inputs, compared against an inline
+  -- reference majority.  A few hand-picked inputs leave the per-element
+  -- 'ConstBool' and 'ListLit' mutations on @[a, b, c, d, e]@ alive (no single
+  -- input distinguishes every position); enumerating every input kills them,
+  -- since constanting or dropping any element changes the majority for some
+  -- input.
+  describe "majorityOf5" $
+    it "matches the reference majority on all 32 inputs" $
+      sequence_
+        [ majorityOf5 a b c d e `shouldBe` (length (filter id [a, b, c, d, e]) >= 3)
+        | a <- [False, True],
+          b <- [False, True],
+          c <- [False, True],
+          d <- [False, True],
+          e <- [False, True]
+        ]
+  describe "majorityOf5Wrapper" $
+    it "matches the reference majority on all 32 inputs" $
+      sequence_
+        [ majorityOf5Wrapper (a, b, c, d, e) `shouldBe` (length (filter id [a, b, c, d, e]) >= 3)
+        | a <- [False, True],
+          b <- [False, True],
+          c <- [False, True],
+          d <- [False, True],
+          e <- [False, True]
+        ]

@@ -1,4 +1,8 @@
 {
+    "controls": {
+        "failed": 1,
+        "passed": 1
+    },
     "groups": [
         [
             {
@@ -71,11 +75,102 @@
                 },
                 "outcome": "uncovered"
             }
+        ],
+        [
+            {
+                "mutation": {
+                    "col_end": 15,
+                    "col_start": 14,
+                    "context_after": [
+                        "  in result"
+                    ],
+                    "context_before": [
+                        "add :: Int -> Int -> Int",
+                        "add x y ="
+                    ],
+                    "covering_tests": {
+                        "": [
+                            "add.adds two numbers"
+                        ]
+                    },
+                    "end_line": 5,
+                    "id": [
+                        "Foo.Bar",
+                        "Control",
+                        "5",
+                        "14",
+                        "15",
+                        "no-op",
+                        "0"
+                    ],
+                    "line": 5,
+                    "module": "Foo.Bar",
+                    "mutated_lines": [
+                        "  result = x + y"
+                    ],
+                    "operator": "Control",
+                    "original": "no-op",
+                    "replacement": "no-op",
+                    "source_file": "src/Foo/Bar.hs",
+                    "source_lines": [
+                        "  result = x + y"
+                    ],
+                    "timeout_micros": 30000000
+                },
+                "outcome": "control_passed"
+            }
+        ],
+        [
+            {
+                "log_file": "children/Foo.Bar-Control-5-14-15.txt",
+                "mutation": {
+                    "col_end": 15,
+                    "col_start": 14,
+                    "context_after": [
+                        "  in result"
+                    ],
+                    "context_before": [
+                        "add :: Int -> Int -> Int",
+                        "add x y ="
+                    ],
+                    "covering_tests": {
+                        "": [
+                            "add.adds two numbers"
+                        ]
+                    },
+                    "end_line": 5,
+                    "id": [
+                        "Foo.Bar",
+                        "Control",
+                        "5",
+                        "14",
+                        "15",
+                        "no-op",
+                        "0"
+                    ],
+                    "line": 5,
+                    "module": "Foo.Bar",
+                    "mutated_lines": [
+                        "  result = x + y"
+                    ],
+                    "operator": "Control",
+                    "original": "no-op",
+                    "replacement": "no-op",
+                    "source_file": "src/Foo/Bar.hs",
+                    "source_lines": [
+                        "  result = x + y"
+                    ],
+                    "timeout_micros": 30000000
+                },
+                "outcome": "control_failed"
+            }
         ]
     ],
-    "killed": 5,
-    "skipped": 0,
-    "survived": 1,
-    "timed_out": 0,
-    "uncovered": 1
+    "mutations": {
+        "killed": 5,
+        "skipped": 0,
+        "survived": 1,
+        "timed_out": 0,
+        "uncovered": 1
+    }
 }

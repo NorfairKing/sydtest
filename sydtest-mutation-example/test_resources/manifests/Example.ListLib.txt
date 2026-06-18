@@ -1,5 +1,5 @@
 [36m# Example.ListLib[m
-14 mutations in 11 groups
+15 mutations in 12 groups
 
 ConstEmptyList at src/Example/ListLib.hs:19:30-31 #1
 [36m@@ -16,4 +16,4 @@[m
@@ -111,6 +111,16 @@ ListLit at src/Example/ListLib.hs:12:25-31 #2
  -- mutant on the literal @[a, b]@.
  pairConcat :: String -> String -> String
 [31m-pairConcat a b = concat [a, b][m
+ 
+ -- | Concatenate a three-element list of strings.
+ --
+
+Control at src/Example/ListLib.hs:12:25-31 #0
+[36m@@ -9,7 +9,7 @@[m
+ -- Mutation sites: ListLit produces an empty-list mutant and a drop-first
+ -- mutant on the literal @[a, b]@.
+ pairConcat :: String -> String -> String
+ pairConcat a b = concat [a, b]
  
  -- | Concatenate a three-element list of strings.
  --

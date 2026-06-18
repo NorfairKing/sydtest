@@ -23,8 +23,11 @@ module Test.Syd.Mutation.AugmentedManifest
     TimedOutMutation (..),
     UncoveredMutation (..),
     SkippedMutation (..),
+    ControlFailedMutation (..),
     MutationOutcome (..),
     MutationGroupReport (..),
+    MutationTally (..),
+    ControlTally (..),
     MutationRunReport (..),
     writeMutationRunReport,
     readMutationRunReport,
@@ -387,6 +390,34 @@ instance HasCodec SkippedMutation where
         <$> requiredField' "mutation" .= skippedMutationRecord
         <*> requiredField' "cause" .= skippedMutationCause
 
+-- | A control (no-op) mutation that was killed - i.e. the control /failed/.
+--
+-- A control changes no behaviour, so it must survive.  A killed control means
+-- the mutation testing is unsound (a flaky or nondeterministic test suite, or
+-- a bug in the harness itself), so it fails the run like a survivor rather than
+-- being counted as a real kill.  Carries the optional child output file, like a
+-- survivor, so the report can show what the suite did.
+data ControlFailedMutation = ControlFailedMutation
+  { controlFailedMutationRecord :: AugmentedMutationRecord,
+    -- | Path to the raw child output file, relative to the report directory.
+    controlFailedMutationLogFile :: Maybe (Path Rel File)
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec ControlFailedMutation)
+
+instance Validity ControlFailedMutation
+
+instance GenValid ControlFailedMutation where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
+
+instance HasCodec ControlFailedMutation where
+  codec =
+    object "ControlFailedMutation" $
+      ControlFailedMutation
+        <$> requiredField' "mutation" .= controlFailedMutationRecord
+        <*> optionalFieldWith' "log_file" relFileCodec .= controlFailedMutationLogFile
+
 -- | One mutation's outcome within a group.
 data MutationOutcome
   = OutcomeKilled AugmentedMutationRecord
@@ -394,6 +425,14 @@ data MutationOutcome
   | OutcomeTimedOut TimedOutMutation
   | OutcomeUncovered UncoveredMutation
   | OutcomeSkipped SkippedMutation
+  | -- | A control (no-op) mutation that survived, as it must.  The control
+    -- /passed/: it confirms the harness correctly reports a non-diff as a
+    -- survivor.  Excluded from the killed\/survived score.
+    OutcomeControlPassed AugmentedMutationRecord
+  | -- | A control (no-op) mutation that was killed - the control /failed/.
+    -- Not part of the killed\/survived score, but fails the run; see
+    -- 'ControlFailedMutation'.
+    OutcomeControlFailed ControlFailedMutation
   deriving stock (Show, Eq, Generic)
   deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationOutcome)
 
@@ -414,13 +453,17 @@ instance HasCodec MutationOutcome where
             OutcomeTimedOut t -> ("timed_out", mapToEncoder t timedOutSubCodec)
             OutcomeUncovered u -> ("uncovered", mapToEncoder u uncoveredSubCodec)
             OutcomeSkipped sk -> ("skipped", mapToEncoder sk skippedSubCodec)
+            OutcomeControlPassed r -> ("control_passed", mapToEncoder r controlPassedSubCodec)
+            OutcomeControlFailed cf -> ("control_failed", mapToEncoder cf controlFailedSubCodec)
         )
         ( HashMap.fromList
             [ ("killed", ("OutcomeKilled", mapToDecoder OutcomeKilled killedSubCodec)),
               ("survived", ("OutcomeSurvived", mapToDecoder OutcomeSurvived survivedSubCodec)),
               ("timed_out", ("OutcomeTimedOut", mapToDecoder OutcomeTimedOut timedOutSubCodec)),
               ("uncovered", ("OutcomeUncovered", mapToDecoder OutcomeUncovered uncoveredSubCodec)),
-              ("skipped", ("OutcomeSkipped", mapToDecoder OutcomeSkipped skippedSubCodec))
+              ("skipped", ("OutcomeSkipped", mapToDecoder OutcomeSkipped skippedSubCodec)),
+              ("control_passed", ("OutcomeControlPassed", mapToDecoder OutcomeControlPassed controlPassedSubCodec)),
+              ("control_failed", ("OutcomeControlFailed", mapToDecoder OutcomeControlFailed controlFailedSubCodec))
             ]
         )
     where
@@ -444,6 +487,13 @@ instance HasCodec MutationOutcome where
         SkippedMutation
           <$> requiredField' "mutation" .= skippedMutationRecord
           <*> requiredField' "cause" .= skippedMutationCause
+      controlPassedSubCodec :: JSONObjectCodec AugmentedMutationRecord
+      controlPassedSubCodec = requiredField' "mutation"
+      controlFailedSubCodec :: JSONObjectCodec ControlFailedMutation
+      controlFailedSubCodec =
+        ControlFailedMutation
+          <$> requiredField' "mutation" .= controlFailedMutationRecord
+          <*> optionalFieldWith' "log_file" relFileCodec .= controlFailedMutationLogFile
 
 -- | All outcomes for the mutations of one group, in their original order.
 newtype MutationGroupReport = MutationGroupReport
@@ -462,21 +512,69 @@ instance GenValid MutationGroupReport where
   genValid = genValidStructurally
   shrinkValid = shrinkValidStructurally
 
--- | Full JSON report written by the parent mutation process.
+-- | The score for the normal (non-control) mutations of a run.
 --
--- 'mutationRunReportKilled' includes timed-out mutations (a hung mutation is
--- treated as killed for scoring).  'mutationRunReportTimedOut' is the count of
--- those specifically.  'mutationRunReportSkipped' counts mutations that were
--- not tested because an earlier mutation in the same group already failed.
---
--- The per-mutation detail is carried under 'mutationRunReportGroups', which
--- mirrors the manifest's group structure.
+-- 'mutationTallyKilled' includes timed-out mutations (a hung mutation is
+-- treated as killed for scoring).  'mutationTallyTimedOut' is the count of
+-- those specifically.  'mutationTallySkipped' counts mutations that were not
+-- tested because an earlier mutation in the same group already failed.
+data MutationTally = MutationTally
+  { mutationTallyKilled :: Word,
+    mutationTallySurvived :: Word,
+    mutationTallyTimedOut :: Word,
+    mutationTallyUncovered :: Word,
+    mutationTallySkipped :: Word
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec MutationTally)
+
+instance Validity MutationTally
+
+instance GenValid MutationTally where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
+
+instance HasCodec MutationTally where
+  codec =
+    object "MutationTally" $
+      MutationTally
+        <$> requiredField' "killed" .= mutationTallyKilled
+        <*> requiredField' "survived" .= mutationTallySurvived
+        <*> requiredField' "timed_out" .= mutationTallyTimedOut
+        <*> requiredField' "uncovered" .= mutationTallyUncovered
+        <*> requiredField' "skipped" .= mutationTallySkipped
+
+-- | The score for the control (no-op) mutations of a run.  Controls are
+-- excluded from 'MutationTally'; a passed control survived as it must, a failed
+-- control was killed (the mutation testing is unsound - a flaky\/nondeterministic
+-- suite or a harness bug - not a real kill, and it fails the run).
+data ControlTally = ControlTally
+  { controlTallyPassed :: Word,
+    controlTallyFailed :: Word
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving (Aeson.ToJSON, Aeson.FromJSON) via (Autodocodec ControlTally)
+
+instance Validity ControlTally
+
+instance GenValid ControlTally where
+  genValid = genValidStructurally
+  shrinkValid = shrinkValidStructurally
+
+instance HasCodec ControlTally where
+  codec =
+    object "ControlTally" $
+      ControlTally
+        <$> requiredField' "passed" .= controlTallyPassed
+        <*> requiredField' "failed" .= controlTallyFailed
+
+-- | Full JSON report written by the parent mutation process, in three parts:
+-- the normal-mutation score ('mutationRunReportMutations'), the control-mutation
+-- score ('mutationRunReportControls'), and the per-mutation detail
+-- ('mutationRunReportGroups'), which mirrors the manifest's group structure.
 data MutationRunReport = MutationRunReport
-  { mutationRunReportKilled :: Word,
-    mutationRunReportSurvived :: Word,
-    mutationRunReportTimedOut :: Word,
-    mutationRunReportUncovered :: Word,
-    mutationRunReportSkipped :: Word,
+  { mutationRunReportMutations :: MutationTally,
+    mutationRunReportControls :: ControlTally,
     mutationRunReportGroups :: [MutationGroupReport]
   }
   deriving stock (Show, Eq, Generic)
@@ -492,11 +590,8 @@ instance HasCodec MutationRunReport where
   codec =
     object "MutationRunReport" $
       MutationRunReport
-        <$> requiredField' "killed" .= mutationRunReportKilled
-        <*> requiredField' "survived" .= mutationRunReportSurvived
-        <*> requiredField' "timed_out" .= mutationRunReportTimedOut
-        <*> requiredField' "uncovered" .= mutationRunReportUncovered
-        <*> requiredField' "skipped" .= mutationRunReportSkipped
+        <$> requiredField' "mutations" .= mutationRunReportMutations
+        <*> requiredField' "controls" .= mutationRunReportControls
         <*> requiredField' "groups" .= mutationRunReportGroups
 
 mutationRunReportRelFile :: Path Rel File

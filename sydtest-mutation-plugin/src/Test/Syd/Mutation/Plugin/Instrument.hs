@@ -43,8 +43,9 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import GHC
-import GHC.Builtin.Types (charTy, mkListTy)
+import GHC.Builtin.Types (charTy, manyDataConTy, mkListTy)
 import GHC.Core.Predicate (isEvVar)
+import GHC.Core.TyCo.Rep (Scaled (..))
 import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
 import GHC.Driver.Env (HscEnv (..))
@@ -54,11 +55,11 @@ import GHC.Serialized (deserializeWithData)
 import GHC.Tc.Errors.Types (mkTcRnUnknownMessage)
 import GHC.Tc.Types
 import GHC.Tc.Utils.Env (tcLookupDataCon, tcLookupId)
-import GHC.Tc.Utils.Monad (addErrAt, getTopEnv)
+import GHC.Tc.Utils.Monad (addErrAt, getTopEnv, newUnique)
 import GHC.Types.Annotations (AnnEnv, AnnTarget (..), findAnns)
-import GHC.Types.Basic (Origin, isGenerated)
+import GHC.Types.Basic (DoPmc (..), GenReason (..), Origin (..), isGenerated)
 import GHC.Types.Error (isEmptyMessages, mkPlainError, noHints)
-import GHC.Types.Id (idName)
+import GHC.Types.Id (idName, mkSysLocal)
 import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkDataOcc, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
@@ -67,7 +68,7 @@ import GHC.Types.SrcLoc (combineRealSrcSpans)
 import GHC.Utils.Outputable (text)
 import Path
 import Path.IO (forgivingAbsence, resolveFile')
-import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..))
+import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..), controlOperatorName)
 import Test.Syd.Mutation.Plugin.Operator.Util (opOccName)
 import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig)
 import Test.Syd.Mutation.Runtime (MutationId (..))
@@ -106,6 +107,9 @@ data SrcSpanDelta
     -- untouched.  Used by the 'SwitchFunctionArguments' operator to swap two
     -- equal-typed arguments of a function application.
     SwapSpans RealSrcSpan RealSrcSpan
+  | -- | No textual change at all: the mutated lines equal the source lines.
+    -- Used by control (no-op) mutations, which are a deliberate non-diff.
+    NoDelta
 
 -- ---------------------------------------------------------------------------
 -- Operator
@@ -314,16 +318,50 @@ data OpAppCtx = OpAppCtx
     opAppRhsText :: Text
   }
 
--- | The 'StateT' state: names of 'DisableMutationsFor' targets that
--- 'applyLocalDisables' has matched against a real local binding within the
--- body currently being walked.  'withFunBindEnv' brackets each declaring
--- binding by resetting this to empty, walking the body, and reading it back:
--- any declared target still absent named a binding that does not exist, so the
--- annotation is dead and we raise a compile error (see 'deadDisableTargets').
--- Bracketing per declaring binding keeps the bookkeeping correct even when
--- several bindings disable the same local name (e.g. an @inner@ in each),
--- which a single threaded set could not.
-type InstrM = WriterT [MutationGroup] (StateT (Set String) (ReaderT InstrumentEnv TcM))
+-- | The 'StateT' state threaded through instrumentation.
+data InstrState = InstrState
+  { -- | Names of 'DisableMutationsFor' targets that 'applyLocalDisables' has
+    -- matched against a real local binding within the body currently being
+    -- walked.  'withFunBindEnv' brackets each declaring binding by resetting
+    -- this to empty, walking the body, and reading it back: any declared
+    -- target still absent named a binding that does not exist, so the
+    -- annotation is dead and we raise a compile error (see
+    -- 'deadDisableTargets').  Bracketing per declaring binding keeps the
+    -- bookkeeping correct even when several bindings disable the same local
+    -- name (e.g. an @inner@ in each), which a single threaded set could not.
+    instrConsumedDisables :: !(Set String),
+    -- | Count of real mutations recorded since the last control (no-op)
+    -- mutation was inserted.  When it reaches 'controlInterval', the next
+    -- expression-level mutation site also emits a control and this resets.
+    -- Counts module-wide (the plugin runs per module), across all operators.
+    instrSinceControl :: !Int,
+    -- | Monotonic sequence number for control mutations in this module, used
+    -- as the disambiguating last component of each control's 'MutationId' so
+    -- two controls at the same source span never collide.
+    instrControlSeq :: !Int
+  }
+
+emptyInstrState :: InstrState
+emptyInstrState =
+  InstrState
+    { instrConsumedDisables = Set.empty,
+      instrSinceControl = 0,
+      instrControlSeq = 0
+    }
+
+-- | How many real mutations to record between each inserted control (no-op)
+-- mutation.  Fixed, not configurable.  Sparse on purpose: a control samples the
+-- harness for false kills, and even a handful across a run catches a systemic
+-- flaky\/nondeterministic suite - more just adds overhead and report noise.
+--
+-- There is no per-module floor: a module (compilation unit) with fewer than
+-- 'controlInterval' real mutations gets no control.  Any real mutation-testing
+-- target has far more than this many mutations overall, so a run always ends up
+-- with controls; only toy builds get none, and those do not need the canary.
+controlInterval :: Int
+controlInterval = 12
+
+type InstrM = WriterT [MutationGroup] (StateT InstrState (ReaderT InstrumentEnv TcM))
 
 liftTcM :: TcM a -> InstrM a
 liftTcM = lift . lift . lift
@@ -392,7 +430,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrumentEnvInLocalLet = False,
         instrumentEnvOpAppCtx = Nothing
       }
-    $ evalStateT (runWriterT action) Set.empty
+    $ evalStateT (runWriterT action) emptyInstrState
 
 -- | Look up a value Id from the module's GlobalRdrEnv by OccName.
 -- The name must be in scope via the injected import of Test.Syd.Mutation.Plugin.Runtime.
@@ -530,7 +568,7 @@ applyLocalDisables occs action = do
   case matches of
     [] -> action
     _ -> do
-      modify' (Set.union (Set.fromList (map fst matches)))
+      modify' (\s -> s {instrConsumedDisables = Set.union (Set.fromList (map fst matches)) (instrConsumedDisables s)})
       let disableAll = any ((== DisableAllOps) . snd) matches
           namedDisables = concat [ns | (_, DisableOps ns) <- matches]
           operators' =
@@ -598,8 +636,8 @@ withFunBindEnv funName action = do
       -- binding's body consumed.  A single threaded set would be wrong here,
       -- since several bindings can disable the same local name (e.g. an @inner@
       -- in each), and the first consumption would mask the others.
-      saved <- get
-      put Set.empty
+      saved <- gets instrConsumedDisables
+      modify' (\s -> s {instrConsumedDisables = Set.empty})
       result <-
         local
           ( \env ->
@@ -609,10 +647,10 @@ withFunBindEnv funName action = do
                 }
           )
           action
-      consumed <- get
+      consumed <- gets instrConsumedDisables
       -- Restore the enclosing scope's consumption, plus what this body added,
       -- so an outer declaring binding still sees targets consumed in here.
-      put (saved `Set.union` consumed)
+      modify' (\s -> s {instrConsumedDisables = saved `Set.union` consumed})
       -- Any declared target that was never consumed named a binding that does
       -- not exist, so the annotation disables nothing: raise a compile error
       -- asking for its removal.
@@ -780,6 +818,11 @@ applyClauseAlts ::
 applyClauseAlts opName mg0 alts = do
   (mg', records) <- go 1 mg0 alts
   tell [MutationGroup records]
+  -- Clause mutations count towards the control cadence too (so the interval
+  -- reflects all real mutations), but a control is only ever inserted at an
+  -- expression site, by 'applyAlts' - there is no single expression to wrap
+  -- here.
+  bumpSinceControl (length records)
   pure mg'
   where
     go _ mg [] = pure (mg, [])
@@ -1135,7 +1178,7 @@ applyOperator origExpr fallthrough op = case operatorKind op of
                       ++ operatorName op
                       ++ locStr (getLocA origExpr)
               pure fallthrough
-            (x : xs) -> applyAlts (operatorName op) (x :| xs) fallthrough
+            (x : xs) -> applyAlts (getLocA origExpr) (operatorName op) (x :| xs) fallthrough
 
 -- | Desugar a mutated expression and accept it only when desugaring is silent.
 --
@@ -1197,15 +1240,21 @@ containsSpan outer inner =
 -- 3-element list both have replStr "2 elements", and without an index the
 -- 'MutationId's would collide.  The index is appended as the last component
 -- of the id.
-applyAlts :: String -> NonEmpty MutationAlt -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-applyAlts opName alts original = do
+applyAlts :: SrcSpan -> String -> NonEmpty MutationAlt -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+applyAlts matchedSpan opName alts original = do
   (wrapped, records) <- go 1 alts
   -- Every applyAlts call emits exactly one mutation group, even if a
   -- specific alternative was filtered out (TH splice / UnhelpfulSpan) and
   -- produced no record.  An empty group is harmless: no scheduling work, no
   -- report entries.
   tell [MutationGroup records]
-  pure wrapped
+  -- Count the real mutations just emitted towards the control cadence, then
+  -- (when due) insert a control no-op wrapping this site.  The matched
+  -- expression's type is reused as the @ifMutation@ type - it is the same
+  -- type the operator already wrapped its alternatives with, so it is always
+  -- a valid @ifMutation@ type and no extra checking is needed.
+  bumpSinceControl (length records)
+  maybeInsertControl matchedSpan (mutAltType (NE.head alts)) wrapped
   where
     go altIndex (alt :| rest) = do
       (mid, mRec) <- recordMutation original opName alt altIndex
@@ -1215,6 +1264,70 @@ applyAlts opName alts original = do
       outer <- wrapWithIfMutation (mutAltType alt) mid (mutAltExpr alt) innerExpr
       let recs = maybe innerRecs (: innerRecs) mRec
       pure (outer, recs)
+
+-- | Add @n@ real mutations to the running count since the last control.
+bumpSinceControl :: Int -> InstrM ()
+bumpSinceControl n = modify' (\s -> s {instrSinceControl = instrSinceControl s + n})
+
+-- | When the control cadence is due (at least 'controlInterval' real mutations
+-- recorded since the last control), insert a control (no-op) mutation wrapping
+-- @site@ at @matchedSpan@: an @ifMutation cmid e e@ with the same expression on
+-- both branches, recorded as a non-diff with the reserved 'controlOperatorName'.
+--
+-- A control changes no behaviour, so it is expected to survive; if it does not,
+-- the mutation testing is unsound.  Returns @site@ unchanged when the cadence is
+-- not due, or when the span cannot anchor a record (a TH splice or
+-- 'UnhelpfulSpan'); in the latter case the counter is left high so the next
+-- usable site picks it up.
+maybeInsertControl :: SrcSpan -> Type -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+maybeInsertControl matchedSpan ty site = do
+  count <- gets instrSinceControl
+  if count < controlInterval
+    then pure site
+    else do
+      seqno <- gets instrControlSeq
+      (cmid, mRec) <-
+        recordMutationAt matchedSpan (T.unpack controlOperatorName) "no-op" "no-op" NoDelta Nothing seqno
+      case mRec of
+        Nothing -> pure site
+        Just rec -> do
+          modify'
+            ( \s ->
+                s
+                  { instrSinceControl = instrSinceControl s - controlInterval,
+                    instrControlSeq = instrControlSeq s + 1
+                  }
+            )
+          tell [MutationGroup [rec]]
+          wrapWithNoOpControl ty cmid site
+
+-- | Wrap @e@ as a control no-op: @(\\ctrl -> ifMutation cmid ctrl ctrl) e@.
+--
+-- The single-argument lambda shares @e@ across both @ifMutation@ branches, so
+-- the (potentially large, mutation-laden) subtree is not duplicated - which
+-- would reintroduce the O(N*K) AST blow-up the expression walker is careful to
+-- avoid.  Both branches are the same bound variable, so this is a genuine
+-- non-diff: @ifMutation@ returns @ctrl@ whether or not the control is active,
+-- and the lambda is lazy in its argument, so evaluation is unchanged.
+wrapWithNoOpControl :: Type -> MutationId -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
+wrapWithNoOpControl ty cmid e = do
+  uniq <- liftTcM newUnique
+  let ctrlId = mkSysLocal (mkFastString "ctrl") uniq manyDataConTy ty
+      ctrlVar = nlHsVar ctrlId
+  body <- wrapWithIfMutation ty cmid ctrlVar ctrlVar
+  let pat = noLocA (VarPat NoExtField (noLocA ctrlId))
+      grhs = noLocA (GRHS noAnn [] body)
+      grhss = GRHSs emptyComments [grhs] (EmptyLocalBinds NoExtField)
+      match = noLocA (Match [] (LamAlt LamSingle) [pat] grhss)
+      mgtc =
+        MatchGroupTc
+          { mg_arg_tys = [Scaled manyDataConTy ty],
+            mg_res_ty = ty,
+            mg_origin = Generated OtherExpansion SkipPmc
+          }
+      mg = MG mgtc (noLocA [match])
+      lam = noLocA (HsLam [] LamSingle mg)
+  pure (mkHsApp lam e)
 
 -- | Record one mutation site, returning its 'MutationId' and (when the
 -- mutation is kept) the corresponding 'MutationRecord'.  Returns
@@ -1350,6 +1463,9 @@ applyDelta allLines outerStart outerEnd colS colE delta spanLines = case delta o
   ReplaceOuterSpan _ newText -> applyTokenReplace colS colE newText spanLines
   SwapSpans spanX spanY ->
     applySwapSpans allLines outerStart outerEnd colS colE spanX spanY
+  -- A control (no-op) mutation makes no change, so the mutated lines are the
+  -- source lines unchanged.
+  NoDelta -> spanLines
 
 -- | Render the matched expression's display span (@outerStart@..@outerEnd@,
 -- columns @colS@..@colE@) with the source text at two sub-spans swapped, and

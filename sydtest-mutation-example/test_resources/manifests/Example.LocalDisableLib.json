@@ -445,6 +445,45 @@
     {
       "binding": "withInnerKept",
       "col_end": 20,
+      "col_start": 19,
+      "context_after": [
+        "   in inner",
+        "",
+        "-- | Same idea as 'withInnerDisabled', but the local binding is introduced"
+      ],
+      "context_before": [
+        "-- on the @inner@ binding's RHS.",
+        "withInnerKept :: Bool -> Bool",
+        "withInnerKept b ="
+      ],
+      "end_line": 36,
+      "id": [
+        "Example.LocalDisableLib",
+        "Control",
+        "36",
+        "19",
+        "20",
+        "no-op",
+        "0"
+      ],
+      "line": 36,
+      "module": "Example.LocalDisableLib",
+      "mutated_lines": [
+        "  let inner = not b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/LocalDisableLib.hs",
+      "source_lines": [
+        "  let inner = not b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "withInnerKept",
+      "col_end": 20,
       "col_start": 15,
       "context_after": [
         "   in inner",
@@ -938,6 +977,45 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
+      "source_file": "src/Example/LocalDisableLib.hs",
+      "source_lines": [
+        "   in inner"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "withInnerBoolLitDisabled",
+      "col_end": 12,
+      "col_start": 7,
+      "context_after": [
+        "",
+        "-- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire",
+        "-- on the @inner@ binding's RHS."
+      ],
+      "context_before": [
+        "withInnerBoolLitDisabled :: Bool -> Bool",
+        "withInnerBoolLitDisabled b =",
+        "  let inner = not b"
+      ],
+      "end_line": 30,
+      "id": [
+        "Example.LocalDisableLib",
+        "Control",
+        "30",
+        "7",
+        "12",
+        "no-op",
+        "1"
+      ],
+      "line": 30,
+      "module": "Example.LocalDisableLib",
+      "mutated_lines": [
+        "   in inner"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/LocalDisableLib.hs",
       "source_lines": [
         "   in inner"

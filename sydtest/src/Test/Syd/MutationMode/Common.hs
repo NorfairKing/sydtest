@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Utilities and types shared by the in-tree mutation child entry points
@@ -56,10 +57,13 @@ import Path
 import System.IO (stderr)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedMutationRecord (..),
+    ControlFailedMutation (..),
+    ControlTally (..),
     MutationGroupReport (..),
     MutationOutcome (..),
     MutationProgressEvent (..),
     MutationRunReport (..),
+    MutationTally (..),
     SkippedMutation (..),
     SurvivedMutation (..),
     TimedOutMutation (..),
@@ -97,6 +101,15 @@ data MutationResult
     -- fail-fast records every remaining alternative as 'MutationSkipped'
     -- without spawning a child.
     MutationSkipped SkippedMutation
+  | -- | A control (no-op) mutation survived, as it must: the control passed.
+    -- A control changes no behaviour, so its survival confirms the harness
+    -- reports a non-diff correctly.  Not counted in the killed\/survived score.
+    MutationControlPassed AugmentedMutationRecord
+  | -- | A control (no-op) mutation was killed: the control failed.  A no-op
+    -- cannot be legitimately killed, so this means the mutation testing is
+    -- unsound (a flaky\/nondeterministic suite or a harness bug).  Treated as a
+    -- failure of the whole run, like a survivor.
+    MutationControlFailed ControlFailedMutation
   deriving (Eq, Show)
 
 -- | Per-suite outcome of running a single mutation child.
@@ -198,6 +211,12 @@ isMutationFailure = \case
   MutationKilled _ -> False
   MutationTimedOut _ -> False
   MutationSkipped _ -> False
+  -- A passing control is the expected outcome, so it is not a failure (and must
+  -- not trip fail-fast).  A failed control IS a failure: a no-op cannot be
+  -- legitimately killed, and flaky tests are already retried, so it means the
+  -- mutation testing is unsound - fail like a survivor.
+  MutationControlPassed _ -> False
+  MutationControlFailed _ -> True
 
 -- | The 'MutationId' of the mutation that produced a failing result, used as
 -- the @cause@ on 'SkippedMutation' entries for subsequent group members.
@@ -214,6 +233,8 @@ resultToOutcome = \case
   MutationTimedOut tm -> OutcomeTimedOut tm
   MutationUncovered um -> OutcomeUncovered um
   MutationSkipped sk -> OutcomeSkipped sk
+  MutationControlPassed r -> OutcomeControlPassed r
+  MutationControlFailed cf -> OutcomeControlFailed cf
 
 -- | Per-outcome-kind counts produced by 'tallyGroups'.  Each 'OutcomeTimedOut'
 -- bumps both 'tallyKilled' and 'tallyTimedOut' because a timed-out mutation is
@@ -224,7 +245,12 @@ data OutcomeTally = OutcomeTally
     tallySurvived :: !Word,
     tallyTimedOut :: !Word,
     tallyUncovered :: !Word,
-    tallySkipped :: !Word
+    tallySkipped :: !Word,
+    -- | Control (no-op) mutations that survived as they must (controls passed).
+    tallyControlPassed :: !Word,
+    -- | Control (no-op) mutations that were killed (controls failed) - the
+    -- mutation testing is unsound, and the run fails.
+    tallyControlFailed :: !Word
   }
 
 emptyOutcomeTally :: OutcomeTally
@@ -234,7 +260,9 @@ emptyOutcomeTally =
       tallySurvived = 0,
       tallyTimedOut = 0,
       tallyUncovered = 0,
-      tallySkipped = 0
+      tallySkipped = 0,
+      tallyControlPassed = 0,
+      tallyControlFailed = 0
     }
 
 tallyGroups :: [MutationGroupReport] -> OutcomeTally
@@ -246,6 +274,8 @@ tallyGroups = foldr (\(MutationGroupReport os) acc -> foldr step acc os) emptyOu
       OutcomeSurvived _ -> \t -> t {tallySurvived = tallySurvived t + 1}
       OutcomeUncovered _ -> \t -> t {tallyUncovered = tallyUncovered t + 1}
       OutcomeSkipped _ -> \t -> t {tallySkipped = tallySkipped t + 1}
+      OutcomeControlPassed _ -> \t -> t {tallyControlPassed = tallyControlPassed t + 1}
+      OutcomeControlFailed _ -> \t -> t {tallyControlFailed = tallyControlFailed t + 1}
 
 -- | Run one mutation group: walk records sequentially, calling the supplied
 -- @run@ for each record, and once one record's result is 'isMutationFailure'
@@ -288,104 +318,129 @@ runOneGroup globalFailFast runOne onResult = loop Nothing
         else loop (mutationResultId r) rest
 
 renderMutationRunReport :: MutationRunReport -> [[Chunk]]
-renderMutationRunReport
-  MutationRunReport
-    { mutationRunReportKilled,
-      mutationRunReportSurvived,
-      mutationRunReportTimedOut,
-      mutationRunReportUncovered,
-      mutationRunReportSkipped,
-      mutationRunReportGroups
-    } =
-    [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationRunReportKilled)))],
-      [chunk "  (of which timed out: ", fore yellow (chunk (T.pack (show mutationRunReportTimedOut))), chunk ")"],
-      [chunk "Survived: ", fore red (chunk (T.pack (show mutationRunReportSurvived)))],
-      [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationRunReportUncovered)))],
-      [chunk "Skipped: ", fore yellow (chunk (T.pack (show mutationRunReportSkipped)))]
-    ]
-      ++ ( if null timedOuts
-             then []
-             else
-               [[], [chunk "Timed-out mutations:"]]
-                 ++ concatMap renderTimedOut timedOuts
-         )
-      ++ ( if null survivors
-             then []
-             else
-               [[], [chunk "Surviving mutations:"]]
-                 ++ concatMap renderSurvivor survivors
-                 ++ [[], remediationHeader "To resolve a surviving mutation:"]
-                 ++ remediationSurvivorBody
-         )
-      ++ ( if null uncovereds
-             then []
-             else
-               [[], [chunk "Uncovered mutations:"]]
-                 ++ concatMap renderUncovered uncovereds
-                 ++ [[], remediationHeader "To resolve an uncovered mutation:"]
-                 ++ remediationUncoveredBody
-         )
-      ++ ( if null skippeds
-             then []
-             else
-               [[], [chunk "Skipped mutations:"]]
-                 ++ concatMap renderSkipped skippeds
-         )
-    where
-      allOutcomes = concatMap mutationGroupReportOutcomes mutationRunReportGroups
-      survivors = [s | OutcomeSurvived s <- allOutcomes]
-      timedOuts = [t | OutcomeTimedOut t <- allOutcomes]
-      uncovereds = [u | OutcomeUncovered u <- allOutcomes]
-      skippeds = [sk | OutcomeSkipped sk <- allOutcomes]
-      renderSurvivor sm =
-        let rec = survivedMutationRecord sm
-            mid = augmentedMutationRecordId rec
-         in ([] : formatMutationLog mid rec) ++ survivorMitigationLines rec
-      renderTimedOut tm =
-        let rec = timedOutMutationRecord tm
-            mid = augmentedMutationRecordId rec
-            secs = fromIntegral (timedOutMutationElapsedMicros tm) / (1000000 :: Double)
-            header =
-              [ chunk "[timed out after ",
-                fore yellow (chunk (T.pack (show secs))),
-                chunk "s]"
-              ]
-         in [] : header : formatMutationLog mid rec
-      renderUncovered um =
-        let rec = uncoveredMutationRecord um
-            mid = augmentedMutationRecordId rec
-         in [] : formatMutationLog mid rec
-      renderSkipped sk =
-        let rec = skippedMutationRecord sk
-            mid = augmentedMutationRecordId rec
-            cause = skippedMutationCause sk
-            header =
-              [ chunk "[skipped — failed in same group: ",
-                fore yellow (chunk (T.pack (renderMutationId cause))),
-                chunk "]"
-              ]
-         in [] : header : formatMutationLog mid rec
-      remediationHeader t = [fore cyan (chunk t)]
-      -- Kept in sync with the disable-annotation syntax in
-      -- sydtest-mutation-plugin (Test.Syd.Mutation.Plugin.Instrument:
-      -- 'parseFunMutationAnns') and the global
-      -- 'mutationPluginConfigDisabledMutations' / 'exceptions' fields in
-      -- Test.Syd.Mutation.Plugin.OptParse.
-      remediationSurvivorBody =
-        [ [chunk "  1. Kill it: add or strengthen a test so the mutation causes a test failure."],
-          [chunk "  2. Disable it on this binding:"],
-          [chunk "       {-# ANN funName (\"DisableMutation: <Operator>\" :: String) #-}"],
-          [chunk "     or for every operator on a binding:"],
-          [chunk "       {-# ANN funName (\"DisableMutations\" :: String) #-}"],
-          [chunk "     or for the whole module:"],
-          [chunk "       {-# ANN module (\"DisableMutations\" :: String) #-}"],
-          [chunk "     or globally in the plugin config (sydtest-mutation-plugin.yaml):"],
-          [chunk "       disabled-mutations: [<Operator>]"]
-        ]
-      remediationUncoveredBody =
-        [ [chunk "  1. Cover it: add a test that exercises the mutation site so the coverage phase records a covering test."],
-          [chunk "  2. Disable it: same annotations and config keys as for survivors above."]
-        ]
+renderMutationRunReport MutationRunReport {..} =
+  let MutationTally {..} = mutationRunReportMutations
+      ControlTally {..} = mutationRunReportControls
+   in [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationTallyKilled)))],
+        [chunk "  (of which timed out: ", fore yellow (chunk (T.pack (show mutationTallyTimedOut))), chunk ")"],
+        [chunk "Survived: ", fore red (chunk (T.pack (show mutationTallySurvived)))],
+        [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationTallyUncovered)))],
+        [chunk "Skipped: ", fore yellow (chunk (T.pack (show mutationTallySkipped)))]
+      ]
+        -- Control (no-op) lines only appear when controls ran, so runs without
+        -- any control mutation render exactly as before.
+        ++ ( if controlTallyPassed == 0 && controlTallyFailed == 0
+               then []
+               else
+                 [ [chunk "Controls passed: ", fore green (chunk (T.pack (show controlTallyPassed)))],
+                   [ chunk "Controls failed: ",
+                     fore
+                       (if controlTallyFailed == 0 then green else red)
+                       (chunk (T.pack (show controlTallyFailed)))
+                   ]
+                 ]
+           )
+        ++ ( if null controlFaileds
+               then []
+               else
+                 [[], [fore red (chunk "Failed controls (mutation testing may be unsound):")]]
+                   ++ concatMap renderControlFailed controlFaileds
+                   ++ [[], remediationHeader "A failed control is a no-op mutation that was killed.  It means:"]
+                   ++ remediationControlBody
+           )
+        ++ ( if null timedOuts
+               then []
+               else
+                 [[], [chunk "Timed-out mutations:"]]
+                   ++ concatMap renderTimedOut timedOuts
+           )
+        ++ ( if null survivors
+               then []
+               else
+                 [[], [chunk "Surviving mutations:"]]
+                   ++ concatMap renderSurvivor survivors
+                   ++ [[], remediationHeader "To resolve a surviving mutation:"]
+                   ++ remediationSurvivorBody
+           )
+        ++ ( if null uncovereds
+               then []
+               else
+                 [[], [chunk "Uncovered mutations:"]]
+                   ++ concatMap renderUncovered uncovereds
+                   ++ [[], remediationHeader "To resolve an uncovered mutation:"]
+                   ++ remediationUncoveredBody
+           )
+        ++ ( if null skippeds
+               then []
+               else
+                 [[], [chunk "Skipped mutations:"]]
+                   ++ concatMap renderSkipped skippeds
+           )
+  where
+    allOutcomes = concatMap mutationGroupReportOutcomes mutationRunReportGroups
+    survivors = [s | OutcomeSurvived s <- allOutcomes]
+    timedOuts = [t | OutcomeTimedOut t <- allOutcomes]
+    uncovereds = [u | OutcomeUncovered u <- allOutcomes]
+    skippeds = [sk | OutcomeSkipped sk <- allOutcomes]
+    controlFaileds = [cf | OutcomeControlFailed cf <- allOutcomes]
+    renderControlFailed cf =
+      let rec = controlFailedMutationRecord cf
+          mid = augmentedMutationRecordId rec
+       in [] : formatMutationLog mid rec
+    renderSurvivor sm =
+      let rec = survivedMutationRecord sm
+          mid = augmentedMutationRecordId rec
+       in ([] : formatMutationLog mid rec) ++ survivorMitigationLines rec
+    renderTimedOut tm =
+      let rec = timedOutMutationRecord tm
+          mid = augmentedMutationRecordId rec
+          secs = fromIntegral (timedOutMutationElapsedMicros tm) / (1000000 :: Double)
+          header =
+            [ chunk "[timed out after ",
+              fore yellow (chunk (T.pack (show secs))),
+              chunk "s]"
+            ]
+       in [] : header : formatMutationLog mid rec
+    renderUncovered um =
+      let rec = uncoveredMutationRecord um
+          mid = augmentedMutationRecordId rec
+       in [] : formatMutationLog mid rec
+    renderSkipped sk =
+      let rec = skippedMutationRecord sk
+          mid = augmentedMutationRecordId rec
+          cause = skippedMutationCause sk
+          header =
+            [ chunk "[skipped - failed in same group: ",
+              fore yellow (chunk (T.pack (renderMutationId cause))),
+              chunk "]"
+            ]
+       in [] : header : formatMutationLog mid rec
+    remediationHeader t = [fore cyan (chunk t)]
+    -- Kept in sync with the disable-annotation syntax in
+    -- sydtest-mutation-plugin (Test.Syd.Mutation.Plugin.Instrument:
+    -- 'parseFunMutationAnns') and the global
+    -- 'mutationPluginConfigDisabledMutations' / 'exceptions' fields in
+    -- Test.Syd.Mutation.Plugin.OptParse.
+    remediationSurvivorBody =
+      [ [chunk "  1. Kill it: add or strengthen a test so the mutation causes a test failure."],
+        [chunk "  2. Disable it on this binding:"],
+        [chunk "       {-# ANN funName (\"DisableMutation: <Operator>\" :: String) #-}"],
+        [chunk "     or for every operator on a binding:"],
+        [chunk "       {-# ANN funName (\"DisableMutations\" :: String) #-}"],
+        [chunk "     or for the whole module:"],
+        [chunk "       {-# ANN module (\"DisableMutations\" :: String) #-}"],
+        [chunk "     or globally in the plugin config (sydtest-mutation-plugin.yaml):"],
+        [chunk "       disabled-mutations: [<Operator>]"]
+      ]
+    remediationUncoveredBody =
+      [ [chunk "  1. Cover it: add a test that exercises the mutation site so the coverage phase records a covering test."],
+        [chunk "  2. Disable it: same annotations and config keys as for survivors above."]
+      ]
+    remediationControlBody =
+      [ [chunk "  - a test is flaky or nondeterministic (depends on time, ordering, randomness, or shared state), or"],
+        [chunk "  - the mutation harness itself has a bug."],
+        [chunk "  Flaky tests are already retried, so this fails the run like a survivor: fix the test or the harness."]
+      ]
 
 -- | Render the per-mutation progress line emitted as each mutation is
 -- tested.  The first argument is whether to be verbose: in concise mode

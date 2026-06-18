@@ -7,6 +7,8 @@ module Test.Syd.Mutation.Manifest
   ( MutationRecord (..),
     MutationGroup (..),
     MutationManifest (..),
+    controlOperatorName,
+    isControlOperator,
     readManifestFile,
     readManifestDir,
     writeManifestFile,
@@ -33,6 +35,25 @@ import Path.IO (ensureDir, listDirRel)
 import System.IO (hPutStrLn, stderr)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId (..))
+
+-- | The reserved operator name carried by a control (no-op) mutation.
+--
+-- A control mutation is a deliberate non-diff: the plugin inserts one every
+-- few real mutations, wrapping an expression as @ifMutation cmid e e@ - the
+-- same expression on both branches.  It changes no behaviour, so it is
+-- /expected to survive/.  If a control is killed, the mutation testing itself
+-- is unsound (a flaky\/nondeterministic suite or a harness bug) rather than a
+-- real kill, so the report flags it separately and fails the run like a
+-- survivor.
+--
+-- The marker rides the existing 'mutRecOperator' field rather than a dedicated
+-- record field; 'isControlOperator' is the single point of truth for the test.
+controlOperatorName :: Text
+controlOperatorName = "Control"
+
+-- | Whether an operator name marks a control (no-op) mutation.
+isControlOperator :: Text -> Bool
+isControlOperator = (== controlOperatorName)
 
 -- | One discovered mutation site, as recorded by the plugin.
 data MutationRecord = MutationRecord

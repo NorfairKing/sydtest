@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- | Implementation of the @assert-score@ subcommand: read @report.json@
 -- from a report directory, print a one-line pass\/fail header followed
@@ -22,7 +23,9 @@ import System.Directory (createFileLink)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO (stdout)
 import Test.Syd.Mutation.AugmentedManifest
-  ( MutationRunReport (..),
+  ( ControlTally (..),
+    MutationRunReport (..),
+    MutationTally (..),
     readMutationRunReport,
   )
 import Test.Syd.MutationMode.Common (renderMutationRunReport)
@@ -39,8 +42,9 @@ import Text.Colour
 
 -- | The decision 'assert-score' renders from a 'MutationRunReport'.
 data AssertScoreResult = AssertScoreResult
-  { -- | True when the assertion is violated: at least one survivor, or
-    -- (when uncovered is also asserted) at least one uncovered mutation.
+  { -- | True when the assertion is violated: at least one survivor, at least
+    -- one failed control, or (when uncovered is also asserted) at least one
+    -- uncovered mutation.
     assertScoreFailed :: !Bool,
     -- | Pass/fail header line (e.g. @PASS: All 17 mutation(s) accounted for.@).
     assertScoreHeader :: ![Chunk]
@@ -52,14 +56,21 @@ data AssertScoreResult = AssertScoreResult
 -- The body of the printed output is 'renderMutationRunReport' applied
 -- separately by 'runAssertScore'.
 assertScoreResult :: Bool -> MutationRunReport -> AssertScoreResult
-assertScoreResult assertNoneUncovered MutationRunReport {mutationRunReportKilled, mutationRunReportSurvived, mutationRunReportUncovered} =
-  let failed =
-        mutationRunReportSurvived > 0
-          || (assertNoneUncovered && mutationRunReportUncovered > 0)
+assertScoreResult assertNoneUncovered MutationRunReport {..} =
+  let MutationTally {..} = mutationRunReportMutations
+      ControlTally {..} = mutationRunReportControls
+      -- A killed control (no-op) mutation means the mutation testing itself is
+      -- unsound: a no-op cannot legitimately be killed, and flaky tests are
+      -- already retried, so a kill that survives retries is a real defect, not
+      -- transient noise.  Treat it as an assertion failure like a survivor.
+      failed =
+        mutationTallySurvived > 0
+          || (assertNoneUncovered && mutationTallyUncovered > 0)
+          || controlTallyFailed > 0
       total =
-        mutationRunReportKilled
-          + mutationRunReportSurvived
-          + mutationRunReportUncovered
+        mutationTallyKilled
+          + mutationTallySurvived
+          + mutationTallyUncovered
       -- A count is good (green) when it's zero, bad (red) when it isn't.
       -- The header colour reflects the overall verdict, but each
       -- individual count is coloured by its own value so a "FAIL: 0
@@ -72,13 +83,21 @@ assertScoreResult assertNoneUncovered MutationRunReport {mutationRunReportKilled
       header
         | failed =
             [ fore red (chunk "FAIL: "),
-              countChunk mutationRunReportSurvived,
+              countChunk mutationTallySurvived,
               chunk " surviving, ",
-              countChunk mutationRunReportUncovered,
-              chunk " uncovered out of ",
-              chunk (T.pack (show total)),
-              chunk " mutation(s)."
+              countChunk mutationTallyUncovered,
+              chunk " uncovered"
             ]
+              -- Only mention controls when one actually failed, so the common
+              -- survivor/uncovered FAIL header reads exactly as before.
+              ++ ( if controlTallyFailed > 0
+                     then [chunk ", ", countChunk controlTallyFailed, chunk " control failure(s)"]
+                     else []
+                 )
+              ++ [ chunk " out of ",
+                   chunk (T.pack (show total)),
+                   chunk " mutation(s)."
+                 ]
         | otherwise =
             [ fore green (chunk "PASS: "),
               chunk "All ",

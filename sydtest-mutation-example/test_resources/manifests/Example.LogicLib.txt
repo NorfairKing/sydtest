@@ -1,5 +1,5 @@
 [36m# Example.LogicLib[m
-36 mutations in 22 groups
+39 mutations in 25 groups
 
 IntLit at src/Example/LogicLib.hs:17:26-27 #1
 [36m@@ -14,4 +14,4 @@[m
@@ -105,6 +105,13 @@ ConstBool at src/Example/LogicLib.hs:17:31-36 #2
 [31m-[m[31meitherPositive a b = a > 0 ||[m[41m [m[1;91mb[m[31m [m[1;91m>[m[1;91m 0[m
 [32m+[m[32meitherPositive a b = a > 0 ||[m[32m [m[1;92mFalse[m
 
+Control at src/Example/LogicLib.hs:17:31-36 #0
+[36m@@ -14,4 +14,4 @@[m
+ --
+ -- Mutation sites: LogicOp on @||@ produces a @&&@ alternative.
+ eitherPositive :: Int -> Int -> Bool
+ eitherPositive a b = a > 0 || b > 0
+
 Negate at src/Example/LogicLib.hs:17:31-36 #1
 [36m@@ -14,4 +14,4 @@[m
  --
@@ -207,6 +214,16 @@ ConstBool at src/Example/LogicLib.hs:11:20-25 #2
  bothPositive :: Int -> Int -> Bool
 [31m-[m[31mbothPositive a b = [m[31ma[m[41m [m[1;91m> [m[1;91m0[m[31m && b > 0[m
 [32m+[m[32mbothPositive a b = [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m && b > 0[m
+ 
+ -- | True iff at least one argument is strictly positive.
+ --
+
+Control at src/Example/LogicLib.hs:11:20-25 #1
+[36m@@ -8,7 +8,7 @@[m
+ --
+ -- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.
+ bothPositive :: Int -> Int -> Bool
+ bothPositive a b = a > 0 && b > 0
  
  -- | True iff at least one argument is strictly positive.
  --
@@ -339,6 +356,16 @@ Negate at src/Example/LogicLib.hs:11:20-34 #1
  bothPositive :: Int -> Int -> Bool
 [31m-[m[31mbothPositive a b =[m[31m [m[31ma > 0 && b > 0[m
 [32m+[m[32mbothPositive a b =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32ma > 0 && b > 0[m[1;92m)[m
+ 
+ -- | True iff at least one argument is strictly positive.
+ --
+
+Control at src/Example/LogicLib.hs:11:20-34 #2
+[36m@@ -8,7 +8,7 @@[m
+ --
+ -- Mutation sites: LogicOp on @&&@ produces a @||@ alternative.
+ bothPositive :: Int -> Int -> Bool
+ bothPositive a b = a > 0 && b > 0
  
  -- | True iff at least one argument is strictly positive.
  --

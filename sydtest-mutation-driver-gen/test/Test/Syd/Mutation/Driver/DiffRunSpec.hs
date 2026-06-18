@@ -6,9 +6,11 @@ import qualified Data.Map.Strict as Map
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedMutationRecord (..),
+    ControlTally (..),
     MutationGroupReport (..),
     MutationOutcome (..),
     MutationRunReport (..),
+    MutationTally (..),
     SurvivedMutation (..),
   )
 import Test.Syd.Mutation.Driver.AssertScore (assertScoreResult)
@@ -46,31 +48,55 @@ spec = describe "renderDiffFinalSummary" $ do
 
     reportAllZero =
       MutationRunReport
-        { mutationRunReportKilled = 0,
-          mutationRunReportSurvived = 0,
-          mutationRunReportTimedOut = 0,
-          mutationRunReportUncovered = 0,
-          mutationRunReportSkipped = 0,
+        { mutationRunReportMutations =
+            MutationTally
+              { mutationTallyKilled = 0,
+                mutationTallySurvived = 0,
+                mutationTallyTimedOut = 0,
+                mutationTallyUncovered = 0,
+                mutationTallySkipped = 0
+              },
+          mutationRunReportControls =
+            ControlTally
+              { controlTallyPassed = 0,
+                controlTallyFailed = 0
+              },
           mutationRunReportGroups = []
         }
 
     reportAllKilled =
       MutationRunReport
-        { mutationRunReportKilled = 3,
-          mutationRunReportSurvived = 0,
-          mutationRunReportTimedOut = 0,
-          mutationRunReportUncovered = 0,
-          mutationRunReportSkipped = 0,
+        { mutationRunReportMutations =
+            MutationTally
+              { mutationTallyKilled = 3,
+                mutationTallySurvived = 0,
+                mutationTallyTimedOut = 0,
+                mutationTallyUncovered = 0,
+                mutationTallySkipped = 0
+              },
+          mutationRunReportControls =
+            ControlTally
+              { controlTallyPassed = 0,
+                controlTallyFailed = 0
+              },
           mutationRunReportGroups = []
         }
 
     reportOneSurvivor =
       MutationRunReport
-        { mutationRunReportKilled = 2,
-          mutationRunReportSurvived = 1,
-          mutationRunReportTimedOut = 0,
-          mutationRunReportUncovered = 0,
-          mutationRunReportSkipped = 0,
+        { mutationRunReportMutations =
+            MutationTally
+              { mutationTallyKilled = 2,
+                mutationTallySurvived = 1,
+                mutationTallyTimedOut = 0,
+                mutationTallyUncovered = 0,
+                mutationTallySkipped = 0
+              },
+          mutationRunReportControls =
+            ControlTally
+              { controlTallyPassed = 0,
+                controlTallyFailed = 0
+              },
           mutationRunReportGroups =
             [ MutationGroupReport
                 { mutationGroupReportOutcomes =
@@ -110,11 +136,19 @@ spec = describe "renderDiffFinalSummary" $ do
 
     reportOneUncovered =
       MutationRunReport
-        { mutationRunReportKilled = 2,
-          mutationRunReportSurvived = 0,
-          mutationRunReportTimedOut = 0,
-          mutationRunReportUncovered = 1,
-          mutationRunReportSkipped = 0,
+        { mutationRunReportMutations =
+            MutationTally
+              { mutationTallyKilled = 2,
+                mutationTallySurvived = 0,
+                mutationTallyTimedOut = 0,
+                mutationTallyUncovered = 1,
+                mutationTallySkipped = 0
+              },
+          mutationRunReportControls =
+            ControlTally
+              { controlTallyPassed = 0,
+                controlTallyFailed = 0
+              },
           mutationRunReportGroups = []
         }
 

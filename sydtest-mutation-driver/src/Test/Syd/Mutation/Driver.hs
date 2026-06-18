@@ -33,7 +33,9 @@ import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationGroup (..),
     AugmentedMutationRecord (..),
+    ControlTally (..),
     MutationRunReport (..),
+    MutationTally (..),
     filterAugmentedManifestByIds,
     readAndUnionCoverageDirs,
     writeAugmentedManifestFile,
@@ -105,8 +107,9 @@ runDriver MutationDriverSettings {..} = do
   hFlush stdout
   when
     ( mutationDriverSettingFailFast
-        && ( mutationRunReportSurvived report > 0
-               || mutationRunReportUncovered report > 0
+        && ( mutationTallySurvived (mutationRunReportMutations report) > 0
+               || mutationTallyUncovered (mutationRunReportMutations report) > 0
+               || controlTallyFailed (mutationRunReportControls report) > 0
            )
     )
     $ exitWith (ExitFailure 1)

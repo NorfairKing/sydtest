@@ -514,6 +514,45 @@
       "end_line": 73,
       "id": [
         "Example.ConstFnLib",
+        "Control",
+        "73",
+        "39",
+        "40",
+        "no-op",
+        "0"
+      ],
+      "line": 73,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5",
+      "col_end": 40,
+      "col_start": 39,
+      "context_after": [
+        "",
+        "-- | A wrapper that references 'majorityOf5' as a bare arity-5 name.",
+        "--"
+      ],
+      "context_before": [
+        "-- mutation produces a well-formed prefix-form preview.",
+        "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
+        "majorityOf5 a b c d e ="
+      ],
+      "end_line": 73,
+      "id": [
+        "Example.ConstFnLib",
         "Negate",
         "73",
         "39",
@@ -991,6 +1030,45 @@
     {
       "binding": "majorityOf5",
       "col_end": 55,
+      "col_start": 54,
+      "context_after": [
+        "",
+        "-- | A wrapper that references 'majorityOf5' as a bare arity-5 name.",
+        "--"
+      ],
+      "context_before": [
+        "-- mutation produces a well-formed prefix-form preview.",
+        "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
+        "majorityOf5 a b c d e ="
+      ],
+      "end_line": 73,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "73",
+        "54",
+        "55",
+        "no-op",
+        "1"
+      ],
+      "line": 73,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5",
+      "col_end": 55,
       "col_start": 49,
       "context_after": [
         "",
@@ -1412,6 +1490,41 @@
       "end_line": 91,
       "id": [
         "Example.ConstFnLib",
+        "Control",
+        "91",
+        "50",
+        "51",
+        "no-op",
+        "2"
+      ],
+      "line": 91,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5Wrapper",
+      "col_end": 51,
+      "col_start": 50,
+      "context_after": [],
+      "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
+        "-- behaviour.",
+        "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
+      ],
+      "end_line": 91,
+      "id": [
+        "Example.ConstFnLib",
         "Negate",
         "91",
         "50",
@@ -1804,6 +1917,41 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5Wrapper",
+      "col_end": 59,
+      "col_start": 58,
+      "context_after": [],
+      "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
+        "-- behaviour.",
+        "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
+      ],
+      "end_line": 91,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "91",
+        "58",
+        "59",
+        "no-op",
+        "3"
+      ],
+      "line": 91,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
@@ -2272,6 +2420,45 @@
       "end_line": 55,
       "id": [
         "Example.ConstFnLib",
+        "Control",
+        "55",
+        "24",
+        "25",
+        "no-op",
+        "4"
+      ],
+      "line": 55,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "implies a b = not a || b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "implies a b = not a || b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "implies",
+      "col_end": 25,
+      "col_start": 24,
+      "context_after": [
+        "",
+        "-- | A wrapper around 'implies' whose body references 'implies' at arity 2",
+        "-- as a bare (un-applied) name."
+      ],
+      "context_before": [
+        "",
+        "-- | Logical implication.  Used to exercise 'ConstBool' at arity 2.",
+        "implies :: Bool -> Bool -> Bool"
+      ],
+      "end_line": 55,
+      "id": [
+        "Example.ConstFnLib",
         "Negate",
         "55",
         "24",
@@ -2671,6 +2858,45 @@
       "operator": "Negate",
       "original": "e",
       "replacement": "not (e)",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "impliesPair (a, b) = implies a b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "impliesPair",
+      "col_end": 33,
+      "col_start": 32,
+      "context_after": [
+        "",
+        "-- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5",
+        "-- mutation produces a well-formed prefix-form preview."
+      ],
+      "context_before": [
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
+        "impliesPair :: (Bool, Bool) -> Bool"
+      ],
+      "end_line": 67,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "67",
+        "32",
+        "33",
+        "no-op",
+        "5"
+      ],
+      "line": 67,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "impliesPair (a, b) = implies a b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "impliesPair (a, b) = implies a b"
@@ -3208,6 +3434,45 @@
       "operator": "ConstEmptyList",
       "original": "e",
       "replacement": "[]",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "firstChar s = safeHead s"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "firstChar",
+      "col_end": 25,
+      "col_start": 24,
+      "context_after": [
+        "",
+        "-- | Keep only the digit characters from a list.",
+        "--"
+      ],
+      "context_before": [
+        "--   * 'ConstNothing' arity 1 on the bare @safeHead :: String -> Maybe Char@:",
+        "--     mutated to @firstChar s = (\\\\_ -> Nothing) s@.",
+        "firstChar :: String -> Maybe Char"
+      ],
+      "end_line": 33,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "33",
+        "24",
+        "25",
+        "no-op",
+        "6"
+      ],
+      "line": 33,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "firstChar s = safeHead s"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "firstChar s = safeHead s"

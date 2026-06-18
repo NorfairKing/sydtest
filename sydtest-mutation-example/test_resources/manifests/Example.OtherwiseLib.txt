@@ -1,5 +1,5 @@
 [36m# Example.OtherwiseLib[m
-12 mutations in 10 groups
+13 mutations in 11 groups
 
 IntLit at src/Example/OtherwiseLib.hs:12:9-10 #1
 [36m@@ -9,6 +9,6 @@[m
@@ -114,3 +114,10 @@ ConstEmptyList at src/Example/OtherwiseLib.hs:14:17-27 #1
    | n == 0 = "zero"
 [31m-[m[31m  | otherwise = [m[1;91m"[m[1;91mp[m[1;91mo[m[1;91msit[m[1;91mive[m[1;91m"[m
 [32m+[m[32m  | otherwise = [m[1;92m[][m
+
+Control at src/Example/OtherwiseLib.hs:14:17-27 #0
+[36m@@ -11,4 +11,4 @@[m
+ classify n
+   | n < 0 = "negative"
+   | n == 0 = "zero"
+   | otherwise = "positive"

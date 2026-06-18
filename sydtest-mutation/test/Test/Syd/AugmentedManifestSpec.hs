@@ -39,6 +39,10 @@ spec = do
     genValidSpec @SkippedMutation
     jsonSpec @SkippedMutation
 
+  describe "ControlFailedMutation" $ do
+    genValidSpec @ControlFailedMutation
+    jsonSpec @ControlFailedMutation
+
   describe "MutationOutcome" $ do
     genValidSpec @MutationOutcome
     jsonSpec @MutationOutcome
@@ -46,6 +50,14 @@ spec = do
   describe "MutationGroupReport" $ do
     genValidSpec @MutationGroupReport
     jsonSpec @MutationGroupReport
+
+  describe "MutationTally" $ do
+    genValidSpec @MutationTally
+    jsonSpec @MutationTally
+
+  describe "ControlTally" $ do
+    genValidSpec @ControlTally
+    jsonSpec @ControlTally
 
   describe "MutationRunReport" $ do
     genValidSpec @MutationRunReport
@@ -198,13 +210,43 @@ spec = do
                   augmentedMutationRecordBinding = Nothing,
                   augmentedMutationRecordMitigation = Nothing
                 }
+            control =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["Foo.Bar", "Control", "5", "14", "15", "no-op", "0"],
+                  augmentedMutationRecordOperator = "Control",
+                  augmentedMutationRecordOriginal = "no-op",
+                  augmentedMutationRecordReplacement = "no-op",
+                  augmentedMutationRecordModule = "Foo.Bar",
+                  augmentedMutationRecordLine = 5,
+                  augmentedMutationRecordEndLine = 5,
+                  augmentedMutationRecordColStart = 14,
+                  augmentedMutationRecordColEnd = 15,
+                  augmentedMutationRecordSourceFile = Just $(mkRelFile "src/Foo/Bar.hs"),
+                  augmentedMutationRecordSourceLines = ["  result = x + y"],
+                  augmentedMutationRecordMutatedLines = ["  result = x + y"],
+                  augmentedMutationRecordContextBefore = ["add :: Int -> Int -> Int", "add x y ="],
+                  augmentedMutationRecordContextAfter = ["  in result"],
+                  augmentedMutationRecordCoveringTests =
+                    Map.singleton "" [TestId (("add", 0) :| [("adds two numbers", 0)])],
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
+                }
          in encodePretty
               MutationRunReport
-                { mutationRunReportKilled = 5,
-                  mutationRunReportSurvived = 1,
-                  mutationRunReportTimedOut = 0,
-                  mutationRunReportUncovered = 1,
-                  mutationRunReportSkipped = 0,
+                { mutationRunReportMutations =
+                    MutationTally
+                      { mutationTallyKilled = 5,
+                        mutationTallySurvived = 1,
+                        mutationTallyTimedOut = 0,
+                        mutationTallyUncovered = 1,
+                        mutationTallySkipped = 0
+                      },
+                  mutationRunReportControls =
+                    ControlTally
+                      { controlTallyPassed = 1,
+                        controlTallyFailed = 1
+                      },
                   mutationRunReportGroups =
                     [ MutationGroupReport
                         [ OutcomeSurvived
@@ -217,6 +259,14 @@ spec = do
                         [ OutcomeUncovered
                             UncoveredMutation
                               { uncoveredMutationRecord = uncovered
+                              }
+                        ],
+                      MutationGroupReport [OutcomeControlPassed control],
+                      MutationGroupReport
+                        [ OutcomeControlFailed
+                            ControlFailedMutation
+                              { controlFailedMutationRecord = control,
+                                controlFailedMutationLogFile = Just $(mkRelFile "children/Foo.Bar-Control-5-14-15.txt")
                               }
                         ]
                     ]

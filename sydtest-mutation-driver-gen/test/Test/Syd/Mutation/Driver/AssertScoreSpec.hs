@@ -10,7 +10,9 @@ import Path.IO (doesFileExist, withSystemTempDir)
 import System.Exit (ExitCode (..))
 import Test.Syd
 import Test.Syd.Mutation.AugmentedManifest
-  ( MutationRunReport (..),
+  ( ControlTally (..),
+    MutationRunReport (..),
+    MutationTally (..),
     writeMutationRunReport,
   )
 import Test.Syd.Mutation.Driver.AssertScore
@@ -29,11 +31,19 @@ spec = do
             outDir = dir </> [reldir|out|]
             report =
               MutationRunReport
-                { mutationRunReportKilled = 3,
-                  mutationRunReportSurvived = 0,
-                  mutationRunReportTimedOut = 0,
-                  mutationRunReportUncovered = 0,
-                  mutationRunReportSkipped = 0,
+                { mutationRunReportMutations =
+                    MutationTally
+                      { mutationTallyKilled = 3,
+                        mutationTallySurvived = 0,
+                        mutationTallyTimedOut = 0,
+                        mutationTallyUncovered = 0,
+                        mutationTallySkipped = 0
+                      },
+                  mutationRunReportControls =
+                    ControlTally
+                      { controlTallyPassed = 0,
+                        controlTallyFailed = 0
+                      },
                   mutationRunReportGroups = []
                 }
         writeMutationRunReport reportDir report
@@ -52,11 +62,19 @@ spec = do
             outDir = dir </> [reldir|out|]
             report =
               MutationRunReport
-                { mutationRunReportKilled = 3,
-                  mutationRunReportSurvived = 1,
-                  mutationRunReportTimedOut = 0,
-                  mutationRunReportUncovered = 0,
-                  mutationRunReportSkipped = 0,
+                { mutationRunReportMutations =
+                    MutationTally
+                      { mutationTallyKilled = 3,
+                        mutationTallySurvived = 1,
+                        mutationTallyTimedOut = 0,
+                        mutationTallyUncovered = 0,
+                        mutationTallySkipped = 0
+                      },
+                  mutationRunReportControls =
+                    ControlTally
+                      { controlTallyPassed = 0,
+                        controlTallyFailed = 0
+                      },
                   mutationRunReportGroups = []
                 }
         writeMutationRunReport reportDir report
@@ -88,11 +106,19 @@ spec = do
     it "passes when nothing survived and nothing is uncovered" $ do
       let report =
             MutationRunReport
-              { mutationRunReportKilled = 5,
-                mutationRunReportSurvived = 0,
-                mutationRunReportTimedOut = 0,
-                mutationRunReportUncovered = 0,
-                mutationRunReportSkipped = 0,
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 5,
+                      mutationTallySurvived = 0,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 0,
+                      mutationTallySkipped = 0
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 0,
+                      controlTallyFailed = 0
+                    },
                 mutationRunReportGroups = []
               }
           result = assertScoreResult True report
@@ -103,11 +129,19 @@ spec = do
     it "fails when one mutation survived" $ do
       let report =
             MutationRunReport
-              { mutationRunReportKilled = 4,
-                mutationRunReportSurvived = 1,
-                mutationRunReportTimedOut = 0,
-                mutationRunReportUncovered = 0,
-                mutationRunReportSkipped = 0,
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 4,
+                      mutationTallySurvived = 1,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 0,
+                      mutationTallySkipped = 0
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 0,
+                      controlTallyFailed = 0
+                    },
                 mutationRunReportGroups = []
               }
           result = assertScoreResult True report
@@ -115,14 +149,65 @@ spec = do
       T.unpack (renderChunksText WithoutColours (assertScoreHeader result))
         `shouldBe` "FAIL: 1 surviving, 0 uncovered out of 5 mutation(s)."
 
+    it "fails when a control mutation was killed, even with nothing else wrong" $ do
+      let report =
+            MutationRunReport
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 5,
+                      mutationTallySurvived = 0,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 0,
+                      mutationTallySkipped = 0
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 2,
+                      controlTallyFailed = 1
+                    },
+                mutationRunReportGroups = []
+              }
+          result = assertScoreResult True report
+      assertScoreFailed result `shouldBe` True
+      T.unpack (renderChunksText WithoutColours (assertScoreHeader result))
+        `shouldBe` "FAIL: 0 surviving, 0 uncovered, 1 control failure(s) out of 5 mutation(s)."
+
+    it "passes when controls all pass" $ do
+      let report =
+            MutationRunReport
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 5,
+                      mutationTallySurvived = 0,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 0,
+                      mutationTallySkipped = 0
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 3,
+                      controlTallyFailed = 0
+                    },
+                mutationRunReportGroups = []
+              }
+      assertScoreFailed (assertScoreResult True report) `shouldBe` False
+
     it "fails when one mutation is uncovered and assertion is enabled" $ do
       let report =
             MutationRunReport
-              { mutationRunReportKilled = 4,
-                mutationRunReportSurvived = 0,
-                mutationRunReportTimedOut = 0,
-                mutationRunReportUncovered = 1,
-                mutationRunReportSkipped = 0,
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 4,
+                      mutationTallySurvived = 0,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 1,
+                      mutationTallySkipped = 0
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 0,
+                      controlTallyFailed = 0
+                    },
                 mutationRunReportGroups = []
               }
       assertScoreFailed (assertScoreResult True report) `shouldBe` True
@@ -130,11 +215,19 @@ spec = do
     it "passes when one mutation is uncovered but the uncovered assertion is disabled" $ do
       let report =
             MutationRunReport
-              { mutationRunReportKilled = 4,
-                mutationRunReportSurvived = 0,
-                mutationRunReportTimedOut = 0,
-                mutationRunReportUncovered = 1,
-                mutationRunReportSkipped = 0,
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 4,
+                      mutationTallySurvived = 0,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 1,
+                      mutationTallySkipped = 0
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 0,
+                      controlTallyFailed = 0
+                    },
                 mutationRunReportGroups = []
               }
       assertScoreFailed (assertScoreResult False report) `shouldBe` False
@@ -142,11 +235,19 @@ spec = do
     it "still fails on survivors even when the uncovered assertion is disabled" $ do
       let report =
             MutationRunReport
-              { mutationRunReportKilled = 4,
-                mutationRunReportSurvived = 1,
-                mutationRunReportTimedOut = 0,
-                mutationRunReportUncovered = 0,
-                mutationRunReportSkipped = 0,
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 4,
+                      mutationTallySurvived = 1,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 0,
+                      mutationTallySkipped = 0
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 0,
+                      controlTallyFailed = 0
+                    },
                 mutationRunReportGroups = []
               }
       assertScoreFailed (assertScoreResult False report) `shouldBe` True
@@ -154,11 +255,19 @@ spec = do
     it "counts killed + survived + uncovered (timed-out and skipped don't add to the total in the header)" $ do
       let report =
             MutationRunReport
-              { mutationRunReportKilled = 3,
-                mutationRunReportSurvived = 2,
-                mutationRunReportTimedOut = 0,
-                mutationRunReportUncovered = 1,
-                mutationRunReportSkipped = 99,
+              { mutationRunReportMutations =
+                  MutationTally
+                    { mutationTallyKilled = 3,
+                      mutationTallySurvived = 2,
+                      mutationTallyTimedOut = 0,
+                      mutationTallyUncovered = 1,
+                      mutationTallySkipped = 99
+                    },
+                mutationRunReportControls =
+                  ControlTally
+                    { controlTallyPassed = 0,
+                      controlTallyFailed = 0
+                    },
                 mutationRunReportGroups = []
               }
           result = assertScoreResult True report

@@ -40,9 +40,12 @@ import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationGroup (..),
     AugmentedMutationRecord (..),
+    ControlFailedMutation (..),
+    ControlTally (..),
     MutationGroupReport (..),
     MutationProgressEvent (..),
     MutationRunReport (..),
+    MutationTally (..),
     SurvivedMutation (..),
     TimedOutMutation (..),
     UncoveredMutation (..),
@@ -50,6 +53,7 @@ import Test.Syd.Mutation.AugmentedManifest
     writeMutationRunReport,
   )
 import Test.Syd.Mutation.Driver.OptParse (SuiteConfig (..))
+import Test.Syd.Mutation.Manifest (isControlOperator)
 import Test.Syd.Mutation.Runtime (renderMutationId)
 import Test.Syd.MutationMode.Common
   ( MutationFailFast (..),
@@ -81,7 +85,8 @@ instance Exception.Exception UnknownCoveringSuite
 
 -- | Render @report.txt@ to @<outDir>/report.txt@.  Writes bytes
 -- directly so we don't depend on the locale's encoding being UTF-8
--- (the report contains em-dashes and box-drawing characters).
+-- (the report contains box-drawing characters and can embed non-ASCII
+-- source lines from the diffs it renders).
 writeReportTxt :: [[Chunk]] -> Path Abs Dir -> IO ()
 writeReportTxt renderedChunks outDir =
   let renderedText = renderChunksText With8BitColours (unlinesChunks renderedChunks)
@@ -135,12 +140,6 @@ runMutationMode ::
   IO MutationRunReport
 runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteConfigs = do
   hSetBuffering stderr (BlockBuffering Nothing)
-  -- Create the out-dir up front.  The mutation phase copies a survivor's (and a
-  -- timed-out child's) captured output into it while running, but it was only
-  -- created later, by writeMutationRunReport.  In a Nix build the out-dir
-  -- ($out) does not exist during the phase, so the copy threw and
-  -- classifySyncExceptionAsKilled swallowed the exception as a kill, silently
-  -- turning every survivor into a reported kill.
   ensureDir outDir
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
@@ -199,15 +198,25 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
           tallySurvived = survived,
           tallyTimedOut = timedOut,
           tallyUncovered = uncovered,
-          tallySkipped = skipped
+          tallySkipped = skipped,
+          tallyControlPassed = controlPassed,
+          tallyControlFailed = controlFailed
         } = tallyGroups groupReports
       jsonReport =
         MutationRunReport
-          { mutationRunReportKilled = killed,
-            mutationRunReportSurvived = survived,
-            mutationRunReportTimedOut = timedOut,
-            mutationRunReportUncovered = uncovered,
-            mutationRunReportSkipped = skipped,
+          { mutationRunReportMutations =
+              MutationTally
+                { mutationTallyKilled = killed,
+                  mutationTallySurvived = survived,
+                  mutationTallyTimedOut = timedOut,
+                  mutationTallyUncovered = uncovered,
+                  mutationTallySkipped = skipped
+                },
+            mutationRunReportControls =
+              ControlTally
+                { controlTallyPassed = controlPassed,
+                  controlTallyFailed = controlFailed
+                },
             mutationRunReportGroups = groupReports
           }
   writeMutationRunReport outDir jsonReport
@@ -255,7 +264,24 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
             -- if any child exceeded its budget without any other child
             -- killing it first; otherwise survived.
             outcomes <- mapM (runOneSuite record mid) suiteNames
-            pure $ classifyOutcomes record outcomes
+            -- A control (no-op) mutation is expected to survive.  Reinterpret
+            -- its raw outcome: survival is the control passing, a kill or
+            -- timeout is the control failing (the suite is unsound).
+            pure $
+              if isControlOperator (augmentedMutationRecordOperator record)
+                then asControlResult (classifyOutcomes record outcomes)
+                else classifyOutcomes record outcomes
+
+    -- Map a control mutation's raw classification onto the control-specific
+    -- results.  An uncovered control never reaches here (it short-circuits
+    -- above), and 'classifyOutcomes' only ever yields killed/timed-out/survived.
+    asControlResult = \case
+      MutationSurvived sm -> MutationControlPassed (survivedMutationRecord sm)
+      MutationKilled record -> MutationControlFailed (ControlFailedMutation record Nothing)
+      MutationTimedOut tm ->
+        MutationControlFailed
+          (ControlFailedMutation (timedOutMutationRecord tm) (timedOutMutationLogFile tm))
+      other -> other
 
     classifyOutcomes record outcomes
       | any isKilled outcomes = MutationKilled record

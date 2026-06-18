@@ -443,5 +443,40 @@
         "  | otherwise = \"positive\""
       ]
     }
+  ],
+  [
+    {
+      "binding": "classify",
+      "col_end": 27,
+      "col_start": 17,
+      "context_after": [],
+      "context_before": [
+        "classify n",
+        "  | n < 0 = \"negative\"",
+        "  | n == 0 = \"zero\""
+      ],
+      "end_line": 14,
+      "id": [
+        "Example.OtherwiseLib",
+        "Control",
+        "14",
+        "17",
+        "27",
+        "no-op",
+        "0"
+      ],
+      "line": 14,
+      "module": "Example.OtherwiseLib",
+      "mutated_lines": [
+        "  | otherwise = \"positive\""
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/OtherwiseLib.hs",
+      "source_lines": [
+        "  | otherwise = \"positive\""
+      ]
+    }
   ]
 ]

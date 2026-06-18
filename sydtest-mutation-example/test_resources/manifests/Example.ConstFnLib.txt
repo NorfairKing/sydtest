@@ -1,5 +1,5 @@
 [36m# Example.ConstFnLib[m
-87 mutations in 58 groups
+94 mutations in 65 groups
 
 ConstBool at src/Example/ConstFnLib.hs:73:26-28 #1
 [36m@@ -70,7 +70,7 @@[m
@@ -144,6 +144,16 @@ ConstBool at src/Example/ConstFnLib.hs:73:39-40 #2
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
+Control at src/Example/ConstFnLib.hs:73:39-40 #0
+[36m@@ -70,7 +70,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+   let n = length (filter id [a, b, c, d, e]) in n >= 3
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
 Negate at src/Example/ConstFnLib.hs:73:39-40 #1
 [36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
@@ -284,6 +294,16 @@ IntLit at src/Example/ConstFnLib.hs:73:54-55 #3
  -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
  --
 
+Control at src/Example/ConstFnLib.hs:73:54-55 #1
+[36m@@ -70,7 +70,7 @@[m
+ -- mutation produces a well-formed prefix-form preview.
+ majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool
+ majorityOf5 a b c d e =
+   let n = length (filter id [a, b, c, d, e]) in n >= 3
+ 
+ -- | A wrapper that references 'majorityOf5' as a bare arity-5 name.
+ --
+
 Cmp at src/Example/ConstFnLib.hs:73:49-55 #1
 [36m@@ -70,7 +70,7 @@[m
  -- mutation produces a well-formed prefix-form preview.
@@ -399,6 +419,13 @@ ConstBool at src/Example/ConstFnLib.hs:91:50-51 #2
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[31ma[m[31m b c d e[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 [m[1;92mF[m[32ma[m[1;92ml[m[1;92ms[m[1;92me[m[32m b c d e[m
 
+Control at src/Example/ConstFnLib.hs:91:50-51 #2
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
+ -- behaviour.
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+ majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e
+
 Negate at src/Example/ConstFnLib.hs:91:50-51 #1
 [36m@@ -88,4 +88,4 @@[m
  -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
@@ -494,6 +521,13 @@ ConstBool at src/Example/ConstFnLib.hs:91:58-59 #2
  majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
 [31m-[m[31mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[31me[m
 [32m+[m[32mmajorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d [m[1;92mF[m[1;92ma[m[1;92ml[m[1;92ms[m[32me[m
+
+Control at src/Example/ConstFnLib.hs:91:58-59 #3
+[36m@@ -88,4 +88,4 @@[m
+ -- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable
+ -- behaviour.
+ majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool
+ majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e
 
 Negate at src/Example/ConstFnLib.hs:91:58-59 #1
 [36m@@ -88,4 +88,4 @@[m
@@ -615,6 +649,16 @@ ConstBool at src/Example/ConstFnLib.hs:55:24-25 #2
  -- | A wrapper around 'implies' whose body references 'implies' at arity 2
  -- as a bare (un-applied) name.
 
+Control at src/Example/ConstFnLib.hs:55:24-25 #4
+[36m@@ -52,7 +52,7 @@[m
+ 
+ -- | Logical implication.  Used to exercise 'ConstBool' at arity 2.
+ implies :: Bool -> Bool -> Bool
+ implies a b = not a || b
+ 
+ -- | A wrapper around 'implies' whose body references 'implies' at arity 2
+ -- as a bare (un-applied) name.
+
 Negate at src/Example/ConstFnLib.hs:55:24-25 #1
 [36m@@ -52,7 +52,7 @@[m
  
@@ -732,6 +776,16 @@ Negate at src/Example/ConstFnLib.hs:67:32-33 #1
  impliesPair :: (Bool, Bool) -> Bool
 [31m-[m[31mimpliesPair (a, b) = implies a[m[31m [m[31mb[m
 [32m+[m[32mimpliesPair (a, b) = implies a[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m [m[1;92m([m[32mb[m[1;92m)[m
+ 
+ -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
+ -- mutation produces a well-formed prefix-form preview.
+
+Control at src/Example/ConstFnLib.hs:67:32-33 #5
+[36m@@ -64,7 +64,7 @@[m
+ --   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments
+ --     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.
+ impliesPair :: (Bool, Bool) -> Bool
+ impliesPair (a, b) = implies a b
  
  -- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5
  -- mutation produces a well-formed prefix-form preview.
@@ -884,6 +938,16 @@ ConstEmptyList at src/Example/ConstFnLib.hs:33:24-25 #1
  firstChar :: String -> Maybe Char
 [31m-[m[31mfirstChar s = safeHead [m[1;91ms[m
 [32m+[m[32mfirstChar s = safeHead [m[1;92m[[m[1;92m][m
+ 
+ -- | Keep only the digit characters from a list.
+ --
+
+Control at src/Example/ConstFnLib.hs:33:24-25 #6
+[36m@@ -30,7 +30,7 @@[m
+ --   * 'ConstNothing' arity 1 on the bare @safeHead :: String -> Maybe Char@:
+ --     mutated to @firstChar s = (\\_ -> Nothing) s@.
+ firstChar :: String -> Maybe Char
+ firstChar s = safeHead s
  
  -- | Keep only the digit characters from a list.
  --

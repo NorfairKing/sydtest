@@ -32,7 +32,7 @@ import qualified Data.Text.Encoding as TE
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Conc (getNumCapabilities)
 import Path
-import Path.IO (copyFile, ignoringAbsence, withSystemTempDir)
+import Path.IO (copyFile, ensureDir, ignoringAbsence, withSystemTempDir)
 import System.Exit (ExitCode (..))
 import System.IO (BufferMode (..), IOMode (..), hFlush, hSetBuffering, stderr, withFile)
 import System.Process.Typed (proc, setStderr, setStdout, setWorkingDir, startProcess, stopProcess, useHandleOpen, waitExitCode)
@@ -135,6 +135,13 @@ runMutationMode ::
   IO MutationRunReport
 runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteConfigs = do
   hSetBuffering stderr (BlockBuffering Nothing)
+  -- Create the out-dir up front.  The mutation phase copies a survivor's (and a
+  -- timed-out child's) captured output into it while running, but it was only
+  -- created later, by writeMutationRunReport.  In a Nix build the out-dir
+  -- ($out) does not exist during the phase, so the copy threw and
+  -- classifySyncExceptionAsKilled swallowed the exception as a kill, silently
+  -- turning every survivor into a reported kill.
+  ensureDir outDir
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
   -- 'suiteConfigs' before any worker spawns.  An unknown name would otherwise

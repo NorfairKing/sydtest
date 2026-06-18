@@ -1,0 +1,122 @@
+[
+  [
+    {
+      "binding": "absSucc",
+      "col_end": 24,
+      "col_start": 18,
+      "context_after": [
+        "",
+        "-- | @id x@ and @x@ are the same value, so an 'ElideCall' mutant here would be",
+        "-- equivalent and unkillable.  Calls to 'id' are skipped by default, so"
+      ],
+      "context_before": [
+        "-- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'",
+        "-- argument and an 'Int' result.  The test distinguishes all three values.",
+        "absSucc :: Int -> Int"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ElideCallLib",
+        "ElideCall",
+        "19",
+        "18",
+        "24",
+        "x",
+        "1"
+      ],
+      "line": 19,
+      "mitigation": "If `succ` is an identity on this argument this is an equivalent mutant that no test can kill; add `succ` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ElideCallLib",
+      "mutated_lines": [
+        "absSucc x = abs (x)"
+      ],
+      "operator": "ElideCall",
+      "original": "succ x",
+      "replacement": "x",
+      "source_file": "src/Example/ElideCallLib.hs",
+      "source_lines": [
+        "absSucc x = abs (succ x)"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "absSucc",
+      "col_end": 25,
+      "col_start": 13,
+      "context_after": [
+        "",
+        "-- | @id x@ and @x@ are the same value, so an 'ElideCall' mutant here would be",
+        "-- equivalent and unkillable.  Calls to 'id' are skipped by default, so"
+      ],
+      "context_before": [
+        "-- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'",
+        "-- argument and an 'Int' result.  The test distinguishes all three values.",
+        "absSucc :: Int -> Int"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ElideCallLib",
+        "ElideCall",
+        "19",
+        "13",
+        "25",
+        "(succ x)",
+        "1"
+      ],
+      "line": 19,
+      "mitigation": "If `abs` is an identity on this argument this is an equivalent mutant that no test can kill; add `abs` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ElideCallLib",
+      "mutated_lines": [
+        "absSucc x = (succ x)"
+      ],
+      "operator": "ElideCall",
+      "original": "abs (succ x)",
+      "replacement": "(succ x)",
+      "source_file": "src/Example/ElideCallLib.hs",
+      "source_lines": [
+        "absSucc x = abs (succ x)"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "negateInt",
+      "col_end": 23,
+      "col_start": 15,
+      "context_after": [
+        "",
+        "-- | A nested application.  'ElideCall' fires on both @abs (succ x)@ (replaced",
+        "-- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'"
+      ],
+      "context_before": [
+        "-- | 'negate' on an 'Int' returns an 'Int', so 'ElideCall' replaces @negate x@",
+        "-- with @x@.  The two differ for any non-zero input, so the test kills it.",
+        "negateInt :: Int -> Int"
+      ],
+      "end_line": 13,
+      "id": [
+        "Example.ElideCallLib",
+        "ElideCall",
+        "13",
+        "15",
+        "23",
+        "x",
+        "1"
+      ],
+      "line": 13,
+      "mitigation": "If `negate` is an identity on this argument this is an equivalent mutant that no test can kill; add `negate` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ElideCallLib",
+      "mutated_lines": [
+        "negateInt x = x"
+      ],
+      "operator": "ElideCall",
+      "original": "negate x",
+      "replacement": "x",
+      "source_file": "src/Example/ElideCallLib.hs",
+      "source_lines": [
+        "negateInt x = negate x"
+      ]
+    }
+  ]
+]

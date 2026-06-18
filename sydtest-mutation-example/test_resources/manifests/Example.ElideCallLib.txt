@@ -1,0 +1,35 @@
+[36m# Example.ElideCallLib[m
+3 mutations in 3 groups
+
+ElideCall at src/Example/ElideCallLib.hs:19:18-24 #1
+[36m@@ -16,7 +16,7 @@[m
+ -- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'
+ -- argument and an 'Int' result.  The test distinguishes all three values.
+ absSucc :: Int -> Int
+[31m-[m[31mabsSucc x = abs ([m[1;91ms[m[1;91mu[m[1;91mc[m[1;91mc[m[41m [m[31mx)[m
+[32m+[m[32mabsSucc x = abs ([m[32mx)[m
+ 
+ -- | @id x@ and @x@ are the same value, so an 'ElideCall' mutant here would be
+ -- equivalent and unkillable.  Calls to 'id' are skipped by default, so
+
+ElideCall at src/Example/ElideCallLib.hs:19:13-25 #1
+[36m@@ -16,7 +16,7 @@[m
+ -- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'
+ -- argument and an 'Int' result.  The test distinguishes all three values.
+ absSucc :: Int -> Int
+[31m-[m[31mabsSucc x =[m[41m [m[1;91ma[m[1;91mb[m[1;91ms[m[31m (succ x)[m
+[32m+[m[32mabsSucc x =[m[32m (succ x)[m
+ 
+ -- | @id x@ and @x@ are the same value, so an 'ElideCall' mutant here would be
+ -- equivalent and unkillable.  Calls to 'id' are skipped by default, so
+
+ElideCall at src/Example/ElideCallLib.hs:13:15-23 #1
+[36m@@ -10,7 +10,7 @@[m
+ -- | 'negate' on an 'Int' returns an 'Int', so 'ElideCall' replaces @negate x@
+ -- with @x@.  The two differ for any non-zero input, so the test kills it.
+ negateInt :: Int -> Int
+[31m-[m[31mnegateInt x = [m[1;91mn[m[1;91me[m[1;91mga[m[1;91mte[m[41m [m[31mx[m
+[32m+[m[32mnegateInt x = [m[32mx[m
+ 
+ -- | A nested application.  'ElideCall' fires on both @abs (succ x)@ (replaced
+ -- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'

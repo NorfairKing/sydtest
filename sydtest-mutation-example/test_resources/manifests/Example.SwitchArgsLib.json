@@ -130,6 +130,46 @@
       "end_line": 21,
       "id": [
         "Example.SwitchArgsLib",
+        "ElideCall",
+        "21",
+        "25",
+        "32",
+        "b",
+        "1"
+      ],
+      "line": 21,
+      "mitigation": "If `div` is an identity on this argument this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "parenDivide a b = succ (b)"
+      ],
+      "operator": "ElideCall",
+      "original": "div a b",
+      "replacement": "b",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "parenDivide a b = succ (div a b)"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "parenDivide",
+      "col_end": 32,
+      "col_start": 25,
+      "context_after": [
+        "",
+        "-- | A colour built from three 'Int' components.",
+        "data RGB = RGB Int Int Int"
+      ],
+      "context_before": [
+        "-- mutation must be produced exactly once -- not once for the parenthesis node",
+        "-- and once for the inner application.",
+        "parenDivide :: Int -> Int -> Int"
+      ],
+      "end_line": 21,
+      "id": [
+        "Example.SwitchArgsLib",
         "SwitchFunctionArguments",
         "21",
         "25",
@@ -149,6 +189,86 @@
       "source_file": "src/Example/SwitchArgsLib.hs",
       "source_lines": [
         "parenDivide a b = succ (div a b)"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "parenDivide",
+      "col_end": 33,
+      "col_start": 19,
+      "context_after": [
+        "",
+        "-- | A colour built from three 'Int' components.",
+        "data RGB = RGB Int Int Int"
+      ],
+      "context_before": [
+        "-- mutation must be produced exactly once -- not once for the parenthesis node",
+        "-- and once for the inner application.",
+        "parenDivide :: Int -> Int -> Int"
+      ],
+      "end_line": 21,
+      "id": [
+        "Example.SwitchArgsLib",
+        "ElideCall",
+        "21",
+        "19",
+        "33",
+        "(div a b)",
+        "1"
+      ],
+      "line": 21,
+      "mitigation": "If `succ` is an identity on this argument this is an equivalent mutant that no test can kill; add `succ` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "parenDivide a b = (div a b)"
+      ],
+      "operator": "ElideCall",
+      "original": "succ (div a b)",
+      "replacement": "(div a b)",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "parenDivide a b = succ (div a b)"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "divideThe",
+      "col_end": 24,
+      "col_start": 17,
+      "context_after": [
+        "",
+        "-- | A parenthesised application: the parentheses around @div a b@ are",
+        "-- required for precedence, so GHC keeps an 'HsPar' node around it.  The swap"
+      ],
+      "context_before": [
+        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@",
+        "-- instead of @div a b@.",
+        "divideThe :: Int -> Int -> Int"
+      ],
+      "end_line": 14,
+      "id": [
+        "Example.SwitchArgsLib",
+        "ElideCall",
+        "14",
+        "17",
+        "24",
+        "b",
+        "1"
+      ],
+      "line": 14,
+      "mitigation": "If `div` is an identity on this argument this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "divideThe a b = b"
+      ],
+      "operator": "ElideCall",
+      "original": "div a b",
+      "replacement": "b",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "divideThe a b = div a b"
       ]
     }
   ],

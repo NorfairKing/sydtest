@@ -13,6 +13,10 @@ module Test.Syd.Mutation.Plugin.Operator.Util
     arrowTy,
     prefixFormPreview,
     unwrapWrap,
+    collectApp,
+    headFunctionName,
+    nameMatchCandidates,
+    spanText,
   )
 where
 
@@ -27,7 +31,8 @@ import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Tc.Types (TcM)
 import GHC.Tc.Utils.Env (tcLookupId)
 import GHC.Types.Basic (DoPmc (..), GenReason (..), Origin (..))
-import GHC.Types.Name (getOccString)
+import GHC.Types.Id (idName)
+import GHC.Types.Name (getOccString, nameModule_maybe)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName)
 import GHC.Types.SourceText (mkIntegralLit)
@@ -329,3 +334,67 @@ prefixFormPreview arity vText lhsText rhsText =
         2 -> lam <> " (" <> lhsText <> ") (" <> rhsText <> ")"
         1 -> lam <> " (" <> rhsText <> ")"
         _ -> lam
+
+-- | The value arguments of a prefix application, in source order, together
+-- with the function at the head.
+--
+-- The head is returned intact, retaining the type- and dictionary-application
+-- wrappers the typechecker attached to it, so reapplying it to (possibly
+-- mutated) arguments stays well-typed.
+--
+-- We deliberately do /not/ peel an enclosing 'HsPar': the parenthesis node
+-- @(f a b)@ and the inner application @f a b@ are visited as separate
+-- expressions by the walker (which recurses into an 'HsPar' with
+-- 'instrumentLExpr', re-running every operator).  Peeling here would make an
+-- operator fire on both nodes.  Stopping at the 'HsPar' means only the inner
+-- application produces the mutation.
+collectApp :: LHsExpr GhcTc -> (LHsExpr GhcTc, [LHsExpr GhcTc])
+collectApp = go []
+  where
+    go acc le = case unLoc le of
+      HsApp _ f a -> go (a : acc) f
+      _ -> (le, acc)
+
+-- | The 'Name' of the function (or constructor) at the head of an
+-- application, peeling the type- and dictionary-application wrappers the
+-- typechecker leaves around the 'HsVar'.  'Nothing' for heads that are not a
+-- plain variable (e.g. a lambda or a data constructor at 'ConLikeTc').
+headFunctionName :: LHsExpr GhcTc -> Maybe Name
+headFunctionName = go
+  where
+    go le = case unLoc le of
+      HsVar _ (L _ v) -> Just (idName v)
+      XExpr (WrapExpr (HsWrap _ e)) -> go (noLocA e)
+      HsAppType _ f _ -> go f
+      HsPar _ e -> go e
+      _ -> Nothing
+
+-- | The strings a @skip-calls-to@ entry may use to refer to a name: the bare
+-- occurrence (@max@) and, when the name has a defining module, the fully
+-- qualified form (@GHC.Base.max@).
+nameMatchCandidates :: Name -> [Text]
+nameMatchCandidates n =
+  let occ = T.pack (getOccString n)
+   in case nameModule_maybe n of
+        Just m -> [occ, T.pack (moduleNameString (moduleName m)) <> "." <> occ]
+        Nothing -> [occ]
+
+-- | The exact source text covered by a 'RealSrcSpan'.  Multi-line spans are
+-- joined with single spaces, which is enough for the no-op comparison and the
+-- manifest summary.
+spanText :: [Text] -> RealSrcSpan -> Text
+spanText allLines rss =
+  let startLine = srcSpanStartLine rss
+      endLine = srcSpanEndLine rss
+      colS = srcSpanStartCol rss
+      colE = srcSpanEndCol rss
+      lineN i = case drop (i - 1) allLines of
+        (l : _) -> l
+        [] -> T.empty
+   in if startLine == endLine
+        then T.take (colE - colS) (T.drop (colS - 1) (lineN startLine))
+        else
+          let firstPart = T.drop (colS - 1) (lineN startLine)
+              middleParts = map lineN [startLine + 1 .. endLine - 1]
+              lastPart = T.take (colE - 1) (lineN endLine)
+           in T.intercalate " " (firstPart : middleParts ++ [lastPart])

@@ -34,3 +34,5 @@
     name: "Use record patterns"
 - ignore:
     name: "Redundant reverse"
+- ignore:
+    name: "Redundant id"

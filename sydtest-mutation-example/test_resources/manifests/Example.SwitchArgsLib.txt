@@ -1,5 +1,5 @@
 [36m# Example.SwitchArgsLib[m
-5 mutations in 3 groups
+8 mutations in 6 groups
 
 SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #1
 [36m@@ -27,7 +27,7 @@[m
@@ -34,6 +34,17 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #3
  -- | The same constructor applied to three textually identical arguments.
  -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
 
+ElideCall at src/Example/SwitchArgsLib.hs:21:25-32 #1
+[36m@@ -18,7 +18,7 @@[m
+ -- mutation must be produced exactly once -- not once for the parenthesis node
+ -- and once for the inner application.
+ parenDivide :: Int -> Int -> Int
+[31m-[m[31mparenDivide a b = succ ([m[1;91md[m[1;91mi[m[1;91mv[m[1;91m a[m[41m [m[31mb)[m
+[32m+[m[32mparenDivide a b = succ ([m[32mb)[m
+ 
+ -- | A colour built from three 'Int' components.
+ data RGB = RGB Int Int Int
+
 SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:21:25-32 #1
 [36m@@ -18,7 +18,7 @@[m
  -- mutation must be produced exactly once -- not once for the parenthesis node
@@ -44,6 +55,28 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:21:25-32 #1
  
  -- | A colour built from three 'Int' components.
  data RGB = RGB Int Int Int
+
+ElideCall at src/Example/SwitchArgsLib.hs:21:19-33 #1
+[36m@@ -18,7 +18,7 @@[m
+ -- mutation must be produced exactly once -- not once for the parenthesis node
+ -- and once for the inner application.
+ parenDivide :: Int -> Int -> Int
+[31m-[m[31mparenDivide a b = [m[1;91ms[m[1;91mu[m[1;91mc[m[1;91mc[m[41m [m[31m(div a b)[m
+[32m+[m[32mparenDivide a b = [m[32m(div a b)[m
+ 
+ -- | A colour built from three 'Int' components.
+ data RGB = RGB Int Int Int
+
+ElideCall at src/Example/SwitchArgsLib.hs:14:17-24 #1
+[36m@@ -11,7 +11,7 @@[m
+ -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
+ -- instead of @div a b@.
+ divideThe :: Int -> Int -> Int
+[31m-[m[31mdivideThe a b =[m[41m [m[1;91md[m[1;91mi[m[1;91mv[m[31m [m[1;91ma[m[41m [m[31mb[m
+[32m+[m[32mdivideThe a b =[m[32m [m[32mb[m
+ 
+ -- | A parenthesised application: the parentheses around @div a b@ are
+ -- required for precedence, so GHC keeps an 'HsPar' node around it.  The swap
 
 SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:14:17-24 #1
 [36m@@ -11,7 +11,7 @@[m

@@ -877,6 +877,46 @@
   [
     {
       "binding": "majorityOf5",
+      "col_end": 44,
+      "col_start": 19,
+      "context_after": [
+        "",
+        "-- | A wrapper that references 'majorityOf5' as a bare arity-5 name.",
+        "--"
+      ],
+      "context_before": [
+        "-- mutation produces a well-formed prefix-form preview.",
+        "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
+        "majorityOf5 a b c d e ="
+      ],
+      "end_line": 73,
+      "id": [
+        "Example.ConstFnLib",
+        "ElideCall",
+        "73",
+        "19",
+        "44",
+        "[a, b, c, d, e]",
+        "1"
+      ],
+      "line": 73,
+      "mitigation": "If `filter` is an identity on this argument this is an equivalent mutant that no test can kill; add `filter` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "  let n = length ([a, b, c, d, e]) in n >= 3"
+      ],
+      "operator": "ElideCall",
+      "original": "filter id [a, b, c, d, e]",
+      "replacement": "[a, b, c, d, e]",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5",
       "col_end": 45,
       "col_start": 18,
       "context_after": [
@@ -907,6 +947,45 @@
       "operator": "ConstEmptyList",
       "original": "e",
       "replacement": "[]",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5",
+      "col_end": 45,
+      "col_start": 18,
+      "context_after": [
+        "",
+        "-- | A wrapper that references 'majorityOf5' as a bare arity-5 name.",
+        "--"
+      ],
+      "context_before": [
+        "-- mutation produces a well-formed prefix-form preview.",
+        "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
+        "majorityOf5 a b c d e ="
+      ],
+      "end_line": 73,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "73",
+        "18",
+        "45",
+        "no-op",
+        "1"
+      ],
+      "line": 73,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
@@ -1020,45 +1099,6 @@
       "operator": "IntLit",
       "original": "3",
       "replacement": "-3",
-      "source_file": "src/Example/ConstFnLib.hs",
-      "source_lines": [
-        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "majorityOf5",
-      "col_end": 55,
-      "col_start": 54,
-      "context_after": [
-        "",
-        "-- | A wrapper that references 'majorityOf5' as a bare arity-5 name.",
-        "--"
-      ],
-      "context_before": [
-        "-- mutation produces a well-formed prefix-form preview.",
-        "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
-        "majorityOf5 a b c d e ="
-      ],
-      "end_line": 73,
-      "id": [
-        "Example.ConstFnLib",
-        "Control",
-        "73",
-        "54",
-        "55",
-        "no-op",
-        "1"
-      ],
-      "line": 73,
-      "module": "Example.ConstFnLib",
-      "mutated_lines": [
-        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
@@ -1410,6 +1450,45 @@
   ],
   [
     {
+      "binding": "majorityOf5",
+      "col_end": 55,
+      "col_start": 3,
+      "context_after": [
+        "",
+        "-- | A wrapper that references 'majorityOf5' as a bare arity-5 name.",
+        "--"
+      ],
+      "context_before": [
+        "-- mutation produces a well-formed prefix-form preview.",
+        "majorityOf5 :: Bool -> Bool -> Bool -> Bool -> Bool -> Bool",
+        "majorityOf5 a b c d e ="
+      ],
+      "end_line": 73,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "73",
+        "3",
+        "55",
+        "no-op",
+        "2"
+      ],
+      "line": 73,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "  let n = length (filter id [a, b, c, d, e]) in n >= 3"
+      ]
+    }
+  ],
+  [
+    {
       "binding": "majorityOf5Wrapper",
       "col_end": 51,
       "col_start": 50,
@@ -1470,41 +1549,6 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
-      "source_file": "src/Example/ConstFnLib.hs",
-      "source_lines": [
-        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "majorityOf5Wrapper",
-      "col_end": 51,
-      "col_start": 50,
-      "context_after": [],
-      "context_before": [
-        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
-        "-- behaviour.",
-        "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
-      ],
-      "end_line": 91,
-      "id": [
-        "Example.ConstFnLib",
-        "Control",
-        "91",
-        "50",
-        "51",
-        "no-op",
-        "2"
-      ],
-      "line": 91,
-      "module": "Example.ConstFnLib",
-      "mutated_lines": [
-        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
@@ -1858,6 +1902,41 @@
   [
     {
       "binding": "majorityOf5Wrapper",
+      "col_end": 57,
+      "col_start": 56,
+      "context_after": [],
+      "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
+        "-- behaviour.",
+        "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
+      ],
+      "end_line": 91,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "91",
+        "56",
+        "57",
+        "no-op",
+        "3"
+      ],
+      "line": 91,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5Wrapper",
       "col_end": 59,
       "col_start": 58,
       "context_after": [],
@@ -1917,41 +1996,6 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
-      "source_file": "src/Example/ConstFnLib.hs",
-      "source_lines": [
-        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "majorityOf5Wrapper",
-      "col_end": 59,
-      "col_start": 58,
-      "context_after": [],
-      "context_before": [
-        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
-        "-- behaviour.",
-        "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
-      ],
-      "end_line": 91,
-      "id": [
-        "Example.ConstFnLib",
-        "Control",
-        "91",
-        "58",
-        "59",
-        "no-op",
-        "3"
-      ],
-      "line": 91,
-      "module": "Example.ConstFnLib",
-      "mutated_lines": [
-        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
@@ -2055,6 +2099,42 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "majorityOf5Wrapper",
+      "col_end": 59,
+      "col_start": 38,
+      "context_after": [],
+      "context_before": [
+        "-- every call to it.  See 'Example.SwitchArgsLib' for the operator's killable",
+        "-- behaviour.",
+        "majorityOf5Wrapper :: (Bool, Bool, Bool, Bool, Bool) -> Bool"
+      ],
+      "end_line": 91,
+      "id": [
+        "Example.ConstFnLib",
+        "ElideCall",
+        "91",
+        "38",
+        "59",
+        "e",
+        "1"
+      ],
+      "line": 91,
+      "mitigation": "If `majorityOf5` is an identity on this argument this is an equivalent mutant that no test can kill; add `majorityOf5` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "majorityOf5Wrapper (a, b, c, d, e) = e"
+      ],
+      "operator": "ElideCall",
+      "original": "majorityOf5 a b c d e",
+      "replacement": "e",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "majorityOf5Wrapper (a, b, c, d, e) = majorityOf5 a b c d e"
@@ -2305,6 +2385,85 @@
       "end_line": 55,
       "id": [
         "Example.ConstFnLib",
+        "Control",
+        "55",
+        "15",
+        "20",
+        "no-op",
+        "4"
+      ],
+      "line": 55,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "implies a b = not a || b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "implies a b = not a || b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "implies",
+      "col_end": 20,
+      "col_start": 15,
+      "context_after": [
+        "",
+        "-- | A wrapper around 'implies' whose body references 'implies' at arity 2",
+        "-- as a bare (un-applied) name."
+      ],
+      "context_before": [
+        "",
+        "-- | Logical implication.  Used to exercise 'ConstBool' at arity 2.",
+        "implies :: Bool -> Bool -> Bool"
+      ],
+      "end_line": 55,
+      "id": [
+        "Example.ConstFnLib",
+        "ElideCall",
+        "55",
+        "15",
+        "20",
+        "a",
+        "1"
+      ],
+      "line": 55,
+      "mitigation": "If `not` is an identity on this argument this is an equivalent mutant that no test can kill; add `not` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "implies a b = a || b"
+      ],
+      "operator": "ElideCall",
+      "original": "not a",
+      "replacement": "a",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "implies a b = not a || b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "implies",
+      "col_end": 20,
+      "col_start": 15,
+      "context_after": [
+        "",
+        "-- | A wrapper around 'implies' whose body references 'implies' at arity 2",
+        "-- as a bare (un-applied) name."
+      ],
+      "context_before": [
+        "",
+        "-- | Logical implication.  Used to exercise 'ConstBool' at arity 2.",
+        "implies :: Bool -> Bool -> Bool"
+      ],
+      "end_line": 55,
+      "id": [
+        "Example.ConstFnLib",
         "Negate",
         "55",
         "15",
@@ -2396,45 +2555,6 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
-      "source_file": "src/Example/ConstFnLib.hs",
-      "source_lines": [
-        "implies a b = not a || b"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "implies",
-      "col_end": 25,
-      "col_start": 24,
-      "context_after": [
-        "",
-        "-- | A wrapper around 'implies' whose body references 'implies' at arity 2",
-        "-- as a bare (un-applied) name."
-      ],
-      "context_before": [
-        "",
-        "-- | Logical implication.  Used to exercise 'ConstBool' at arity 2.",
-        "implies :: Bool -> Bool -> Bool"
-      ],
-      "end_line": 55,
-      "id": [
-        "Example.ConstFnLib",
-        "Control",
-        "55",
-        "24",
-        "25",
-        "no-op",
-        "4"
-      ],
-      "line": 55,
-      "module": "Example.ConstFnLib",
-      "mutated_lines": [
-        "implies a b = not a || b"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "implies a b = not a || b"
@@ -2752,6 +2872,45 @@
   [
     {
       "binding": "impliesPair",
+      "col_end": 31,
+      "col_start": 30,
+      "context_after": [
+        "",
+        "-- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5",
+        "-- mutation produces a well-formed prefix-form preview."
+      ],
+      "context_before": [
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
+        "impliesPair :: (Bool, Bool) -> Bool"
+      ],
+      "end_line": 67,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "67",
+        "30",
+        "31",
+        "no-op",
+        "5"
+      ],
+      "line": 67,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "impliesPair (a, b) = implies a b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "impliesPair (a, b) = implies a b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "impliesPair",
       "col_end": 33,
       "col_start": 32,
       "context_after": [
@@ -2868,45 +3027,6 @@
     {
       "binding": "impliesPair",
       "col_end": 33,
-      "col_start": 32,
-      "context_after": [
-        "",
-        "-- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5",
-        "-- mutation produces a well-formed prefix-form preview."
-      ],
-      "context_before": [
-        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
-        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
-        "impliesPair :: (Bool, Bool) -> Bool"
-      ],
-      "end_line": 67,
-      "id": [
-        "Example.ConstFnLib",
-        "Control",
-        "67",
-        "32",
-        "33",
-        "no-op",
-        "5"
-      ],
-      "line": 67,
-      "module": "Example.ConstFnLib",
-      "mutated_lines": [
-        "impliesPair (a, b) = implies a b"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
-      "source_file": "src/Example/ConstFnLib.hs",
-      "source_lines": [
-        "impliesPair (a, b) = implies a b"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "impliesPair",
-      "col_end": 33,
       "col_start": 22,
       "context_after": [
         "",
@@ -2973,6 +3093,46 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "impliesPair (a, b) = implies a b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "impliesPair",
+      "col_end": 33,
+      "col_start": 22,
+      "context_after": [
+        "",
+        "-- | A 5-argument predicate.  Used to confirm the 'ConstBool' arity-5",
+        "-- mutation produces a well-formed prefix-form preview."
+      ],
+      "context_before": [
+        "--   * 'SwitchFunctionArguments' swaps the two 'Bool' arguments",
+        "--     (@implies b a@); 'implies' is asymmetric, so the spec tests kill it.",
+        "impliesPair :: (Bool, Bool) -> Bool"
+      ],
+      "end_line": 67,
+      "id": [
+        "Example.ConstFnLib",
+        "ElideCall",
+        "67",
+        "22",
+        "33",
+        "b",
+        "1"
+      ],
+      "line": 67,
+      "mitigation": "If `implies` is an identity on this argument this is an equivalent mutant that no test can kill; add `implies` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "impliesPair (a, b) = b"
+      ],
+      "operator": "ElideCall",
+      "original": "implies a b",
+      "replacement": "b",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "impliesPair (a, b) = implies a b"
@@ -3214,6 +3374,45 @@
   ],
   [
     {
+      "binding": "keepDigits",
+      "col_end": 28,
+      "col_start": 14,
+      "context_after": [
+        "",
+        "-- | Get the digits of a 'String'.",
+        "--"
+      ],
+      "context_before": [
+        "-- Helper used by 'digitsOf' to give that call site a non-literal",
+        "-- list-returning function to mutate.",
+        "keepDigits :: String -> String"
+      ],
+      "end_line": 40,
+      "id": [
+        "Example.ConstFnLib",
+        "Control",
+        "40",
+        "14",
+        "28",
+        "no-op",
+        "6"
+      ],
+      "line": 40,
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "keepDigits = filter isDigit"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "keepDigits = filter isDigit"
+      ]
+    }
+  ],
+  [
+    {
       "binding": "digitsOf",
       "col_end": 26,
       "col_start": 25,
@@ -3284,6 +3483,46 @@
       "operator": "ConstEmptyList",
       "original": "e",
       "replacement": "[]",
+      "source_file": "src/Example/ConstFnLib.hs",
+      "source_lines": [
+        "digitsOf s = keepDigits s"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "digitsOf",
+      "col_end": 26,
+      "col_start": 14,
+      "context_after": [
+        "",
+        "-- | Logical implication.  Used to exercise 'ConstBool' at arity 2.",
+        "implies :: Bool -> Bool -> Bool"
+      ],
+      "context_before": [
+        "--   * 'ConstEmptyList' arity 1 on the bare @keepDigits :: String -> String@:",
+        "--     mutated to @digitsOf s = (\\\\_ -> []) s@.",
+        "digitsOf :: String -> String"
+      ],
+      "end_line": 51,
+      "id": [
+        "Example.ConstFnLib",
+        "ElideCall",
+        "51",
+        "14",
+        "26",
+        "s",
+        "1"
+      ],
+      "line": 51,
+      "mitigation": "If `keepDigits` is an identity on this argument this is an equivalent mutant that no test can kill; add `keepDigits` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.ConstFnLib",
+      "mutated_lines": [
+        "digitsOf s = s"
+      ],
+      "operator": "ElideCall",
+      "original": "keepDigits s",
+      "replacement": "s",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "digitsOf s = keepDigits s"
@@ -3434,45 +3673,6 @@
       "operator": "ConstEmptyList",
       "original": "e",
       "replacement": "[]",
-      "source_file": "src/Example/ConstFnLib.hs",
-      "source_lines": [
-        "firstChar s = safeHead s"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "firstChar",
-      "col_end": 25,
-      "col_start": 24,
-      "context_after": [
-        "",
-        "-- | Keep only the digit characters from a list.",
-        "--"
-      ],
-      "context_before": [
-        "--   * 'ConstNothing' arity 1 on the bare @safeHead :: String -> Maybe Char@:",
-        "--     mutated to @firstChar s = (\\\\_ -> Nothing) s@.",
-        "firstChar :: String -> Maybe Char"
-      ],
-      "end_line": 33,
-      "id": [
-        "Example.ConstFnLib",
-        "Control",
-        "33",
-        "24",
-        "25",
-        "no-op",
-        "6"
-      ],
-      "line": 33,
-      "module": "Example.ConstFnLib",
-      "mutated_lines": [
-        "firstChar s = safeHead s"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstFnLib.hs",
       "source_lines": [
         "firstChar s = safeHead s"

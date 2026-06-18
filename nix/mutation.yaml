@@ -23,3 +23,10 @@ operators:
   SwitchFunctionArguments:
     skip-calls-to:
       - majorityOf5
+  # Exercises 'ElideCall' suppression: 'same' (in Example.ElideCallLib) is a
+  # user-defined identity, so eliding a call to it produces an equivalent,
+  # unkillable mutant.  Listing it here skips the elision at every call to it.
+  # ('id' is skipped by default and needs no entry.)
+  ElideCall:
+    skip-calls-to:
+      - same

@@ -26,6 +26,7 @@ library
       Example.ConstFnLib
       Example.DerivingLib
       Example.DoLib
+      Example.ElideCallLib
       Example.ExceptionLib
       Example.FunctionExceptionLib
       Example.IgnoreLib

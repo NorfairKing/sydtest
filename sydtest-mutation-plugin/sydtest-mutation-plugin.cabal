@@ -31,6 +31,7 @@ library
       Test.Syd.Mutation.Plugin.Operator.ConstBool
       Test.Syd.Mutation.Plugin.Operator.ConstEmptyList
       Test.Syd.Mutation.Plugin.Operator.ConstNothing
+      Test.Syd.Mutation.Plugin.Operator.ElideCall
       Test.Syd.Mutation.Plugin.Operator.IntLit
       Test.Syd.Mutation.Plugin.Operator.ListLit
       Test.Syd.Mutation.Plugin.Operator.LogicOp

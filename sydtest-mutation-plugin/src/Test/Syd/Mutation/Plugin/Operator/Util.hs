@@ -78,7 +78,12 @@ opOccName = fmap getOccString . opName
 -- any module) or a fully-qualified @Module.name@ form — by the defining module
 -- or by an import module — via 'nameMatchCandidates'.  Used by the @ignore@
 -- filter and by 'RemoveAction'.
+--
+-- The empty-list case short-circuits before touching the GlobalRdrEnv: the
+-- @ignore@ filter calls this on every expression in the module, so when no
+-- names are configured (the common case) we avoid a per-expression GRE lookup.
 headNameMatches :: GlobalRdrEnv -> [String] -> LHsExpr GhcTc -> Bool
+headNameMatches _ [] _ = False
 headNameMatches rdrEnv names le =
   any ((`elem` names) . T.unpack) (maybe [] (nameMatchCandidates rdrEnv) (opName le))
 

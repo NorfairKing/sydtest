@@ -4,10 +4,11 @@
 module Test.Syd.Sqitch.Postgresql.PlanSpec (spec) where
 
 import Control.Exception (SomeException, try)
+import qualified Data.ByteString as SB
 import Data.List (isInfixOf)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
+import qualified Data.Text.Encoding as TE
 import Path
 import Path.IO
 import Test.Syd
@@ -21,7 +22,7 @@ parsePlan mTag body =
     dir <- resolveDir' dirStr
     name <- parseRelFile "sqitch.plan"
     let path = dir </> name
-    Text.writeFile (fromAbsFile path) body
+    SB.writeFile (fromAbsFile path) (TE.encodeUtf8 body)
     readSqitchPlan mTag path
 
 spec :: Spec

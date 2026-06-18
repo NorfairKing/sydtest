@@ -64,7 +64,7 @@ import Test.Syd.MutationMode.Common
     runOneGroup,
     tallyGroups,
   )
-import Text.Colour (Chunk, TerminalCapabilities (..), hPutChunksLocaleWith, putChunksLocaleWith, renderChunksText, unlinesChunks)
+import Text.Colour (Chunk, TerminalCapabilities (..), hPutChunksUtf8With, putChunksUtf8With, renderChunksText, unlinesChunks)
 
 -- | Thrown when the augmented manifest references a covering suite that is
 -- not present in the driver's suite-exe map.  Validated up-front in
@@ -211,7 +211,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- never returns to 'runDriver'.
   let renderedChunks = renderMutationRunReport jsonReport
   writeReportTxt renderedChunks outDir
-  putChunksLocaleWith With8BitColours (unlinesChunks renderedChunks)
+  putChunksUtf8With With8BitColours (unlinesChunks renderedChunks)
   -- Force out any block-buffered progress events before we return.  This
   -- matters even though we don't 'exitWith' here ourselves: callers (e.g.
   -- 'runDriver' under --fail-fast) may, and a buffered stderr line that
@@ -235,7 +235,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
     runOne sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
-        hPutChunksLocaleWith With8BitColours stderr (unlinesChunks (renderMutationProgressEvent debug (MutationProgressEvent record)))
+        hPutChunksUtf8With With8BitColours stderr (unlinesChunks (renderMutationProgressEvent debug (MutationProgressEvent record)))
         -- Only run suites that have at least one covering test for this
         -- mutation.
         let coveringBySuite =

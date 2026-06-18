@@ -22,7 +22,6 @@ import Control.Monad
 import Control.Monad.Reader
 import Data.Maybe
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
 import Test.QuickCheck.IO ()
@@ -56,9 +55,13 @@ runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest =
   ((), resultForest) <- concurrently runRunner runPrinter
 
   let outputLine :: [Chunk] -> IO ()
-      outputLine lineChunks = liftIO $ do
-        putChunksLocaleWith (settingTerminalCapabilities settings) lineChunks
-        TIO.putStrLn ""
+      outputLine lineChunks =
+        liftIO $
+          -- Emit UTF-8 bytes directly so output never depends on the handle's
+          -- locale encoding (a C/POSIX-locale handle is ASCII and would crash on
+          -- the non-ASCII status markers).  The trailing newline is folded into
+          -- the chunks so this stays a single byte-level write.
+          putChunksUtf8With (settingTerminalCapabilities settings) (lineChunks <> [chunk "\n"])
       outputLines :: [[Chunk]] -> IO ()
       outputLines = mapM_ outputLine
 
@@ -343,9 +346,13 @@ data Env externalResources = Env
 printer :: Settings -> MVar () -> Word64 -> HandleForest '[] () -> IO (Timed ResultForest)
 printer settings failFastVar suiteBegin handleForest = do
   let outputLine :: [Chunk] -> IO ()
-      outputLine lineChunks = liftIO $ do
-        putChunksLocaleWith (settingTerminalCapabilities settings) lineChunks
-        TIO.putStrLn ""
+      outputLine lineChunks =
+        liftIO $
+          -- Emit UTF-8 bytes directly so output never depends on the handle's
+          -- locale encoding (a C/POSIX-locale handle is ASCII and would crash on
+          -- the non-ASCII status markers).  The trailing newline is folded into
+          -- the chunks so this stays a single byte-level write.
+          putChunksUtf8With (settingTerminalCapabilities settings) (lineChunks <> [chunk "\n"])
 
       treeWidth :: Int
       treeWidth = specForestWidth handleForest

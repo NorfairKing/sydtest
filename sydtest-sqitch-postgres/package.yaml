@@ -43,6 +43,7 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
+    - bytestring
     - path
     - path-io
     - sydtest

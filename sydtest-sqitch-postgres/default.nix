@@ -13,8 +13,8 @@ mkDerivation {
     typed-process
   ];
   testHaskellDepends = [
-    base path path-io sydtest sydtest-persistent-postgresql text
-    unliftio
+    base bytestring path path-io sydtest sydtest-persistent-postgresql
+    text unliftio
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

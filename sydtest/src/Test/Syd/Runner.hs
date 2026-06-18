@@ -14,6 +14,9 @@ module Test.Syd.Runner
 where
 
 import Control.Concurrent (getNumCapabilities)
+import qualified Data.ByteString as SB
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import System.Environment
 import System.Mem (performGC)
 import System.Random (mkStdGen, setStdGen)
@@ -91,10 +94,10 @@ sydTestIterations totalIterations settings spec = do
           newSeedSetting <- case settingSeed settings of
             FixedSeed seed -> do
               let newSeed = seed + fromIntegral iteration
-              putStrLn $ printf "Running iteration: %4d with seed %4d" iteration newSeed
+              SB.putStr $ TE.encodeUtf8 $ T.pack (printf "Running iteration: %4d with seed %4d" iteration newSeed) <> "\n"
               pure $ FixedSeed newSeed
             RandomSeed -> do
-              putStrLn $ printf "Running iteration: %4d with random seeds" iteration
+              SB.putStr $ TE.encodeUtf8 $ T.pack (printf "Running iteration: %4d with random seeds" iteration) <> "\n"
               pure RandomSeed
           rf <- runOnce $ settings {settingSeed = newSeedSetting}
           if shouldExitFail settings (timedValue rf)

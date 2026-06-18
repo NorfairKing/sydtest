@@ -13,7 +13,6 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Test.Syd.HList
 import Test.Syd.OptParse
 import Test.Syd.Output
@@ -27,9 +26,13 @@ import Text.Colour
 runSpecForestInterleavedWithOutputSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputSynchronously settings testForest = do
   let outputLine :: [Chunk] -> IO ()
-      outputLine lineChunks = liftIO $ do
-        putChunksLocaleWith (settingTerminalCapabilities settings) lineChunks
-        TIO.putStrLn ""
+      outputLine lineChunks =
+        liftIO $
+          -- Emit UTF-8 bytes directly so output never depends on the handle's
+          -- locale encoding (a C/POSIX-locale handle is ASCII and would crash on
+          -- the non-ASCII status markers).  The trailing newline is folded into
+          -- the chunks so this stays a single byte-level write.
+          putChunksUtf8With (settingTerminalCapabilities settings) (lineChunks <> [chunk "\n"])
 
       treeWidth :: Int
       treeWidth = specForestWidth testForest

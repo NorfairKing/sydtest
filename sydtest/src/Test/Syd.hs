@@ -256,6 +256,9 @@ where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import qualified Data.ByteString as SB
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Path
 import Path.IO
 import System.Exit
@@ -302,7 +305,7 @@ sydTestWith sets spec = do
   when (settingProfile sets) $ do
     p <- resolveFile' "sydtest-profile.html"
     writeSvgReport (fromAbsFile p) resultForest
-    putStrLn $ "Wrote profile graph to " <> fromAbsFile p
+    SB.putStr $ TE.encodeUtf8 $ T.pack ("Wrote profile graph to " <> fromAbsFile p) <> "\n"
 
   when (shouldExitFail sets (timedValue resultForest)) (exitWith (ExitFailure 1))
 

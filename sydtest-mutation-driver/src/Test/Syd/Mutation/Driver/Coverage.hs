@@ -61,7 +61,7 @@ import Test.Syd.MutationMode.Common
     renderCoverageProgressEvent,
     retryingIO,
   )
-import Text.Colour (TerminalCapabilities (..), chunk, fore, hPutChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (TerminalCapabilities (..), chunk, fore, hPutChunksUtf8With, red, unlinesChunks, yellow)
 
 -- | Parent process: enumerate leaf tests by asking the suite executable
 -- to list them, spawn one coverage child per test (up to @coverageJobs@
@@ -200,7 +200,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
         ec <- runProcess childProc
         case ec of
           ExitFailure 2 | failFast -> do
-            hPutChunksLocaleWith With8BitColours stderr $
+            hPutChunksUtf8With With8BitColours stderr $
               unlinesChunks
                 [ [ fore red (chunk "coverage: test failed during baseline run for "),
                     chunk (renderTestId tid),
@@ -220,7 +220,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
                   Right baselineMap -> pure $ Right (coverageMap, baselineMap)
 
     logCoverageRetry tid reason retriesAfter =
-      hPutChunksLocaleWith With8BitColours stderr $
+      hPutChunksUtf8With With8BitColours stderr $
         unlinesChunks
           [ [ fore yellow (chunk "coverage: retrying "),
               chunk (renderTestId tid),
@@ -265,7 +265,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
 
 emitCoverageEvent :: CoverageProgressEvent -> IO ()
 emitCoverageEvent ev =
-  hPutChunksLocaleWith With8BitColours stderr (unlinesChunks (renderCoverageProgressEvent ev))
+  hPutChunksUtf8With With8BitColours stderr (unlinesChunks (renderCoverageProgressEvent ev))
 
 -- | Ask the suite executable to print its leaf test IDs (one per line)
 -- and parse the result.  The driver uses the @--mutation-coverage-list@

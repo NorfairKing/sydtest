@@ -70,7 +70,7 @@ import Test.Syd.Mutation.Manifest.Render (renderUnifiedDiff)
 import Test.Syd.Mutation.Runtime (MutationId (..), renderMutationId)
 import Test.Syd.Mutation.TestId (TestId, renderTestId)
 import Test.Syd.OptParse (Settings, settingTerminalCapabilities)
-import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksLocaleWith, red, unlinesChunks, yellow)
+import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksUtf8With, red, unlinesChunks, yellow)
 
 -- | Difference of two 'getMonotonicTimeNSec' readings expressed in
 -- microseconds.  The monotonic clock is not affected by NTP slew or
@@ -465,7 +465,7 @@ renderCoverageProgressEvent = \case
 
 emitCoverageEvent :: Settings -> CoverageProgressEvent -> IO ()
 emitCoverageEvent settings ev =
-  hPutChunksLocaleWith
+  hPutChunksUtf8With
     (settingTerminalCapabilities settings)
     stderr
     (unlinesChunks (renderCoverageProgressEvent ev))

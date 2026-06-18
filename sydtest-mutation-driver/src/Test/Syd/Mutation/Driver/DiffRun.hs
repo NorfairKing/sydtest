@@ -64,8 +64,8 @@ import Text.Colour
     cyan,
     fore,
     green,
-    hPutChunksLocaleWith,
-    putChunksLocaleWith,
+    hPutChunksUtf8With,
+    putChunksUtf8With,
     red,
     unlinesChunks,
   )
@@ -103,7 +103,7 @@ runDiff DiffSettings {..} = do
       numTestSelected = Set.size (diffSelectionTestMutations breakdown)
       numSelected = Set.size selected
 
-  hPutChunksLocaleWith With8BitColours stderr $
+  hPutChunksUtf8With With8BitColours stderr $
     unlinesChunks
       (renderDiffSelection (length hunks) numSourceSelected numTestSelected numSelected)
 
@@ -143,7 +143,7 @@ runDiff DiffSettings {..} = do
   -- 'runMutationMode' already flushed stderr; flush again so any further
   -- stderr writes from the runtime can't land after our stdout summary.
   hFlush stderr
-  putChunksLocaleWith With8BitColours (unlinesChunks summary)
+  putChunksUtf8With With8BitColours (unlinesChunks summary)
   hFlush stdout
   -- A 0-selection run always passes (we did no work); only exit non-zero
   -- when the underlying assertion failed.

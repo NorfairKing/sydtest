@@ -32,7 +32,7 @@ import Text.Colour
     chunk,
     fore,
     green,
-    hPutChunksLocaleWith,
+    hPutChunksUtf8With,
     red,
     unlinesChunks,
   )
@@ -103,7 +103,7 @@ runAssertScore assertNoneUncovered reportDir mOutDir = do
   exists <- doesFileExist jsonPath
   if not exists
     then do
-      hPutChunksLocaleWith With8BitColours stdout $
+      hPutChunksUtf8With With8BitColours stdout $
         unlinesChunks
           [ [ fore red (chunk "assert-score: "),
               chunk (T.pack (fromAbsFile jsonPath)),
@@ -116,11 +116,11 @@ runAssertScore assertNoneUncovered reportDir mOutDir = do
       let result = assertScoreResult assertNoneUncovered report
           body = renderMutationRunReport report
           txtPath = reportDir </> [relfile|report.txt|]
-      hPutChunksLocaleWith With8BitColours stdout $
+      hPutChunksUtf8With With8BitColours stdout $
         unlinesChunks (assertScoreHeader result : [] : body)
       -- Print the path lines so they appear in the build log even when
       -- the body alone scrolls them off-screen.
-      hPutChunksLocaleWith With8BitColours stdout $
+      hPutChunksUtf8With With8BitColours stdout $
         unlinesChunks
           [ [],
             [chunk "Full report:             ", chunk (T.pack (fromAbsFile txtPath))],

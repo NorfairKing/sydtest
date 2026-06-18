@@ -31,7 +31,7 @@ import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run (Timed (..))
 import Test.Syd.Runner.Synchronous (runSpecForestSynchronously)
 import Test.Syd.SpecDef (shouldExitFail)
-import Text.Colour (chunk, fore, hPutChunksLocaleWith, red, unlinesChunks)
+import Text.Colour (chunk, fore, hPutChunksUtf8With, red, unlinesChunks)
 
 -- | Child process: run the single test identified by @--mutation-coverage-one@,
 -- write its 'TestCoverageMap' to @--mutation-coverage-output@, write its
@@ -67,7 +67,7 @@ runSingleCoverageMode settings failFast covChild spec = do
   -- code 2 so the parent aborts the run (see the coverage-parent runner).
   when (shouldExitFail settings (timedValue resultForest)) $ do
     printOutputSpecForest settings resultForest
-    hPutChunksLocaleWith (settingTerminalCapabilities settings) stderr $
+    hPutChunksUtf8With (settingTerminalCapabilities settings) stderr $
       unlinesChunks
         [ [ fore red $ chunk "coverage: WARNING: test failed during baseline run for ",
             fore red $ chunk (renderTestId tid),

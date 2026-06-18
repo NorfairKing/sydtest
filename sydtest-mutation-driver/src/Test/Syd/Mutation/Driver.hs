@@ -28,7 +28,7 @@ import Data.Text (Text)
 import Path
 import Path.IO (getCurrentDir, setCurrentDir)
 import System.Exit (ExitCode (..), die, exitWith)
-import System.IO (BufferMode (..), hFlush, hSetBuffering, hSetEncoding, stderr, stdout, utf8)
+import System.IO (BufferMode (..), hFlush, hSetBuffering, stderr, stdout)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationGroup (..),
@@ -53,11 +53,6 @@ import Test.Syd.Mutation.Runtime (renderMutationId)
 -- phases (coverage then mutation).
 sydMutationDriver :: IO ()
 sydMutationDriver = do
-  -- Set both streams to UTF-8 so the rendered report (which contains
-  -- box-drawing characters and em-dashes) doesn't fail to print when
-  -- running in a build sandbox where LANG isn't set.
-  hSetEncoding stderr utf8
-  hSetEncoding stdout utf8
   hSetBuffering stderr LineBuffering
   hSetBuffering stdout LineBuffering
   dispatch <- getDispatch

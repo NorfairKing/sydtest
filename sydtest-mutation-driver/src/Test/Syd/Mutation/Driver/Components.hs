@@ -21,7 +21,10 @@ module Test.Syd.Mutation.Driver.Components
 where
 
 import Control.Exception (Exception, throwIO)
+import qualified Data.ByteString as SB
 import Data.List (sort)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Distribution.PackageDescription
   ( GenericPackageDescription (..),
   )
@@ -97,7 +100,7 @@ readComponentNames kind cabalFile = do
 listComponentsFromCabalFile :: ComponentKind -> Path Abs File -> IO ()
 listComponentsFromCabalFile kind cabalFile = do
   names <- readComponentNames kind cabalFile
-  mapM_ putStrLn names
+  SB.putStr (TE.encodeUtf8 (T.unlines (map T.pack names)))
 
 -- | Top-level entry point for the @list-components@ subcommand.
 -- Resolves @<pname>.cabal@ in the driver's current working directory

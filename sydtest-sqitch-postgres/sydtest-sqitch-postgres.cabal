@@ -98,6 +98,7 @@ test-suite sydtest-sqitch-postgres-test
       sydtest-discover:sydtest-discover
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , path
     , path-io
     , sydtest

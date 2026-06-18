@@ -17,7 +17,6 @@ import Control.Monad.IO.Class
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
 import Data.Text (Text)
-import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import OptEnvConf
 import Path
@@ -184,9 +183,12 @@ instance HasParser Settings where
 
             when (i == 1) $ do
               let outputLine :: [Chunk] -> IO ()
-                  outputLine lineChunks = liftIO $ do
-                    putChunksLocaleWith terminalCapabilities lineChunks
-                    TIO.putStrLn ""
+                  outputLine lineChunks =
+                    liftIO $
+                      -- Emit UTF-8 bytes directly so output never depends on the
+                      -- handle's locale encoding; the trailing newline is folded
+                      -- into the chunks to keep this one byte-level write.
+                      putChunksUtf8With terminalCapabilities (lineChunks <> [chunk "\n"])
               mapM_
                 ( outputLine
                     . (: [])

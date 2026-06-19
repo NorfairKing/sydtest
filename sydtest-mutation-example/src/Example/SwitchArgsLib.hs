@@ -4,8 +4,25 @@ module Example.SwitchArgsLib
     RGB (..),
     makeColour,
     greyscale,
+    stripStorePrefix,
   )
 where
+
+import Data.List (stripPrefix)
+
+-- | Strip a leading @"\/nix\/store\/"@.  Both arguments to 'stripPrefix' are
+-- 'String', so 'SwitchFunctionArguments' swaps them, and the swapped
+-- replacement text, @s "\/nix\/store\/"@, contains a @\'\/\'@.
+--
+-- Regression test: a @\'\/\'@ in the replacement string used to leak into the
+-- 'Test.Syd.Mutation.Runtime.MutationId', whose parts are @\'\/\'@-separated.
+-- That made the id un-round-trippable through @MUTATION_ACTIVE@ (the runtime
+-- parsed it into more parts than the compiled @ifMutation@ carried), so the
+-- mutant was never activated and /survived/ despite the killing test below,
+-- while same-site operators with a @\'\/\'@-free replacement (e.g.
+-- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.
+stripStorePrefix :: String -> Maybe String
+stripStorePrefix s = stripPrefix "/nix/store/" s
 
 -- | Integer division.  Both arguments are 'Int', so
 -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@

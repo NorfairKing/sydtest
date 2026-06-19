@@ -1237,11 +1237,12 @@ containsSpan outer inner =
 
 -- Nest alternatives as: ifMutation id1 mut1 (ifMutation id2 mut2 original)
 --
--- The 1-based @altIndex@ disambiguates alternatives that an operator emits
--- with identical @replStr@ text: e.g. ListLit's drop-first and drop-last on a
--- 3-element list both have replStr "2 elements", and without an index the
--- 'MutationId's would collide.  The index is appended as the last component
--- of the id.
+-- The 1-based @altIndex@ is the sole disambiguator of alternatives an operator
+-- emits at the same span: it is the last component of the 'MutationId', which is
+-- otherwise just the module, operator and span.  (The replacement text is NOT in
+-- the id, because it can contain @'/'@, the id's part separator, so the index
+-- alone must keep e.g. ListLit's drop-first and drop-last on a 3-element list,
+-- or SwitchFunctionArguments' several swaps at one call, from colliding.)
 applyAlts :: SrcSpan -> String -> NonEmpty MutationAlt -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
 applyAlts matchedSpan opName alts original = do
   (wrapped, records) <- go 1 alts
@@ -1376,6 +1377,17 @@ recordMutationAt sp op origStr replStr delta mitigation altIndex = do
           lineNum = srcSpanStartLine rss
           colStart = srcSpanStartCol rss
           colEnd = srcSpanEndCol rss
+          -- The id is a structural key: module, operator, span, and the
+          -- alternative's index.  It must NOT embed source text (the
+          -- replacement string), because a 'MutationId' renders and parses as
+          -- @'/'@-separated parts (see 'Test.Syd.Mutation.Runtime'): a replStr
+          -- such as @t' "/nix/store/"@ contains a @'/'@, which would make the
+          -- id un-round-trippable through @MUTATION_ACTIVE@: the runtime would
+          -- parse it into different parts than the compiled @ifMutation@ carries
+          -- and so never activate the mutation (it would survive uncovered-
+          -- style despite a killing test).  The index already disambiguates
+          -- alternatives at the same span, so replStr is not needed for
+          -- uniqueness; it lives in the manifest's 'mutRecReplacement' field.
           mid =
             MutationId
               [ mn,
@@ -1383,7 +1395,6 @@ recordMutationAt sp op origStr replStr delta mitigation altIndex = do
                 show lineNum,
                 show colStart,
                 show colEnd,
-                replStr,
                 show altIndex
               ]
           lineNumEnd = srcSpanEndLine rss
@@ -1442,7 +1453,7 @@ recordMutationAt sp op origStr replStr delta mitigation altIndex = do
                     Just p -> fromRelFile p
                     Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
                   variantSuffix = case parts of
-                    [_, _, _, _, _, _, altIdx] -> " #" ++ altIdx
+                    [_, _, _, _, _, altIdx] -> " #" ++ altIdx
                     _ -> ""
                in putStrLn $ "added mutation " ++ T.unpack (mutRecOperator record) ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
             _ -> putStrLn $ "added mutation " ++ show parts

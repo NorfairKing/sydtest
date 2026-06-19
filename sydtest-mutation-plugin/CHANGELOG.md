@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.1.0] - 2026-06-19
+
+### Fixed
+
+* Mutants whose replacement text contains a `/` are now activated (and so
+  killable) instead of always surviving.  A `MutationId` renders and parses as
+  `/`-separated parts, so its parts must contain no `/`, yet the id embedded the
+  replacement string (raw source text) as a part.  A `SwitchFunctionArguments`
+  swap of e.g. `stripPrefix "/nix/store/" t` has replacement text
+  `t "/nix/store/"`, which contains a `/`.  The compiled `ifMutation` carried
+  that id intact, but the driver renders the id into `MUTATION_ACTIVE` and the
+  runtime parses it back by splitting on `/`: the embedded `/` split into extra
+  parts, the parsed id never equalled the compiled one, and the mutation was
+  never made active.  It therefore survived even when a test killed it, while
+  same-site operators with a `/`-free replacement (e.g. `ConstNothing`'s
+  `Nothing`) were killed normally.  (The coverage phase still recorded the
+  intact id, so the mutant showed up as `survived`, not `uncovered`.)  The id
+  is now the structural key `[module, operator, line, colStart, colEnd,
+  altIndex]`; none of those parts can contain a `/`, and the index already
+  disambiguates alternatives at one span.  The replacement text remains in the
+  manifest's `replacement` field for humans.
+
 ## [0.4.0.0] - 2026-06-17
 
 ### Added

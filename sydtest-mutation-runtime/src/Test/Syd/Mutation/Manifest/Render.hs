@@ -67,8 +67,11 @@ renderMutationRecord
         filePath = case mutRecSourceFile of
           Just p -> fromRelFile p
           Nothing -> moduleToFilePath (T.unpack mutRecModule)
+        -- The id's last component is the alternative index (the id is
+        -- @[module, operator, line, colStart, colEnd, altIndex]@); show it as a
+        -- @ #n@ suffix so several alternatives at one span are distinguishable.
         variantSuffix = case parts of
-          [_, _, _, _, _, _, altIdx] -> " #" ++ altIdx
+          [_, _, _, _, _, altIdx] -> " #" ++ altIdx
           _ -> ""
         headerText =
           T.pack $

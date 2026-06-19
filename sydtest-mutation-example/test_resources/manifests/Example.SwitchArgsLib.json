@@ -14,17 +14,16 @@
         "-- mutant per pair: swapping (r, g), (r, b), and (g, b).",
         "makeColour :: Int -> Int -> Int -> RGB"
       ],
-      "end_line": 30,
+      "end_line": 47,
       "id": [
         "Example.SwitchArgsLib",
         "SwitchFunctionArguments",
-        "30",
+        "47",
         "20",
         "29",
-        "g r",
         "1"
       ],
-      "line": 30,
+      "line": 47,
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
         "makeColour r g b = RGB g r b"
@@ -51,17 +50,16 @@
         "-- mutant per pair: swapping (r, g), (r, b), and (g, b).",
         "makeColour :: Int -> Int -> Int -> RGB"
       ],
-      "end_line": 30,
+      "end_line": 47,
       "id": [
         "Example.SwitchArgsLib",
         "SwitchFunctionArguments",
-        "30",
+        "47",
         "20",
         "29",
-        "b r",
         "2"
       ],
-      "line": 30,
+      "line": 47,
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
         "makeColour r g b = RGB b g r"
@@ -88,17 +86,16 @@
         "-- mutant per pair: swapping (r, g), (r, b), and (g, b).",
         "makeColour :: Int -> Int -> Int -> RGB"
       ],
-      "end_line": 30,
+      "end_line": 47,
       "id": [
         "Example.SwitchArgsLib",
         "SwitchFunctionArguments",
-        "30",
+        "47",
         "20",
         "29",
-        "b g",
         "3"
       ],
-      "line": 30,
+      "line": 47,
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
         "makeColour r g b = RGB r b g"
@@ -127,17 +124,16 @@
         "-- and once for the inner application.",
         "parenDivide :: Int -> Int -> Int"
       ],
-      "end_line": 21,
+      "end_line": 38,
       "id": [
         "Example.SwitchArgsLib",
         "ElideCall",
-        "21",
+        "38",
         "25",
         "32",
-        "b",
         "1"
       ],
-      "line": 21,
+      "line": 38,
       "mitigation": "If `div` is an identity on this argument this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
@@ -167,17 +163,16 @@
         "-- and once for the inner application.",
         "parenDivide :: Int -> Int -> Int"
       ],
-      "end_line": 21,
+      "end_line": 38,
       "id": [
         "Example.SwitchArgsLib",
         "SwitchFunctionArguments",
-        "21",
+        "38",
         "25",
         "32",
-        "b a",
         "1"
       ],
-      "line": 21,
+      "line": 38,
       "mitigation": "If `div` is symmetric in these arguments this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
@@ -207,17 +202,16 @@
         "-- and once for the inner application.",
         "parenDivide :: Int -> Int -> Int"
       ],
-      "end_line": 21,
+      "end_line": 38,
       "id": [
         "Example.SwitchArgsLib",
         "ElideCall",
-        "21",
+        "38",
         "19",
         "33",
-        "(div a b)",
         "1"
       ],
-      "line": 21,
+      "line": 38,
       "mitigation": "If `succ` is an identity on this argument this is an equivalent mutant that no test can kill; add `succ` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
@@ -247,17 +241,16 @@
         "-- instead of @div a b@.",
         "divideThe :: Int -> Int -> Int"
       ],
-      "end_line": 14,
+      "end_line": 31,
       "id": [
         "Example.SwitchArgsLib",
         "ElideCall",
-        "14",
+        "31",
         "17",
         "24",
-        "b",
         "1"
       ],
-      "line": 14,
+      "line": 31,
       "mitigation": "If `div` is an identity on this argument this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
@@ -287,17 +280,16 @@
         "-- instead of @div a b@.",
         "divideThe :: Int -> Int -> Int"
       ],
-      "end_line": 14,
+      "end_line": 31,
       "id": [
         "Example.SwitchArgsLib",
         "SwitchFunctionArguments",
-        "14",
+        "31",
         "17",
         "24",
-        "b a",
         "1"
       ],
-      "line": 14,
+      "line": 31,
       "mitigation": "If `div` is symmetric in these arguments this is an equivalent mutant that no test can kill; add `div` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.SwitchArgsLib",
       "mutated_lines": [
@@ -309,6 +301,197 @@
       "source_file": "src/Example/SwitchArgsLib.hs",
       "source_lines": [
         "divideThe a b = div a b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "stripStorePrefix",
+      "col_end": 47,
+      "col_start": 34,
+      "context_after": [
+        "",
+        "-- | Integer division.  Both arguments are 'Int', so",
+        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@"
+      ],
+      "context_before": [
+        "-- while same-site operators with a @\\'\\/\\'@-free replacement (e.g.",
+        "-- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.",
+        "stripStorePrefix :: String -> Maybe String"
+      ],
+      "end_line": 25,
+      "id": [
+        "Example.SwitchArgsLib",
+        "ConstEmptyList",
+        "25",
+        "34",
+        "47",
+        "1"
+      ],
+      "line": 25,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "stripStorePrefix s = stripPrefix [] s"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "stripStorePrefix",
+      "col_end": 49,
+      "col_start": 48,
+      "context_after": [
+        "",
+        "-- | Integer division.  Both arguments are 'Int', so",
+        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@"
+      ],
+      "context_before": [
+        "-- while same-site operators with a @\\'\\/\\'@-free replacement (e.g.",
+        "-- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.",
+        "stripStorePrefix :: String -> Maybe String"
+      ],
+      "end_line": 25,
+      "id": [
+        "Example.SwitchArgsLib",
+        "ConstEmptyList",
+        "25",
+        "48",
+        "49",
+        "1"
+      ],
+      "line": 25,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "stripStorePrefix s = stripPrefix \"/nix/store/\" []"
+      ],
+      "operator": "ConstEmptyList",
+      "original": "e",
+      "replacement": "[]",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "stripStorePrefix",
+      "col_end": 49,
+      "col_start": 22,
+      "context_after": [
+        "",
+        "-- | Integer division.  Both arguments are 'Int', so",
+        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@"
+      ],
+      "context_before": [
+        "-- while same-site operators with a @\\'\\/\\'@-free replacement (e.g.",
+        "-- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.",
+        "stripStorePrefix :: String -> Maybe String"
+      ],
+      "end_line": 25,
+      "id": [
+        "Example.SwitchArgsLib",
+        "ConstNothing",
+        "25",
+        "22",
+        "49",
+        "1"
+      ],
+      "line": 25,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "stripStorePrefix s = Nothing"
+      ],
+      "operator": "ConstNothing",
+      "original": "e",
+      "replacement": "Nothing",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "stripStorePrefix",
+      "col_end": 49,
+      "col_start": 22,
+      "context_after": [
+        "",
+        "-- | Integer division.  Both arguments are 'Int', so",
+        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@"
+      ],
+      "context_before": [
+        "-- while same-site operators with a @\\'\\/\\'@-free replacement (e.g.",
+        "-- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.",
+        "stripStorePrefix :: String -> Maybe String"
+      ],
+      "end_line": 25,
+      "id": [
+        "Example.SwitchArgsLib",
+        "SwitchFunctionArguments",
+        "25",
+        "22",
+        "49",
+        "1"
+      ],
+      "line": 25,
+      "mitigation": "If `stripPrefix` is symmetric in these arguments this is an equivalent mutant that no test can kill; add `stripPrefix` to this operator's `skip-calls-to` config to suppress it.",
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "stripStorePrefix s = stripPrefix s \"/nix/store/\""
+      ],
+      "operator": "SwitchFunctionArguments",
+      "original": "\"/nix/store/\" s",
+      "replacement": "s \"/nix/store/\"",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "stripStorePrefix",
+      "col_end": 49,
+      "col_start": 22,
+      "context_after": [
+        "",
+        "-- | Integer division.  Both arguments are 'Int', so",
+        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@"
+      ],
+      "context_before": [
+        "-- while same-site operators with a @\\'\\/\\'@-free replacement (e.g.",
+        "-- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.",
+        "stripStorePrefix :: String -> Maybe String"
+      ],
+      "end_line": 25,
+      "id": [
+        "Example.SwitchArgsLib",
+        "Control",
+        "25",
+        "22",
+        "49",
+        "0"
+      ],
+      "line": 25,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
       ]
     }
   ]

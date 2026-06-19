@@ -1,8 +1,8 @@
 [36m# Example.SwitchArgsLib[m
-8 mutations in 6 groups
+13 mutations in 11 groups
 
-SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #1
-[36m@@ -27,7 +27,7 @@[m
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:47:20-29 #1
+[36m@@ -44,7 +44,7 @@[m
  -- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one
  -- mutant per pair: swapping (r, g), (r, b), and (g, b).
  makeColour :: Int -> Int -> Int -> RGB
@@ -12,8 +12,8 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #1
  -- | The same constructor applied to three textually identical arguments.
  -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
 
-SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #2
-[36m@@ -27,7 +27,7 @@[m
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:47:20-29 #2
+[36m@@ -44,7 +44,7 @@[m
  -- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one
  -- mutant per pair: swapping (r, g), (r, b), and (g, b).
  makeColour :: Int -> Int -> Int -> RGB
@@ -23,8 +23,8 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #2
  -- | The same constructor applied to three textually identical arguments.
  -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
 
-SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #3
-[36m@@ -27,7 +27,7 @@[m
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:47:20-29 #3
+[36m@@ -44,7 +44,7 @@[m
  -- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one
  -- mutant per pair: swapping (r, g), (r, b), and (g, b).
  makeColour :: Int -> Int -> Int -> RGB
@@ -34,8 +34,8 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:30:20-29 #3
  -- | The same constructor applied to three textually identical arguments.
  -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
 
-ElideCall at src/Example/SwitchArgsLib.hs:21:25-32 #1
-[36m@@ -18,7 +18,7 @@[m
+ElideCall at src/Example/SwitchArgsLib.hs:38:25-32 #1
+[36m@@ -35,7 +35,7 @@[m
  -- mutation must be produced exactly once -- not once for the parenthesis node
  -- and once for the inner application.
  parenDivide :: Int -> Int -> Int
@@ -45,8 +45,8 @@ ElideCall at src/Example/SwitchArgsLib.hs:21:25-32 #1
  -- | A colour built from three 'Int' components.
  data RGB = RGB Int Int Int
 
-SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:21:25-32 #1
-[36m@@ -18,7 +18,7 @@[m
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:38:25-32 #1
+[36m@@ -35,7 +35,7 @@[m
  -- mutation must be produced exactly once -- not once for the parenthesis node
  -- and once for the inner application.
  parenDivide :: Int -> Int -> Int
@@ -56,8 +56,8 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:21:25-32 #1
  -- | A colour built from three 'Int' components.
  data RGB = RGB Int Int Int
 
-ElideCall at src/Example/SwitchArgsLib.hs:21:19-33 #1
-[36m@@ -18,7 +18,7 @@[m
+ElideCall at src/Example/SwitchArgsLib.hs:38:19-33 #1
+[36m@@ -35,7 +35,7 @@[m
  -- mutation must be produced exactly once -- not once for the parenthesis node
  -- and once for the inner application.
  parenDivide :: Int -> Int -> Int
@@ -67,8 +67,8 @@ ElideCall at src/Example/SwitchArgsLib.hs:21:19-33 #1
  -- | A colour built from three 'Int' components.
  data RGB = RGB Int Int Int
 
-ElideCall at src/Example/SwitchArgsLib.hs:14:17-24 #1
-[36m@@ -11,7 +11,7 @@[m
+ElideCall at src/Example/SwitchArgsLib.hs:31:17-24 #1
+[36m@@ -28,7 +28,7 @@[m
  -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
  -- instead of @div a b@.
  divideThe :: Int -> Int -> Int
@@ -78,8 +78,8 @@ ElideCall at src/Example/SwitchArgsLib.hs:14:17-24 #1
  -- | A parenthesised application: the parentheses around @div a b@ are
  -- required for precedence, so GHC keeps an 'HsPar' node around it.  The swap
 
-SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:14:17-24 #1
-[36m@@ -11,7 +11,7 @@[m
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:31:17-24 #1
+[36m@@ -28,7 +28,7 @@[m
  -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
  -- instead of @div a b@.
  divideThe :: Int -> Int -> Int
@@ -88,3 +88,57 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:14:17-24 #1
  
  -- | A parenthesised application: the parentheses around @div a b@ are
  -- required for precedence, so GHC keeps an 'HsPar' node around it.  The swap
+
+ConstEmptyList at src/Example/SwitchArgsLib.hs:25:34-47 #1
+[36m@@ -22,7 +22,7 @@[m
+ -- while same-site operators with a @\'\/\'@-free replacement (e.g.
+ -- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.
+ stripStorePrefix :: String -> Maybe String
+[31m-[m[31mstripStorePrefix s = stripPrefix [m[1;91m"[m[1;91m/[m[1;91mni[m[1;91mx/[m[1;91mstor[m[1;91me/[m[1;91m"[m[31m s[m
+[32m+[m[32mstripStorePrefix s = stripPrefix [m[1;92m[][m[32m s[m
+ 
+ -- | Integer division.  Both arguments are 'Int', so
+ -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
+
+ConstEmptyList at src/Example/SwitchArgsLib.hs:25:48-49 #1
+[36m@@ -22,7 +22,7 @@[m
+ -- while same-site operators with a @\'\/\'@-free replacement (e.g.
+ -- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.
+ stripStorePrefix :: String -> Maybe String
+[31m-[m[31mstripStorePrefix s = stripPrefix "/nix/store/" [m[1;91ms[m
+[32m+[m[32mstripStorePrefix s = stripPrefix "/nix/store/" [m[1;92m[[m[1;92m][m
+ 
+ -- | Integer division.  Both arguments are 'Int', so
+ -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
+
+ConstNothing at src/Example/SwitchArgsLib.hs:25:22-49 #1
+[36m@@ -22,7 +22,7 @@[m
+ -- while same-site operators with a @\'\/\'@-free replacement (e.g.
+ -- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.
+ stripStorePrefix :: String -> Maybe String
+[31m-[m[31mstripStorePrefix s = [m[1;91ms[m[31mt[m[1;91mr[m[1;91mipP[m[1;91mre[m[1;91mf[m[31mi[m[1;91mx "[m[1;91m/[m[31mn[m[1;91mi[m[1;91mx/[m[1;91msto[m[1;91mre[m[1;91m/[m[1;91m" s[m
+[32m+[m[32mstripStorePrefix s = [m[1;92mN[m[1;92mo[m[32mt[m[1;92mh[m[32mi[m[32mn[m[1;92mg[m
+ 
+ -- | Integer division.  Both arguments are 'Int', so
+ -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
+
+SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:25:22-49 #1
+[36m@@ -22,7 +22,7 @@[m
+ -- while same-site operators with a @\'\/\'@-free replacement (e.g.
+ -- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.
+ stripStorePrefix :: String -> Maybe String
+[31m-[m[31mstripStorePrefix s = stripPrefix[m[31m "/nix/store/"[m[1;91m s[m
+[32m+[m[32mstripStorePrefix s = stripPrefix[m[42m [m[1;92ms[m[32m "/nix/store/"[m
+ 
+ -- | Integer division.  Both arguments are 'Int', so
+ -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
+
+Control at src/Example/SwitchArgsLib.hs:25:22-49 #0
+[36m@@ -22,7 +22,7 @@[m
+ -- while same-site operators with a @\'\/\'@-free replacement (e.g.
+ -- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.
+ stripStorePrefix :: String -> Maybe String
+ stripStorePrefix s = stripPrefix "/nix/store/" s
+ 
+ -- | Integer division.  Both arguments are 'Int', so
+ -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@

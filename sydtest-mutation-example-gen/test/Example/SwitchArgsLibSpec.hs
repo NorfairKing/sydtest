@@ -26,3 +26,11 @@ spec = do
   describe "greyscale" $
     it "repeats the single component" $
       greyscale 7 `shouldBe` RGB 7 7 7
+
+  describe "stripStorePrefix" $
+    -- Regression: the swapped @stripPrefix s "/nix/store/"@ returns Nothing for
+    -- this input, so this kills the SwitchFunctionArguments mutant, but only
+    -- once the mutation id round-trips, since the swap's replacement text
+    -- contains a '/'. See 'stripStorePrefix'.
+    it "strips the /nix/store/ prefix" $
+      stripStorePrefix "/nix/store/abc" `shouldBe` Just "abc"

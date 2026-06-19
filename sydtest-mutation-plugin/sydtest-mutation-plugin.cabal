@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-mutation-plugin
-version:        0.4.1.0
+version:        0.4.2.0
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -41,6 +41,7 @@ library
       Test.Syd.Mutation.Plugin.Operator.RemoveCase
       Test.Syd.Mutation.Plugin.Operator.RemoveClause
       Test.Syd.Mutation.Plugin.Operator.SwitchFunctionArguments
+      Test.Syd.Mutation.Plugin.Operator.TupleSwap
       Test.Syd.Mutation.Plugin.Operator.Util
       Test.Syd.Mutation.Plugin.Operators
       Test.Syd.Mutation.Plugin.Operators.TH

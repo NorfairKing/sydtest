@@ -28,6 +28,7 @@ import qualified Test.Syd.Mutation.Plugin.Operator.RemoveAction
 import qualified Test.Syd.Mutation.Plugin.Operator.RemoveCase
 import qualified Test.Syd.Mutation.Plugin.Operator.RemoveClause
 import qualified Test.Syd.Mutation.Plugin.Operator.SwitchFunctionArguments
+import qualified Test.Syd.Mutation.Plugin.Operator.TupleSwap
 import Test.Syd.Mutation.Plugin.Operators.TH (collectOperators)
 
 allOperators :: [MutationOperator]

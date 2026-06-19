@@ -1,0 +1,150 @@
+[
+  [
+    {
+      "binding": "triple",
+      "col_end": 25,
+      "col_start": 16,
+      "context_after": [
+        "",
+        "-- | The same variable in both positions.  Every swap is a no-op on textually",
+        "-- identical components, so 'TupleSwap' produces nothing."
+      ],
+      "context_before": [
+        "-- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed",
+        "-- pairs, producing three mutants.",
+        "triple :: Int -> Int -> Int -> (Int, Int, Int)"
+      ],
+      "end_line": 20,
+      "id": [
+        "Example.TupleSwapLib",
+        "TupleSwap",
+        "20",
+        "16",
+        "25",
+        "1"
+      ],
+      "line": 20,
+      "module": "Example.TupleSwapLib",
+      "mutated_lines": [
+        "triple a b c = (b, a, c)"
+      ],
+      "operator": "TupleSwap",
+      "original": "a, b",
+      "replacement": "b, a",
+      "source_file": "src/Example/TupleSwapLib.hs",
+      "source_lines": [
+        "triple a b c = (a, b, c)"
+      ]
+    },
+    {
+      "binding": "triple",
+      "col_end": 25,
+      "col_start": 16,
+      "context_after": [
+        "",
+        "-- | The same variable in both positions.  Every swap is a no-op on textually",
+        "-- identical components, so 'TupleSwap' produces nothing."
+      ],
+      "context_before": [
+        "-- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed",
+        "-- pairs, producing three mutants.",
+        "triple :: Int -> Int -> Int -> (Int, Int, Int)"
+      ],
+      "end_line": 20,
+      "id": [
+        "Example.TupleSwapLib",
+        "TupleSwap",
+        "20",
+        "16",
+        "25",
+        "2"
+      ],
+      "line": 20,
+      "module": "Example.TupleSwapLib",
+      "mutated_lines": [
+        "triple a b c = (c, b, a)"
+      ],
+      "operator": "TupleSwap",
+      "original": "a, c",
+      "replacement": "c, a",
+      "source_file": "src/Example/TupleSwapLib.hs",
+      "source_lines": [
+        "triple a b c = (a, b, c)"
+      ]
+    },
+    {
+      "binding": "triple",
+      "col_end": 25,
+      "col_start": 16,
+      "context_after": [
+        "",
+        "-- | The same variable in both positions.  Every swap is a no-op on textually",
+        "-- identical components, so 'TupleSwap' produces nothing."
+      ],
+      "context_before": [
+        "-- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed",
+        "-- pairs, producing three mutants.",
+        "triple :: Int -> Int -> Int -> (Int, Int, Int)"
+      ],
+      "end_line": 20,
+      "id": [
+        "Example.TupleSwapLib",
+        "TupleSwap",
+        "20",
+        "16",
+        "25",
+        "3"
+      ],
+      "line": 20,
+      "module": "Example.TupleSwapLib",
+      "mutated_lines": [
+        "triple a b c = (a, c, b)"
+      ],
+      "operator": "TupleSwap",
+      "original": "b, c",
+      "replacement": "c, b",
+      "source_file": "src/Example/TupleSwapLib.hs",
+      "source_lines": [
+        "triple a b c = (a, b, c)"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "orderedPair",
+      "col_end": 25,
+      "col_start": 19,
+      "context_after": [
+        "",
+        "-- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed",
+        "-- pairs, producing three mutants."
+      ],
+      "context_before": [
+        "-- | A pair of 'Int's in a specific order.  Both components are 'Int', so",
+        "-- 'TupleSwap' produces one mutant that swaps them into @(b, a)@.",
+        "orderedPair :: Int -> Int -> (Int, Int)"
+      ],
+      "end_line": 15,
+      "id": [
+        "Example.TupleSwapLib",
+        "TupleSwap",
+        "15",
+        "19",
+        "25",
+        "1"
+      ],
+      "line": 15,
+      "module": "Example.TupleSwapLib",
+      "mutated_lines": [
+        "orderedPair a b = (b, a)"
+      ],
+      "operator": "TupleSwap",
+      "original": "a, b",
+      "replacement": "b, a",
+      "source_file": "src/Example/TupleSwapLib.hs",
+      "source_lines": [
+        "orderedPair a b = (a, b)"
+      ]
+    }
+  ]
+]

@@ -1,0 +1,46 @@
+[36m# Example.TupleSwapLib[m
+4 mutations in 2 groups
+
+TupleSwap at src/Example/TupleSwapLib.hs:20:16-25 #1
+[36m@@ -17,7 +17,7 @@[m
+ -- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed
+ -- pairs, producing three mutants.
+ triple :: Int -> Int -> Int -> (Int, Int, Int)
+[31m-[m[31mtriple a b c = ([m[1;91ma[m[31m, [m[1;91mb[m[31m, c)[m
+[32m+[m[32mtriple a b c = ([m[1;92mb[m[32m, [m[1;92ma[m[32m, c)[m
+ 
+ -- | The same variable in both positions.  Every swap is a no-op on textually
+ -- identical components, so 'TupleSwap' produces nothing.
+
+TupleSwap at src/Example/TupleSwapLib.hs:20:16-25 #2
+[36m@@ -17,7 +17,7 @@[m
+ -- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed
+ -- pairs, producing three mutants.
+ triple :: Int -> Int -> Int -> (Int, Int, Int)
+[31m-[m[31mtriple a b c = ([m[1;91ma[m[31m, b, [m[1;91mc[m[31m)[m
+[32m+[m[32mtriple a b c = ([m[1;92mc[m[32m, b, [m[1;92ma[m[32m)[m
+ 
+ -- | The same variable in both positions.  Every swap is a no-op on textually
+ -- identical components, so 'TupleSwap' produces nothing.
+
+TupleSwap at src/Example/TupleSwapLib.hs:20:16-25 #3
+[36m@@ -17,7 +17,7 @@[m
+ -- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed
+ -- pairs, producing three mutants.
+ triple :: Int -> Int -> Int -> (Int, Int, Int)
+[31m-[m[31mtriple a b c = (a, [m[1;91mb[m[31m, [m[1;91mc[m[31m)[m
+[32m+[m[32mtriple a b c = (a, [m[1;92mc[m[32m, [m[1;92mb[m[32m)[m
+ 
+ -- | The same variable in both positions.  Every swap is a no-op on textually
+ -- identical components, so 'TupleSwap' produces nothing.
+
+TupleSwap at src/Example/TupleSwapLib.hs:15:19-25 #1
+[36m@@ -12,7 +12,7 @@[m
+ -- | A pair of 'Int's in a specific order.  Both components are 'Int', so
+ -- 'TupleSwap' produces one mutant that swaps them into @(b, a)@.
+ orderedPair :: Int -> Int -> (Int, Int)
+[31m-[m[31morderedPair a b = ([m[1;91ma[m[31m, [m[1;91mb[m[31m)[m
+[32m+[m[32morderedPair a b = ([m[1;92mb[m[32m, [m[1;92ma[m[32m)[m
+ 
+ -- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed
+ -- pairs, producing three mutants.

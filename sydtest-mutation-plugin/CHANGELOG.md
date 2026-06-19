@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.2.0] - 2026-06-19
+
+### Added
+
+* A `TupleSwap` mutation operator: for a boxed tuple whose two components have
+  the same type, it emits one mutant per same-typed pair that swaps that pair.
+  It is the tuple-syntax counterpart to `SwitchFunctionArguments`, which only
+  sees application spines and never the `ExplicitTuple` node.  Tuple sections
+  (which carry a missing component and are really functions), pairs with
+  identical source text (whose swap is a no-op), and unboxed tuples (whose
+  unlifted kind the lifted `ifMutation` wrapper cannot carry) are skipped.
+
 ## [0.4.1.0] - 2026-06-19
 
 ### Fixed

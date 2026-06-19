@@ -50,6 +50,7 @@ test-suite sydtest-mutation-example-gen-test
       Example.OtherwiseLibSpec
       Example.RemoveClauseLibSpec
       Example.SwitchArgsLibSpec
+      Example.TupleSwapLibSpec
       Example.UnicodeSpec
       Paths_sydtest_mutation_example_gen
   hs-source-dirs:

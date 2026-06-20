@@ -9,6 +9,7 @@ module Test.Syd.Mutation.Plugin.Operator.Util
     matchTcOpApp,
     ConstFnMatch (..),
     viewConstFnResult,
+    mkNothingExpr,
     mkConstLambda,
     arrowTy,
     prefixFormPreview,
@@ -26,7 +27,8 @@ import Data.List (nub)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC
-import GHC.Builtin.Types (manyDataConTy)
+import GHC.Builtin.Types (manyDataConTy, nothingDataCon)
+import GHC.Core.DataCon (dataConWrapId)
 import GHC.Core.TyCo.Rep (Scaled (..))
 import GHC.Core.Type (isForAllTy, mkVisFunTyMany, splitFunTy_maybe, splitTyConApp_maybe)
 import GHC.Data.Bag (bagToList)
@@ -39,6 +41,8 @@ import GHC.Types.Name (getOccString, nameModule_maybe)
 import GHC.Types.Name.Occurrence (lookupOccEnv, mkVarOcc)
 import GHC.Types.Name.Reader (GlobalRdrEnv, greName, gre_imp, importSpecModule, lookupGRE_Name)
 import GHC.Types.SourceText (mkIntegralLit)
+import GHC.Utils.Outputable (ppr)
+import GHC.Utils.Panic (pprPanic)
 
 -- | The 'Name' at the head of an application chain.  At GhcTc the head often
 -- has type and dictionary arguments attached (e.g. @(+) \@Int $dNumInt@), so we
@@ -258,6 +262,27 @@ viewConstFnResult minArity targetTyCon le = do
           if tc == targetTyCon
             then Just (ConstFnMatch argTys resTy tcArgs)
             else Nothing
+
+-- | Build a @Nothing@ expression of the given (monomorphic) @Maybe elemTy@
+-- type, with its type variable instantiated to @elemTy@.
+--
+-- 'nlHsDataCon nothingDataCon' on its own is @Nothing :: forall a. Maybe a@:
+-- the un-instantiated @forall@ makes the @ifMutation \@ty@ wrapper the
+-- framework builds around it ill-typed (its argument is expected at @Maybe
+-- elemTy@ but is @forall a. Maybe a@).  GHC's Core Lint rejects that; with
+-- Core Lint off the desugared program miscompiles the whole instrumented site
+-- and segfaults at runtime (entering a null closure via @stg_ap_0_fast@).
+-- Applying the element type keeps the Core well-typed — mirroring how
+-- 'ConstEmptyList' threads its element type through @ExplicitList elTy []@.
+mkNothingExpr :: Type -> LHsExpr GhcTc
+mkNothingExpr mayTy = case splitTyConApp_maybe mayTy of
+  Just (_, [elemTy]) -> nlHsTyApp (dataConWrapId nothingDataCon) [elemTy]
+  -- Callers only ever pass a saturated @Maybe elemTy@ (MaybeOp matched a
+  -- @Just e@; ConstNothing already checked the result tycon is @Maybe@).  Fail
+  -- loudly on any other type rather than silently emitting the un-instantiated
+  -- @Nothing :: forall a. Maybe a@, whose ill-typed Core is the very bug this
+  -- helper exists to avoid.
+  _ -> pprPanic "mkNothingExpr: expected a saturated 'Maybe elemTy' type" (ppr mayTy)
 
 -- | Peel as many @arg -> rest@ arrows as possible from the type, returning
 -- the argument types and the final result type.  Stops at any

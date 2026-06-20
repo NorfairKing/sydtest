@@ -6,9 +6,9 @@ module Test.Syd.Mutation.Plugin.Operator.ConstNothing (theOperator) where
 import Control.Monad.Reader (asks)
 import qualified Data.Text as T
 import GHC
-import GHC.Builtin.Types (maybeTyCon, nothingDataCon)
+import GHC.Builtin.Types (maybeTyCon)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), OpAppCtx (..), SrcSpanDelta (..))
-import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResult)
+import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), arrowTy, mkConstLambda, mkNothingExpr, prefixFormPreview, viewConstFnResult)
 
 -- | Replace an expression whose type is @arg1 -> ... -> argN -> Maybe a@
 -- (with @N >= 0@) with the constant function returning 'Nothing'.
@@ -47,7 +47,7 @@ action le ConstFnMatch {cfnArgTys, cfnResTy} = do
   if arity >= 1 && appDepth >= arity
     then pure []
     else
-      let nothingExpr = nlHsDataCon nothingDataCon
+      let nothingExpr = mkNothingExpr cfnResTy
           wholeTy = arrowTy cfnArgTys cfnResTy
           mutated = mkConstLambda cfnArgTys cfnResTy nothingExpr
           atOpToken = case (arity, opAppCtx, getLocA le) of

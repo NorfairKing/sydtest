@@ -4,10 +4,10 @@
 module Test.Syd.Mutation.Plugin.Operator.MaybeOp (theOperator) where
 
 import GHC
-import GHC.Builtin.Types (nothingDataCon)
 import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.Types.Name (getOccString)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), SrcSpanDelta (..))
+import Test.Syd.Mutation.Plugin.Operator.Util (mkNothingExpr)
 
 theOperator :: MutationOperator
 theOperator =
@@ -38,10 +38,11 @@ action ::
   InstrM [MutationAlt]
 action le =
   -- lhsExprType gives Maybe a, which is the type for the ifMutation wrapper.
-  -- nlHsDataCon for nothingDataCon produces Nothing; the desugarer handles
-  -- the polymorphic type instantiation via the surrounding type context.
+  -- 'mkNothingExpr' instantiates Nothing's type variable to that element type;
+  -- a bare 'nlHsDataCon nothingDataCon' would be @forall a. Maybe a@ and make
+  -- the surrounding @ifMutation \@ty@ wrapper ill-typed (see 'mkNothingExpr').
   let mayTy = lhsExprType le
-      nothingExpr = nlHsDataCon nothingDataCon
+      nothingExpr = mkNothingExpr mayTy
    in pure
         [ MutationAlt
             { mutAltType = mayTy,

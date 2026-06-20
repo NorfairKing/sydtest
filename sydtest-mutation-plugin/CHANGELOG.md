@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.3.0] - 2026-06-20
+
+### Fixed
+
+* `MaybeOp` and `ConstNothing` no longer emit a bare `Nothing :: forall a.
+  Maybe a`.  The un-instantiated `forall` made the surrounding `ifMutation`
+  wrapper ill-typed Core, which — with Core Lint off — miscompiled the
+  instrumented site and, for some element types, segfaulted at runtime.  The
+  element type is now applied, mirroring how `ConstEmptyList` threads its
+  element type.
+
 ## [0.4.2.0] - 2026-06-19
 
 ### Added

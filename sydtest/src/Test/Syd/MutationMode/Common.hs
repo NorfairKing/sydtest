@@ -443,18 +443,27 @@ renderMutationRunReport MutationRunReport {..} =
       ]
 
 -- | Render the per-mutation progress line emitted as each mutation is
--- tested.  The first argument is whether to be verbose: in concise mode
--- (the default) this is the single locating line @Testing mutation
--- \<operator\> at \<file\>:\<line\>:\<cols\>@, so a long run still shows
--- steady progress without flooding the log; in verbose\/debug mode the
--- full source diff of the mutation follows — the same block the report
--- prints for a survivor.
-renderMutationProgressEvent :: Bool -> MutationProgressEvent -> [[Chunk]]
-renderMutationProgressEvent verbose (MutationProgressEvent rec) =
+-- tested.  @index@\/@total@ are this mutation's 1-based position in the run
+-- and the total mutation count, shown as a coloured @[X\/Y]@ counter.  The
+-- @verbose@ flag controls detail: in concise mode (the default) this is the
+-- single locating line @[X\/Y] Testing mutation \<operator\> at
+-- \<file\>:\<line\>:\<cols\>@, so a long run shows steady progress — including
+-- how far along it is — without flooding the log; in verbose\/debug mode the
+-- full source diff of the mutation follows — the same block the report prints
+-- for a survivor.
+renderMutationProgressEvent :: Bool -> Int -> Int -> MutationProgressEvent -> [[Chunk]]
+renderMutationProgressEvent verbose index total (MutationProgressEvent rec) =
   let logLines = formatMutationLog (augmentedMutationRecordId rec) rec
+      -- A coloured @[X/Y]@ counter so the run shows its progress. X is
+      -- right-padded to the width of Y so the "Testing mutation" text stays
+      -- in a steady column as the count climbs.
+      indexStr = show index
+      totalStr = show total
+      paddedIndex = replicate (length totalStr - length indexStr) ' ' ++ indexStr
+      counter = fore cyan (chunk (T.pack (concat ["[", paddedIndex, "/", totalStr, "] "])))
       withPrefix = case logLines of
-        [] -> [[chunk "Testing mutation"]]
-        (firstLine : rest) -> (chunk "Testing mutation " : firstLine) : rest
+        [] -> [[counter, chunk "Testing mutation"]]
+        (firstLine : rest) -> (counter : chunk "Testing mutation " : firstLine) : rest
    in if verbose then withPrefix else take 1 withPrefix
 
 -- | Progress event for the coverage phase.

@@ -165,6 +165,16 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
     Just j | j > 0 -> pure (fromIntegral j)
     _ -> getNumCapabilities
   sem <- newQSem n
+  -- Progress counter: assign every mutation a stable 1-based index in source
+  -- order up front, so the per-mutation progress line can show an [X/Y]
+  -- indication.  This is a pure, immutable map (no shared mutable counter):
+  -- each mutation's number is its position in the manifest, so the numbers are
+  -- deterministic and reproducible rather than dependent on the
+  -- non-deterministic order in which concurrent workers happen to start.
+  let orderedRecords = concat [recs | AugmentedMutationGroup recs <- groups]
+      totalMutations = length orderedRecords
+      indexByMutationId =
+        Map.fromList (zip (map augmentedMutationRecordId orderedRecords) [1 :: Int ..])
   -- Each group's per-mutation results, accumulated in source order so a
   -- partial report (after a global fail-fast abort) reflects the work
   -- done.
@@ -172,7 +182,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
-          (runOne sem)
+          (runOne indexByMutationId totalMutations sem)
           ( \r ->
               atomically $
                 modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
@@ -248,10 +258,12 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- when fail-fast trips.
   pure jsonReport
   where
-    runOne sem record =
+    runOne indexByMutationId totalMutations sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
-        hPutChunksUtf8With With8BitColours stderr (unlinesChunks (renderMutationProgressEvent debug (MutationProgressEvent record)))
+            -- This mutation's stable 1-based position in the manifest.
+            index = Map.findWithDefault 0 mid indexByMutationId
+        hPutChunksUtf8With With8BitColours stderr (unlinesChunks (renderMutationProgressEvent debug index totalMutations (MutationProgressEvent record)))
         -- Only run suites that have at least one covering test for this
         -- mutation.
         let coveringBySuite =

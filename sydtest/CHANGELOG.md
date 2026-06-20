@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.27.0.0] - 2026-06-20
+
+### Changed
+
+* `renderMutationProgressEvent` now takes the mutation's 1-based index and the
+  total mutation count as two `Int` arguments, and prefixes each per-mutation
+  progress line with a coloured `[X/Y]` counter so a long mutation run shows
+  how far along it is.
+
 ## [0.26.1.0] - 2026-06-17
 
 ### Added

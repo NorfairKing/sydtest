@@ -1,0 +1,10 @@
+[36m# Example.MaybeCompoundLib[m
+1 mutation in 1 group
+
+MaybeOp at src/Example/MaybeCompoundLib.hs:16:14-20 #1
+[36m@@ -13,4 +13,4 @@[m
+ -- type @(Int, Maybe Int)@; before the fix, merely instrumenting this module
+ -- crashes the coverage run.
+ wrapPair :: (Int, Maybe Int) -> Maybe (Int, Maybe Int)
+[31m-[m[31mwrapPair p = [m[1;91mJ[m[1;91mu[m[1;91ms[m[31mt[m[1;91m p[m
+[32m+[m[32mwrapPair p = [m[1;92mNo[m[32mt[m[1;92mh[m[1;92ming[m

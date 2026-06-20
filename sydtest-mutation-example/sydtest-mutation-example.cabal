@@ -34,10 +34,12 @@ library
       Example.ListLib
       Example.LocalDisableLib
       Example.LogicLib
+      Example.MaybeCompoundLib
       Example.OtherwiseLib
       Example.RemoveClauseLib
       Example.SwitchArgsLib
       Example.TupleSwapLib
+      Example.UnliftedLib
       Example.UntestedLib
   other-modules:
       Paths_sydtest_mutation_example

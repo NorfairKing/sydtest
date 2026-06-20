@@ -25,6 +25,13 @@
 
 { configFile ? null # Optional path to a YAML config file; passed to the plugin via --config-file=PATH
 , ghcMemLimit ? "16g" # RTS heap limit for GHC during instrumented compilation (e.g. "8g", "16g")
+, coreLint ? false # Compile the instrumented library with -dcore-lint.  The plugin
+  # rewrites typechecked Core, so a codegen bug can emit ill-typed/ill-kinded
+  # Core that GHC's normal pipeline does not re-check — surfacing only as a
+  # runtime crash (or not at all).  Core Lint turns that into a located
+  # compile-time error.  Off by default (it costs compile time on every
+  # instrumented build); sydtest's own example check turns it on so its example
+  # modules act as regression tests for plugin codegen.
 }:
 pkg: # the Haskell package derivation to wrap
 
@@ -61,7 +68,7 @@ in
     # Distinct from -plugin-package: -plugin-package is for the plugin module
     # used at compile time; -package makes the runtime module visible at build time.
     "--ghc-option=-package=sydtest-mutation-plugin"
-  ];
+  ] ++ (if coreLint then [ "--ghc-option=-dcore-lint" ] else [ ]);
   configureFlags = (old.configureFlags or [ ]) ++ configConfigureFlags
     # Disable optimization so GHC doesn't spend superlinear time/memory
     # simplifying the nested ifMutation case expressions the plugin generates.

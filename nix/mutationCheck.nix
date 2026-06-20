@@ -102,6 +102,10 @@
 , tests ? [ ]
 , needToBeLinkedAgainstMutationRuntime ? [ ]
 , configFile ? null
+  # Compile the instrumented libraries with -dcore-lint so plugin codegen bugs
+  # (ill-typed/ill-kinded Core) fail at compile time instead of as a runtime
+  # crash.  Off by default; see ./addManifest.nix.
+, coreLint ? false
 , assertAllKilled ? true
 , assertNoneUncovered ? true
 , ghcMemLimit ? "16g"
@@ -153,7 +157,7 @@ let
         # bare '<pname>-<version>' the Haskell builder would give it.
         value = (addManifest
           {
-            inherit configFile ghcMemLimit;
+            inherit configFile ghcMemLimit coreLint;
           }
           super.${pkg}).overrideAttrs (_: {
           name = "${name}-instrument-${pkg}";

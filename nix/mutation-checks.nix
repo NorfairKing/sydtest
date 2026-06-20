@@ -46,6 +46,12 @@ in
     name = "sydtest-mutation-example";
     libraries = [ "sydtest-mutation-example" ];
     tests = [ "sydtest-mutation-example-gen" ];
+    # Lint the instrumented example so its modules double as regression tests
+    # for plugin codegen: a bug that emits ill-typed/ill-kinded Core (e.g.
+    # Example.MaybeCompoundLib for MaybeOp, Example.UnliftedLib for the
+    # unlifted-type guard) fails this check at compile time rather than slipping
+    # through as a type-dependent runtime crash.
+    coreLint = true;
   };
 
   # Cross-package regression: 'sydtest-mutation-example-cross' has NO test

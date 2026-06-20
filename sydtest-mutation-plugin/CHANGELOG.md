@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.4.0] - 2026-06-20
+
+### Fixed
+
+* Expressions of unlifted or representation-polymorphic type are no longer
+  instrumented.  `ifMutation`'s type variable has kind `Type`, so wrapping an
+  `Int#`-typed expression (e.g. in Alex/Happy-generated lexers) built
+  ill-kinded `ifMutation @Int#` Core that Core Lint rejects and that
+  miscompiles without it.
+
 ## [0.4.3.0] - 2026-06-20
 
 ### Fixed

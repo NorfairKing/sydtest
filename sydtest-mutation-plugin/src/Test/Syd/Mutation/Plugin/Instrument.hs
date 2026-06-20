@@ -42,14 +42,18 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import GHC
+-- 'typeKind' is hidden because 'GHC' re-exports the GHCi-eval 'typeKind' from
+-- 'GHC.Runtime.Eval', which clashes with the 'GHC.Core.Type.typeKind' used below.
+import GHC hiding (typeKind)
 import GHC.Builtin.Types (charTy, manyDataConTy, mkListTy)
 import GHC.Core.Predicate (isEvVar)
 import GHC.Core.TyCo.Rep (Scaled (..))
+import GHC.Core.Type (isLiftedTypeKind, typeKind)
 import GHC.Data.Bag (mapBagM)
 import GHC.Data.FastString (mkFastString)
 import GHC.Driver.Env (HscEnv (..))
 import GHC.Driver.Session (WarningFlag (..), wopt_set)
+import GHC.Hs.Syn.Type (lhsExprType)
 import GHC.HsToCore (deSugarExpr)
 import GHC.Serialized (deserializeWithData)
 import GHC.Tc.Errors.Types (mkTcRnUnknownMessage)
@@ -1146,8 +1150,18 @@ instrumentRecordBinds = \case
 -- instrumented children and becomes the innermost "original" branch of the
 -- ifMutation nesting.
 tryMutateWith :: [MutationOperator] -> LHsExpr GhcTc -> LHsExpr GhcTc -> InstrM (LHsExpr GhcTc)
-tryMutateWith operators origExpr fallthroughExpr =
-  foldM (\ft op -> applyOperator origExpr ft op) fallthroughExpr operators
+tryMutateWith operators origExpr fallthroughExpr
+  -- @ifMutation :: forall (a :: Type). MutationId -> a -> a -> a@ requires the
+  -- wrapped expression's type to have kind 'Type' (lifted, boxed).  Every
+  -- operator replaces @origExpr@ with a same-typed mutant, so the @ifMutation@
+  -- wrapper is instantiated at @origExpr@'s type.  Skip instrumentation entirely
+  -- for expressions of unlifted or representation-polymorphic type — e.g. the
+  -- @Int#@-typed sub-expressions in Alex/Happy-generated code.  Wrapping one
+  -- would build ill-kinded @ifMutation \@Int#@ Core, which Core Lint rejects
+  -- (and which, with Core Lint off, miscompiles the site into a runtime crash).
+  | not (isLiftedTypeKind (typeKind (lhsExprType origExpr))) = pure fallthroughExpr
+  | otherwise =
+      foldM (\ft op -> applyOperator origExpr ft op) fallthroughExpr operators
 
 -- | Try one operator.  @origExpr@ is matched and used for mutant construction
 -- (uninstrumented children); @fallthrough@ is used as the "original" branch

@@ -1,15 +1,15 @@
 { mkDerivation, base, bytestring, containers, lib, monad-logger
-, network-uri, path, path-io, persistent, postgres-options, sydtest
-, sydtest-discover, sydtest-persistent-postgresql, text
+, network-uri, path, path-io, persistent, postgres-options, random
+, sydtest, sydtest-discover, sydtest-persistent-postgresql, text
 , typed-process, unliftio
 }:
 mkDerivation {
   pname = "sydtest-sqitch-postgres";
-  version = "0.0.0.0";
+  version = "0.1.0.0";
   src = ./.;
   libraryHaskellDepends = [
     base bytestring containers monad-logger network-uri path persistent
-    postgres-options sydtest sydtest-persistent-postgresql text
+    postgres-options random sydtest sydtest-persistent-postgresql text
     typed-process
   ];
   testHaskellDepends = [

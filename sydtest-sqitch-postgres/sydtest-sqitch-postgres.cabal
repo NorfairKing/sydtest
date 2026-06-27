@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-sqitch-postgres
-version:        0.0.0.0
+version:        0.1.0.0
 synopsis:       A sqitch-on-PostgreSQL companion library for sydtest
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
@@ -38,6 +38,11 @@ extra-source-files:
     test_resources/toy-sqitch-grandfathered/verify/add-color.sql
     test_resources/toy-sqitch-grandfathered/verify/add-shape.sql
     test_resources/toy-sqitch-grandfathered/verify/init.sql
+    test_resources/toy-sqitch-hardcoded-public/deploy/init.sql
+    test_resources/toy-sqitch-hardcoded-public/revert/init.sql
+    test_resources/toy-sqitch-hardcoded-public/sqitch.conf
+    test_resources/toy-sqitch-hardcoded-public/sqitch.plan
+    test_resources/toy-sqitch-hardcoded-public/verify/init.sql
     test_resources/toy-sqitch-non-idempotent/deploy/init.sql
     test_resources/toy-sqitch-non-idempotent/revert/init.sql
     test_resources/toy-sqitch-non-idempotent/sqitch.conf
@@ -78,6 +83,7 @@ library
     , path
     , persistent
     , postgres-options
+    , random
     , sydtest
     , sydtest-persistent-postgresql
     , text

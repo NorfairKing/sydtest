@@ -4,7 +4,7 @@
 }:
 mkDerivation {
   pname = "sydtest-sqitch-postgres-persistent";
-  version = "0.0.0.0";
+  version = "0.1.0.0";
   src = ./.;
   libraryHaskellDepends = [
     base monad-logger persistent postgres-options sydtest

@@ -5,7 +5,7 @@
 -- rename, so after this revert the pkey is named 'widget_new_pkey'
 -- rather than 'widget_pkey'. When the per-change round-trip then
 -- redeploys add-shape (which only adds a column), the pkey name stays
--- 'widget_new_pkey' — different from the original post(add-shape)
+-- 'widget_new_pkey' -- different from the original post(add-shape)
 -- snapshot taken on a database where init.sql had created the table
 -- directly with pkey 'widget_pkey'.
 --

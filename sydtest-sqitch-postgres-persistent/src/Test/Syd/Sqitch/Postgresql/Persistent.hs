@@ -84,26 +84,36 @@ runSqitchPersistentChecks ::
   Postgres.Options ->
   IO ()
 runSqitchPersistentChecks settings opts = do
-  -- Phase 1: snapshot persistent's automatic migration (plus the
-  -- caller's extra setup) on a fresh database allocated just for
-  -- this. Torn down on continuation return.
-  schemaFromPersistent <-
+  -- Phase 1: snapshot persistent's automatic migration (plus the caller's
+  -- extra setup) in a fresh, random non-public schema, on a database
+  -- allocated just for this. 'randomSchemaSetupFunc' creates the schema and
+  -- supplies its name; phase 2 reuses that name (via 'schemaSetupFunc') so
+  -- the two snapshots -- which embed the schema name -- compare equal, and so
+  -- a migration that hardcodes a schema surfaces.
+  (schema, schemaFromPersistent) <-
     unSetupFunc (emptyPostgresOptionsSetupFunc >>= postgresqlPoolSetupFunc) $
       \baselinePool ->
-        runNoLoggingT $
-          flip DB.runSqlPool baselinePool $ do
-            migrationRunner (sqitchPersistentAutoMigration settings)
-            sqitchPersistentExtraSetup settings
-            querySchema
+        unSetupFunc (randomSchemaSetupFunc baselinePool) $ \schema -> do
+          snapshot <-
+            runNoLoggingT $
+              flip DB.runSqlPool baselinePool $ do
+                useTestSchema schema
+                migrationRunner (sqitchPersistentAutoMigration settings)
+                sqitchPersistentExtraSetup settings
+                querySchema
+          pure (schema, snapshot)
 
-  -- Phase 2: sqitch deploy on the caller-supplied database.
-  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool -> do
-    let target = sqitchTargetFromOptions opts
-    sqitchAt (sqitchPersistentSqitch settings) target "deploy" ["--verify"]
+  -- Phase 2: sqitch deploy into the same-named schema on the
+  -- caller-supplied database.
+  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool ->
+    unSetupFunc (schemaSetupFunc schema pool) $ \() -> do
+      let target = sqitchTargetFromOptions schema opts
+      sqitchAt (sqitchPersistentSqitch settings) target "deploy" ["--verify"]
 
-    schemaFromSqitch <- runNoLoggingT $
-      flip DB.runSqlPool pool $ do
-        sqitchPersistentExtraSetup settings
-        querySchema
+      schemaFromSqitch <- runNoLoggingT $
+        flip DB.runSqlPool pool $ do
+          useTestSchema schema
+          sqitchPersistentExtraSetup settings
+          querySchema
 
-    compareSchemaSnapshots "sqitch migrations" schemaFromSqitch schemaFromPersistent
+      compareSchemaSnapshots "sqitch migrations" schemaFromSqitch schemaFromPersistent

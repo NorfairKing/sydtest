@@ -32,7 +32,7 @@ data PlanStep = PlanStep
     -- grandfather tag (see 'readSqitchPlan').
     --
     -- These checks are end-state invariants that grandfathered scripts
-    -- aren't expected to satisfy in isolation — they shipped before the
+    -- aren't expected to satisfy in isolation -- they shipped before the
     -- checks existed, and the failure modes they guard against (revert
     -- drift, registry retry) can't manifest on databases that already
     -- ran them. The whole-plan cycle and schema-equality checks still
@@ -55,7 +55,7 @@ data PlanStep = PlanStep
 -- The optional grandfather tag marks a cut-over point: every change in
 -- plan order at or before the tag is marked 'stepIsGrandfathered = True';
 -- every change after it is 'False'. Pass 'Nothing' to mean \"no
--- grandfathering — every change must be idempotent\".
+-- grandfathering -- every change must be idempotent\".
 --
 -- If the tag is 'Just' but does not appear in the plan, 'fail' (a typo
 -- in the tag should not silently pass as \"nothing is grandfathered\").

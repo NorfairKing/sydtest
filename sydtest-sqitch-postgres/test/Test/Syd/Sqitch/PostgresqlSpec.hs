@@ -61,3 +61,9 @@ spec = sequential $ do
           it "fails because the pre-tag legacy change is no longer exempt" $ \opts -> do
             settings <- settingsFor [reldir|test_resources/toy-sqitch-grandfathered|] Nothing
             runSqitchPerChangeChecks settings opts
+
+      describe "toy-sqitch-hardcoded-public" $
+        setupAround emptyPostgresOptionsSetupFunc $
+          it "fails because a verify hardcodes the public schema (caught by deploying into a non-public schema)" $ \opts -> do
+            settings <- settingsFor [reldir|test_resources/toy-sqitch-hardcoded-public|] Nothing
+            runSqitchPerChangeChecks settings opts

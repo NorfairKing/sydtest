@@ -39,15 +39,21 @@ data SqitchSettings = SqitchSettings
     sqitchSettingsGrandfatherTag :: Maybe Text
   }
 
--- | A @sqitch --target@ value: a libpq-style URI pointing at a database.
-newtype SqitchTarget = SqitchTarget {unSqitchTarget :: String}
+-- | A @sqitch --target@ value: a libpq-style URI pointing at a
+-- database, together with the schema sqitch should deploy into. The
+-- schema is carried here (rather than baked into the URI) so 'sqitchAt'
+-- can put it on @search_path@ via @PGOPTIONS@ for every subcommand.
+data SqitchTarget = SqitchTarget
+  { sqitchTargetUri :: String,
+    sqitchTargetSchema :: Text
+  }
 
--- | Build a sqitch target URI from libpq connection 'Postgres.Options'.
--- Handles the unix-socket host case (host starts with @/@) by
--- URL-encoding the host segment so sqitch's URI parser keeps the
--- socket path intact.
-sqitchTargetFromOptions :: Postgres.Options -> SqitchTarget
-sqitchTargetFromOptions options =
+-- | Build a sqitch target from libpq connection 'Postgres.Options' and
+-- the schema to deploy into. Handles the unix-socket host case (host
+-- starts with @/@) by URL-encoding the host segment so sqitch's URI
+-- parser keeps the socket path intact.
+sqitchTargetFromOptions :: Text -> Postgres.Options -> SqitchTarget
+sqitchTargetFromOptions schema options =
   let rawHost :: String
       rawHost = fromMaybe "localhost" (getLast (Postgres.host options))
       port :: Word16
@@ -62,19 +68,22 @@ sqitchTargetFromOptions options =
         | "/" `isPrefixOf` rawHost = escapeURIString isUnreserved rawHost
         | otherwise = rawHost
       enc = escapeURIString isUnreserved
-   in SqitchTarget $
-        concat
-          [ "db:pg://",
-            enc user,
-            ":",
-            enc password,
-            "@",
-            encodedHost,
-            ":",
-            show port,
-            "/",
-            enc dbname
-          ]
+   in SqitchTarget
+        { sqitchTargetUri =
+            concat
+              [ "db:pg://",
+                enc user,
+                ":",
+                enc password,
+                "@",
+                encodedHost,
+                ":",
+                show port,
+                "/",
+                enc dbname
+              ],
+          sqitchTargetSchema = schema
+        }
 
 -- | Run a sqitch subcommand against a target. Forces @TZ=UTC@: sqitch
 -- records registry timestamps via Perl @DateTime@, whose local-tz probe
@@ -90,11 +99,19 @@ sqitchAt ::
   IO ()
 sqitchAt settings target cmd extraArgs = do
   env <- getEnvironment
+  -- Scope every sqitch connection to the target's schema via search_path,
+  -- so its unqualified DDL lands there and current_schema() resolves to
+  -- it. public stays on the path for shared functions.
+  let overrides =
+        [ ("TZ", "UTC"),
+          ("PGOPTIONS", "-c search_path=" <> Text.unpack (sqitchTargetSchema target) <> ",public")
+        ]
+      kept (k, _) = k `notElem` map fst overrides
   runProcess_ $
-    setEnv (("TZ", "UTC") : filter ((/= "TZ") . fst) env) $
+    setEnv (overrides <> filter kept env) $
       setWorkingDir (fromAbsDir (sqitchSettingsProjectDir settings)) $
         proc (fromAbsFile (sqitchSettingsBin settings)) $
-          [cmd, "--target", unSqitchTarget target] <> extraArgs
+          [cmd, "--target", sqitchTargetUri target] <> extraArgs
 
 -- | @sqitch deploy --target ... --to <change> --verify@
 sqitchDeployTo :: SqitchSettings -> SqitchTarget -> Text -> IO ()

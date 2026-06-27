@@ -12,13 +12,13 @@
 --
 --      Skipped in two situations:
 --
---        * /Rework heads/ — the second occurrence of a change name in
+--        * /Rework heads/ -- the second occurrence of a change name in
 --          the plan, whose deploy target ends in @\@HEAD@. Sqitch's
 --          revert of just the rework runs the rework's revert script,
 --          which by sqitch convention undoes the /whole/ change rather
 --          than only the rework, so the intermediate state isn't
 --          post(predecessor) and this check would fail spuriously.
---        * /Grandfathered/ steps — those at or before
+--        * /Grandfathered/ steps -- those at or before
 --          'sqitchSettingsGrandfatherTag'. These shipped before this
 --          test existed and may have minor revert/deploy inconsistencies
 --          (e.g. index names that differ between deploy and
@@ -47,6 +47,14 @@
 -- Each check runs against a fresh empty database (its own server,
 -- user, and DB), allocated and torn down by the spec combinator. The
 -- caller never sees the postgres machinery in its outer-type stack.
+--
+-- Migrations are deployed into a fresh, randomly-named /non-public/
+-- schema (created and torn down by 'randomSchemaSetupFunc', put on the
+-- search path by 'useTestSchema') rather than @public@. Deploying into a
+-- non-default schema makes a migration that hardcodes a schema name (a
+-- guard or verify with @table_schema = \'public\'@, say) fail here,
+-- instead of passing unnoticed because the test happened to run in
+-- @public@.
 module Test.Syd.Sqitch.Postgresql
   ( sqitchPostgresqlSpec,
     runSqitchPerChangeChecks,
@@ -111,34 +119,38 @@ wholePlanCycleIt settings =
 -- so callers can wrap it in 'expectFailing' for negative tests.
 runSqitchPerChangeChecks :: SqitchSettings -> Postgres.Options -> IO ()
 runSqitchPerChangeChecks settings opts =
-  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool -> do
-    let target = sqitchTargetFromOptions opts
+  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool ->
+    -- Deploy into a fresh non-public schema, created and torn down here,
+    -- so any migration that hardcodes a schema surfaces.
+    unSetupFunc (randomSchemaSetupFunc pool) $ \schema -> do
+      let target = sqitchTargetFromOptions schema opts
 
-    planRel <- parseRelFile "sqitch.plan"
-    steps <-
-      readSqitchPlan
-        (sqitchSettingsGrandfatherTag settings)
-        (sqitchSettingsProjectDir settings </> planRel)
+      planRel <- parseRelFile "sqitch.plan"
+      steps <-
+        readSqitchPlan
+          (sqitchSettingsGrandfatherTag settings)
+          (sqitchSettingsProjectDir settings </> planRel)
 
-    iterateSteps settings target pool steps
+      iterateSteps settings schema target pool steps
 
 -- | Deploy the entire plan, snapshot the schema, revert everything,
 -- redeploy the entire plan, snapshot again, assert the two snapshots
 -- are equal. Runs against a fresh empty database.
 runSqitchWholePlanCycle :: SqitchSettings -> Postgres.Options -> IO ()
 runSqitchWholePlanCycle settings opts =
-  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool -> do
-    let target = sqitchTargetFromOptions opts
+  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool ->
+    unSetupFunc (randomSchemaSetupFunc pool) $ \schema -> do
+      let target = sqitchTargetFromOptions schema opts
 
-    sqitchAt settings target "deploy" ["--verify"]
-    schemaFirst <- runNoLoggingT $ DB.runSqlPool querySchema pool
+      sqitchAt settings target "deploy" ["--verify"]
+      schemaFirst <- runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
 
-    sqitchRevertAll settings target
-    sqitchAt settings target "deploy" ["--verify"]
-    schemaSecond <- runNoLoggingT $ DB.runSqlPool querySchema pool
+      sqitchRevertAll settings target
+      sqitchAt settings target "deploy" ["--verify"]
+      schemaSecond <- runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
 
-    context "whole-plan deploy/revert/redeploy cycle" $
-      compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
+      context "whole-plan deploy/revert/redeploy cycle" $
+        compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
 
 -- | Walk the plan one step at a time.
 --
@@ -148,16 +160,17 @@ runSqitchWholePlanCycle settings opts =
 -- test's ability to catch FK/dependency interactions between migrations.
 iterateSteps ::
   SqitchSettings ->
+  Text ->
   SqitchTarget ->
   DB.ConnectionPool ->
   [PlanStep] ->
   IO ()
-iterateSteps settings target pool steps =
+iterateSteps settings schema target pool steps =
   forM_ (zip steps prevTargets) $ \(step, mPrev) ->
     context (Text.unpack (stepLabel step)) $ do
       sqitchDeployTo settings target (stepDeployTarget step)
       schemaPostStep <-
-        runNoLoggingT $ DB.runSqlPool querySchema pool
+        runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
 
       -- Round-trip: see module-level docs for the skip conditions.
       unless (stepIsReworkHead step || stepIsGrandfathered step) $ do
@@ -166,7 +179,7 @@ iterateSteps settings target pool steps =
           Just prev -> sqitchRevertTo settings target (stepDeployTarget prev)
         sqitchDeployTo settings target (stepDeployTarget step)
         schemaAfterRoundtrip <-
-          runNoLoggingT $ DB.runSqlPool querySchema pool
+          runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
         context "round-trip (revert one step then redeploy)" $
           compareSchemaSnapshots "after redeploy" schemaAfterRoundtrip schemaPostStep
 
@@ -176,9 +189,9 @@ iterateSteps settings target pool steps =
         script <- readDeployScript settings (stepScriptName step)
         runNoLoggingT $
           flip DB.runSqlPool pool $
-            DB.rawExecute script []
+            useTestSchema schema >> DB.rawExecute script []
         schemaAfterRerun <-
-          runNoLoggingT $ DB.runSqlPool querySchema pool
+          runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
         context "idempotence (re-run the deploy script)" $
           compareSchemaSnapshots "after rerun" schemaAfterRerun schemaPostStep
   where

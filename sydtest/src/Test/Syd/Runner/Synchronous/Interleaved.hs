@@ -25,6 +25,7 @@ import Text.Colour
 
 runSpecForestInterleavedWithOutputSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputSynchronously settings testForest = do
+  setPseudorandomness (settingSeed settings)
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks =
         liftIO $

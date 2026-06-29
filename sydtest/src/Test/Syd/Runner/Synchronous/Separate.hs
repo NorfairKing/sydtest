@@ -18,7 +18,8 @@ import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 
 runSpecForestSynchronously :: Settings -> TestForest '[] () -> IO (Timed ResultForest)
-runSpecForestSynchronously settings testForest =
+runSpecForestSynchronously settings testForest = do
+  setPseudorandomness (settingSeed settings)
   timeItT 0 $
     extractNext
       <$> runReaderT

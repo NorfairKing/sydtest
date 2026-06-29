@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.27.1.0] - 2026-06-29
+
+### Fixed
+
+* The spec-forest runners now seed the global `System.Random` generator from
+  the configured seed before running.  Previously only the top-level `sydTest`
+  runner did this, so the mutation and coverage children — which run a forest
+  directly — left the global generator unseeded.  As a result, tests that draw
+  from the global generator (`randomIO`, `newStdGen`, ...) rather than from
+  QuickCheck's replay seed were non-reproducible under those children, which
+  could produce spurious mutation kills or survivors.
+
 ## [0.27.0.0] - 2026-06-20
 
 ### Changed

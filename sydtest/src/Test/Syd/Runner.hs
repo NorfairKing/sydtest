@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -19,7 +18,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import System.Environment
 import System.Mem (performGC)
-import System.Random (mkStdGen, setStdGen)
 import Test.Syd.Def
 import Test.Syd.OptParse
 import Test.Syd.Output
@@ -66,7 +64,6 @@ sydTestOnce :: Settings -> TestDefM '[] () r -> IO (Timed ResultForest)
 sydTestOnce settings spec = do
   specForest <- execTestDefM settings spec
   withNullArgs $ do
-    setPseudorandomness (settingSeed settings)
     case settingThreads settings of
       Synchronous -> runSpecForestInterleavedWithOutputSynchronously settings specForest
       ByCapabilities -> do
@@ -81,7 +78,6 @@ sydTestIterations totalIterations settings spec = do
     nbCapabilities <- fromIntegral <$> getNumCapabilities
 
     let runOnce settings_ = do
-          setPseudorandomness (settingSeed settings_)
           specForest <- execTestDefM settings_ spec
           r <- case settingThreads settings_ of
             Synchronous -> runSpecForestSynchronously settings_ specForest
@@ -111,8 +107,3 @@ sydTestIterations totalIterations settings spec = do
     rf <- go 0
     printOutputSpecForest settings rf
     pure rf
-
-setPseudorandomness :: SeedSetting -> IO ()
-setPseudorandomness = \case
-  RandomSeed -> pure ()
-  FixedSeed seed -> setStdGen (mkStdGen seed)

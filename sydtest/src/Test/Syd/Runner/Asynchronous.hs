@@ -36,6 +36,7 @@ import Text.Colour
 
 runSpecForestAsynchronously :: Settings -> Word -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestAsynchronously settings nbThreads testForest = do
+  setPseudorandomness (settingSeed settings)
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
   let runRunner = runner settings nbThreads failFastVar handleForest
@@ -45,6 +46,7 @@ runSpecForestAsynchronously settings nbThreads testForest = do
 
 runSpecForestInterleavedWithOutputAsynchronously :: Settings -> Word -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest = do
+  setPseudorandomness (settingSeed settings)
   handleForest <- makeHandleForest testForest
   failFastVar <- newEmptyMVar
   suiteBegin <- getMonotonicTimeNSec

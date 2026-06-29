@@ -34,6 +34,7 @@ tests:
     - opt-env-conf-test
     - path
     - path-io
+    - random
     - safe-coloured-text
     - stm
     - sydtest >=0.17

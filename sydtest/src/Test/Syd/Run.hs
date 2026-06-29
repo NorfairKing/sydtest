@@ -33,6 +33,7 @@ import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Generics (Generic)
 import Myers.Diff (Diff, getTextDiff)
 import OptEnvConf
+import System.Random (mkStdGen, setStdGen)
 import System.Timeout (timeout)
 import Test.QuickCheck
 import Test.QuickCheck.Gen
@@ -561,6 +562,20 @@ instance HasParser SeedSetting where
               conf "seed"
             ]
         ]
+
+-- | Seed the global 'System.Random' generator from the 'SeedSetting'.
+--
+-- QuickCheck-based property tests already replay deterministically from the
+-- seed (see 'makeQuickCheckArgs'), but tests that draw from the global
+-- generator directly (@randomIO@, @newStdGen@, ...) would otherwise be
+-- non-reproducible.  Every spec-forest runner calls this before running, so a
+-- 'FixedSeed' makes the whole run reproducible regardless of how a test sources
+-- its randomness — and any new entry point that runs a forest inherits the
+-- behaviour for free, rather than having to remember to set it.
+setPseudorandomness :: SeedSetting -> IO ()
+setPseudorandomness = \case
+  RandomSeed -> pure ()
+  FixedSeed seed -> setStdGen (mkStdGen seed)
 
 data TestRunResult = TestRunResult
   { testRunResultStatus :: !TestStatus,

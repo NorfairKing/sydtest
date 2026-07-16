@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "sydtest-mutation";
-  version = "0.0.0.0";
+  version = "0.1.0.0";
   src = ./.;
   libraryHaskellDepends = [ base sydtest sydtest-mutation-runtime ];
   testHaskellDepends = [

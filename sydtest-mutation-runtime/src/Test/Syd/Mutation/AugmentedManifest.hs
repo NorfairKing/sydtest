@@ -12,6 +12,7 @@ module Test.Syd.Mutation.AugmentedManifest
     AugmentedManifest (..),
     mergeAugmentedManifests,
     readAndUnionCoverageDirs,
+    readAndUnionBaselineDirs,
     filterAugmentedManifestByIds,
     writeAugmentedManifestFile,
     readAugmentedManifestFile,
@@ -47,6 +48,7 @@ import Data.GenValidity.Path ()
 import Data.GenValidity.Text ()
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -54,6 +56,7 @@ import Path
 import Path.IO (ensureDir, forgivingAbsence)
 import Test.Syd.Mutation.Manifest (MutationRecord (..), relFileCodec)
 import Test.Syd.Mutation.Runtime (MutationId (..))
+import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap, readTestBaselineMapDirIfExists)
 import Test.Syd.Mutation.TestId (TestId)
 
 -- | A mutation record augmented with coverage data.
@@ -290,6 +293,21 @@ readAndUnionCoverageDirs :: [Path Abs Dir] -> IO AugmentedManifest
 readAndUnionCoverageDirs coverageDirs =
   foldl' mergeAugmentedManifests mempty
     <$> mapM (\dir -> readAugmentedManifestFile (dir </> [reldir|augmented|])) coverageDirs
+
+-- | Read and union the per-test baseline timings from the same per-package
+-- coverage directories 'readAndUnionCoverageDirs' consumes.  Each holds an
+-- @augmented/baseline.json@ (absent on older coverage output, treated as empty);
+-- the union merges by taking the slowest recorded time for each test.  Used to
+-- order a mutation child's covering tests cheapest-first.
+--
+-- The slowest-wins merge is 'TestBaselineMap'\'s 'Semigroup', chosen so a
+-- per-mutation timeout is never under-budgeted.  Reusing it here means a test
+-- shared across suites is ordered by its slowest recorded time, which only
+-- affects ordering quality, never which tests run or the verdict.
+readAndUnionBaselineDirs :: [Path Abs Dir] -> IO TestBaselineMap
+readAndUnionBaselineDirs coverageDirs =
+  mconcat . map (fromMaybe mempty)
+    <$> mapM (\dir -> readTestBaselineMapDirIfExists (dir </> [reldir|augmented|])) coverageDirs
 
 -- | O(n) lookup by 'MutationId' across every group.
 lookupAugmentedMutationRecord :: MutationId -> AugmentedManifest -> Maybe AugmentedMutationRecord

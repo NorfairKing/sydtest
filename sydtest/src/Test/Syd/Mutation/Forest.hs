@@ -16,11 +16,14 @@ module Test.Syd.Mutation.Forest
     flattenTestForestWithIds,
     flattenTestForestWithIdsAndCallStacks,
     filterTestForestByTrie,
+    reorderTestForestByTiming,
+    reorderForMutationChild,
   )
 where
 
 import Control.Monad.State.Strict (State, evalState, gets, modify')
 import Control.Monad.Trans.Writer.CPS (WriterT, execWriterT, tell)
+import Data.List (sortOn)
 import qualified Data.List.NonEmpty as NE
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -148,6 +151,9 @@ flattenTestForestWith leaf f = evalState (execWriterT (goForest [] f)) Map.empty
         DefFlakinessNode _ sub -> goForest path sub
         DefExpectationNode _ sub -> goForest path sub
 
+    -- [tag:ReorderIdScheme] 'reorderTestForestByTiming' replicates this
+    -- per-description sibling-index assignment so its cost lookups line up with
+    -- the baselines recorded against these ids.
     nextKey :: SpecDefTree outers inner result -> WriterT [(TestId, a)] (State (Map Text Word)) (Maybe (Text, Word))
     nextKey tree = case descriptionOf tree of
       Nothing -> pure Nothing
@@ -254,3 +260,131 @@ filterTestForestByTrie trie = snd . filterForest trie Map.empty
       DefPendingNode t _ -> Just t
       DefDescribeNode t _ -> Just t
       _ -> Nothing
+
+-- | Reorder a 'TestForest' so that, at every sibling level, cheaper tests come
+-- first.  A test's cost is its recorded baseline in the given map; a missing
+-- baseline counts as @0@, so an untimed test runs first.  A subtree is ordered
+-- by the minimum cost of any leaf it contains, so the group most likely to yield
+-- a cheap early kill runs first.
+--
+-- This is a drop-in alternative to execution-order randomisation, legal under
+-- exactly the same conditions.  It mirrors 'randomiseTestForest': inside a
+-- 'DoNotRandomiseExecutionOrder' scope it leaves the whole subtree as-is at
+-- every depth, and the caller only applies it when the suite's execution-order
+-- randomisation is enabled.
+--
+-- Only sibling order changes.  Wrapper nodes keep wrapping their own children,
+-- so shared setup and teardown still run once per group and are never split.
+-- The sort is stable, so equal-cost siblings keep their source order.
+--
+-- 'TestId's are assigned with the same scheme as 'flattenTestForestWith', purely
+-- to look costs up; nothing downstream reads the ids of the reordered forest.
+-- When this runs on a forest that 'filterTestForestByTrie' has thinned, the
+-- per-description sibling index of same-named siblings can shift relative to the
+-- baseline map's keys.  That degrades ordering quality for same-named siblings
+-- only, never which tests run.
+reorderTestForestByTiming :: Map TestId Word -> TestForest '[] () -> TestForest '[] ()
+reorderTestForestByTiming costs = snd . goForest []
+  where
+    -- Reorder the sub-forest and report the minimum leaf cost it contains
+    -- ('maxBound' when it contains no leaf, so leafless subtrees sort last).
+    goForest ::
+      [(Text, Word)] ->
+      SpecDefForest outers inner () ->
+      (Word, SpecDefForest outers inner ())
+    goForest path sub =
+      let keyed =
+            reverse $
+              snd $
+                foldl
+                  ( \(seen, acc) tree ->
+                      let (mkey, seen') = nextKey seen tree
+                       in (seen', goTree path mkey tree : acc)
+                  )
+                  (Map.empty, [])
+                  sub
+       in ( if null keyed then maxBound else minimum (map fst keyed),
+            map snd (sortOn fst keyed)
+          )
+
+    goTree ::
+      [(Text, Word)] ->
+      Maybe (Text, Word) ->
+      SpecDefTree outers inner () ->
+      (Word, SpecDefTree outers inner ())
+    goTree path mkey tree = case tree of
+      DefSpecifyNode name td e -> case mkey of
+        Nothing -> (maxBound, tree)
+        Just key ->
+          let tid = TestId (NE.fromList (reverse (key : path)))
+           in (Map.findWithDefault 0 tid costs, DefSpecifyNode name td e)
+      DefPendingNode _ _ -> (maxBound, tree)
+      DefDescribeNode name sub -> case mkey of
+        Nothing -> (maxBound, tree)
+        Just key ->
+          let (cost, sub') = goForest (key : path) sub
+           in (cost, DefDescribeNode name sub')
+      DefSetupNode func sub -> wrap (DefSetupNode func) path sub
+      DefBeforeAllNode func sub -> wrap (DefBeforeAllNode func) path sub
+      DefBeforeAllWithNode func sub -> wrap (DefBeforeAllWithNode func) path sub
+      DefWrapNode func sub -> wrap (DefWrapNode func) path sub
+      DefAroundAllNode func sub -> wrap (DefAroundAllNode func) path sub
+      DefAroundAllWithNode func sub -> wrap (DefAroundAllWithNode func) path sub
+      DefAfterAllNode func sub -> wrap (DefAfterAllNode func) path sub
+      DefParallelismNode p sub -> wrap (DefParallelismNode p) path sub
+      DefTimeoutNode f sub -> wrap (DefTimeoutNode f) path sub
+      DefRetriesNode f sub -> wrap (DefRetriesNode f) path sub
+      DefFlakinessNode fm sub -> wrap (DefFlakinessNode fm) path sub
+      DefExpectationNode em sub -> wrap (DefExpectationNode em) path sub
+      DefRandomisationNode eor sub -> case eor of
+        RandomiseExecutionOrder -> wrap (DefRandomisationNode eor) path sub
+        -- [tag:ReorderRandomiseBoundary] Mirror 'randomiseTestForest': inside a
+        -- 'DoNotRandomiseExecutionOrder' scope, leave the whole subtree as-is at
+        -- every depth.  Still compute its cost (order-invariant) to position the
+        -- node among its own siblings; discard the reordered structure.
+        DoNotRandomiseExecutionOrder ->
+          let (cost, _) = goForest path sub
+           in (cost, DefRandomisationNode eor sub)
+
+    -- Reorder a wrapper's children and keep the wrapper wrapping them.  The
+    -- wrapper contributes no path step (matching 'flattenTestForestWith'), so
+    -- its children stay keyed under the same @path@.
+    wrap ::
+      (SpecDefForest a b () -> SpecDefTree outers inner ()) ->
+      [(Text, Word)] ->
+      SpecDefForest a b () ->
+      (Word, SpecDefTree outers inner ())
+    wrap con path sub =
+      let (cost, sub') = goForest path sub
+       in (cost, con sub')
+
+    -- [ref:ReorderIdScheme] Assign the per-description sibling index exactly as
+    -- 'flattenTestForestWith' does, so cost lookups hit the baseline map.
+    nextKey :: Map Text Word -> SpecDefTree outers inner () -> (Maybe (Text, Word), Map Text Word)
+    nextKey seen tree = case descriptionOf tree of
+      Nothing -> (Nothing, seen)
+      Just t ->
+        let idx = Map.findWithDefault 0 t seen
+         in (Just (t, idx), Map.insert t (idx + 1) seen)
+
+    descriptionOf :: SpecDefTree outers inner () -> Maybe Text
+    descriptionOf = \case
+      DefSpecifyNode t _ _ -> Just t
+      DefPendingNode t _ -> Just t
+      DefDescribeNode t _ -> Just t
+      _ -> Nothing
+
+-- | Decide the execution order for a mutation child's (already filtered)
+-- forest.  Reorder cheapest-first with 'reorderTestForestByTiming' only when
+-- the suite has execution-order randomisation enabled (so this stays a drop-in
+-- alternative to that randomisation) and a baseline is available; otherwise
+-- leave the forest untouched.
+--
+-- Kept pure and separate from the child's IO so the gate is testable: the
+-- child reads the baseline and looks up 'settingRandomiseExecutionOrder', then
+-- hands both here.
+reorderForMutationChild :: Bool -> Maybe (Map TestId Word) -> TestForest '[] () -> TestForest '[] ()
+reorderForMutationChild randomiseEnabled mCosts forest =
+  case (randomiseEnabled, mCosts) of
+    (True, Just costs) -> reorderTestForestByTiming costs forest
+    _ -> forest

@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-mutation
-version:        0.0.0.0
+version:        0.1.0.0
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -15,6 +15,7 @@ license:        OtherLicense
 license-file:   LICENSE.md
 build-type:     Simple
 extra-source-files:
+    CHANGELOG.md
     test_resources/augmented-manifest.json
     test_resources/legacy-mutation-manifest.json
     test_resources/mutation-manifest.json
@@ -47,6 +48,7 @@ test-suite sydtest-mutation-test
       Test.Syd.MutationIdSpec
       Test.Syd.MutationSpec
       Test.Syd.PhaseBoundarySpec
+      Test.Syd.ReorderSpec
       Test.Syd.TestLocationSpec
       Paths_sydtest_mutation
   hs-source-dirs:

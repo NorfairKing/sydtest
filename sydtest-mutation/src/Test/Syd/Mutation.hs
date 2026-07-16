@@ -14,6 +14,8 @@ module Test.Syd.Mutation
     -- * Forest operations
     flattenTestForestWithIds,
     filterTestForestByTrie,
+    reorderTestForestByTiming,
+    reorderForMutationChild,
 
     -- * Running
     execTestDefM',
@@ -27,6 +29,8 @@ import Test.Syd.Mutation.Forest
   ( TestIdTrie (..),
     filterTestForestByTrie,
     flattenTestForestWithIds,
+    reorderForMutationChild,
+    reorderTestForestByTiming,
     testIdTrieFromList,
     testIdTrieFromSet,
   )

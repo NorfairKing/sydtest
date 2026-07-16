@@ -281,6 +281,7 @@ randomiseTestForest = goForest
       DefRandomisationNode eor sdf ->
         DefRandomisationNode eor <$> case eor of
           RandomiseExecutionOrder -> goForest sdf
+          -- [ref:ReorderRandomiseBoundary]
           DoNotRandomiseExecutionOrder -> pure sdf
 
 markSpecForestAsPending :: Maybe Text -> SpecDefForest outers inner result -> SpecDefForest outers inner result

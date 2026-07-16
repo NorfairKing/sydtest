@@ -1,5 +1,5 @@
 name: sydtest-mutation
-version: 0.0.0.0
+version: 0.1.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -8,6 +8,7 @@ maintainer: "syd@cs-syd.eu"
 category: Testing
 
 extra-source-files:
+- CHANGELOG.md
 - test_resources/**/*
 
 dependencies:

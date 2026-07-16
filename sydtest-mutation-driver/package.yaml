@@ -1,5 +1,5 @@
 name: sydtest-mutation-driver
-version: 0.0.0.0
+version: 0.1.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -8,6 +8,9 @@ maintainer: "syd@cs-syd.eu"
 category: Testing
 synopsis: Out-of-process mutation testing driver for sydtest.
 description: Standalone driver executable that orchestrates the coverage and mutation phases of sydtest's mutation testing infrastructure. Spawns instrumented sydtest test suite executables as children.
+
+extra-source-files:
+- CHANGELOG.md
 
 dependencies:
 - base >= 4.7 && < 5

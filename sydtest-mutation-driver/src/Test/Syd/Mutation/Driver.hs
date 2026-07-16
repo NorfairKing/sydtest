@@ -37,6 +37,7 @@ import Test.Syd.Mutation.AugmentedManifest
     MutationRunReport (..),
     MutationTally (..),
     filterAugmentedManifestByIds,
+    readAndUnionBaselineDirs,
     readAndUnionCoverageDirs,
     writeAugmentedManifestFile,
   )
@@ -49,6 +50,7 @@ import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), MutationRecord (..), readManifestDir)
 import Test.Syd.Mutation.Runtime (renderMutationId)
+import Test.Syd.Mutation.TestBaselineMap (writeTestBaselineMapDir)
 
 -- | Top-level entry point: parse the dispatch and run the chosen
 -- subcommand.  The default subcommand is @run@, which runs both mutation
@@ -163,6 +165,10 @@ prepareAugmentedFromCoverageDirs manifestDirs coverageDirs augDir = do
         )
           : map (("  " ++) . renderMutationId) missing
   writeAugmentedManifestFile augDir (filterAugmentedManifestByIds libIds unioned)
+  -- Union the per-test baselines from the same coverage dirs and write them
+  -- next to the assembled manifest, so the mutation child can order covering
+  -- tests cheapest-first.
+  readAndUnionBaselineDirs coverageDirs >>= writeTestBaselineMapDir augDir
 
 -- | Run only the coverage phase: for each suite, run the coverage parent so
 -- the augmented manifest accumulates, then stop.  Writes no report; the

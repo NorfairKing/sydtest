@@ -18,8 +18,9 @@ import Test.Syd.Mutation.AugmentedManifest
     lookupAugmentedMutationRecord,
     readAugmentedManifestFile,
   )
-import Test.Syd.Mutation.Forest (filterTestForestByTrie, testIdTrieFromList)
+import Test.Syd.Mutation.Forest (filterTestForestByTrie, reorderForMutationChild, testIdTrieFromList)
 import Test.Syd.Mutation.Runtime (parseMutationId, setActiveMutation)
+import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap (..), readTestBaselineMapDirIfExists)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
@@ -55,8 +56,21 @@ runSingleMutationMode settings mutChild spec = do
       forest = case coveringTests of
         [] -> specForest
         ts -> filterTestForestByTrie (testIdTrieFromList ts) specForest
+  -- Order the covering tests cheapest-first so the fail-fast run reaches a
+  -- killing test sooner.  This is a drop-in alternative to execution-order
+  -- randomisation, so 'reorderForMutationChild' only reorders when the suite
+  -- has randomisation enabled; if the author fixed the order
+  -- (--no-randomise-execution-order), the forest is left as-is.  'execTestDefM'
+  -- above already ran the (seeded) shuffle that keeps ids in sync with the
+  -- coverage phase, which is why the reorder happens after filtering.
+  mBaseline <- readTestBaselineMapDirIfExists (mutationChildAugmentedManifestDir mutChild)
+  let orderedForest =
+        reorderForMutationChild
+          (settingRandomiseExecutionOrder settings)
+          (fmap (\(TestBaselineMap costs) -> costs) mBaseline)
+          forest
   setActiveMutation (Just mid)
-  timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous, settingFailFast = True}) forest
+  timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous, settingFailFast = True}) orderedForest
   setActiveMutation Nothing
   printOutputSpecForest settings timedResult
   if shouldExitFail settings (timedValue timedResult)

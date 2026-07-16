@@ -49,7 +49,12 @@ import Test.Syd.Mutation.Manifest
     readManifestDir,
   )
 import Test.Syd.Mutation.Runtime (MutationId)
-import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap (..), readTestBaselineMapFile)
+import Test.Syd.Mutation.TestBaselineMap
+  ( TestBaselineMap (..),
+    readTestBaselineMapDirIfExists,
+    readTestBaselineMapFile,
+    writeTestBaselineMapDir,
+  )
 import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverageMapFile)
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
 import Test.Syd.MutationMode.Common
@@ -99,6 +104,9 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
   let writeEmptyAugmented = do
         existing <- readAugmentedManifestFileIfExists augDir
         writeAugmentedManifestFile augDir (fromMaybe (AugmentedManifest []) existing)
+        -- Keep baseline.json present (possibly empty) so the union step and the
+        -- mutation child always find a file to read.
+        mergeBaselineIntoDir mempty
   if all (\(MutationGroup rs) -> null rs) groups
     then do
       emitCoverageEvent (CoverageProgressSkipped CoverageSkipNoMutations)
@@ -135,7 +143,16 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
                 Nothing -> newAugmented
                 Just prev -> mergeAugmentedManifests prev newAugmented
           writeAugmentedManifestFile augDir augmented
+          -- Persist the per-test baselines next to the manifest, accumulated
+          -- across suites (slowest time wins), so the mutation child can order
+          -- covering tests cheapest-first.
+          mergeBaselineIntoDir (mconcat baselineMaps)
   where
+    mergeBaselineIntoDir :: TestBaselineMap -> IO ()
+    mergeBaselineIntoDir newBaseline = do
+      existing <- readTestBaselineMapDirIfExists augDir
+      writeTestBaselineMapDir augDir (fromMaybe mempty existing <> newBaseline)
+
     runCoverageChild sem total (i, tid) =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         emitCoverageEvent $

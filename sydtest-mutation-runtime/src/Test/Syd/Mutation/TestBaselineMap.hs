@@ -1,11 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Test.Syd.Mutation.TestBaselineMap
   ( TestBaselineMap (..),
     readTestBaselineMapFile,
     writeTestBaselineMapFile,
+    writeTestBaselineMapDir,
+    readTestBaselineMapDirIfExists,
   )
 where
 
@@ -17,6 +20,8 @@ import Data.GenValidity
 import Data.GenValidity.Containers ()
 import qualified Data.Map.Strict as Map
 import GHC.Generics (Generic)
+import Path
+import Path.IO (doesFileExist, ensureDir)
 import Test.Syd.Mutation.TestId (TestId)
 
 -- | Per-test monotonic-clock baselines (microseconds) collected during the
@@ -68,3 +73,28 @@ writeTestBaselineMapFile path m =
 readTestBaselineMapFile :: FilePath -> IO (Either String TestBaselineMap)
 readTestBaselineMapFile path =
   eitherDecodeJSONViaCodec . LB.fromStrict <$> SB.readFile path
+
+-- | The name under which a merged 'TestBaselineMap' is stored inside an
+-- augmented-manifest directory, alongside @manifest-augmented.json@.  The
+-- coverage phase writes it and the mutation child reads it to order covering
+-- tests cheapest-first.
+baselineMapRelFile :: Path Rel File
+baselineMapRelFile = [relfile|baseline.json|]
+
+-- | Write a 'TestBaselineMap' to @<dir>/baseline.json@, creating @dir@ if
+-- needed.
+writeTestBaselineMapDir :: Path Abs Dir -> TestBaselineMap -> IO ()
+writeTestBaselineMapDir dir m = do
+  ensureDir dir
+  writeTestBaselineMapFile (fromAbsFile (dir </> baselineMapRelFile)) m
+
+-- | Read @<dir>/baseline.json@, returning 'Nothing' when the file is absent or
+-- unreadable.  Ordering is a best-effort hint, so a missing or corrupt baseline
+-- is not fatal: the caller simply does not reorder.
+readTestBaselineMapDirIfExists :: Path Abs Dir -> IO (Maybe TestBaselineMap)
+readTestBaselineMapDirIfExists dir = do
+  let path = dir </> baselineMapRelFile
+  exists <- doesFileExist path
+  if exists
+    then either (const Nothing) Just <$> readTestBaselineMapFile (fromAbsFile path)
+    else pure Nothing

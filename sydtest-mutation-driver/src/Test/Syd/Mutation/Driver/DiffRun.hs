@@ -39,6 +39,7 @@ import Test.Syd.Mutation.AugmentedManifest
     MutationRunReport (..),
     SurvivedMutation (..),
     filterAugmentedManifestByIds,
+    readAndUnionBaselineDirs,
     readAndUnionCoverageDirs,
     writeAugmentedManifestFile,
   )
@@ -54,6 +55,7 @@ import Test.Syd.Mutation.Driver.OptParse
     DiffSource (..),
   )
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
+import Test.Syd.Mutation.TestBaselineMap (writeTestBaselineMapDir)
 import Test.Syd.Mutation.TestId (TestId)
 import Test.Syd.Mutation.TestLocation (TestLocation (..), decodeTestLocations)
 import Test.Syd.MutationMode.Common (formatMutationLog, survivorMitigationLines)
@@ -116,6 +118,9 @@ runDiff DiffSettings {..} = do
   report <-
     withSystemTempDir "mutation-diff-augmented" $ \augDir -> do
       writeAugmentedManifestFile augDir filtered
+      -- Baselines from the same coverage dirs, so the child orders covering
+      -- tests cheapest-first here too.
+      readAndUnionBaselineDirs diffSettingCoverageDirs >>= writeTestBaselineMapDir augDir
       runMutationMode
         diffSettingFailFast
         diffSettingDebug

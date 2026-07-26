@@ -18,5 +18,6 @@ mkDerivation {
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
+  description = "GHC plugin that instruments code for sydtest's mutation testing";
   license = "unknown";
 }

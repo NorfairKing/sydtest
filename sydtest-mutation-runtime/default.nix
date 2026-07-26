@@ -15,5 +15,6 @@ mkDerivation {
     unordered-containers vector
   ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
+  description = "Runtime support library for sydtest's mutation testing";
   license = "unknown";
 }

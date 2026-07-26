@@ -15,5 +15,6 @@ mkDerivation {
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
+  description = "Mutation testing for sydtest";
   license = "unknown";
 }

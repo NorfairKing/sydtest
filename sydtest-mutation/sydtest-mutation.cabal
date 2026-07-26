@@ -6,6 +6,8 @@ cabal-version: 1.12
 
 name:           sydtest-mutation
 version:        0.1.0.0
+synopsis:       Mutation testing for sydtest
+description:    Mutation testing for sydtest test suites. It builds on the sydtest test framework to introduce mutations into code under test and report which mutations the test suite fails to catch. See https://github.com/NorfairKing/sydtest#readme for more information.
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues
@@ -35,7 +37,7 @@ library
   build-depends:
       base >=4.7 && <5
     , sydtest
-    , sydtest-mutation-runtime
+    , sydtest-mutation-runtime >=0.1
   default-language: Haskell2010
 
 test-suite sydtest-mutation-test

@@ -6,6 +6,8 @@ license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 category: Testing
+synopsis: Mutation testing for sydtest
+description: Mutation testing for sydtest test suites. It builds on the sydtest test framework to introduce mutations into code under test and report which mutations the test suite fails to catch. See https://github.com/NorfairKing/sydtest#readme for more information.
 
 extra-source-files:
 - CHANGELOG.md
@@ -18,7 +20,7 @@ library:
   source-dirs: src
   dependencies:
   - sydtest
-  - sydtest-mutation-runtime
+  - sydtest-mutation-runtime >=0.1
 
 tests:
   sydtest-mutation-test:

@@ -6,6 +6,8 @@ license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 category: Testing
+synopsis: GHC plugin that instruments code for sydtest's mutation testing
+description: A GHC source plugin that instruments code under test with the coverage and mutation hooks that sydtest's mutation testing infrastructure needs. See https://github.com/NorfairKing/sydtest#readme for more information.
 
 extra-source-files:
 - CHANGELOG.md
@@ -28,7 +30,7 @@ library:
   - path
   - path-io
   - safe-coloured-text
-  - sydtest-mutation-runtime
+  - sydtest-mutation-runtime >=0.1
   - template-haskell
   - text
 

@@ -6,6 +6,8 @@ cabal-version: 1.12
 
 name:           sydtest-mutation-runtime
 version:        0.1.0.0
+synopsis:       Runtime support library for sydtest's mutation testing
+description:    Runtime support library for sydtest's mutation testing. It provides the manifest, coverage and identifier types shared between the core sydtest library, the mutation plugin, and the mutation driver. See https://github.com/NorfairKing/sydtest#readme for more information.
 category:       Testing
 homepage:       https://github.com/NorfairKing/sydtest#readme
 bug-reports:    https://github.com/NorfairKing/sydtest/issues

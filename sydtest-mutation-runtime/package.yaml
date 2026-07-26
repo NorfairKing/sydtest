@@ -6,6 +6,8 @@ license-file: LICENSE.md
 author: "Tom Sydney Kerckhove"
 maintainer: "syd@cs-syd.eu"
 category: Testing
+synopsis: Runtime support library for sydtest's mutation testing
+description: Runtime support library for sydtest's mutation testing. It provides the manifest, coverage and identifier types shared between the core sydtest library, the mutation plugin, and the mutation driver. See https://github.com/NorfairKing/sydtest#readme for more information.
 
 extra-source-files:
 - CHANGELOG.md

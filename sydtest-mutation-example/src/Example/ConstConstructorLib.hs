@@ -15,6 +15,8 @@ module Example.ConstConstructorLib
     ignoreDirection,
     noDirections,
     northAt,
+    constantDirection,
+    homeDirection,
   )
 where
 
@@ -145,3 +147,27 @@ noDirections = Map.empty
 -- 'ConstConstructor' does fire here and offers @Tip@.
 northAt :: Int -> Map Int Direction
 northAt n = Map.singleton n North
+
+-- | A function that answers with the same constructor whatever it is given.
+--
+-- Which functions those are is a semantic property, so unlike @Map.empty@
+-- above there is nothing in the compiler to read it off: the in-repo mutation
+-- config lists @constantDirection@ under the operator's @skip-calls-to@ key.
+-- Without that entry the call in 'homeDirection' would carry a mutation to
+-- each of the three constructors, all three equivalent and unkillable.
+--
+-- The key skips /calls/, so the body below is a mutation site like any
+-- other: switching this @North@ to @East@ changes what the function answers,
+-- and the test kills it.
+--
+-- The argument is @()@ to keep the example free of sites that have nothing
+-- to do with this operator: a literal argument would be one, and an
+-- unforced one at that, since the pattern here does not look at what it is
+-- given.
+constantDirection :: () -> Direction
+constantDirection () = North
+
+-- | A call to a function listed under @skip-calls-to@, which therefore
+-- carries no 'ConstConstructor' site.
+homeDirection :: Direction
+homeDirection = constantDirection ()

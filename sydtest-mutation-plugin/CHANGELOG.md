@@ -1,6 +1,16 @@
 # Changelog
 
-## [0.4.5.1] - 2026-07-29
+## [0.4.6.0] - 2026-07-29
+
+### Added
+
+* A `skip-calls-to` config key on `ConstConstructor`, the same key `ElideCall`
+  and `SwitchFunctionArguments` already take.  A function whose result is
+  always the same constructor -- a delegating `sqlType Proxy = sqlType (Proxy
+  :: Proxy Text)`, say -- makes every call to it an equivalent, unkillable
+  mutant.  Whether a function is like that is a semantic property the plugin
+  cannot detect, so listing its name suppresses the operator at every call to
+  it.  The definition itself is still mutated: the key skips calls.
 
 ### Fixed
 

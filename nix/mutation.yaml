@@ -39,3 +39,11 @@ operators:
   ElideCall:
     skip-calls-to:
       - same
+  # Exercises 'ConstConstructor' suppression: 'constantDirection' (in
+  # Example.ConstConstructorLib) answers with the same constructor whatever it
+  # is given, so replacing a call to it with a constant produces an
+  # equivalent, unkillable mutant.  Listing it here skips the operator at
+  # every call to it.
+  ConstConstructor:
+    skip-calls-to:
+      - constantDirection

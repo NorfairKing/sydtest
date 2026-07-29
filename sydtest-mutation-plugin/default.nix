@@ -6,7 +6,7 @@
 }:
 mkDerivation {
   pname = "sydtest-mutation-plugin";
-  version = "0.4.5.1";
+  version = "0.4.6.0";
   src = ./.;
   libraryHaskellDepends = [
     aeson base bytestring containers directory filepath ghc ghc-boot

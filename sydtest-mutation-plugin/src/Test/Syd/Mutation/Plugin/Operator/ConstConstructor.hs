@@ -5,6 +5,8 @@
 module Test.Syd.Mutation.Plugin.Operator.ConstConstructor (theOperator) where
 
 import Control.Monad.Reader (asks)
+import qualified Data.Map as Map
+import Data.Text (Text)
 import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTyCon, listTyCon, maybeTyCon)
@@ -14,10 +16,12 @@ import GHC.Core.DataCon (dataConFullSig, dataConWrapId)
 import GHC.Core.TyCon (tyConDataCons_maybe)
 import GHC.Core.Type (splitTyConApp_maybe)
 import GHC.Types.Id (isDataConId_maybe, realIdUnfolding)
+import GHC.Types.Name (getOccString)
 import GHC.Types.Name.Occurrence (isSymOcc, occNameString)
 import GHC.Types.Var (isTyVar)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), OpAppCtx (..), SrcSpanDelta (..))
-import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), ConstructorHeads (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResultBy)
+import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), ConstructorHeads (..), arrowTy, collectApp, headFunctionName, mkConstLambda, nameMatchCandidates, prefixFormPreview, viewConstFnResultBy)
+import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig (..), operatorExtraStrings)
 
 -- | Replace an expression whose type is @arg1 -> ... -> argN -> T tys@ (with
 -- @N >= 0@) with a constant function returning a nullary constructor of @T@,
@@ -57,6 +61,25 @@ import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), ConstructorHea
 -- An arity-\>=1 firing is suppressed when 'instrumentEnvAppDepth' >= arity;
 -- see 'ConstNothing' for that dominance rule.
 --
+-- A function whose result is always the same constructor produces an
+-- /equivalent/ mutant at every call to it: replacing the call with that
+-- constructor cannot change anything, so no test can kill it.  A delegating
+-- @sqlType Proxy = sqlType (Proxy :: Proxy Text)@ is the shape that keeps
+-- coming up -- @sqlType@ answers with a constant of its type by definition.
+-- Which functions those are is a semantic property the plugin cannot detect,
+-- so calls to them are suppressed by listing the function's name under the
+-- operator's @skip-calls-to@ config key:
+--
+-- > operators:
+-- >   ConstConstructor:
+-- >     skip-calls-to:
+-- >       - sqlType
+--
+-- A name matches either bare (@sqlType@, matching any module) or fully
+-- qualified (@Database.Persist.Sql.sqlType@), by the defining module or by a
+-- module it is imported through.  This is the same matching the @ignore@ key
+-- and the other operators' @skip-calls-to@ keys use.
+--
 -- The manifest preview names the constructor unqualified even when the
 -- mutated module does not have it in scope.  The mutant itself is built from
 -- the constructor's 'Id' and compiles regardless of scope, so this only
@@ -80,9 +103,19 @@ action ::
 action le ConstFnMatch {cfnArgTys, cfnResTy, cfnTyConArgs} cons = do
   opAppCtx <- asks instrumentEnvOpAppCtx
   appDepth <- asks instrumentEnvAppDepth
+  -- Suppress calls to functions the user has marked constant-valued (this
+  -- operator's mutants for them are equivalent and unkillable).  See this
+  -- module's haddock.
+  opsConfig <- asks instrumentEnvOperatorsConfig
+  rdrEnv <- asks instrumentEnvRdrEnv
+  let extra = maybe Map.empty operatorConfigExtra (Map.lookup "ConstConstructor" opsConfig)
+  let skipCallsTo = operatorExtraStrings "skip-calls-to" extra
+  let skipThisCall = case headFunctionName (fst (collectApp le)) of
+        Just n -> any (`elem` skipCallsTo) (nameMatchCandidates rdrEnv n)
+        Nothing -> False
   let arity = length cfnArgTys
   -- See 'ConstNothing' for the dominance rule.
-  if arity >= 1 && appDepth >= arity
+  if (arity >= 1 && appDepth >= arity) || skipThisCall
     then pure []
     else
       let wholeTy = arrowTy cfnArgTys cfnResTy
@@ -124,9 +157,30 @@ action le ConstFnMatch {cfnArgTys, cfnResTy, cfnTyConArgs} cons = do
                     mutAltOriginal = origLabel,
                     mutAltReplacement = replLabel,
                     mutAltDelta = delta,
-                    mutAltMitigation = Nothing
+                    mutAltMitigation = mitigationFor le headCon
                   }
        in pure [mkAlt dc | dc <- cons, Just dc /= headCon]
+
+-- | Hint shown for a surviving mutation: if the called function always
+-- answers with the same constructor the mutant is equivalent (unkillable),
+-- and listing the function under @skip-calls-to@ suppresses it.  'Nothing'
+-- when the expression is already a constructor, or its head is not a named
+-- function, so there is nothing to suggest.
+mitigationFor :: LHsExpr GhcTc -> Maybe DataCon -> Maybe Text
+mitigationFor _ (Just _) = Nothing
+mitigationFor le Nothing = do
+  n <- headFunctionName (fst (collectApp le))
+  let fn = getOccString n
+  pure $
+    T.pack $
+      concat
+        [ "If `",
+          fn,
+          "` always returns the same constructor this is an equivalent mutant ",
+          "that no test can kill; add `",
+          fn,
+          "` to this operator's `skip-calls-to` config to suppress it."
+        ]
 
 -- | How the constructor is written in an expression: a symbolic constructor
 -- like @(:<)@ needs its parentheses to be one.

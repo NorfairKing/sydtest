@@ -1,32 +1,63 @@
 [36m# Example.ConstConstructorLib[m
-59 mutations in 33 groups
+61 mutations in 34 groups
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:147:29-34 #1
-[36m@@ -144,4 +144,4 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:168:24-29 #1
+[36m@@ -165,7 +165,7 @@[m
+ -- unforced one at that, since the pattern here does not look at what it is
+ -- given.
+ constantDirection :: () -> Direction
+[31m-[m[31mconstantDirection () = [m[1;91mN[m[1;91mor[m[31mt[m[1;91mh[m
+[32m+[m[32mconstantDirection () = [m[1;92mE[m[1;92mas[m[32mt[m
+ 
+ -- | A call to a function listed under @skip-calls-to@, which therefore
+ -- carries no 'ConstConstructor' site.
+
+ConstConstructor at src/Example/ConstConstructorLib.hs:168:24-29 #2
+[36m@@ -165,7 +165,7 @@[m
+ -- unforced one at that, since the pattern here does not look at what it is
+ -- given.
+ constantDirection :: () -> Direction
+[31m-[m[31mconstantDirection () = [m[1;91mN[m[31mo[m[1;91mr[m[31mth[m
+[32m+[m[32mconstantDirection () = [m[1;92mS[m[32mo[m[1;92mu[m[32mth[m
+ 
+ -- | A call to a function listed under @skip-calls-to@, which therefore
+ -- carries no 'ConstConstructor' site.
+
+ConstConstructor at src/Example/ConstConstructorLib.hs:149:29-34 #1
+[36m@@ -146,7 +146,7 @@[m
  -- emptying a map that holds something is a real mutation, so
  -- 'ConstConstructor' does fire here and offers @Tip@.
  northAt :: Int -> Map Int Direction
 [31m-[m[31mnorthAt n = Map.singleton n [m[1;91mN[m[1;91mor[m[31mt[m[1;91mh[m
 [32m+[m[32mnorthAt n = Map.singleton n [m[1;92mE[m[1;92mas[m[32mt[m
+ 
+ -- | A function that answers with the same constructor whatever it is given.
+ --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:147:29-34 #2
-[36m@@ -144,4 +144,4 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:149:29-34 #2
+[36m@@ -146,7 +146,7 @@[m
  -- emptying a map that holds something is a real mutation, so
  -- 'ConstConstructor' does fire here and offers @Tip@.
  northAt :: Int -> Map Int Direction
 [31m-[m[31mnorthAt n = Map.singleton n [m[1;91mN[m[31mo[m[1;91mr[m[31mth[m
 [32m+[m[32mnorthAt n = Map.singleton n [m[1;92mS[m[32mo[m[1;92mu[m[32mth[m
+ 
+ -- | A function that answers with the same constructor whatever it is given.
+ --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:147:13-34 #1
-[36m@@ -144,4 +144,4 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:149:13-34 #1
+[36m@@ -146,7 +146,7 @@[m
  -- emptying a map that holds something is a real mutation, so
  -- 'ConstConstructor' does fire here and offers @Tip@.
  northAt :: Int -> Map Int Direction
 [31m-[m[31mnorthAt n = [m[1;91mM[m[1;91ma[m[1;91mp[m[1;91m.[m[1;91ms[m[31mi[m[1;91mnglet[m[1;91mon [m[1;91mn[m[41m [m[1;91mNorth[m
 [32m+[m[32mnorthAt n = [m[1;92mT[m[32mi[m[1;92mp[m
+ 
+ -- | A function that answers with the same constructor whatever it is given.
+ --
 
-IntLit at src/Example/ConstConstructorLib.hs:120:21-22 #1
-[36m@@ -117,7 +117,7 @@[m
+IntLit at src/Example/ConstConstructorLib.hs:122:21-22 #1
+[36m@@ -119,7 +119,7 @@[m
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
@@ -36,8 +67,8 @@ IntLit at src/Example/ConstConstructorLib.hs:120:21-22 #1
  -- | Throw a direction away.
  --
 
-IntLit at src/Example/ConstConstructorLib.hs:120:21-22 #2
-[36m@@ -117,7 +117,7 @@[m
+IntLit at src/Example/ConstConstructorLib.hs:122:21-22 #2
+[36m@@ -119,7 +119,7 @@[m
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
@@ -47,8 +78,8 @@ IntLit at src/Example/ConstConstructorLib.hs:120:21-22 #2
  -- | Throw a direction away.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:116:18-26 #1
-[36m@@ -113,7 +113,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:118:18-26 #1
+[36m@@ -115,7 +115,7 @@[m
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
  myHead [] = MyNothing
@@ -58,8 +89,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:116:18-26 #1
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
 
-RemoveClause at src/Example/ConstConstructorLib.hs:115:1-22 #1
-[36m@@ -112,7 +112,6 @@[m
+RemoveClause at src/Example/ConstConstructorLib.hs:117:1-22 #1
+[36m@@ -114,7 +114,6 @@[m
  -- constant-inserting operator does.  The @MyNothing@ branch already /is/ the
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
@@ -68,8 +99,8 @@ RemoveClause at src/Example/ConstConstructorLib.hs:115:1-22 #1
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
 
-RemoveClause at src/Example/ConstConstructorLib.hs:116:1-26 #2
-[36m@@ -113,7 +113,6 @@[m
+RemoveClause at src/Example/ConstConstructorLib.hs:118:1-26 #2
+[36m@@ -115,7 +115,6 @@[m
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
  myHead [] = MyNothing
@@ -78,8 +109,8 @@ RemoveClause at src/Example/ConstConstructorLib.hs:116:1-26 #2
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
 
-ConstBool at src/Example/ConstConstructorLib.hs:102:17-23 #1
-[36m@@ -99,7 +99,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:104:17-23 #1
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -89,8 +120,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:102:17-23 #1
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstBool at src/Example/ConstConstructorLib.hs:102:17-23 #2
-[36m@@ -99,7 +99,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:104:17-23 #2
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -100,8 +131,18 @@ ConstBool at src/Example/ConstConstructorLib.hs:102:17-23 #2
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-Negate at src/Example/ConstConstructorLib.hs:102:17-23 #1
-[36m@@ -99,7 +99,7 @@[m
+Control at src/Example/ConstConstructorLib.hs:104:17-23 #0
+[36m@@ -101,7 +101,7 @@[m
+ -- lambda into the operator slot would not reparse, so the preview has to
+ -- rewrite the whole infix expression in prefix form instead.
+ (?:) :: Direction -> Direction -> Int -> Direction
+ (?:) a b n = if even n then a else b
+ 
+ -- | The direction for a number, chosen by an infix partial application.
+ pick :: Int -> Direction
+
+Negate at src/Example/ConstConstructorLib.hs:104:17-23 #1
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -111,8 +152,8 @@ Negate at src/Example/ConstConstructorLib.hs:102:17-23 #1
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:29-30 #1
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:29-30 #1
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -122,8 +163,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:29-30 #1
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:29-30 #2
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:29-30 #2
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -133,8 +174,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:29-30 #2
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:29-30 #3
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:29-30 #3
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -144,18 +185,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:29-30 #3
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-Control at src/Example/ConstConstructorLib.hs:102:29-30 #0
-[36m@@ -99,7 +99,7 @@[m
- -- lambda into the operator slot would not reparse, so the preview has to
- -- rewrite the whole infix expression in prefix form instead.
- (?:) :: Direction -> Direction -> Int -> Direction
- (?:) a b n = if even n then a else b
- 
- -- | The direction for a number, chosen by an infix partial application.
- pick :: Int -> Direction
-
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:36-37 #1
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:36-37 #1
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -165,8 +196,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:36-37 #1
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:36-37 #2
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:36-37 #2
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -176,8 +207,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:36-37 #2
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:36-37 #3
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:36-37 #3
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -187,8 +218,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:36-37 #3
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:14-37 #1
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:14-37 #1
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -198,8 +229,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:14-37 #1
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:14-37 #2
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:14-37 #2
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -209,8 +240,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:14-37 #2
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:102:14-37 #3
-[36m@@ -99,7 +99,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:104:14-37 #3
+[36m@@ -101,7 +101,7 @@[m
  -- lambda into the operator slot would not reparse, so the preview has to
  -- rewrite the whole infix expression in prefix form instead.
  (?:) :: Direction -> Direction -> Int -> Direction
@@ -220,8 +251,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:102:14-37 #3
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:14-16 #1
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:14-16 #1
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -231,8 +262,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:14-16 #1
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:14-16 #2
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:14-16 #2
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -242,8 +273,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:14-16 #2
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:14-16 #3
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:14-16 #3
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -253,8 +284,18 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:14-16 #3
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-13 #1
-[36m@@ -103,7 +103,7 @@[m
+Control at src/Example/ConstConstructorLib.hs:108:14-16 #1
+[36m@@ -105,7 +105,7 @@[m
+ 
+ -- | The direction for a number, chosen by an infix partial application.
+ pick :: Int -> Direction
+ pick = North ?: East
+ 
+ -- | The head of a list, as a 'MyMaybe'.
+ --
+
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:8-13 #1
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -264,8 +305,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-13 #1
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-13 #2
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:8-13 #2
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -275,18 +316,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-13 #2
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-Control at src/Example/ConstConstructorLib.hs:106:8-13 #1
-[36m@@ -103,7 +103,7 @@[m
- 
- -- | The direction for a number, chosen by an infix partial application.
- pick :: Int -> Direction
- pick = North ?: East
- 
- -- | The head of a list, as a 'MyMaybe'.
- --
-
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:17-21 #1
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:17-21 #1
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -296,8 +327,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:17-21 #1
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:17-21 #2
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:17-21 #2
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -307,8 +338,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:17-21 #2
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-21 #1
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:8-21 #1
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -318,8 +349,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-21 #1
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-21 #2
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:8-21 #2
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -329,8 +360,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-21 #2
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-21 #3
-[36m@@ -103,7 +103,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:108:8-21 #3
+[36m@@ -105,7 +105,7 @@[m
  
  -- | The direction for a number, chosen by an infix partial application.
  pick :: Int -> Direction
@@ -340,8 +371,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:106:8-21 #3
  -- | The head of a list, as a 'MyMaybe'.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:92:12-14 #1
-[36m@@ -89,7 +89,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:94:12-14 #1
+[36m@@ -91,7 +91,7 @@[m
  -- offers only 'Off'.  Offering 'On' as a replacement for 'On' would be an
  -- equivalent mutant no test can kill.
  taggedOn :: Tagged Int
@@ -351,8 +382,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:92:12-14 #1
  -- | Pick between two directions by the parity of a third argument.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:83:13-16 #1
-[36m@@ -80,7 +80,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:85:13-16 #1
+[36m@@ -82,7 +82,7 @@[m
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
  taggedOff :: Tagged Int
@@ -362,8 +393,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:83:13-16 #1
  -- | The same constant under an inline type signature.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:78:13-14 #1
-[36m@@ -75,7 +75,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:80:13-14 #1
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -373,8 +404,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:78:13-14 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:78:13-14 #2
-[36m@@ -75,7 +75,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:80:13-14 #2
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -384,8 +415,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:78:13-14 #2
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:78:13-14 #3
-[36m@@ -75,7 +75,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:80:13-14 #3
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -395,8 +426,18 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:78:13-14 #3
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:78:18-23 #1
-[36m@@ -75,7 +75,7 @@[m
+Control at src/Example/ConstConstructorLib.hs:80:13-14 #2
+[36m@@ -77,7 +77,7 @@[m
+ -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
+ -- operands do carry one each.
+ isNorth :: Direction -> Bool
+ isNorth d = d == North
+ 
+ -- | A 'Tagged' value at a concrete type argument.  The only other
+ -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
+
+ConstConstructor at src/Example/ConstConstructorLib.hs:80:18-23 #1
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -406,8 +447,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:78:18-23 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:78:18-23 #2
-[36m@@ -75,7 +75,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:80:18-23 #2
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -417,18 +458,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:78:18-23 #2
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-Control at src/Example/ConstConstructorLib.hs:78:18-23 #2
-[36m@@ -75,7 +75,7 @@[m
- -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
- -- operands do carry one each.
- isNorth :: Direction -> Bool
- isNorth d = d == North
- 
- -- | A 'Tagged' value at a concrete type argument.  The only other
- -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
-
-ConstBool at src/Example/ConstConstructorLib.hs:78:13-23 #1
-[36m@@ -75,7 +75,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:80:13-23 #1
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -438,8 +469,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:78:13-23 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstBool at src/Example/ConstConstructorLib.hs:78:13-23 #2
-[36m@@ -75,7 +75,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:80:13-23 #2
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -449,8 +480,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:78:13-23 #2
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-Negate at src/Example/ConstConstructorLib.hs:78:13-23 #1
-[36m@@ -75,7 +75,7 @@[m
+Negate at src/Example/ConstConstructorLib.hs:80:13-23 #1
+[36m@@ -77,7 +77,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -460,8 +491,8 @@ Negate at src/Example/ConstConstructorLib.hs:78:13-23 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstBool at src/Example/ConstConstructorLib.hs:60:20-26 #1
-[36m@@ -57,7 +57,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:62:20-26 #1
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -471,8 +502,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:60:20-26 #1
  -- | The directions for a list of numbers.
  --
 
-ConstBool at src/Example/ConstConstructorLib.hs:60:20-26 #2
-[36m@@ -57,7 +57,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:62:20-26 #2
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -482,8 +513,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:60:20-26 #2
  -- | The directions for a list of numbers.
  --
 
-Negate at src/Example/ConstConstructorLib.hs:60:20-26 #1
-[36m@@ -57,7 +57,7 @@[m
+Negate at src/Example/ConstConstructorLib.hs:62:20-26 #1
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -493,8 +524,8 @@ Negate at src/Example/ConstConstructorLib.hs:60:20-26 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:32-37 #1
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:62:32-37 #1
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -504,8 +535,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:32-37 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:32-37 #2
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:62:32-37 #2
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -515,8 +546,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:32-37 #2
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:43-47 #1
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:62:43-47 #1
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -526,8 +557,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:43-47 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:43-47 #2
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:62:43-47 #2
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -537,8 +568,18 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:43-47 #2
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:17-47 #1
-[36m@@ -57,7 +57,7 @@[m
+Control at src/Example/ConstConstructorLib.hs:62:43-47 #3
+[36m@@ -59,7 +59,7 @@[m
+ --   * the two branches, which are constructors, so each is replaced by the
+ --     two /other/ constructors and never by itself.
+ directionOf :: Int -> Direction
+ directionOf n = if even n then North else East
+ 
+ -- | The directions for a list of numbers.
+ --
+
+ConstConstructor at src/Example/ConstConstructorLib.hs:62:17-47 #1
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -548,8 +589,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:17-47 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:17-47 #2
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:62:17-47 #2
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -559,8 +600,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:17-47 #2
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:17-47 #3
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:62:17-47 #3
+[36m@@ -59,7 +59,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -570,18 +611,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:17-47 #3
  -- | The directions for a list of numbers.
  --
 
-Control at src/Example/ConstConstructorLib.hs:60:17-47 #3
-[36m@@ -57,7 +57,7 @@[m
- --   * the two branches, which are constructors, so each is replaced by the
- --     two /other/ constructors and never by itself.
- directionOf :: Int -> Direction
- directionOf n = if even n then North else East
- 
- -- | The directions for a list of numbers.
- --
-
-ConstEmptyList at src/Example/ConstConstructorLib.hs:68:16-19 #1
-[36m@@ -65,7 +65,7 @@[m
+ConstEmptyList at src/Example/ConstConstructorLib.hs:70:16-19 #1
+[36m@@ -67,7 +67,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -591,8 +622,8 @@ ConstEmptyList at src/Example/ConstConstructorLib.hs:68:16-19 #1
  -- | Whether a direction is north.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:68:20-31 #1
-[36m@@ -65,7 +65,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:70:20-31 #1
+[36m@@ -67,7 +67,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -602,8 +633,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:68:20-31 #1
  -- | Whether a direction is north.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:68:20-31 #2
-[36m@@ -65,7 +65,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:70:20-31 #2
+[36m@@ -67,7 +67,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -613,8 +644,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:68:20-31 #2
  -- | Whether a direction is north.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:68:20-31 #3
-[36m@@ -65,7 +65,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:70:20-31 #3
+[36m@@ -67,7 +67,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -624,8 +655,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:68:20-31 #3
  -- | Whether a direction is north.
  --
 
-ConstEmptyList at src/Example/ConstConstructorLib.hs:68:16-31 #1
-[36m@@ -65,7 +65,7 @@[m
+ConstEmptyList at src/Example/ConstConstructorLib.hs:70:16-31 #1
+[36m@@ -67,7 +67,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]

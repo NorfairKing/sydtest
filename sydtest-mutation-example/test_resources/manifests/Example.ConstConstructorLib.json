@@ -1,25 +1,103 @@
 [
   [
     {
+      "binding": "constantDirection",
+      "col_end": 29,
+      "col_start": 24,
+      "context_after": [
+        "",
+        "-- | A call to a function listed under @skip-calls-to@, which therefore",
+        "-- carries no 'ConstConstructor' site."
+      ],
+      "context_before": [
+        "-- unforced one at that, since the pattern here does not look at what it is",
+        "-- given.",
+        "constantDirection :: () -> Direction"
+      ],
+      "end_line": 168,
+      "id": [
+        "Example.ConstConstructorLib",
+        "ConstConstructor",
+        "168",
+        "24",
+        "29",
+        "1"
+      ],
+      "line": 168,
+      "module": "Example.ConstConstructorLib",
+      "mutated_lines": [
+        "constantDirection () = East"
+      ],
+      "operator": "ConstConstructor",
+      "original": "North",
+      "replacement": "East",
+      "source_file": "src/Example/ConstConstructorLib.hs",
+      "source_lines": [
+        "constantDirection () = North"
+      ]
+    },
+    {
+      "binding": "constantDirection",
+      "col_end": 29,
+      "col_start": 24,
+      "context_after": [
+        "",
+        "-- | A call to a function listed under @skip-calls-to@, which therefore",
+        "-- carries no 'ConstConstructor' site."
+      ],
+      "context_before": [
+        "-- unforced one at that, since the pattern here does not look at what it is",
+        "-- given.",
+        "constantDirection :: () -> Direction"
+      ],
+      "end_line": 168,
+      "id": [
+        "Example.ConstConstructorLib",
+        "ConstConstructor",
+        "168",
+        "24",
+        "29",
+        "2"
+      ],
+      "line": 168,
+      "module": "Example.ConstConstructorLib",
+      "mutated_lines": [
+        "constantDirection () = South"
+      ],
+      "operator": "ConstConstructor",
+      "original": "North",
+      "replacement": "South",
+      "source_file": "src/Example/ConstConstructorLib.hs",
+      "source_lines": [
+        "constantDirection () = North"
+      ]
+    }
+  ],
+  [
+    {
       "binding": "northAt",
       "col_end": 34,
       "col_start": 29,
-      "context_after": [],
+      "context_after": [
+        "",
+        "-- | A function that answers with the same constructor whatever it is given.",
+        "--"
+      ],
       "context_before": [
         "-- emptying a map that holds something is a real mutation, so",
         "-- 'ConstConstructor' does fire here and offers @Tip@.",
         "northAt :: Int -> Map Int Direction"
       ],
-      "end_line": 147,
+      "end_line": 149,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "147",
+        "149",
         "29",
         "34",
         "1"
       ],
-      "line": 147,
+      "line": 149,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "northAt n = Map.singleton n East"
@@ -36,22 +114,26 @@
       "binding": "northAt",
       "col_end": 34,
       "col_start": 29,
-      "context_after": [],
+      "context_after": [
+        "",
+        "-- | A function that answers with the same constructor whatever it is given.",
+        "--"
+      ],
       "context_before": [
         "-- emptying a map that holds something is a real mutation, so",
         "-- 'ConstConstructor' does fire here and offers @Tip@.",
         "northAt :: Int -> Map Int Direction"
       ],
-      "end_line": 147,
+      "end_line": 149,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "147",
+        "149",
         "29",
         "34",
         "2"
       ],
-      "line": 147,
+      "line": 149,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "northAt n = Map.singleton n South"
@@ -70,22 +152,27 @@
       "binding": "northAt",
       "col_end": 34,
       "col_start": 13,
-      "context_after": [],
+      "context_after": [
+        "",
+        "-- | A function that answers with the same constructor whatever it is given.",
+        "--"
+      ],
       "context_before": [
         "-- emptying a map that holds something is a real mutation, so",
         "-- 'ConstConstructor' does fire here and offers @Tip@.",
         "northAt :: Int -> Map Int Direction"
       ],
-      "end_line": 147,
+      "end_line": 149,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "147",
+        "149",
         "13",
         "34",
         "1"
       ],
-      "line": 147,
+      "line": 149,
+      "mitigation": "If `singleton` always returns the same constructor this is an equivalent mutant that no test can kill; add `singleton` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "northAt n = Tip"
@@ -114,16 +201,16 @@
         "-- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.",
         "unitSquare :: Shape"
       ],
-      "end_line": 120,
+      "end_line": 122,
       "id": [
         "Example.ConstConstructorLib",
         "IntLit",
-        "120",
+        "122",
         "21",
         "22",
         "1"
       ],
-      "line": 120,
+      "line": 122,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "unitSquare = Square 0"
@@ -150,16 +237,16 @@
         "-- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.",
         "unitSquare :: Shape"
       ],
-      "end_line": 120,
+      "end_line": 122,
       "id": [
         "Example.ConstConstructorLib",
         "IntLit",
-        "120",
+        "122",
         "21",
         "22",
         "2"
       ],
-      "line": 120,
+      "line": 122,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "unitSquare = Square -1"
@@ -188,16 +275,16 @@
         "myHead :: [a] -> MyMaybe a",
         "myHead [] = MyNothing"
       ],
-      "end_line": 116,
+      "end_line": 118,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "116",
+        "118",
         "18",
         "26",
         "1"
       ],
-      "line": 116,
+      "line": 118,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "myHead (x : _) = MyNothing"
@@ -226,16 +313,16 @@
         "-- only constant of the type, so it is not a mutation site at all.",
         "myHead :: [a] -> MyMaybe a"
       ],
-      "end_line": 115,
+      "end_line": 117,
       "id": [
         "Example.ConstConstructorLib",
         "RemoveClause",
-        "115",
+        "117",
         "1",
         "22",
         "1"
       ],
-      "line": 115,
+      "line": 117,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [],
       "operator": "RemoveClause",
@@ -260,16 +347,16 @@
         "myHead :: [a] -> MyMaybe a",
         "myHead [] = MyNothing"
       ],
-      "end_line": 116,
+      "end_line": 118,
       "id": [
         "Example.ConstConstructorLib",
         "RemoveClause",
-        "116",
+        "118",
         "1",
         "26",
         "2"
       ],
-      "line": 116,
+      "line": 118,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [],
       "operator": "RemoveClause",
@@ -296,16 +383,16 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstBool",
-        "102",
+        "104",
         "17",
         "23",
         "1"
       ],
-      "line": 102,
+      "line": 104,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if True then a else b"
@@ -332,16 +419,16 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstBool",
-        "102",
+        "104",
         "17",
         "23",
         "2"
       ],
-      "line": 102,
+      "line": 104,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if False then a else b"
@@ -370,16 +457,54 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
+      "id": [
+        "Example.ConstConstructorLib",
+        "Control",
+        "104",
+        "17",
+        "23",
+        "0"
+      ],
+      "line": 104,
+      "module": "Example.ConstConstructorLib",
+      "mutated_lines": [
+        "(?:) a b n = if even n then a else b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ConstConstructorLib.hs",
+      "source_lines": [
+        "(?:) a b n = if even n then a else b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "?:",
+      "col_end": 23,
+      "col_start": 17,
+      "context_after": [
+        "",
+        "-- | The direction for a number, chosen by an infix partial application.",
+        "pick :: Int -> Direction"
+      ],
+      "context_before": [
+        "-- lambda into the operator slot would not reparse, so the preview has to",
+        "-- rewrite the whole infix expression in prefix form instead.",
+        "(?:) :: Direction -> Direction -> Int -> Direction"
+      ],
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "Negate",
-        "102",
+        "104",
         "17",
         "23",
         "1"
       ],
-      "line": 102,
+      "line": 104,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if not (even n) then a else b"
@@ -408,16 +533,17 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "29",
         "30",
         "1"
       ],
-      "line": 102,
+      "line": 104,
+      "mitigation": "If `a` always returns the same constructor this is an equivalent mutant that no test can kill; add `a` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if even n then North else b"
@@ -444,16 +570,17 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "29",
         "30",
         "2"
       ],
-      "line": 102,
+      "line": 104,
+      "mitigation": "If `a` always returns the same constructor this is an equivalent mutant that no test can kill; add `a` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if even n then East else b"
@@ -480,16 +607,17 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "29",
         "30",
         "3"
       ],
-      "line": 102,
+      "line": 104,
+      "mitigation": "If `a` always returns the same constructor this is an equivalent mutant that no test can kill; add `a` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if even n then South else b"
@@ -497,44 +625,6 @@
       "operator": "ConstConstructor",
       "original": "e",
       "replacement": "South",
-      "source_file": "src/Example/ConstConstructorLib.hs",
-      "source_lines": [
-        "(?:) a b n = if even n then a else b"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "?:",
-      "col_end": 30,
-      "col_start": 29,
-      "context_after": [
-        "",
-        "-- | The direction for a number, chosen by an infix partial application.",
-        "pick :: Int -> Direction"
-      ],
-      "context_before": [
-        "-- lambda into the operator slot would not reparse, so the preview has to",
-        "-- rewrite the whole infix expression in prefix form instead.",
-        "(?:) :: Direction -> Direction -> Int -> Direction"
-      ],
-      "end_line": 102,
-      "id": [
-        "Example.ConstConstructorLib",
-        "Control",
-        "102",
-        "29",
-        "30",
-        "0"
-      ],
-      "line": 102,
-      "module": "Example.ConstConstructorLib",
-      "mutated_lines": [
-        "(?:) a b n = if even n then a else b"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstConstructorLib.hs",
       "source_lines": [
         "(?:) a b n = if even n then a else b"
@@ -556,16 +646,17 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "36",
         "37",
         "1"
       ],
-      "line": 102,
+      "line": 104,
+      "mitigation": "If `b` always returns the same constructor this is an equivalent mutant that no test can kill; add `b` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if even n then a else North"
@@ -592,16 +683,17 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "36",
         "37",
         "2"
       ],
-      "line": 102,
+      "line": 104,
+      "mitigation": "If `b` always returns the same constructor this is an equivalent mutant that no test can kill; add `b` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if even n then a else East"
@@ -628,16 +720,17 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "36",
         "37",
         "3"
       ],
-      "line": 102,
+      "line": 104,
+      "mitigation": "If `b` always returns the same constructor this is an equivalent mutant that no test can kill; add `b` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = if even n then a else South"
@@ -666,16 +759,16 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "14",
         "37",
         "1"
       ],
-      "line": 102,
+      "line": 104,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = North"
@@ -702,16 +795,16 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "14",
         "37",
         "2"
       ],
-      "line": 102,
+      "line": 104,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = East"
@@ -738,16 +831,16 @@
         "-- rewrite the whole infix expression in prefix form instead.",
         "(?:) :: Direction -> Direction -> Int -> Direction"
       ],
-      "end_line": 102,
+      "end_line": 104,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "102",
+        "104",
         "14",
         "37",
         "3"
       ],
-      "line": 102,
+      "line": 104,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "(?:) a b n = South"
@@ -776,16 +869,17 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "14",
         "16",
         "1"
       ],
-      "line": 106,
+      "line": 108,
+      "mitigation": "If `?:` always returns the same constructor this is an equivalent mutant that no test can kill; add `?:` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = (\\_ _ _ -> North) (North) (East)"
@@ -812,16 +906,17 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "14",
         "16",
         "2"
       ],
-      "line": 106,
+      "line": 108,
+      "mitigation": "If `?:` always returns the same constructor this is an equivalent mutant that no test can kill; add `?:` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = (\\_ _ _ -> East) (North) (East)"
@@ -848,16 +943,17 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "14",
         "16",
         "3"
       ],
-      "line": 106,
+      "line": 108,
+      "mitigation": "If `?:` always returns the same constructor this is an equivalent mutant that no test can kill; add `?:` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = (\\_ _ _ -> South) (North) (East)"
@@ -865,6 +961,44 @@
       "operator": "ConstConstructor",
       "original": "f",
       "replacement": "\\_ _ _ -> South",
+      "source_file": "src/Example/ConstConstructorLib.hs",
+      "source_lines": [
+        "pick = North ?: East"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "pick",
+      "col_end": 16,
+      "col_start": 14,
+      "context_after": [
+        "",
+        "-- | The head of a list, as a 'MyMaybe'.",
+        "--"
+      ],
+      "context_before": [
+        "",
+        "-- | The direction for a number, chosen by an infix partial application.",
+        "pick :: Int -> Direction"
+      ],
+      "end_line": 108,
+      "id": [
+        "Example.ConstConstructorLib",
+        "Control",
+        "108",
+        "14",
+        "16",
+        "1"
+      ],
+      "line": 108,
+      "module": "Example.ConstConstructorLib",
+      "mutated_lines": [
+        "pick = North ?: East"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/ConstConstructorLib.hs",
       "source_lines": [
         "pick = North ?: East"
@@ -886,16 +1020,16 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "8",
         "13",
         "1"
       ],
-      "line": 106,
+      "line": 108,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = East ?: East"
@@ -922,16 +1056,16 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "8",
         "13",
         "2"
       ],
-      "line": 106,
+      "line": 108,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = South ?: East"
@@ -939,44 +1073,6 @@
       "operator": "ConstConstructor",
       "original": "North",
       "replacement": "South",
-      "source_file": "src/Example/ConstConstructorLib.hs",
-      "source_lines": [
-        "pick = North ?: East"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "pick",
-      "col_end": 13,
-      "col_start": 8,
-      "context_after": [
-        "",
-        "-- | The head of a list, as a 'MyMaybe'.",
-        "--"
-      ],
-      "context_before": [
-        "",
-        "-- | The direction for a number, chosen by an infix partial application.",
-        "pick :: Int -> Direction"
-      ],
-      "end_line": 106,
-      "id": [
-        "Example.ConstConstructorLib",
-        "Control",
-        "106",
-        "8",
-        "13",
-        "1"
-      ],
-      "line": 106,
-      "module": "Example.ConstConstructorLib",
-      "mutated_lines": [
-        "pick = North ?: East"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstConstructorLib.hs",
       "source_lines": [
         "pick = North ?: East"
@@ -999,16 +1095,16 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "17",
         "21",
         "1"
       ],
-      "line": 106,
+      "line": 108,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = North ?: North"
@@ -1035,16 +1131,16 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "17",
         "21",
         "2"
       ],
-      "line": 106,
+      "line": 108,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = North ?: South"
@@ -1073,16 +1169,16 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "8",
         "21",
         "1"
       ],
-      "line": 106,
+      "line": 108,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = (\\_ -> North)"
@@ -1109,16 +1205,16 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "8",
         "21",
         "2"
       ],
-      "line": 106,
+      "line": 108,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = (\\_ -> East)"
@@ -1145,16 +1241,16 @@
         "-- | The direction for a number, chosen by an infix partial application.",
         "pick :: Int -> Direction"
       ],
-      "end_line": 106,
+      "end_line": 108,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "106",
+        "108",
         "8",
         "21",
         "3"
       ],
-      "line": 106,
+      "line": 108,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "pick = (\\_ -> South)"
@@ -1183,16 +1279,16 @@
         "-- equivalent mutant no test can kill.",
         "taggedOn :: Tagged Int"
       ],
-      "end_line": 92,
+      "end_line": 94,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "92",
+        "94",
         "12",
         "14",
         "1"
       ],
-      "line": 92,
+      "line": 94,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "taggedOn = Off :: Tagged Int"
@@ -1221,16 +1317,16 @@
         "-- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.",
         "taggedOff :: Tagged Int"
       ],
-      "end_line": 83,
+      "end_line": 85,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "83",
+        "85",
         "13",
         "16",
         "1"
       ],
-      "line": 83,
+      "line": 85,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "taggedOff = On"
@@ -1259,16 +1355,17 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "78",
+        "80",
         "13",
         "14",
         "1"
       ],
-      "line": 78,
+      "line": 80,
+      "mitigation": "If `d` always returns the same constructor this is an equivalent mutant that no test can kill; add `d` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = North == North"
@@ -1295,16 +1392,17 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "78",
+        "80",
         "13",
         "14",
         "2"
       ],
-      "line": 78,
+      "line": 80,
+      "mitigation": "If `d` always returns the same constructor this is an equivalent mutant that no test can kill; add `d` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = East == North"
@@ -1331,16 +1429,17 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "78",
+        "80",
         "13",
         "14",
         "3"
       ],
-      "line": 78,
+      "line": 80,
+      "mitigation": "If `d` always returns the same constructor this is an equivalent mutant that no test can kill; add `d` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = South == North"
@@ -1348,6 +1447,44 @@
       "operator": "ConstConstructor",
       "original": "e",
       "replacement": "South",
+      "source_file": "src/Example/ConstConstructorLib.hs",
+      "source_lines": [
+        "isNorth d = d == North"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "isNorth",
+      "col_end": 14,
+      "col_start": 13,
+      "context_after": [
+        "",
+        "-- | A 'Tagged' value at a concrete type argument.  The only other",
+        "-- constructor is 'On', so 'ConstConstructor' produces exactly one mutant."
+      ],
+      "context_before": [
+        "-- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed",
+        "-- operands do carry one each.",
+        "isNorth :: Direction -> Bool"
+      ],
+      "end_line": 80,
+      "id": [
+        "Example.ConstConstructorLib",
+        "Control",
+        "80",
+        "13",
+        "14",
+        "2"
+      ],
+      "line": 80,
+      "module": "Example.ConstConstructorLib",
+      "mutated_lines": [
+        "isNorth d = d == North"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/ConstConstructorLib.hs",
       "source_lines": [
         "isNorth d = d == North"
@@ -1369,16 +1506,16 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "78",
+        "80",
         "18",
         "23",
         "1"
       ],
-      "line": 78,
+      "line": 80,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = d == East"
@@ -1405,16 +1542,16 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "78",
+        "80",
         "18",
         "23",
         "2"
       ],
-      "line": 78,
+      "line": 80,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = d == South"
@@ -1422,44 +1559,6 @@
       "operator": "ConstConstructor",
       "original": "North",
       "replacement": "South",
-      "source_file": "src/Example/ConstConstructorLib.hs",
-      "source_lines": [
-        "isNorth d = d == North"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "isNorth",
-      "col_end": 23,
-      "col_start": 18,
-      "context_after": [
-        "",
-        "-- | A 'Tagged' value at a concrete type argument.  The only other",
-        "-- constructor is 'On', so 'ConstConstructor' produces exactly one mutant."
-      ],
-      "context_before": [
-        "-- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed",
-        "-- operands do carry one each.",
-        "isNorth :: Direction -> Bool"
-      ],
-      "end_line": 78,
-      "id": [
-        "Example.ConstConstructorLib",
-        "Control",
-        "78",
-        "18",
-        "23",
-        "2"
-      ],
-      "line": 78,
-      "module": "Example.ConstConstructorLib",
-      "mutated_lines": [
-        "isNorth d = d == North"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstConstructorLib.hs",
       "source_lines": [
         "isNorth d = d == North"
@@ -1481,16 +1580,16 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "ConstBool",
-        "78",
+        "80",
         "13",
         "23",
         "1"
       ],
-      "line": 78,
+      "line": 80,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = True"
@@ -1517,16 +1616,16 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "ConstBool",
-        "78",
+        "80",
         "13",
         "23",
         "2"
       ],
-      "line": 78,
+      "line": 80,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = False"
@@ -1555,16 +1654,16 @@
         "-- operands do carry one each.",
         "isNorth :: Direction -> Bool"
       ],
-      "end_line": 78,
+      "end_line": 80,
       "id": [
         "Example.ConstConstructorLib",
         "Negate",
-        "78",
+        "80",
         "13",
         "23",
         "1"
       ],
-      "line": 78,
+      "line": 80,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "isNorth d = not (d == North)"
@@ -1593,16 +1692,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstBool",
-        "60",
+        "62",
         "20",
         "26",
         "1"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = if True then North else East"
@@ -1629,16 +1728,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstBool",
-        "60",
+        "62",
         "20",
         "26",
         "2"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = if False then North else East"
@@ -1667,16 +1766,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "Negate",
-        "60",
+        "62",
         "20",
         "26",
         "1"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = if not (even n) then North else East"
@@ -1705,16 +1804,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "60",
+        "62",
         "32",
         "37",
         "1"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = if even n then East else East"
@@ -1741,16 +1840,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "60",
+        "62",
         "32",
         "37",
         "2"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = if even n then South else East"
@@ -1779,16 +1878,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "60",
+        "62",
         "43",
         "47",
         "1"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = if even n then North else North"
@@ -1815,16 +1914,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "60",
+        "62",
         "43",
         "47",
         "2"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = if even n then North else South"
@@ -1832,6 +1931,44 @@
       "operator": "ConstConstructor",
       "original": "East",
       "replacement": "South",
+      "source_file": "src/Example/ConstConstructorLib.hs",
+      "source_lines": [
+        "directionOf n = if even n then North else East"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "directionOf",
+      "col_end": 47,
+      "col_start": 43,
+      "context_after": [
+        "",
+        "-- | The directions for a list of numbers.",
+        "--"
+      ],
+      "context_before": [
+        "--   * the two branches, which are constructors, so each is replaced by the",
+        "--     two /other/ constructors and never by itself.",
+        "directionOf :: Int -> Direction"
+      ],
+      "end_line": 62,
+      "id": [
+        "Example.ConstConstructorLib",
+        "Control",
+        "62",
+        "43",
+        "47",
+        "3"
+      ],
+      "line": 62,
+      "module": "Example.ConstConstructorLib",
+      "mutated_lines": [
+        "directionOf n = if even n then North else East"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
       "source_file": "src/Example/ConstConstructorLib.hs",
       "source_lines": [
         "directionOf n = if even n then North else East"
@@ -1853,16 +1990,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "60",
+        "62",
         "17",
         "47",
         "1"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = North"
@@ -1889,16 +2026,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "60",
+        "62",
         "17",
         "47",
         "2"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = East"
@@ -1925,16 +2062,16 @@
         "--     two /other/ constructors and never by itself.",
         "directionOf :: Int -> Direction"
       ],
-      "end_line": 60,
+      "end_line": 62,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "60",
+        "62",
         "17",
         "47",
         "3"
       ],
-      "line": 60,
+      "line": 62,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionOf n = South"
@@ -1942,44 +2079,6 @@
       "operator": "ConstConstructor",
       "original": "e",
       "replacement": "South",
-      "source_file": "src/Example/ConstConstructorLib.hs",
-      "source_lines": [
-        "directionOf n = if even n then North else East"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "directionOf",
-      "col_end": 47,
-      "col_start": 17,
-      "context_after": [
-        "",
-        "-- | The directions for a list of numbers.",
-        "--"
-      ],
-      "context_before": [
-        "--   * the two branches, which are constructors, so each is replaced by the",
-        "--     two /other/ constructors and never by itself.",
-        "directionOf :: Int -> Direction"
-      ],
-      "end_line": 60,
-      "id": [
-        "Example.ConstConstructorLib",
-        "Control",
-        "60",
-        "17",
-        "47",
-        "3"
-      ],
-      "line": 60,
-      "module": "Example.ConstConstructorLib",
-      "mutated_lines": [
-        "directionOf n = if even n then North else East"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/ConstConstructorLib.hs",
       "source_lines": [
         "directionOf n = if even n then North else East"
@@ -2001,16 +2100,16 @@
         "-- @(\\\\_ -> East)@ and @(\\\\_ -> South)@.",
         "directionsOf :: [Int] -> [Direction]"
       ],
-      "end_line": 68,
+      "end_line": 70,
       "id": [
         "Example.ConstConstructorLib",
         "ConstEmptyList",
-        "68",
+        "70",
         "16",
         "19",
         "1"
       ],
-      "line": 68,
+      "line": 70,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionsOf = (\\_ _ -> []) directionOf"
@@ -2039,16 +2138,17 @@
         "-- @(\\\\_ -> East)@ and @(\\\\_ -> South)@.",
         "directionsOf :: [Int] -> [Direction]"
       ],
-      "end_line": 68,
+      "end_line": 70,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "68",
+        "70",
         "20",
         "31",
         "1"
       ],
-      "line": 68,
+      "line": 70,
+      "mitigation": "If `directionOf` always returns the same constructor this is an equivalent mutant that no test can kill; add `directionOf` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionsOf = map (\\_ -> North)"
@@ -2075,16 +2175,17 @@
         "-- @(\\\\_ -> East)@ and @(\\\\_ -> South)@.",
         "directionsOf :: [Int] -> [Direction]"
       ],
-      "end_line": 68,
+      "end_line": 70,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "68",
+        "70",
         "20",
         "31",
         "2"
       ],
-      "line": 68,
+      "line": 70,
+      "mitigation": "If `directionOf` always returns the same constructor this is an equivalent mutant that no test can kill; add `directionOf` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionsOf = map (\\_ -> East)"
@@ -2111,16 +2212,17 @@
         "-- @(\\\\_ -> East)@ and @(\\\\_ -> South)@.",
         "directionsOf :: [Int] -> [Direction]"
       ],
-      "end_line": 68,
+      "end_line": 70,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "68",
+        "70",
         "20",
         "31",
         "3"
       ],
-      "line": 68,
+      "line": 70,
+      "mitigation": "If `directionOf` always returns the same constructor this is an equivalent mutant that no test can kill; add `directionOf` to this operator's `skip-calls-to` config to suppress it.",
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionsOf = map (\\_ -> South)"
@@ -2149,16 +2251,16 @@
         "-- @(\\\\_ -> East)@ and @(\\\\_ -> South)@.",
         "directionsOf :: [Int] -> [Direction]"
       ],
-      "end_line": 68,
+      "end_line": 70,
       "id": [
         "Example.ConstConstructorLib",
         "ConstEmptyList",
-        "68",
+        "70",
         "16",
         "31",
         "1"
       ],
-      "line": 68,
+      "line": 70,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "directionsOf = (\\_ -> [])"

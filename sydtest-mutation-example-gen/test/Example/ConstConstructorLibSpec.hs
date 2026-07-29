@@ -69,3 +69,11 @@ spec = do
   describe "northAt" $
     it "holds north at the given key" $
       northAt 3 `shouldBe` Map.singleton 3 North
+
+  describe "constantDirection" $
+    it "is north" $
+      constantDirection () `shouldBe` North
+
+  describe "homeDirection" $
+    it "is north" $
+      homeDirection `shouldBe` North

@@ -31,6 +31,22 @@ spec = do
     it "is on" $
       taggedOn `shouldBe` On
 
+  describe "(?:)" $ do
+    it "picks the first direction for an even number" $
+      (North ?: East) 0 `shouldBe` North
+    it "picks the second direction for an odd number" $
+      (North ?: East) 1 `shouldBe` East
+    it "picks the first direction of another pair for an even number" $
+      (South ?: North) 0 `shouldBe` South
+    it "picks the second direction of another pair for an odd number" $
+      (South ?: North) 1 `shouldBe` North
+
+  describe "pick" $ do
+    it "picks north for an even number" $
+      pick 0 `shouldBe` North
+    it "picks east for an odd number" $
+      pick 1 `shouldBe` East
+
   describe "myHead" $ do
     it "has no head for an empty list" $
       myHead ([] :: [Int]) `shouldBe` MyNothing

@@ -8,6 +8,8 @@ module Example.ConstConstructorLib
     isNorth,
     taggedOff,
     taggedOn,
+    (?:),
+    pick,
     myHead,
     unitSquare,
     ignoreDirection,
@@ -83,6 +85,20 @@ taggedOff = Off
 -- equivalent mutant no test can kill.
 taggedOn :: Tagged Int
 taggedOn = On :: Tagged Int
+
+-- | Pick between two directions by the parity of a third argument.
+--
+-- The third argument makes an infix use of this operator a /partial/
+-- application, which is the shape that lands a mutation on the operator token
+-- itself: 'ConstConstructor' matches the bare @?:@ at arity 3.  Splicing a
+-- lambda into the operator slot would not reparse, so the preview has to
+-- rewrite the whole infix expression in prefix form instead.
+(?:) :: Direction -> Direction -> Int -> Direction
+(?:) a b n = if even n then a else b
+
+-- | The direction for a number, chosen by an infix partial application.
+pick :: Int -> Direction
+pick = North ?: East
 
 -- | The head of a list, as a 'MyMaybe'.
 --

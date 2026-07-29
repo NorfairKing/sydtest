@@ -28,6 +28,12 @@
   walker did not descend into `e :: T`, so nothing inside such an expression
   was a mutation site for any operator.
 
+* The manifest preview for a constant-function mutation on an infix operator
+  of arity 3 or more no longer drops the operands.  It rendered `a <+> b` as
+  `(\_ _ _ -> v)`, which does not even have the type of the expression it
+  replaces; the mutation applies the constant function to both operands, so
+  the preview now reads `(\_ _ _ -> v) (a) (b)`.
+
 ## [0.4.4.0] - 2026-06-20
 
 ### Fixed

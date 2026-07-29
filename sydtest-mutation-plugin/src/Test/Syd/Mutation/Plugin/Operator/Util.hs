@@ -380,12 +380,15 @@ arrowTy as resTy = foldr mkVisFunTyMany resTy as
 -- Given operand source text and a mutant rendering, produces text that
 -- replaces the whole enclosing @OpApp@ source span in prefix form:
 --
---   arity 2:  @(\\_ _ -> v) (lhsText) (rhsText)@
---   arity 1:  @(\\_ -> v) (rhsText)@           — the partial app
---                                              consumed the LHS already.
+--   arity \>= 2:  @(\\_ _ -> v) (lhsText) (rhsText)@ — the mutant stands in
+--                for the operator, which the enclosing @OpApp@ applies to
+--                both operands however many arguments it goes on to take.
+--   arity 1:     @(\\_ -> v) (rhsText)@ — the partial app consumed the LHS
+--                already.
 --
 -- The result reparses as a normal Haskell expression and has the same
 -- runtime semantics as the AST mutation, so the manifest diff is honest.
+-- Callers only reach here at arity \>= 1 (a constant needs no prefix form).
 prefixFormPreview ::
   -- | Arity of the constant function being inserted.
   Int ->
@@ -397,16 +400,10 @@ prefixFormPreview ::
   Text ->
   Text
 prefixFormPreview arity vText lhsText rhsText =
-  let lam =
-        "(\\"
-          <> T.replicate arity "_ "
-          <> "-> "
-          <> vText
-          <> ")"
+  let lam = T.concat ["(\\", T.replicate arity "_ ", "-> ", vText, ")"]
    in case arity of
-        2 -> lam <> " (" <> lhsText <> ") (" <> rhsText <> ")"
-        1 -> lam <> " (" <> rhsText <> ")"
-        _ -> lam
+        1 -> T.concat [lam, " (", rhsText, ")"]
+        _ -> T.concat [lam, " (", lhsText, ") (", rhsText, ")"]
 
 -- | The value arguments of a prefix application, in source order, together
 -- with the function at the head.

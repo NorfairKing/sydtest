@@ -30,7 +30,7 @@ library:
   - path
   - path-io
   - safe-coloured-text
-  - sydtest-mutation-runtime >=0.1
+  - sydtest-mutation-runtime >=0.1.1
   - template-haskell
   - text
 

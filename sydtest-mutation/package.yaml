@@ -1,5 +1,5 @@
 name: sydtest-mutation
-version: 0.1.0.0
+version: 0.1.0.1
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -44,5 +44,5 @@ tests:
     - safe-coloured-text
     - sydtest
     - sydtest-mutation
-    - sydtest-mutation-runtime
+    - sydtest-mutation-runtime >=0.1.1
     - text

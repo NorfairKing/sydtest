@@ -40,6 +40,7 @@ library
       Example.RemoveClauseLib
       Example.SwitchArgsLib
       Example.TupleSwapLib
+      Example.TypeSigLib
       Example.UnliftedLib
       Example.UntestedLib
   other-modules:

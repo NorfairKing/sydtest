@@ -1,0 +1,68 @@
+[
+  [
+    {
+      "binding": "diffOf",
+      "col_end": 19,
+      "col_start": 14,
+      "context_after": [],
+      "context_before": [
+        "-- is not a second site: it has the same type and value as the expression",
+        "-- inside it, so mutating both would record every mutation twice.",
+        "diffOf :: Int -> Int -> Int"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.TypeSigLib",
+        "Arith",
+        "11",
+        "14",
+        "19",
+        "1"
+      ],
+      "line": 11,
+      "module": "Example.TypeSigLib",
+      "mutated_lines": [
+        "diffOf a b = a + b :: Int"
+      ],
+      "operator": "Arith",
+      "original": "-",
+      "replacement": "+",
+      "source_file": "src/Example/TypeSigLib.hs",
+      "source_lines": [
+        "diffOf a b = a - b :: Int"
+      ]
+    },
+    {
+      "binding": "diffOf",
+      "col_end": 19,
+      "col_start": 14,
+      "context_after": [],
+      "context_before": [
+        "-- is not a second site: it has the same type and value as the expression",
+        "-- inside it, so mutating both would record every mutation twice.",
+        "diffOf :: Int -> Int -> Int"
+      ],
+      "end_line": 11,
+      "id": [
+        "Example.TypeSigLib",
+        "Arith",
+        "11",
+        "14",
+        "19",
+        "2"
+      ],
+      "line": 11,
+      "module": "Example.TypeSigLib",
+      "mutated_lines": [
+        "diffOf a b = a * b :: Int"
+      ],
+      "operator": "Arith",
+      "original": "-",
+      "replacement": "*",
+      "source_file": "src/Example/TypeSigLib.hs",
+      "source_lines": [
+        "diffOf a b = a - b :: Int"
+      ]
+    }
+  ]
+]

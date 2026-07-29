@@ -1,8 +1,8 @@
 [36m# Example.ConstConstructorLib[m
 32 mutations in 19 groups
 
-IntLit at src/Example/ConstConstructorLib.hs:98:21-22 #1
-[36m@@ -95,7 +95,7 @@[m
+IntLit at src/Example/ConstConstructorLib.hs:99:21-22 #1
+[36m@@ -96,7 +96,7 @@[m
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
@@ -12,8 +12,8 @@ IntLit at src/Example/ConstConstructorLib.hs:98:21-22 #1
  -- | Throw a direction away.
  --
 
-IntLit at src/Example/ConstConstructorLib.hs:98:21-22 #2
-[36m@@ -95,7 +95,7 @@[m
+IntLit at src/Example/ConstConstructorLib.hs:99:21-22 #2
+[36m@@ -96,7 +96,7 @@[m
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
@@ -23,8 +23,8 @@ IntLit at src/Example/ConstConstructorLib.hs:98:21-22 #2
  -- | Throw a direction away.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:94:18-26 #1
-[36m@@ -91,7 +91,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:95:18-26 #1
+[36m@@ -92,7 +92,7 @@[m
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
  myHead [] = MyNothing
@@ -34,8 +34,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:94:18-26 #1
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
 
-RemoveClause at src/Example/ConstConstructorLib.hs:93:1-22 #1
-[36m@@ -90,7 +90,6 @@[m
+RemoveClause at src/Example/ConstConstructorLib.hs:94:1-22 #1
+[36m@@ -91,7 +91,6 @@[m
  -- constant-inserting operator does.  The @MyNothing@ branch already /is/ the
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
@@ -44,8 +44,8 @@ RemoveClause at src/Example/ConstConstructorLib.hs:93:1-22 #1
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
 
-RemoveClause at src/Example/ConstConstructorLib.hs:94:1-26 #2
-[36m@@ -91,7 +91,6 @@[m
+RemoveClause at src/Example/ConstConstructorLib.hs:95:1-26 #2
+[36m@@ -92,7 +92,6 @@[m
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
  myHead [] = MyNothing
@@ -54,13 +54,13 @@ RemoveClause at src/Example/ConstConstructorLib.hs:94:1-26 #2
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:84:12-28 #1
-[36m@@ -81,7 +81,7 @@[m
- -- constructor this expression already is: without that, it offers 'On' as a
- -- replacement for 'On', which is an equivalent mutant no test can kill.
+ConstConstructor at src/Example/ConstConstructorLib.hs:85:12-14 #1
+[36m@@ -82,7 +82,7 @@[m
+ -- offers only 'Off'.  Offering 'On' as a replacement for 'On' would be an
+ -- equivalent mutant no test can kill.
  taggedOn :: Tagged Int
-[31m-[m[31mtaggedOn = O[m[1;91mn[m[1;91m :[m[1;91m: Ta[m[1;91mgged Int[m
-[32m+[m[32mtaggedOn = O[m[1;92mf[m[1;92mf[m
+[31m-[m[31mtaggedOn = O[m[1;91mn[m[31m :: Tagged Int[m
+[32m+[m[32mtaggedOn = O[m[1;92mf[m[1;92mf[m[32m :: Tagged Int[m
  
  -- | The head of a list, as a 'MyMaybe'.
  --
@@ -73,7 +73,7 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:76:13-16 #1
 [31m-[m[31mtaggedOff = O[m[1;91mf[m[1;91mf[m
 [32m+[m[32mtaggedOff = O[m[1;92mn[m
  
- -- | The same constant under a type signature.
+ -- | The same constant under an inline type signature.
  --
 
 ConstConstructor at src/Example/ConstConstructorLib.hs:71:13-14 #1

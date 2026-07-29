@@ -942,13 +942,14 @@ instrumentLExprGo le = do
   -- mutant directly without needing to recurse into it for other mutations.
   le' <- traverse (instrumentExpr (getLocA le)) le
   case unLoc le of
-    -- Parentheses are pure syntax: the expression inside has the same type and
-    -- the same value, and the walker visits it in its own right.  Offering the
-    -- 'HsPar' node to the operators as well would record every one of the inner
-    -- expression's mutations a second time, at the parenthesised span: two
-    -- mutants that no test can tell apart, in a run whose cost is one test
-    -- suite per mutation.
+    -- Parentheses and an inline type signature are pure syntax: the expression
+    -- inside has the same type and the same value, and the walker visits it in
+    -- its own right.  Offering these nodes to the operators as well would
+    -- record every one of the inner expression's mutations a second time, at
+    -- the wider span: two mutants that no test can tell apart, in a run whose
+    -- cost is one test suite per mutation.
     HsPar {} -> pure le'
+    ExprWithTySig {} -> pure le'
     _ -> do
       InstrumentEnv {instrumentEnvOperators} <- ask
       tryMutateWith instrumentEnvOperators le le'
@@ -971,6 +972,10 @@ instrumentExpr _sp = \case
   HsDo x ctx stmts -> HsDo x ctx <$> traverse (mapM instrumentStmt) stmts
   ExplicitList x es -> ExplicitList x <$> mapM instrumentLExpr es
   HsPar x e -> HsPar x <$> instrumentLExpr e
+  -- Without this case an inline type signature would hide its whole subtree
+  -- from every operator: @f (g x :: T)@ would offer no mutation on @g x@ at
+  -- all, since 'instrumentLExprGo' does not mutate the signature node itself.
+  ExprWithTySig x e sig -> ExprWithTySig x <$> instrumentLExpr e <*> pure sig
   NegApp x e se -> NegApp x <$> instrumentLExpr e <*> pure se
   OpApp x l op r -> OpApp x <$> instrumentLExpr l <*> pure op <*> instrumentLExpr r
   ExplicitTuple x args bx -> ExplicitTuple x <$> mapM instrumentTupArg args <*> pure bx

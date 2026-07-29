@@ -17,6 +17,17 @@
   fewer than two constructors (including `()`), which has no alternative
   value to offer.
 
+### Fixed
+
+* A parenthesised expression is no longer mutated twice.  Every operator that
+  fired on the expression inside also fired on the `HsPar` node around it,
+  recording two mutations that differ only in span and that no test can tell
+  apart.
+
+* An expression under an inline type signature is now instrumented.  The
+  walker did not descend into `e :: T`, so nothing inside such an expression
+  was a mutation site for any operator.
+
 ## [0.4.4.0] - 2026-06-20
 
 ### Fixed

@@ -14,16 +14,16 @@
         "-- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.",
         "unitSquare :: Shape"
       ],
-      "end_line": 98,
+      "end_line": 99,
       "id": [
         "Example.ConstConstructorLib",
         "IntLit",
-        "98",
+        "99",
         "21",
         "22",
         "1"
       ],
-      "line": 98,
+      "line": 99,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "unitSquare = Square 0"
@@ -50,16 +50,16 @@
         "-- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.",
         "unitSquare :: Shape"
       ],
-      "end_line": 98,
+      "end_line": 99,
       "id": [
         "Example.ConstConstructorLib",
         "IntLit",
-        "98",
+        "99",
         "21",
         "22",
         "2"
       ],
-      "line": 98,
+      "line": 99,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "unitSquare = Square -1"
@@ -88,16 +88,16 @@
         "myHead :: [a] -> MyMaybe a",
         "myHead [] = MyNothing"
       ],
-      "end_line": 94,
+      "end_line": 95,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "94",
+        "95",
         "18",
         "26",
         "1"
       ],
-      "line": 94,
+      "line": 95,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
         "myHead (x : _) = MyNothing"
@@ -126,16 +126,16 @@
         "-- only constant of the type, so it is not a mutation site at all.",
         "myHead :: [a] -> MyMaybe a"
       ],
-      "end_line": 93,
+      "end_line": 94,
       "id": [
         "Example.ConstConstructorLib",
         "RemoveClause",
-        "93",
+        "94",
         "1",
         "22",
         "1"
       ],
-      "line": 93,
+      "line": 94,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [],
       "operator": "RemoveClause",
@@ -160,16 +160,16 @@
         "myHead :: [a] -> MyMaybe a",
         "myHead [] = MyNothing"
       ],
-      "end_line": 94,
+      "end_line": 95,
       "id": [
         "Example.ConstConstructorLib",
         "RemoveClause",
-        "94",
+        "95",
         "1",
         "26",
         "2"
       ],
-      "line": 94,
+      "line": 95,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [],
       "operator": "RemoveClause",
@@ -184,7 +184,7 @@
   [
     {
       "binding": "taggedOn",
-      "col_end": 28,
+      "col_end": 14,
       "col_start": 12,
       "context_after": [
         "",
@@ -192,23 +192,23 @@
         "--"
       ],
       "context_before": [
-        "-- constructor this expression already is: without that, it offers 'On' as a",
-        "-- replacement for 'On', which is an equivalent mutant no test can kill.",
+        "-- offers only 'Off'.  Offering 'On' as a replacement for 'On' would be an",
+        "-- equivalent mutant no test can kill.",
         "taggedOn :: Tagged Int"
       ],
-      "end_line": 84,
+      "end_line": 85,
       "id": [
         "Example.ConstConstructorLib",
         "ConstConstructor",
-        "84",
+        "85",
         "12",
-        "28",
+        "14",
         "1"
       ],
-      "line": 84,
+      "line": 85,
       "module": "Example.ConstConstructorLib",
       "mutated_lines": [
-        "taggedOn = Off"
+        "taggedOn = Off :: Tagged Int"
       ],
       "operator": "ConstConstructor",
       "original": "On",
@@ -226,7 +226,7 @@
       "col_start": 13,
       "context_after": [
         "",
-        "-- | The same constant under a type signature.",
+        "-- | The same constant under an inline type signature.",
         "--"
       ],
       "context_before": [

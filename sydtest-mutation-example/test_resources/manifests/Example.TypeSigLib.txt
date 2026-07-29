@@ -1,0 +1,18 @@
+[36m# Example.TypeSigLib[m
+2 mutations in 1 group
+
+Arith at src/Example/TypeSigLib.hs:11:14-19 #1
+[36m@@ -8,4 +8,4 @@[m
+ -- is not a second site: it has the same type and value as the expression
+ -- inside it, so mutating both would record every mutation twice.
+ diffOf :: Int -> Int -> Int
+[31m-[m[31mdiffOf a b = a [m[1;91m-[m[31m b :: Int[m
+[32m+[m[32mdiffOf a b = a [m[1;92m+[m[32m b :: Int[m
+
+Arith at src/Example/TypeSigLib.hs:11:14-19 #2
+[36m@@ -8,4 +8,4 @@[m
+ -- is not a second site: it has the same type and value as the expression
+ -- inside it, so mutating both would record every mutation twice.
+ diffOf :: Int -> Int -> Int
+[31m-[m[31mdiffOf a b = a [m[1;91m-[m[31m b :: Int[m
+[32m+[m[32mdiffOf a b = a [m[1;92m*[m[32m b :: Int[m

@@ -75,11 +75,12 @@ isNorth d = d == North
 taggedOff :: Tagged Int
 taggedOff = Off
 
--- | The same constant under a type signature.
+-- | The same constant under an inline type signature.
 --
--- 'ConstConstructor' has to see through the signature to recognise which
--- constructor this expression already is: without that, it offers 'On' as a
--- replacement for 'On', which is an equivalent mutant no test can kill.
+-- The mutation site is the constructor itself, not the signature node, so
+-- 'ConstConstructor' sees which constructor this expression already is and
+-- offers only 'Off'.  Offering 'On' as a replacement for 'On' would be an
+-- equivalent mutant no test can kill.
 taggedOn :: Tagged Int
 taggedOn = On :: Tagged Int
 

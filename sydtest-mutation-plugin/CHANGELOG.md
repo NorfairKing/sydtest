@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.5.1] - 2026-07-29
+
+### Fixed
+
+* `ConstConstructor` no longer replaces a binding that is defined as a nullary
+  constructor with that same constructor.  `Data.Map.empty` is `Tip`, so
+  rewriting it to `Tip` produced an unkillable mutant at every use of it (and
+  of `Set.empty`, `Seq.empty`, and any `emptyFoo = NoFoo` of your own).  The
+  operator already declined this no-op where the constructor is written out;
+  it now also recognises it through a name, by reading the unfolding GHC
+  recorded for the binding.  A binding in the module being compiled has no
+  unfolding yet, so an alias defined locally is still mutated to itself.
+
 ## [0.4.5.0] - 2026-07-29
 
 ### Added

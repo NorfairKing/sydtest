@@ -8,12 +8,14 @@ import Control.Monad.Reader (asks)
 import qualified Data.Text as T
 import GHC
 import GHC.Builtin.Types (boolTyCon, listTyCon, maybeTyCon)
+import GHC.Core (CoreExpr, Expr (..), isTyCoArg, maybeUnfoldingTemplate)
 import GHC.Core.ConLike (ConLike (RealDataCon))
 import GHC.Core.DataCon (dataConFullSig, dataConWrapId)
 import GHC.Core.TyCon (tyConDataCons_maybe)
 import GHC.Core.Type (splitTyConApp_maybe)
-import GHC.Types.Id (isDataConId_maybe)
+import GHC.Types.Id (isDataConId_maybe, realIdUnfolding)
 import GHC.Types.Name.Occurrence (isSymOcc, occNameString)
+import GHC.Types.Var (isTyVar)
 import Test.Syd.Mutation.Plugin.Instrument (InstrM, InstrumentEnv (..), MutationAlt (..), MutationOperator (..), MutationOperatorKind (..), OpAppCtx (..), SrcSpanDelta (..))
 import Test.Syd.Mutation.Plugin.Operator.Util (ConstFnMatch (..), ConstructorHeads (..), arrowTy, mkConstLambda, prefixFormPreview, viewConstFnResultBy)
 
@@ -175,14 +177,54 @@ isConstantDataCon dc =
 -- application.  Peels the wrappers the typechecker leaves around a
 -- constructor occurrence, mirroring
 -- 'Test.Syd.Mutation.Plugin.Operator.Util.nonConstructorHead'.
+--
+-- A variable counts when it is a constructor itself and also when it is a
+-- binding defined as one; see 'aliasedConstructor'.
 constructorHead :: LHsExpr GhcTc -> Maybe DataCon
 constructorHead = \case
   L _ (XExpr (ConLikeTc (RealDataCon dc) _ _)) -> Just dc
-  L _ (HsVar _ (L _ v)) -> isDataConId_maybe v
+  L _ (HsVar _ (L _ v)) -> case isDataConId_maybe v of
+    Just dc -> Just dc
+    Nothing -> aliasedConstructor v
   L _ (HsApp _ f _) -> constructorHead f
   L _ (HsAppType _ f _) -> constructorHead f
   L _ (HsPar _ e) -> constructorHead e
   L _ (ExprWithTySig _ e _) -> constructorHead e
   L _ (XExpr (WrapExpr (HsWrap _ e))) -> constructorHead (noLocA e)
   L _ (XExpr (ExpandedThingTc _ e)) -> constructorHead (noLocA e)
+  _ -> Nothing
+
+-- | The nullary constructor a binding is an alias for, read off the unfolding
+-- GHC recorded for it.
+--
+-- @Data.Map.Strict.empty@ is @Tip@: an ordinary function whose entire
+-- definition is a nullary constructor.  Replacing an occurrence of it with
+-- that constructor is exactly the no-op this operator already declines to
+-- offer when the constructor is written out, only reached through a name, so
+-- it has to be recognised here or every @Map.empty@ in a codebase becomes an
+-- unkillable mutant.  The same holds for @Set.empty@, @Seq.empty@, and any
+-- @emptyFoo = NoFoo@ of the user's own.
+--
+-- Best-effort: only an imported binding has an unfolding at this stage, and
+-- only when its defining module was compiled with enough optimisation to
+-- record one.  A miss costs a no-op mutant, which is what would be produced
+-- without this check at all.
+aliasedConstructor :: Id -> Maybe DataCon
+aliasedConstructor v = do
+  template <- maybeUnfoldingTemplate (realIdUnfolding v)
+  coreConstructorHead template
+
+-- | The constructor a Core expression is a bare occurrence of.
+--
+-- Type abstractions and type applications are peeled because a constructor of
+-- a parameterised type reaches its use site under them (@empty@ unfolds to
+-- @\\\@k \\\@a -> Tip \@k \@a@).  A value argument is not peeled: it means the
+-- constructor is applied to something and so is not a constant of its type.
+coreConstructorHead :: CoreExpr -> Maybe DataCon
+coreConstructorHead = \case
+  Var i -> isDataConId_maybe i
+  App f a | isTyCoArg a -> coreConstructorHead f
+  Lam b e | isTyVar b -> coreConstructorHead e
+  Cast e _ -> coreConstructorHead e
+  Tick _ e -> coreConstructorHead e
   _ -> Nothing

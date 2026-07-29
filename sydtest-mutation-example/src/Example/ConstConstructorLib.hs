@@ -13,8 +13,13 @@ module Example.ConstConstructorLib
     myHead,
     unitSquare,
     ignoreDirection,
+    noDirections,
+    northAt,
   )
 where
+
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 
 -- | A three-constructor enumeration: every constructor is nullary, so
 -- 'ConstConstructor' can switch any 'Direction'-typed expression to any of
@@ -120,3 +125,23 @@ unitSquare = Square 1
 -- and 'ConstConstructor' does not fire.
 ignoreDirection :: Direction -> ()
 ignoreDirection _ = ()
+
+-- | An empty 'Map', written through the alias containers exports for it.
+--
+-- @Map@ has two constructors, one of them the nullary @Tip@, so the type
+-- qualifies.  But @Map.empty@ /is/ @Tip@ -- it is an ordinary function whose
+-- entire definition is that constructor -- so replacing this expression with
+-- @Tip@ is an equivalent mutant no test can kill.  It is the same no-op the
+-- operator already declines to offer for @taggedOn@, reached through a
+-- function rather than by writing the constructor out, so this expression
+-- carries no 'ConstConstructor' site.
+noDirections :: Map Int Direction
+noDirections = Map.empty
+
+-- | A 'Map' that is not empty.
+--
+-- The equivalence above is a property of the expression, not of the type:
+-- emptying a map that holds something is a real mutation, so
+-- 'ConstConstructor' does fire here and offers @Tip@.
+northAt :: Int -> Map Int Direction
+northAt n = Map.singleton n North

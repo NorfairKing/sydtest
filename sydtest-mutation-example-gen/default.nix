@@ -1,5 +1,6 @@
-{ mkDerivation, base, lib, QuickCheck, sydtest, sydtest-discover
-, sydtest-mutation-example, sydtest-mutation-example-cross
+{ mkDerivation, base, containers, lib, QuickCheck, sydtest
+, sydtest-discover, sydtest-mutation-example
+, sydtest-mutation-example-cross
 }:
 mkDerivation {
   pname = "sydtest-mutation-example-gen";
@@ -7,7 +8,7 @@ mkDerivation {
   src = ./.;
   libraryHaskellDepends = [ base QuickCheck ];
   testHaskellDepends = [
-    base QuickCheck sydtest sydtest-mutation-example
+    base containers QuickCheck sydtest sydtest-mutation-example
     sydtest-mutation-example-cross
   ];
   testToolDepends = [ sydtest-discover ];

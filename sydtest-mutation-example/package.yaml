@@ -15,5 +15,6 @@ library:
   ghc-options:
   - -fno-full-laziness
   dependencies:
+  - containers
   - mtl >= 2 && < 3
 

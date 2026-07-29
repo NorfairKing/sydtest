@@ -1,5 +1,6 @@
 module Example.ConstConstructorLibSpec (spec) where
 
+import qualified Data.Map.Strict as Map
 import Example.ConstConstructorLib
 import Test.Syd
 
@@ -60,3 +61,11 @@ spec = do
   describe "ignoreDirection" $
     it "throws the direction away" $
       ignoreDirection South `shouldBe` ()
+
+  describe "noDirections" $
+    it "holds no directions" $
+      noDirections `shouldBe` Map.empty
+
+  describe "northAt" $
+    it "holds north at the given key" $
+      northAt 3 `shouldBe` Map.singleton 3 North

@@ -26,6 +26,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - QuickCheck
+    - containers
     - sydtest
     - sydtest-mutation-example
     - sydtest-mutation-example-cross

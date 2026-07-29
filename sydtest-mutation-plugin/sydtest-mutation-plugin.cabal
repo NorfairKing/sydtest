@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-mutation-plugin
-version:        0.4.5.0
+version:        0.4.5.1
 synopsis:       GHC plugin that instruments code for sydtest's mutation testing
 description:    A GHC source plugin that instruments code under test with the coverage and mutation hooks that sydtest's mutation testing infrastructure needs. See https://github.com/NorfairKing/sydtest#readme for more information.
 category:       Testing

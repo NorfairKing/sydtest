@@ -22,14 +22,15 @@ module Test.Syd.Mutation.Manifest.Render
   )
 where
 
+import qualified Data.ByteString as SB
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Vector as V
 import Myers.Diff (PolyDiff (..), getGroupedDiff, getTextDiff)
 import Path
 import Path.IO (ensureDir)
-import qualified System.IO as IO
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), MutationRecord (..))
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Text.Colour
@@ -131,6 +132,11 @@ renderManifest moduleName (MutationManifest groups) =
 -- 8-bit ANSI escapes embedded.  Reviewers can read with @cat foo.txt@ or
 -- @less -R foo.txt@.
 --
+-- Writes UTF-8 bytes directly, like the driver's @report.txt@: the rendering
+-- embeds source lines verbatim, so it carries whatever characters the mutated
+-- module contains, and the plugin runs in build sandboxes where the locale's
+-- encoding is not UTF-8.
+--
 -- An empty manifest still produces a file (containing just the module
 -- header) so the directory keeps a 1:1 correspondence between @.json@ and
 -- @.txt@ entries.
@@ -141,9 +147,7 @@ writeManifestTxtFile dir moduleName manifest = do
   let rendered = renderManifest moduleName manifest
       txt = renderChunksText With8BitColours (unlinesChunks rendered)
       path = fromAbsFile (dir </> fileName)
-  IO.withFile path IO.WriteMode $ \h -> do
-    IO.hSetBinaryMode h True
-    IO.hPutStr h (T.unpack txt)
+  SB.writeFile path (TE.encodeUtf8 txt)
 
 -- ---------------------------------------------------------------------------
 -- Diff rendering (shared with sydtest's MutationMode.Common)

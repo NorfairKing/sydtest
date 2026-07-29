@@ -41,6 +41,7 @@ tests:
     - genvalidity-sydtest-aeson
     - path
     - path-io
+    - safe-coloured-text
     - sydtest
     - sydtest-mutation
     - sydtest-mutation-runtime

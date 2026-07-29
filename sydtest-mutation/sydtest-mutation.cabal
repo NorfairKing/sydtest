@@ -46,6 +46,7 @@ test-suite sydtest-mutation-test
   other-modules:
       Test.Syd.AugmentedManifestSpec
       Test.Syd.CoverageBaselineSpec
+      Test.Syd.ManifestRenderSpec
       Test.Syd.ManifestSpec
       Test.Syd.MutationIdSpec
       Test.Syd.MutationSpec
@@ -69,6 +70,7 @@ test-suite sydtest-mutation-test
     , genvalidity-sydtest-aeson
     , path
     , path-io
+    , safe-coloured-text
     , sydtest
     , sydtest-mutation
     , sydtest-mutation-runtime

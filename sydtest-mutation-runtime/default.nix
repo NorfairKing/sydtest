@@ -6,7 +6,7 @@
 }:
 mkDerivation {
   pname = "sydtest-mutation-runtime";
-  version = "0.1.0.0";
+  version = "0.1.1.0";
   src = ./.;
   libraryHaskellDepends = [
     aeson autodocodec base bytestring containers fast-myers-diff

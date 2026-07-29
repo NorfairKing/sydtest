@@ -247,15 +247,15 @@ viewConstFnResult minArity targetTyCon =
 -- | Whether an expression whose outermost head is a data constructor is a
 -- candidate for a @Const…@ operator.
 data ConstructorHeads
-  = -- | Skip them.  For a target type whose constructors take arguments, a
-    -- constructor-headed expression is the target of a dedicated operator
-    -- ('MaybeOp' for @Just e@, 'ListLit' for @x : xs@), so matching it here
-    -- would duplicate that operator's mutations.
+  = -- | Skip them.  A dedicated operator already claims the target type's
+    -- constructor applications ('BoolLit' for @True@ and @False@, 'MaybeOp'
+    -- for @Just e@, 'ListLit' for @x : xs@), so matching them here would
+    -- duplicate that operator's mutations.
     SkipConstructorHeads
-  | -- | Match them too.  Only sound for a target type all of whose
-    -- constructors are nullary: no other operator claims those, and the
-    -- operator must then drop the alternative that replaces the expression
-    -- with the very constructor it already is.
+  | -- | Match them too.  Sound only when no other operator claims the target
+    -- type's constructor applications, and the operator itself drops the
+    -- alternative that replaces the expression with the constructor it
+    -- already is.
     AllowConstructorHeads
 
 -- | 'viewConstFnResult' generalised over the result TyCon and over whether

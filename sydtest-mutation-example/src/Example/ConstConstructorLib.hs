@@ -7,6 +7,7 @@ module Example.ConstConstructorLib
     directionsOf,
     isNorth,
     taggedOff,
+    taggedOn,
     myHead,
     unitSquare,
     ignoreDirection,
@@ -73,6 +74,14 @@ isNorth d = d == North
 -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 taggedOff :: Tagged Int
 taggedOff = Off
+
+-- | The same constant under a type signature.
+--
+-- 'ConstConstructor' has to see through the signature to recognise which
+-- constructor this expression already is: without that, it offers 'On' as a
+-- replacement for 'On', which is an equivalent mutant no test can kill.
+taggedOn :: Tagged Int
+taggedOn = On :: Tagged Int
 
 -- | The head of a list, as a 'MyMaybe'.
 --

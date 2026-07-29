@@ -1,8 +1,8 @@
 [36m# Example.ConstConstructorLib[m
-31 mutations in 18 groups
+32 mutations in 19 groups
 
-IntLit at src/Example/ConstConstructorLib.hs:89:21-22 #1
-[36m@@ -86,7 +86,7 @@[m
+IntLit at src/Example/ConstConstructorLib.hs:98:21-22 #1
+[36m@@ -95,7 +95,7 @@[m
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
@@ -12,8 +12,8 @@ IntLit at src/Example/ConstConstructorLib.hs:89:21-22 #1
  -- | Throw a direction away.
  --
 
-IntLit at src/Example/ConstConstructorLib.hs:89:21-22 #2
-[36m@@ -86,7 +86,7 @@[m
+IntLit at src/Example/ConstConstructorLib.hs:98:21-22 #2
+[36m@@ -95,7 +95,7 @@[m
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
@@ -23,8 +23,8 @@ IntLit at src/Example/ConstConstructorLib.hs:89:21-22 #2
  -- | Throw a direction away.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:85:18-26 #1
-[36m@@ -82,7 +82,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:94:18-26 #1
+[36m@@ -91,7 +91,7 @@[m
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
  myHead [] = MyNothing
@@ -34,8 +34,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:85:18-26 #1
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
 
-RemoveClause at src/Example/ConstConstructorLib.hs:84:1-22 #1
-[36m@@ -81,7 +81,6 @@[m
+RemoveClause at src/Example/ConstConstructorLib.hs:93:1-22 #1
+[36m@@ -90,7 +90,6 @@[m
  -- constant-inserting operator does.  The @MyNothing@ branch already /is/ the
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
@@ -44,8 +44,8 @@ RemoveClause at src/Example/ConstConstructorLib.hs:84:1-22 #1
  
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
 
-RemoveClause at src/Example/ConstConstructorLib.hs:85:1-26 #2
-[36m@@ -82,7 +82,6 @@[m
+RemoveClause at src/Example/ConstConstructorLib.hs:94:1-26 #2
+[36m@@ -91,7 +91,6 @@[m
  -- only constant of the type, so it is not a mutation site at all.
  myHead :: [a] -> MyMaybe a
  myHead [] = MyNothing
@@ -54,19 +54,30 @@ RemoveClause at src/Example/ConstConstructorLib.hs:85:1-26 #2
  -- | A 'Shape'-typed constant.  Only the integer literal is a mutation site.
  unitSquare :: Shape
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:75:13-16 #1
-[36m@@ -72,7 +72,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:84:12-28 #1
+[36m@@ -81,7 +81,7 @@[m
+ -- constructor this expression already is: without that, it offers 'On' as a
+ -- replacement for 'On', which is an equivalent mutant no test can kill.
+ taggedOn :: Tagged Int
+[31m-[m[31mtaggedOn = O[m[1;91mn[m[1;91m :[m[1;91m: Ta[m[1;91mgged Int[m
+[32m+[m[32mtaggedOn = O[m[1;92mf[m[1;92mf[m
+ 
+ -- | The head of a list, as a 'MyMaybe'.
+ --
+
+ConstConstructor at src/Example/ConstConstructorLib.hs:76:13-16 #1
+[36m@@ -73,7 +73,7 @@[m
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
  taggedOff :: Tagged Int
 [31m-[m[31mtaggedOff = O[m[1;91mf[m[1;91mf[m
 [32m+[m[32mtaggedOff = O[m[1;92mn[m
  
- -- | The head of a list, as a 'MyMaybe'.
+ -- | The same constant under a type signature.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:70:13-14 #1
-[36m@@ -67,7 +67,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:71:13-14 #1
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -76,8 +87,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:70:13-14 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:70:13-14 #2
-[36m@@ -67,7 +67,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:71:13-14 #2
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -87,8 +98,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:70:13-14 #2
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:70:13-14 #3
-[36m@@ -67,7 +67,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:71:13-14 #3
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -98,8 +109,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:70:13-14 #3
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:70:18-23 #1
-[36m@@ -67,7 +67,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:71:18-23 #1
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -109,8 +120,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:70:18-23 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:70:18-23 #2
-[36m@@ -67,7 +67,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:71:18-23 #2
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -120,8 +131,18 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:70:18-23 #2
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstBool at src/Example/ConstConstructorLib.hs:70:13-23 #1
-[36m@@ -67,7 +67,7 @@[m
+Control at src/Example/ConstConstructorLib.hs:71:18-23 #0
+[36m@@ -68,7 +68,7 @@[m
+ -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
+ -- operands do carry one each.
+ isNorth :: Direction -> Bool
+ isNorth d = d == North
+ 
+ -- | A 'Tagged' value at a concrete type argument.  The only other
+ -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
+
+ConstBool at src/Example/ConstConstructorLib.hs:71:13-23 #1
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -131,8 +152,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:70:13-23 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstBool at src/Example/ConstConstructorLib.hs:70:13-23 #2
-[36m@@ -67,7 +67,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:71:13-23 #2
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -142,18 +163,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:70:13-23 #2
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-Control at src/Example/ConstConstructorLib.hs:70:13-23 #0
-[36m@@ -67,7 +67,7 @@[m
- -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
- -- operands do carry one each.
- isNorth :: Direction -> Bool
- isNorth d = d == North
- 
- -- | A 'Tagged' value at a concrete type argument.  The only other
- -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
-
-Negate at src/Example/ConstConstructorLib.hs:70:13-23 #1
-[36m@@ -67,7 +67,7 @@[m
+Negate at src/Example/ConstConstructorLib.hs:71:13-23 #1
+[36m@@ -68,7 +68,7 @@[m
  -- expression carries no 'ConstConstructor' site.  The two 'Direction'-typed
  -- operands do carry one each.
  isNorth :: Direction -> Bool
@@ -163,8 +174,8 @@ Negate at src/Example/ConstConstructorLib.hs:70:13-23 #1
  -- | A 'Tagged' value at a concrete type argument.  The only other
  -- constructor is 'On', so 'ConstConstructor' produces exactly one mutant.
 
-ConstBool at src/Example/ConstConstructorLib.hs:52:20-26 #1
-[36m@@ -49,7 +49,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:53:20-26 #1
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -174,8 +185,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:52:20-26 #1
  -- | The directions for a list of numbers.
  --
 
-ConstBool at src/Example/ConstConstructorLib.hs:52:20-26 #2
-[36m@@ -49,7 +49,7 @@[m
+ConstBool at src/Example/ConstConstructorLib.hs:53:20-26 #2
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -185,8 +196,8 @@ ConstBool at src/Example/ConstConstructorLib.hs:52:20-26 #2
  -- | The directions for a list of numbers.
  --
 
-Negate at src/Example/ConstConstructorLib.hs:52:20-26 #1
-[36m@@ -49,7 +49,7 @@[m
+Negate at src/Example/ConstConstructorLib.hs:53:20-26 #1
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -196,8 +207,8 @@ Negate at src/Example/ConstConstructorLib.hs:52:20-26 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:52:32-37 #1
-[36m@@ -49,7 +49,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:53:32-37 #1
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -207,8 +218,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:52:32-37 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:52:32-37 #2
-[36m@@ -49,7 +49,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:53:32-37 #2
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -218,8 +229,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:52:32-37 #2
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:52:43-47 #1
-[36m@@ -49,7 +49,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:53:43-47 #1
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -229,8 +240,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:52:43-47 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:52:43-47 #2
-[36m@@ -49,7 +49,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:53:43-47 #2
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -240,8 +251,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:52:43-47 #2
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:52:17-47 #1
-[36m@@ -49,7 +49,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:53:17-47 #1
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -251,8 +262,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:52:17-47 #1
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:52:17-47 #2
-[36m@@ -49,7 +49,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:53:17-47 #2
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -262,8 +273,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:52:17-47 #2
  -- | The directions for a list of numbers.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:52:17-47 #3
-[36m@@ -49,7 +49,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:53:17-47 #3
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -273,8 +284,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:52:17-47 #3
  -- | The directions for a list of numbers.
  --
 
-Control at src/Example/ConstConstructorLib.hs:52:17-47 #1
-[36m@@ -49,7 +49,7 @@[m
+Control at src/Example/ConstConstructorLib.hs:53:17-47 #1
+[36m@@ -50,7 +50,7 @@[m
  --   * the two branches, which are constructors, so each is replaced by the
  --     two /other/ constructors and never by itself.
  directionOf :: Int -> Direction
@@ -283,8 +294,8 @@ Control at src/Example/ConstConstructorLib.hs:52:17-47 #1
  -- | The directions for a list of numbers.
  --
 
-ConstEmptyList at src/Example/ConstConstructorLib.hs:60:16-19 #1
-[36m@@ -57,7 +57,7 @@[m
+ConstEmptyList at src/Example/ConstConstructorLib.hs:61:16-19 #1
+[36m@@ -58,7 +58,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -294,8 +305,8 @@ ConstEmptyList at src/Example/ConstConstructorLib.hs:60:16-19 #1
  -- | Whether a direction is north.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:20-31 #1
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:61:20-31 #1
+[36m@@ -58,7 +58,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -305,8 +316,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:20-31 #1
  -- | Whether a direction is north.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:20-31 #2
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:61:20-31 #2
+[36m@@ -58,7 +58,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -316,8 +327,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:20-31 #2
  -- | Whether a direction is north.
  --
 
-ConstConstructor at src/Example/ConstConstructorLib.hs:60:20-31 #3
-[36m@@ -57,7 +57,7 @@[m
+ConstConstructor at src/Example/ConstConstructorLib.hs:61:20-31 #3
+[36m@@ -58,7 +58,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]
@@ -327,8 +338,8 @@ ConstConstructor at src/Example/ConstConstructorLib.hs:60:20-31 #3
  -- | Whether a direction is north.
  --
 
-ConstEmptyList at src/Example/ConstConstructorLib.hs:60:16-31 #1
-[36m@@ -57,7 +57,7 @@[m
+ConstEmptyList at src/Example/ConstConstructorLib.hs:61:16-31 #1
+[36m@@ -58,7 +58,7 @@[m
  -- 'ConstConstructor' fires on it at arity 1 and produces @(\\_ -> North)@,
  -- @(\\_ -> East)@ and @(\\_ -> South)@.
  directionsOf :: [Int] -> [Direction]

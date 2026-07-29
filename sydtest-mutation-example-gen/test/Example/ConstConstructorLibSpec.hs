@@ -27,6 +27,10 @@ spec = do
     it "is off" $
       taggedOff `shouldBe` Off
 
+  describe "taggedOn" $
+    it "is on" $
+      taggedOn `shouldBe` On
+
   describe "myHead" $ do
     it "has no head for an empty list" $
       myHead ([] :: [Int]) `shouldBe` MyNothing

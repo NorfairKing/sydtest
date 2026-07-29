@@ -182,6 +182,7 @@ constructorHead = \case
   L _ (HsApp _ f _) -> constructorHead f
   L _ (HsAppType _ f _) -> constructorHead f
   L _ (HsPar _ e) -> constructorHead e
+  L _ (ExprWithTySig _ e _) -> constructorHead e
   L _ (XExpr (WrapExpr (HsWrap _ e))) -> constructorHead (noLocA e)
   L _ (XExpr (ExpandedThingTc _ e)) -> constructorHead (noLocA e)
   _ -> Nothing

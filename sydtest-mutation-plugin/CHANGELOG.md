@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.5.0] - 2026-07-29
+
+### Added
+
+* A `ConstConstructor` mutation operator: for an expression whose type has a
+  nullary constructor, or a function returning one, it emits one mutant per
+  nullary constructor of that type.  This covers both an enumeration (`data
+  ABC = A | B | C`, where every value can be switched to every other) and a
+  type that merely has a constant (`data MyMaybe a = MyNothing | MyJust a`,
+  where `MyNothing` is the only replacement) — generalising what `ConstBool`
+  and `BoolLit` do for `Bool` and what `ConstNothing` and `MaybeOp` do for
+  `Maybe`.  Those three types (plus lists, whose `[]` `ConstEmptyList` and
+  `ListLit` already cover) are excluded so no mutation is produced twice, as
+  is the alternative replacing a constructor with itself, and any type with
+  fewer than two constructors (including `()`), which has no alternative
+  value to offer.
+
 ## [0.4.4.0] - 2026-06-20
 
 ### Fixed

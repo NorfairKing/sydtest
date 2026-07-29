@@ -9,6 +9,8 @@ module Test.Syd.Mutation.Plugin.Operator.Util
     matchTcOpApp,
     ConstFnMatch (..),
     viewConstFnResult,
+    viewConstFnResultBy,
+    ConstructorHeads (..),
     mkNothingExpr,
     mkConstLambda,
     arrowTy,
@@ -236,20 +238,44 @@ data ConstFnMatch = ConstFnMatch
 -- @N >= minArity@, return the peeled arrow argument types, the final result
 -- type, and the target TyCon's arguments.  Used by the @Const…@ family.
 --
+-- Constructor-headed expressions are skipped; see 'viewConstFnResultBy' for
+-- the full list of rejection reasons.
+viewConstFnResult :: Int -> TyCon -> LHsExpr GhcTc -> Maybe ConstFnMatch
+viewConstFnResult minArity targetTyCon =
+  viewConstFnResultBy SkipConstructorHeads minArity (== targetTyCon)
+
+-- | Whether an expression whose outermost head is a data constructor is a
+-- candidate for a @Const…@ operator.
+data ConstructorHeads
+  = -- | Skip them.  For a target type whose constructors take arguments, a
+    -- constructor-headed expression is the target of a dedicated operator
+    -- ('MaybeOp' for @Just e@, 'ListLit' for @x : xs@), so matching it here
+    -- would duplicate that operator's mutations.
+    SkipConstructorHeads
+  | -- | Match them too.  Only sound for a target type all of whose
+    -- constructors are nullary: no other operator claims those, and the
+    -- operator must then drop the alternative that replaces the expression
+    -- with the very constructor it already is.
+    AllowConstructorHeads
+
+-- | 'viewConstFnResult' generalised over the result TyCon and over whether
+-- constructor-headed expressions match.
+--
 -- Returns 'Nothing' when:
 --
---   * @le@'s outermost head is a data constructor (e.g. @Just x@, @x : xs@) —
---     those have their own dedicated operators ('MaybeOp', 'ListLit') and
---     would duplicate them,
+--   * @le@'s outermost head is a data constructor and @heads@ is
+--     'SkipConstructorHeads',
 --   * the expression's type has a forall or class constraint (we can't
 --     synthesise a constant under one without building a typed dictionary or
 --     type lambda),
---   * after peeling arrows, the result type does not split as
---     @targetTyCon args@,
+--   * after peeling arrows, the result type does not split as @tc args@ with
+--     @tc@ accepted by the predicate,
 --   * the arity (number of arrows peeled) is less than @minArity@.
-viewConstFnResult :: Int -> TyCon -> LHsExpr GhcTc -> Maybe ConstFnMatch
-viewConstFnResult minArity targetTyCon le = do
-  () <- nonConstructorHead le
+viewConstFnResultBy :: ConstructorHeads -> Int -> (TyCon -> Bool) -> LHsExpr GhcTc -> Maybe ConstFnMatch
+viewConstFnResultBy heads minArity isTargetTyCon le = do
+  () <- case heads of
+    SkipConstructorHeads -> nonConstructorHead le
+    AllowConstructorHeads -> Just ()
   let ty = lhsExprType le
   if isForAllTy ty
     then Nothing
@@ -259,7 +285,7 @@ viewConstFnResult minArity targetTyCon le = do
         then Nothing
         else do
           (tc, tcArgs) <- splitTyConApp_maybe resTy
-          if tc == targetTyCon
+          if isTargetTyCon tc
             then Just (ConstFnMatch argTys resTy tcArgs)
             else Nothing
 

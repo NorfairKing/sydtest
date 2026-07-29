@@ -1,25 +1,79 @@
 [36m# Example.RemoveClauseLib[m
-3 mutations in 1 group
+9 mutations in 4 groups
 
-RemoveClause at src/Example/RemoveClauseLib.hs:17:1-24 #1
-[36m@@ -14,6 +14,5 @@[m
- -- clause (a different 'Size'); removing the @_@ clause makes the function
- -- non-exhaustive for longer lists.  Each is killed by the matching test.
+ConstConstructor at src/Example/RemoveClauseLib.hs:22:19-24 #1
+[36m@@ -19,6 +19,6 @@[m
+ --
+ -- Each is killed by the matching test.
+ describeSize :: [a] -> Size
+[31m-[m[31mdescribeSize [] = [m[1;91mEmpty[m
+[32m+[m[32mdescribeSize [] = [m[1;92mS[m[1;92mi[m[1;92mn[m[1;92mgle[m
+ describeSize [_] = Single
+ describeSize _ = Many
+
+ConstConstructor at src/Example/RemoveClauseLib.hs:22:19-24 #2
+[36m@@ -19,6 +19,6 @@[m
+ --
+ -- Each is killed by the matching test.
+ describeSize :: [a] -> Size
+[31m-[m[31mdescribeSize [] = [m[1;91mE[m[1;91mmp[m[1;91mt[m[31my[m
+[32m+[m[32mdescribeSize [] = [m[1;92mM[m[1;92man[m[32my[m
+ describeSize [_] = Single
+ describeSize _ = Many
+
+ConstConstructor at src/Example/RemoveClauseLib.hs:23:20-26 #1
+[36m@@ -20,5 +20,5 @@[m
+ -- Each is killed by the matching test.
+ describeSize :: [a] -> Size
+ describeSize [] = Empty
+[31m-[m[31mdescribeSize [_] = [m[1;91mS[m[1;91mingle[m
+[32m+[m[32mdescribeSize [_] = [m[1;92mE[m[1;92mm[m[1;92mpty[m
+ describeSize _ = Many
+
+ConstConstructor at src/Example/RemoveClauseLib.hs:23:20-26 #2
+[36m@@ -20,5 +20,5 @@[m
+ -- Each is killed by the matching test.
+ describeSize :: [a] -> Size
+ describeSize [] = Empty
+[31m-[m[31mdescribeSize [_] = [m[1;91mS[m[1;91mi[m[31mn[m[1;91mgl[m[1;91me[m
+[32m+[m[32mdescribeSize [_] = [m[1;92mMa[m[32mn[m[1;92my[m
+ describeSize _ = Many
+
+ConstConstructor at src/Example/RemoveClauseLib.hs:24:18-22 #1
+[36m@@ -21,4 +21,4 @@[m
+ describeSize :: [a] -> Size
+ describeSize [] = Empty
+ describeSize [_] = Single
+[31m-[m[31mdescribeSize _ = [m[1;91mMa[m[1;91mn[m[31my[m
+[32m+[m[32mdescribeSize _ = [m[1;92mE[m[1;92mm[m[1;92mpt[m[32my[m
+
+ConstConstructor at src/Example/RemoveClauseLib.hs:24:18-22 #2
+[36m@@ -21,4 +21,4 @@[m
+ describeSize :: [a] -> Size
+ describeSize [] = Empty
+ describeSize [_] = Single
+[31m-[m[31mdescribeSize _ = [m[1;91mM[m[1;91ma[m[31mn[m[1;91my[m
+[32m+[m[32mdescribeSize _ = [m[1;92mSi[m[32mn[m[1;92mg[m[1;92mle[m
+
+RemoveClause at src/Example/RemoveClauseLib.hs:22:1-24 #1
+[36m@@ -19,6 +19,5 @@[m
+ --
+ -- Each is killed by the matching test.
  describeSize :: [a] -> Size
 [31m-describeSize [] = Empty[m
  describeSize [_] = Single
  describeSize _ = Many
 
-RemoveClause at src/Example/RemoveClauseLib.hs:18:1-26 #2
-[36m@@ -15,5 +15,4 @@[m
- -- non-exhaustive for longer lists.  Each is killed by the matching test.
+RemoveClause at src/Example/RemoveClauseLib.hs:23:1-26 #2
+[36m@@ -20,5 +20,4 @@[m
+ -- Each is killed by the matching test.
  describeSize :: [a] -> Size
  describeSize [] = Empty
 [31m-describeSize [_] = Single[m
  describeSize _ = Many
 
-RemoveClause at src/Example/RemoveClauseLib.hs:19:1-22 #3
-[36m@@ -16,4 +16,3 @@[m
+RemoveClause at src/Example/RemoveClauseLib.hs:24:1-22 #3
+[36m@@ -21,4 +21,3 @@[m
  describeSize :: [a] -> Size
  describeSize [] = Empty
  describeSize [_] = Single

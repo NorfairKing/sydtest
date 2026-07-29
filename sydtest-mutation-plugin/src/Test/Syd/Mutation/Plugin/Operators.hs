@@ -16,6 +16,7 @@ import qualified Test.Syd.Mutation.Plugin.Operator.Arith
 import qualified Test.Syd.Mutation.Plugin.Operator.BoolLit
 import qualified Test.Syd.Mutation.Plugin.Operator.Cmp
 import qualified Test.Syd.Mutation.Plugin.Operator.ConstBool
+import qualified Test.Syd.Mutation.Plugin.Operator.ConstConstructor
 import qualified Test.Syd.Mutation.Plugin.Operator.ConstEmptyList
 import qualified Test.Syd.Mutation.Plugin.Operator.ConstNothing
 import qualified Test.Syd.Mutation.Plugin.Operator.ElideCall

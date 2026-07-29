@@ -3,26 +3,234 @@
     {
       "binding": "describeSize",
       "col_end": 24,
+      "col_start": 19,
+      "context_after": [
+        "describeSize [_] = Single",
+        "describeSize _ = Many"
+      ],
+      "context_before": [
+        "--",
+        "-- Each is killed by the matching test.",
+        "describeSize :: [a] -> Size"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.RemoveClauseLib",
+        "ConstConstructor",
+        "22",
+        "19",
+        "24",
+        "1"
+      ],
+      "line": 22,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [
+        "describeSize [] = Single"
+      ],
+      "operator": "ConstConstructor",
+      "original": "Empty",
+      "replacement": "Single",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize [] = Empty"
+      ]
+    },
+    {
+      "binding": "describeSize",
+      "col_end": 24,
+      "col_start": 19,
+      "context_after": [
+        "describeSize [_] = Single",
+        "describeSize _ = Many"
+      ],
+      "context_before": [
+        "--",
+        "-- Each is killed by the matching test.",
+        "describeSize :: [a] -> Size"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.RemoveClauseLib",
+        "ConstConstructor",
+        "22",
+        "19",
+        "24",
+        "2"
+      ],
+      "line": 22,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [
+        "describeSize [] = Many"
+      ],
+      "operator": "ConstConstructor",
+      "original": "Empty",
+      "replacement": "Many",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize [] = Empty"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "describeSize",
+      "col_end": 26,
+      "col_start": 20,
+      "context_after": [
+        "describeSize _ = Many"
+      ],
+      "context_before": [
+        "-- Each is killed by the matching test.",
+        "describeSize :: [a] -> Size",
+        "describeSize [] = Empty"
+      ],
+      "end_line": 23,
+      "id": [
+        "Example.RemoveClauseLib",
+        "ConstConstructor",
+        "23",
+        "20",
+        "26",
+        "1"
+      ],
+      "line": 23,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [
+        "describeSize [_] = Empty"
+      ],
+      "operator": "ConstConstructor",
+      "original": "Single",
+      "replacement": "Empty",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize [_] = Single"
+      ]
+    },
+    {
+      "binding": "describeSize",
+      "col_end": 26,
+      "col_start": 20,
+      "context_after": [
+        "describeSize _ = Many"
+      ],
+      "context_before": [
+        "-- Each is killed by the matching test.",
+        "describeSize :: [a] -> Size",
+        "describeSize [] = Empty"
+      ],
+      "end_line": 23,
+      "id": [
+        "Example.RemoveClauseLib",
+        "ConstConstructor",
+        "23",
+        "20",
+        "26",
+        "2"
+      ],
+      "line": 23,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [
+        "describeSize [_] = Many"
+      ],
+      "operator": "ConstConstructor",
+      "original": "Single",
+      "replacement": "Many",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize [_] = Single"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "describeSize",
+      "col_end": 22,
+      "col_start": 18,
+      "context_after": [],
+      "context_before": [
+        "describeSize :: [a] -> Size",
+        "describeSize [] = Empty",
+        "describeSize [_] = Single"
+      ],
+      "end_line": 24,
+      "id": [
+        "Example.RemoveClauseLib",
+        "ConstConstructor",
+        "24",
+        "18",
+        "22",
+        "1"
+      ],
+      "line": 24,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [
+        "describeSize _ = Empty"
+      ],
+      "operator": "ConstConstructor",
+      "original": "Many",
+      "replacement": "Empty",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize _ = Many"
+      ]
+    },
+    {
+      "binding": "describeSize",
+      "col_end": 22,
+      "col_start": 18,
+      "context_after": [],
+      "context_before": [
+        "describeSize :: [a] -> Size",
+        "describeSize [] = Empty",
+        "describeSize [_] = Single"
+      ],
+      "end_line": 24,
+      "id": [
+        "Example.RemoveClauseLib",
+        "ConstConstructor",
+        "24",
+        "18",
+        "22",
+        "2"
+      ],
+      "line": 24,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [
+        "describeSize _ = Single"
+      ],
+      "operator": "ConstConstructor",
+      "original": "Many",
+      "replacement": "Single",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize _ = Many"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "describeSize",
+      "col_end": 24,
       "col_start": 1,
       "context_after": [
         "describeSize [_] = Single",
         "describeSize _ = Many"
       ],
       "context_before": [
-        "-- clause (a different 'Size'); removing the @_@ clause makes the function",
-        "-- non-exhaustive for longer lists.  Each is killed by the matching test.",
+        "--",
+        "-- Each is killed by the matching test.",
         "describeSize :: [a] -> Size"
       ],
-      "end_line": 17,
+      "end_line": 22,
       "id": [
         "Example.RemoveClauseLib",
         "RemoveClause",
-        "17",
+        "22",
         "1",
         "24",
         "1"
       ],
-      "line": 17,
+      "line": 22,
       "module": "Example.RemoveClauseLib",
       "mutated_lines": [],
       "operator": "RemoveClause",
@@ -41,20 +249,20 @@
         "describeSize _ = Many"
       ],
       "context_before": [
-        "-- non-exhaustive for longer lists.  Each is killed by the matching test.",
+        "-- Each is killed by the matching test.",
         "describeSize :: [a] -> Size",
         "describeSize [] = Empty"
       ],
-      "end_line": 18,
+      "end_line": 23,
       "id": [
         "Example.RemoveClauseLib",
         "RemoveClause",
-        "18",
+        "23",
         "1",
         "26",
         "2"
       ],
-      "line": 18,
+      "line": 23,
       "module": "Example.RemoveClauseLib",
       "mutated_lines": [],
       "operator": "RemoveClause",
@@ -75,16 +283,16 @@
         "describeSize [] = Empty",
         "describeSize [_] = Single"
       ],
-      "end_line": 19,
+      "end_line": 24,
       "id": [
         "Example.RemoveClauseLib",
         "RemoveClause",
-        "19",
+        "24",
         "1",
         "22",
         "3"
       ],
-      "line": 19,
+      "line": 24,
       "module": "Example.RemoveClauseLib",
       "mutated_lines": [],
       "operator": "RemoveClause",

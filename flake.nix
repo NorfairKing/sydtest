@@ -56,6 +56,10 @@
         # nix/mutationCheck.nix's '.diff' passthru.
         mutation-sydtest-mutation-example-diff =
           self.checks.${system}.mutation-sydtest-mutation-example.diff;
+        # Hackage upload, run from master by nix-ci.nix.  Building it builds
+        # every publishable package's sdist, so a broken sdist fails CI on
+        # any branch, long before a release would trip over it.
+        release-to-hackage = pkgs.callPackage ./nix/release-to-hackage.nix { inherit haskellPackages; };
       };
       checks.${system} = {
         forwardCompatibility = horizonPkgs.sydtestReleaseWithoutMutation;
@@ -94,10 +98,6 @@
           ${self.checks.${system}.pre-commit.shellHook}
           ${haskellPackages.sydtest-webdriver.setupFontsConfigScript}
         '';
-      };
-      nix-ci.cachix = {
-        name = "sydtest";
-        public-key = "sydtest.cachix.org-1:fyby3c42t+0iTABcLd/R3POxzJhCQ/9gYM7Sh879+9w=";
       };
     };
 }

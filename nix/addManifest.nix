@@ -72,7 +72,14 @@ in
   configureFlags = (old.configureFlags or [ ]) ++ configConfigureFlags
     # Disable optimization so GHC doesn't spend superlinear time/memory
     # simplifying the nested ifMutation case expressions the plugin generates.
-    ++ [ "--disable-optimization" ]
+    #
+    # The explicit -O0 is not redundant. A package whose own configureFlags
+    # carry '--ghc-options=-O2' (sydtest's overlay does this for every package
+    # in this repo) passes that straight through to GHC after Cabal's own
+    # optimisation flag, so --disable-optimization alone is silently
+    # overridden and the instrumented build is optimised after all. Passing
+    # -O0 last makes the intent hold whatever the package asked for.
+    ++ [ "--disable-optimization" "--ghc-option=-O0" ]
     # Override the default -j16 -A64M that Nix injects: use single-threaded
     # compilation with a small allocation area, and cap the heap.
     ++ [

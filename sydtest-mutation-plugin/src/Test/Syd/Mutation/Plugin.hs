@@ -14,7 +14,7 @@ import GHC
 import GHC.Data.FastString (unpackFS)
 import GHC.Driver.Env (Hsc, HscEnv (..))
 import GHC.Driver.Plugins
-import GHC.Driver.Session (WarningFlag (..), wopt_unset)
+import GHC.Driver.Session (WarningFlag (..), gopt_unset, wopt_unset)
 import GHC.Serialized (deserializeWithData)
 import GHC.Tc.Types
 import GHC.Types.Annotations (AnnTarget (..), findAnns)
@@ -77,16 +77,28 @@ plugin =
         pure
           hscEnv
             { hsc_dflags =
-                foldl
-                  wopt_unset
-                  (hsc_dflags hscEnv)
-                  [ Opt_WarnUnusedImports,
-                    -- Guard instrumentation wraps conditions in ifMutation, making the
-                    -- exhaustiveness checker conservatively warn about patterns it can
-                    -- no longer prove complete.
-                    Opt_WarnIncompletePatterns,
-                    Opt_WarnIncompleteUniPatterns
-                  ]
+                -- ConstConstructor reads the unfolding of an imported binding
+                -- to tell whether it is an alias for a nullary constructor
+                -- (Data.Map.empty is Tip), so that it does not offer the
+                -- constructor the expression already is.  -O0 implies
+                -- -fignore-interface-pragmas, which drops unfoldings as
+                -- interfaces are read, and instrumented builds are compiled
+                -- at -O0 on purpose -- so without this the recognition would
+                -- silently do nothing in exactly the configuration mutation
+                -- testing runs in.  Reading unfoldings does not run the
+                -- simplifier, so the compile-time blowup -O0 avoids does not
+                -- come back with them.
+                (`gopt_unset` Opt_IgnoreInterfacePragmas) $
+                  foldl
+                    wopt_unset
+                    (hsc_dflags hscEnv)
+                    [ Opt_WarnUnusedImports,
+                      -- Guard instrumentation wraps conditions in ifMutation, making the
+                      -- exhaustiveness checker conservatively warn about patterns it can
+                      -- no longer prove complete.
+                      Opt_WarnIncompletePatterns,
+                      Opt_WarnIncompleteUniPatterns
+                    ]
             },
       -- Recompile only when plugin flags change. We previously used
       -- 'impurePlugin' (always force recompile), but that prevents the

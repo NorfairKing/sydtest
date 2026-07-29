@@ -260,9 +260,12 @@ constructorHead = \case
 -- @emptyFoo = NoFoo@ of the user's own.
 --
 -- Best-effort: only an imported binding has an unfolding at this stage, and
--- only when its defining module was compiled with enough optimisation to
--- record one.  A miss costs a no-op mutant, which is what would be produced
--- without this check at all.
+-- only when its defining module recorded one.  A miss costs a no-op mutant,
+-- which is what would be produced without this check at all.
+--
+-- Reading the unfolding at all takes the plugin unsetting
+-- @-fignore-interface-pragmas@, which @-O0@ implies and instrumented builds
+-- are compiled at; see the driver plugin in "Test.Syd.Mutation.Plugin".
 aliasedConstructor :: Id -> Maybe DataCon
 aliasedConstructor v = do
   template <- maybeUnfoldingTemplate (realIdUnfolding v)

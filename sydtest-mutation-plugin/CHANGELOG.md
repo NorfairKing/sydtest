@@ -14,6 +14,17 @@
 
 ### Fixed
 
+* Interface pragmas are no longer ignored while instrumenting.  `-O0` implies
+  `-fignore-interface-pragmas`, which drops unfoldings as interfaces are read,
+  and instrumented builds are compiled at `-O0` on purpose — so the
+  constructor-alias recognition below silently did nothing in exactly the
+  configuration mutation testing runs in.  It only appeared to work in this
+  repo's own example because the overlay adds `--ghc-options=-O2` to every
+  package here, which overrode `addManifest`'s `--disable-optimization`;
+  `addManifest` now passes `-O0` last so that no longer happens, and the
+  example exercises the real configuration.  Reading unfoldings does not run
+  the simplifier, so the compile-time blowup `-O0` avoids does not come back.
+
 * `ConstConstructor` no longer replaces a binding that is defined as a nullary
   constructor with that same constructor.  `Data.Map.empty` is `Tip`, so
   rewriting it to `Tip` produced an unkillable mutant at every use of it (and

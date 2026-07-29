@@ -941,8 +941,17 @@ instrumentLExprGo le = do
   -- change at one specific site; when that mutation is active we execute the
   -- mutant directly without needing to recurse into it for other mutations.
   le' <- traverse (instrumentExpr (getLocA le)) le
-  InstrumentEnv {instrumentEnvOperators} <- ask
-  tryMutateWith instrumentEnvOperators le le'
+  case unLoc le of
+    -- Parentheses are pure syntax: the expression inside has the same type and
+    -- the same value, and the walker visits it in its own right.  Offering the
+    -- 'HsPar' node to the operators as well would record every one of the inner
+    -- expression's mutations a second time, at the parenthesised span: two
+    -- mutants that no test can tell apart, in a run whose cost is one test
+    -- suite per mutation.
+    HsPar {} -> pure le'
+    _ -> do
+      InstrumentEnv {instrumentEnvOperators} <- ask
+      tryMutateWith instrumentEnvOperators le le'
 
 instrumentExpr :: SrcSpan -> HsExpr GhcTc -> InstrM (HsExpr GhcTc)
 instrumentExpr _sp = \case

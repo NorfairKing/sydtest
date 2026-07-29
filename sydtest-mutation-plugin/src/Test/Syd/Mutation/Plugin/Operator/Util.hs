@@ -415,12 +415,10 @@ prefixFormPreview arity vText lhsText rhsText =
 -- wrappers the typechecker attached to it, so reapplying it to (possibly
 -- mutated) arguments stays well-typed.
 --
--- We deliberately do /not/ peel an enclosing 'HsPar': the parenthesis node
--- @(f a b)@ and the inner application @f a b@ are visited as separate
--- expressions by the walker (which recurses into an 'HsPar' with
--- 'instrumentLExpr', re-running every operator).  Peeling here would make an
--- operator fire on both nodes.  Stopping at the 'HsPar' means only the inner
--- application produces the mutation.
+-- Stops at an 'HsPar', so @(f) a b@ is read as an application of the
+-- parenthesised head rather than of @f@.  The head is only ever used to
+-- identify and rebuild the application, both of which work just as well with
+-- the parentheses left in place.
 collectApp :: LHsExpr GhcTc -> (LHsExpr GhcTc, [LHsExpr GhcTc])
 collectApp = go []
   where

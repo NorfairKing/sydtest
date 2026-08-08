@@ -8,8 +8,13 @@ import Path.IO
 import qualified System.FilePath as FP
 import Test.Syd.Def.Specify
 import Test.Syd.Def.TestDefM
+import Test.Syd.Expectation
 
 -- | Define a test for each file in the given directory.
+--
+-- If the directory is empty or absent, this defines a single failing test
+-- instead, because that usually means the scenario files were omitted by
+-- accident.
 --
 -- Example:
 --
@@ -22,6 +27,10 @@ scenarioDir :: FilePath -> (FilePath -> TestDefM outers inner ()) -> TestDefM ou
 scenarioDir = scenarioDirHelper listDirRel
 
 -- | Define a test for each file in the given directory, recursively.
+--
+-- If the directory contains no files, or is absent, this defines a single
+-- failing test instead, because that usually means the scenario files were
+-- omitted by accident.
 --
 -- Example:
 --
@@ -42,6 +51,9 @@ scenarioDirHelper lister dp func =
   describe dp $ do
     ad <- liftIO $ resolveDir' dp
     fs <- liftIO $ fmap (fromMaybe []) $ forgivingAbsence $ snd <$> lister ad
-    forM_ fs $ \rf -> do
-      let fp = dp FP.</> fromRelFile rf
-      describe (fromRelFile rf) $ func fp
+    if null fs
+      then it "has scenario files" $ \_ ->
+        (expectationFailure $ unwords ["No scenario files found in", dp] :: IO ())
+      else forM_ fs $ \rf -> do
+        let fp = dp FP.</> fromRelFile rf
+        describe (fromRelFile rf) $ func fp

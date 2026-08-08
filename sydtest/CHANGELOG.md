@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.28.0.0] - 2026-08-08
+
+### Changed
+
+* `scenarioDir` and `scenarioDirRecur` now define a single failing test when
+  they find no files, instead of defining no tests at all.  An empty scenario
+  directory usually means the scenario files were omitted by accident, for
+  example because they were not packaged in `extra-source-files`.
+
 ## [0.27.2.0] - 2026-07-16
 
 ### Changed

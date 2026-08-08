@@ -2,6 +2,12 @@
 
 ## [0.28.0.0] - 2026-08-08
 
+### Added
+
+* `scenarioDirOfDirs`, for scenarios that consist of more than one file.  It
+  defines a test for each subdirectory of the given directory, and hands that
+  subdirectory to the test definition.
+
 ### Changed
 
 * `scenarioDir` and `scenarioDirRecur` now define a single failing test when

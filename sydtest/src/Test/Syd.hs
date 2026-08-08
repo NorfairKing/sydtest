@@ -87,6 +87,7 @@ module Test.Syd
     -- ** Scenario tests
     scenarioDir,
     scenarioDirRecur,
+    scenarioDirOfDirs,
 
     -- ** Expectations
     shouldBe,

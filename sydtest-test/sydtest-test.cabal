@@ -31,6 +31,10 @@ extra-source-files:
     test_resources/output-test-terse.txt
     test_resources/output-test.txt
     test_resources/output.golden
+    test_resources/same/numbers/a
+    test_resources/same/numbers/b
+    test_resources/same/words/a
+    test_resources/same/words/b
     test_resources/staged-golden/1.golden
     test_resources/staged-golden/2.golden
 
@@ -127,6 +131,7 @@ test-suite sydtest-test
     , bytestring
     , containers
     , fast-myers-diff
+    , filepath
     , mtl
     , opt-env-conf-test
     , path

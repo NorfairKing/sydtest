@@ -33,7 +33,12 @@ spec = doNotRandomiseExecutionOrder $ do
       threadDelay 10_000
   -- Ensure that long diff timeouts
   -- See https://github.com/NorfairKing/sydtest/issues/92
-  it "long diff timing is bounded" $ do
+  --
+  -- The test needs a timeout above its own bound below, because the default
+  -- timeout is shorter than that bound and would decide the outcome instead:
+  -- on a machine slow enough to matter, printing the two lists takes longer
+  -- than the default timeout allows.
+  withTimeout 240_000_000 $ it "long diff timing is bounded" $ do
     -- with n = 1000 it takes 30s on my laptop, so 100k is enough to trigger the
     -- 2s timeout.
     let n = 100_000

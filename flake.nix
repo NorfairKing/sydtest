@@ -58,19 +58,14 @@
         # nix/mutationCheck.nix's '.diff' passthru.
         mutation-sydtest-mutation-example-diff =
           self.checks.${system}.mutation-sydtest-mutation-example.diff;
-        # Hackage upload, run from master by nix-ci.nix.  Building it builds
-        # every publishable package's sdist, so a broken sdist fails CI on
-        # any branch, long before a release would trip over it.
-        #
-        # A package is publishable when its cabal file has a synopsis, which
-        # cabal2nix turns into meta.description.  Hackage rejects a package
-        # without one, and the in-repo example and fixture packages
-        # deliberately have none, so this keeps them out without a second list
-        # to maintain.
         release-to-hackage = release-to-hackage.lib.${system}.makeHackageRelease {
-          packages = pkgs.lib.filterAttrs
-            (_: package: package ? meta.description)
-            haskellPackages.sydtestPackages;
+          packages = removeAttrs haskellPackages.sydtestPackages [
+            "sydtest-misbehaved-test-suite"
+            "sydtest-mutation-example"
+            "sydtest-mutation-example-cross"
+            "sydtest-mutation-example-gen"
+            "sydtest-test"
+          ];
         };
       };
       checks.${system} = {

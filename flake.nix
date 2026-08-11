@@ -18,6 +18,7 @@
     fast-myers-diff.flake = false;
     opt-env-conf.url = "github:NorfairKing/opt-env-conf";
     opt-env-conf.flake = false;
+    release-to-hackage.url = "github:NorfairKing/release-to-hackage";
   };
 
   outputs =
@@ -30,6 +31,7 @@
     , safe-coloured-text
     , fast-myers-diff
     , opt-env-conf
+    , release-to-hackage
     }:
     let
       system = "x86_64-linux";
@@ -59,7 +61,17 @@
         # Hackage upload, run from master by nix-ci.nix.  Building it builds
         # every publishable package's sdist, so a broken sdist fails CI on
         # any branch, long before a release would trip over it.
-        release-to-hackage = pkgs.callPackage ./nix/release-to-hackage.nix { inherit haskellPackages; };
+        #
+        # A package is publishable when its cabal file has a synopsis, which
+        # cabal2nix turns into meta.description.  Hackage rejects a package
+        # without one, and the in-repo example and fixture packages
+        # deliberately have none, so this keeps them out without a second list
+        # to maintain.
+        release-to-hackage = release-to-hackage.lib.${system}.makeHackageRelease {
+          packages = pkgs.lib.filterAttrs
+            (_: package: package ? meta.description)
+            haskellPackages.sydtestPackages;
+        };
       };
       checks.${system} = {
         forwardCompatibility = horizonPkgs.sydtestReleaseWithoutMutation;

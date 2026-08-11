@@ -17,7 +17,8 @@ in
   };
   # Publish to Hackage from master only.  The script uploads exactly those
   # packages whose version is not on Hackage yet, so a push that bumps no
-  # version releases nothing.  See nix/release-to-hackage.nix.
+  # version releases nothing.  The script comes from the release-to-hackage
+  # flake input.
   #
   # HACKAGE_API_KEY is set in the repository's Secrets overview on NixCI.
   deploy = {

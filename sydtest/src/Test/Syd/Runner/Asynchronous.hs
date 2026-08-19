@@ -16,6 +16,7 @@ where
 
 import Control.Concurrent.Async as Async
 import Control.Concurrent.MVar
+import Control.Concurrent.QSem
 import Control.Concurrent.STM as STM
 import Control.Exception
 import Control.Monad
@@ -239,11 +240,17 @@ runner settings nbThreads failFastVar handleForest = do
                   -- It's not enough to just not have two tests running at the
                   -- same time, because they also need to be executed in order.
                   case eParallelism of
-                    Sequential -> do
+                    RunSequential -> do
                       waitForWorkersDone
                       job 0
-                    Parallel -> do
+                    RunParallel -> do
                       enqueueJob jobQueue job
+                    RunParallelWith sem ->
+                      -- Still queued like any other job, so this only ever
+                      -- holds tests back; it never runs more of them than
+                      -- there are workers.
+                      enqueueJob jobQueue $ \workerNr ->
+                        bracket_ (waitQSem sem) (signalQSem sem) (job workerNr)
           DefPendingNode _ _ -> pure ()
           DefDescribeNode _ sdf -> goForest sdf
           DefSetupNode func sdf -> do
@@ -298,9 +305,10 @@ runner settings nbThreads failFastVar handleForest = do
                               waitForWorkersDone
                               func (eExternalResources e)
                           )
-          DefParallelismNode p' sdf ->
+          DefParallelismNode p' sdf -> do
+            runParallelism <- liftIO $ resolveParallelism p'
             withReaderT
-              (\e -> e {eParallelism = p'})
+              (\e -> e {eParallelism = runParallelism})
               (goForest sdf)
           DefRandomisationNode _ sdf ->
             goForest sdf -- Ignore, randomisation has already happened.
@@ -324,7 +332,7 @@ runner settings nbThreads failFastVar handleForest = do
     runReaderT
       (goForest handleForest)
       Env
-        { eParallelism = Parallel,
+        { eParallelism = RunParallel,
           eTimeout = settingTimeout settings,
           eRetries = settingRetries settings,
           eFlakinessMode = MayNotBeFlaky,
@@ -333,11 +341,26 @@ runner settings nbThreads failFastVar handleForest = do
         }
     waitForWorkersDone -- Make sure all jobs are done before cancelling the runners.
 
+-- | 'Parallelism', with the semaphore a bound needs already made.
+--
+-- One semaphore per 'DefParallelismNode', so everything below that node shares
+-- the one bound rather than each group getting its own.
+data RunParallelism
+  = RunParallel
+  | RunParallelWith !QSem
+  | RunSequential
+
+resolveParallelism :: Parallelism -> IO RunParallelism
+resolveParallelism = \case
+  Parallel -> pure RunParallel
+  ParallelWith w -> RunParallelWith <$> newQSem (fromIntegral w)
+  Sequential -> pure RunSequential
+
 type R a = ReaderT (Env a) IO
 
 -- Not exported, on purpose.
 data Env externalResources = Env
-  { eParallelism :: !Parallelism,
+  { eParallelism :: !RunParallelism,
     eTimeout :: !Timeout,
     eRetries :: !Word,
     eFlakinessMode :: !FlakinessMode,

@@ -14,6 +14,7 @@ module Test.Syd.Modify
     -- * Declaring parallelism
     sequential,
     parallel,
+    parallelWith,
     withParallelism,
     Parallelism (..),
 
@@ -79,6 +80,17 @@ sequential = withParallelism Sequential
 -- | Declare that all tests below may be run in parallel. (This is the default.)
 parallel :: TestDefM a b c -> TestDefM a b c
 parallel = withParallelism Parallel
+
+-- | Declare that at most this many of the tests below may run at once.
+--
+-- The bound is across everything below this point together, not per group, and
+-- it does not add threads: it only ever holds tests back. Reach for it when
+-- tests contend for something the suite does not own, such as one database
+-- server shared by a database per test, where running all of them at once is
+-- slower than running some of them and 'sequential' gives up more than it
+-- needs to.
+parallelWith :: Word -> TestDefM a b c -> TestDefM a b c
+parallelWith = withParallelism . ParallelWith
 
 -- | Annotate a test group with 'Parallelism'.
 withParallelism :: Parallelism -> TestDefM a b c -> TestDefM a b c

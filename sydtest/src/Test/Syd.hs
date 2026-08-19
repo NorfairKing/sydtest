@@ -174,6 +174,7 @@ module Test.Syd
     -- *** Declaring parallelism
     sequential,
     parallel,
+    parallelWith,
     withParallelism,
     Parallelism (..),
 

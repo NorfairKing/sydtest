@@ -310,8 +310,17 @@ markSpecForestAsPending mMessage = goForest
       DefExpectationNode i sdf -> DefExpectationNode i $ goForest sdf
 
 data Parallelism
-  = Parallel
-  | Sequential
+  = -- | As many at once as there are threads to run them.
+    Parallel
+  | -- | At most this many at once, however many threads there are.
+    --
+    -- For tests that contend for something the test suite does not own, like
+    -- one database server behind a database per test. Running fewer of those at
+    -- once can be faster than running all of them, and is the smaller
+    -- instrument where 'Sequential' would do.
+    ParallelWith !Word
+  | -- | One at a time.
+    Sequential
   deriving (Show, Eq, Generic)
 
 data ExecutionOrderRandomisation

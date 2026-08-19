@@ -295,6 +295,7 @@ You can specify, as part of the test suite definition, whether tests in a given 
 You can use the `parallel` combinator to declare that tests may be run in parallel.
 You can use the `sequential` combinator to declare that tests must be run sequentially.
 When using `sequential`, it is guaranteed that each test in the group will be the only one running during its execution.
+You can use the `parallelWith` combinator to declare that at most a given number of them may run at once, which is what you want for tests that contend for something the suite does not own, such as one database server shared by a database per test.
 
 ### Automatic test discovery
 

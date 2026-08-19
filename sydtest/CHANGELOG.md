@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.29.0.0] - 2026-08-19
+
+### Added
+
+* `parallelWith`, to declare that at most a given number of the tests below it
+  may run at once.  For tests that contend for something the suite does not
+  own, such as one database server shared by a database per test, where running
+  all of them at once is slower than running some of them and `sequential`
+  gives up more than it needs to.
+
+### Changed
+
+* `Parallelism` has a third constructor, `ParallelWith`, so any exhaustive
+  match on it needs a new case.
+
 ## [0.28.0.0] - 2026-08-08
 
 ### Added

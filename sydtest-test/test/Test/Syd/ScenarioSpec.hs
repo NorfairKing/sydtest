@@ -4,26 +4,28 @@ module Test.Syd.ScenarioSpec (spec) where
 
 import Path
 import Path.IO
-import qualified System.FilePath as FilePath
 import Test.Syd
 import Test.Syd.OptParse
 
 spec :: Spec
 spec = do
-  scenarioDir "test_resources/even" $ \rf ->
+  let evens = [reldir|test_resources/even|]
+  scenarioDir evens $ \rf ->
     it "contains an even number" $ do
-      s <- readFile rf
+      s <- readFile (fromRelFile (evens </> rf))
       n <- readIO s
       (n :: Int) `shouldSatisfy` even
-  scenarioDirRecur "test_resources/odd" $ \rf ->
+  let odds = [reldir|test_resources/odd|]
+  scenarioDirRecur odds $ \rf ->
     it "contains an odd number" $ do
-      s <- readFile rf
+      s <- readFile (fromRelFile (odds </> rf))
       n <- readIO s
       (n :: Int) `shouldSatisfy` odd
-  scenarioDirOfDirs "test_resources/same" $ \rd ->
+  let sames = [reldir|test_resources/same|]
+  scenarioDirOfDirs sames $ \rd ->
     it "contains two files with the same contents" $ do
-      a <- readFile (rd FilePath.</> "a")
-      b <- readFile (rd FilePath.</> "b")
+      a <- readFile (fromRelFile (sames </> rd </> [relfile|a|]))
+      b <- readFile (fromRelFile (sames </> rd </> [relfile|b|]))
       a `shouldBe` b
 
   describe "scenarioDir" $ do
@@ -31,7 +33,7 @@ spec = do
       withSystemTempDir "sydtest-scenario" $ \tdir -> do
         specForest <-
           execTestDefM defaultSettings $
-            scenarioDir (fromAbsDir tdir) $ \fp ->
+            scenarioDir tdir $ \fp ->
               it "is never defined" $ fp `shouldBe` fp
         resultForest <- runSpecForestSynchronously defaultSettings specForest
         let stats = computeTestSuiteStats defaultSettings (timedValue resultForest)
@@ -42,7 +44,7 @@ spec = do
       withSystemTempDir "sydtest-scenario" $ \tdir -> do
         specForest <-
           execTestDefM defaultSettings $
-            scenarioDir (fromAbsDir (tdir </> [reldir|nonexistent|])) $ \fp ->
+            scenarioDir (tdir </> [reldir|nonexistent|]) $ \fp ->
               it "is never defined" $ fp `shouldBe` fp
         resultForest <- runSpecForestSynchronously defaultSettings specForest
         let stats = computeTestSuiteStats defaultSettings (timedValue resultForest)
@@ -55,7 +57,7 @@ spec = do
         createDir (tdir </> [reldir|subdir|])
         specForest <-
           execTestDefM defaultSettings $
-            scenarioDirRecur (fromAbsDir tdir) $ \fp ->
+            scenarioDirRecur tdir $ \fp ->
               it "is never defined" $ fp `shouldBe` fp
         resultForest <- runSpecForestSynchronously defaultSettings specForest
         let stats = computeTestSuiteStats defaultSettings (timedValue resultForest)
@@ -70,9 +72,9 @@ spec = do
         writeFile (fromAbsFile (tdir </> [relfile|loose-file|])) ""
         specForest <-
           execTestDefM defaultSettings $
-            scenarioDirOfDirs (fromAbsDir tdir) $ \fp ->
-              it "is the scenario directory" $
-                fp `shouldBe` fromAbsDir tdir FilePath.</> "scenario"
+            scenarioDirOfDirs tdir $ \fp ->
+              it "is the scenario directory, relative to the one given" $
+                fp `shouldBe` [reldir|scenario|]
         resultForest <- runSpecForestSynchronously defaultSettings specForest
         let stats = computeTestSuiteStats defaultSettings (timedValue resultForest)
         testSuiteStatSuccesses stats `shouldBe` 1
@@ -83,7 +85,7 @@ spec = do
         writeFile (fromAbsFile (tdir </> [relfile|loose-file|])) ""
         specForest <-
           execTestDefM defaultSettings $
-            scenarioDirOfDirs (fromAbsDir tdir) $ \fp ->
+            scenarioDirOfDirs tdir $ \fp ->
               it "is never defined" $ fp `shouldBe` fp
         resultForest <- runSpecForestSynchronously defaultSettings specForest
         let stats = computeTestSuiteStats defaultSettings (timedValue resultForest)

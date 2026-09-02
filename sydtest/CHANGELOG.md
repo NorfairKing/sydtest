@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.30.0.0] - 2026-09-02
+
+### Changed
+
+* `scenarioDir`, `scenarioDirRecur` and `scenarioDirOfDirs` take a `Path b Dir`
+  and hand the callback a `Path Rel File` or a `Path Rel Dir`, relative to that
+  directory, where all three took and gave a `FilePath`.
+  Pass `[reldir|test_resources/scenarios|]` for the directory, and join the
+  scenario to it to read it.
+
+  Test descriptions are unchanged, so a `--filter` over them still selects the
+  same tests.
+
 ## [0.29.0.0] - 2026-08-19
 
 ### Added

@@ -19,15 +19,20 @@ import Test.Syd.Expectation
 -- instead, because that usually means the scenario files were omitted by
 -- accident.
 --
+-- The scenario is given relative to the directory, so it is the name to say the
+-- test is about and joining it to the directory is what reads it. Neither has to
+-- be recovered from the other.
+--
 -- Example:
 --
--- >   scenarioDir "test_resources/even" $ \fp ->
+-- >   let dir = [reldir|test_resources/even|]
+-- >   scenarioDir dir $ \rf ->
 -- >     it "contains an even number" $ do
--- >       s <- readFile fp
+-- >       s <- readFile (fromRelFile (dir </> rf))
 -- >       n <- readIO s
 -- >       (n :: Int) `shouldSatisfy` even
-scenarioDir :: FilePath -> (FilePath -> TestDefM outers inner ()) -> TestDefM outers inner ()
-scenarioDir = scenarioDirHelper "files" (fmap (map fromRelFile . snd) . listDirRel)
+scenarioDir :: Path b Dir -> (Path Rel File -> TestDefM outers inner ()) -> TestDefM outers inner ()
+scenarioDir = scenarioDirHelper "files" (fmap snd . listDirRel)
 
 -- | Define a test for each file in the given directory, recursively.
 --
@@ -37,13 +42,14 @@ scenarioDir = scenarioDirHelper "files" (fmap (map fromRelFile . snd) . listDirR
 --
 -- Example:
 --
--- >   scenarioDirRecur "test_resources/odd" $ \fp ->
+-- >   let dir = [reldir|test_resources/odd|]
+-- >   scenarioDirRecur dir $ \rf ->
 -- >     it "contains an odd number" $ do
--- >       s <- readFile fp
+-- >       s <- readFile (fromRelFile (dir </> rf))
 -- >       n <- readIO s
 -- >       (n :: Int) `shouldSatisfy` odd
-scenarioDirRecur :: FilePath -> (FilePath -> TestDefM outers inner ()) -> TestDefM outers inner ()
-scenarioDirRecur = scenarioDirHelper "files" (fmap (map fromRelFile . snd) . listDirRecurRel)
+scenarioDirRecur :: Path b Dir -> (Path Rel File -> TestDefM outers inner ()) -> TestDefM outers inner ()
+scenarioDirRecur = scenarioDirHelper "files" (fmap snd . listDirRecurRel)
 
 -- | Define a test for each subdirectory of the given directory.
 --
@@ -57,32 +63,38 @@ scenarioDirRecur = scenarioDirHelper "files" (fmap (map fromRelFile . snd) . lis
 --
 -- Example:
 --
--- >   scenarioDirOfDirs "test_resources/same" $ \fp ->
+-- >   let dir = [reldir|test_resources/same|]
+-- >   scenarioDirOfDirs dir $ \rd ->
 -- >     it "contains two files with the same contents" $ do
--- >       a <- readFile (fp </> "a")
--- >       b <- readFile (fp </> "b")
+-- >       a <- readFile (fromRelFile (dir </> rd </> [relfile|a|]))
+-- >       b <- readFile (fromRelFile (dir </> rd </> [relfile|b|]))
 -- >       a `shouldBe` b
-scenarioDirOfDirs :: FilePath -> (FilePath -> TestDefM outers inner ()) -> TestDefM outers inner ()
-scenarioDirOfDirs =
-  scenarioDirHelper
-    "directories"
-    (fmap (map (FP.dropTrailingPathSeparator . fromRelDir) . fst) . listDirRel)
+scenarioDirOfDirs :: Path b Dir -> (Path Rel Dir -> TestDefM outers inner ()) -> TestDefM outers inner ()
+scenarioDirOfDirs = scenarioDirHelper "directories" (fmap fst . listDirRel)
 
 scenarioDirHelper ::
   -- | What the lister looks for, for the description of the failing test that
   -- an empty scenario directory produces.
   String ->
   -- | The scenarios, relative to the given directory
-  (Path Abs Dir -> IO [FilePath]) ->
-  FilePath ->
-  (FilePath -> TestDefM outers inner ()) ->
+  (Path Abs Dir -> IO [Path Rel t]) ->
+  Path b Dir ->
+  (Path Rel t -> TestDefM outers inner ()) ->
   TestDefM outers inner ()
-scenarioDirHelper noun lister dp func =
-  describe dp $ do
-    ad <- liftIO $ resolveDir' dp
+scenarioDirHelper noun lister dir func =
+  describe (described dir) $ do
+    ad <- liftIO $ makeAbsolute dir
     ss <- liftIO $ fmap (fromMaybe []) $ forgivingAbsence $ lister ad
     if null ss
       then it (unwords ["has scenario", noun]) $ \_ ->
-        (expectationFailure $ unwords ["No scenario", noun, "found in", dp] :: IO ())
+        (expectationFailure $ unwords ["No scenario", noun, "found in", described dir] :: IO ())
       else forM_ ss $ \s ->
-        describe s $ func (dp FP.</> s)
+        describe (described s) $ func s
+
+-- | A path as a test description.
+--
+-- The separator a directory's rendering ends in comes off, so that a scenario
+-- reads the same whether it is a file or a directory, and so that these
+-- descriptions are the ones they were before the scenarios became typed.
+described :: Path b t -> String
+described = FP.dropTrailingPathSeparator . toFilePath

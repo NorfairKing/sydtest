@@ -93,9 +93,9 @@ xdescribe s = describe s . censor (markSpecForestAsPending Nothing)
 -- > describe "readFile and writeFile" $
 -- >     it "reads back what it wrote for this example" $ do
 -- >         let cts = "hello world"
--- >         let fp = "test.txt"
--- >         writeFile fp cts
--- >         cts' <- readFile fp
+-- >         let file = [relfile|test.txt|]
+-- >         writeFile (fromRelFile file) cts
+-- >         cts' <- readFile (fromRelFile file)
 -- >         cts' `shouldBe` cts
 --
 --
@@ -111,10 +111,10 @@ xdescribe s = describe s . censor (markSpecForestAsPending Nothing)
 --
 -- > describe "readFile and writeFile" $
 -- >     it "reads back what it wrote for any example" $ do
--- >         forAllValid $ \fp ->
+-- >         forAllValid $ \file ->
 -- >             forAllValid $ \cts -> do
--- >                 writeFile fp cts
--- >                 cts' <- readFile fp
+-- >                 writeFile (fromRelFile file) cts
+-- >                 cts' <- readFile (fromRelFile file)
 -- >                 cts' `shouldBe` cts
 --
 --
@@ -137,9 +137,9 @@ xdescribe s = describe s . censor (markSpecForestAsPending Nothing)
 -- > in around setUpTempDir $ describe "readFile and writeFile" $
 -- >     it "reads back what it wrote for this example" $ \tempDir -> do
 -- >         let cts = "hello world"
--- >         let fp = tempDir </> "test.txt"
--- >         writeFile fp cts
--- >         cts' <- readFile fp
+-- >         let file = tempDir </> [relfile|test.txt|]
+-- >         writeFile (fromAbsFile file) cts
+-- >         cts' <- readFile (fromAbsFile file)
 -- >         cts' `shouldBe` cts
 --
 --
@@ -158,9 +158,9 @@ xdescribe s = describe s . censor (markSpecForestAsPending Nothing)
 -- > in around setUpTempDir $ describe "readFile and writeFile" $
 -- >     it "reads back what it wrote for this example" $ \tempDir ->
 -- >         property $ \cts -> do
--- >             let fp = tempDir </> "test.txt"
--- >             writeFile fp cts
--- >             cts' <- readFile fp
+-- >             let file = tempDir </> [relfile|test.txt|]
+-- >             writeFile (fromAbsFile file) cts
+-- >             cts' <- readFile (fromAbsFile file)
 -- >             cts' `shouldBe` cts
 it ::
   forall outers inner test.
@@ -239,9 +239,9 @@ xspecify = xit
 -- > in aroundAll setUpTempDir describe "readFile and writeFile" $
 -- >     itWithOuter "reads back what it wrote for this example" $ \tempDir -> do
 -- >         let cts = "hello world"
--- >         let fp = tempDir </> "test.txt"
--- >         writeFile fp cts
--- >         cts' <- readFile fp
+-- >         let file = tempDir </> [relfile|test.txt|]
+-- >         writeFile (fromAbsFile file) cts
+-- >         cts' <- readFile (fromAbsFile file)
 -- >         cts' `shouldBe` cts
 --
 --
@@ -258,11 +258,11 @@ xspecify = xit
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
 -- > in aroundAll setUpTempDir describe "readFile and writeFile" $
--- >     itWithouter "reads back what it wrote for this example" $ \tempDir ->
+-- >     itWithOuter "reads back what it wrote for this example" $ \tempDir ->
 -- >         property $ \cts -> do
--- >             let fp = tempDir </> "test.txt"
--- >             writeFile fp cts
--- >             cts' <- readFile fp
+-- >             let file = tempDir </> [relfile|test.txt|]
+-- >             writeFile (fromAbsFile file) cts
+-- >             cts' <- readFile (fromAbsFile file)
 -- >             cts' `shouldBe` cts
 itWithOuter ::
   (HasCallStack, IsTest test, Arg1 test ~ inner, Arg2 test ~ outer) =>
@@ -336,9 +336,9 @@ xspecifyWithOuter = xitWithOuter
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
 -- > in aroundAll setUpTempDir describe "readFile and writeFile" $ before (pure "hello world") $
 -- >     itWithBoth "reads back what it wrote for this example" $ \tempDir cts -> do
--- >         let fp = tempDir </> "test.txt"
--- >         writeFile fp cts
--- >         cts' <- readFile fp
+-- >         let file = tempDir </> [relfile|test.txt|]
+-- >         writeFile (fromAbsFile file) cts
+-- >         cts' <- readFile (fromAbsFile file)
 -- >         cts' `shouldBe` cts
 --
 --
@@ -354,12 +354,12 @@ xspecifyWithOuter = xitWithOuter
 -- ===== IO property test
 --
 -- > let setUpTempDir func = withSystemTempDir $ \tempDir -> func tempDir
--- > in aroundAll setUpTempDir describe "readFile and writeFile" $ before (pure "test.txt") $
+-- > in aroundAll setUpTempDir describe "readFile and writeFile" $ before (pure [relfile|test.txt|]) $
 -- >     itWithBoth "reads back what it wrote for this example" $ \tempDir fileName ->
 -- >         property $ \cts -> do
--- >             let fp = tempDir </> fileName
--- >             writeFile fp cts
--- >             cts' <- readFile fp
+-- >             let file = tempDir </> fileName
+-- >             writeFile (fromAbsFile file) cts
+-- >             cts' <- readFile (fromAbsFile file)
 -- >             cts' `shouldBe` cts
 itWithBoth ::
   ( HasCallStack,

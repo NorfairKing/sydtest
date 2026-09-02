@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.30.0.0] - 2026-09-02
+
+### Changed
+
+* `scenarioDir`, `scenarioDirRecur` and `scenarioDirOfDirs` take a `Path b Dir`
+  and hand the callback a `Path Rel File` or a `Path Rel Dir`, where they took
+  and gave a `FilePath` before.  A scenario now carries whether it is a file or
+  a directory in its type, which is what a caller had to know and could not be
+  told.
+
+  The scenario is relative to the directory given rather than to the working
+  directory, so it is the name to say the test is about, and joining it to the
+  directory is what reads it.  Neither has to be recovered from the other, which
+  a joined path made a caller wanting the name do by hand.
+
+  Call sites pass `[reldir|test_resources/scenarios|]` where they passed
+  `"test_resources/scenarios"`, and join the scenario to it where they used the
+  path as a `FilePath`.
+
+  Test descriptions are unchanged, so a `--filter` over them still selects the
+  same tests.
+
 ## [0.29.0.0] - 2026-08-19
 
 ### Added

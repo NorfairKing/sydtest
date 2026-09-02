@@ -132,7 +132,6 @@ test-suite sydtest-test
     , bytestring
     , containers
     , fast-myers-diff
-    , filepath
     , mtl
     , opt-env-conf-test
     , path

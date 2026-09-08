@@ -73,7 +73,7 @@ import GHC.Utils.Outputable (text)
 import Path
 import Path.IO (forgivingAbsence, resolveFile')
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationRecord (..), controlOperatorName)
-import Test.Syd.Mutation.Plugin.Operator.Util (headNameMatches)
+import Test.Syd.Mutation.Plugin.Operator.Util (collectApp, headFunctionName, headNameMatches)
 import Test.Syd.Mutation.Plugin.OptParse (OperatorConfig)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 
@@ -303,7 +303,21 @@ data InstrumentEnv = InstrumentEnv
     -- under @N@ levels of 'HsApp' is dominated by the arity-0 mutation on
     -- the outermost saturated expression (both reduce to @v@), so emitting
     -- both is pure noise.
-    instrumentEnvAppDepth :: Int
+    instrumentEnvAppDepth :: Int,
+    -- | The functions whose arguments this expression is inside, innermost
+    -- first.
+    --
+    -- Pushed when the walker descends into the argument of an application,
+    -- and through @$@ on both its application and its infix form, so that
+    -- @failJobFatal $ mconcat [\"...\", err]@ leaves the list literal with
+    -- @[mconcat, failJobFatal]@ rather than only @mconcat@. That is the whole
+    -- reason this is a list rather than the immediate callee: the call worth
+    -- naming in a config file is the one that says what the argument is for,
+    -- and it is never the innermost one for a string built out of pieces.
+    --
+    -- 'Test.Syd.Mutation.Plugin.Operator.ListLit' consults this for its
+    -- @skip-calls-to@ key.
+    instrumentEnvEnclosingCalls :: [Name]
   }
 
 -- | Original source information for an enclosing infix @OpApp@ — captured
@@ -430,6 +444,7 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrumentEnvIgnore = ignore,
         instrumentEnvInGuard = False,
         instrumentEnvAppDepth = 0,
+        instrumentEnvEnclosingCalls = [],
         instrumentEnvLocalDisables = Map.empty,
         instrumentEnvInLocalLet = False,
         instrumentEnvOpAppCtx = Nothing
@@ -964,7 +979,15 @@ instrumentExpr _sp = \case
   HsApp x f a ->
     HsApp x
       <$> local (\env -> env {instrumentEnvAppDepth = instrumentEnvAppDepth env + 1}) (instrumentLExpr f)
-      <*> local (\env -> env {instrumentEnvAppDepth = 0}) (instrumentLExpr a)
+      <*> local
+        ( \env ->
+            env
+              { instrumentEnvAppDepth = 0,
+                instrumentEnvEnclosingCalls =
+                  pushEnclosingCall (applicationCallee f) (instrumentEnvEnclosingCalls env)
+              }
+        )
+        (instrumentLExpr a)
   HsLam x lv mg -> HsLam x lv <$> instrumentMatchGroup mg
   HsCase x scrut mg -> HsCase x <$> instrumentLExpr scrut <*> instrumentMatchGroup mg
   HsIf x c t e -> HsIf x <$> instrumentLExpr c <*> instrumentLExpr t <*> instrumentLExpr e
@@ -977,7 +1000,20 @@ instrumentExpr _sp = \case
   -- all, since 'instrumentLExprGo' does not mutate the signature node itself.
   ExprWithTySig x e sig -> ExprWithTySig x <$> instrumentLExpr e <*> pure sig
   NegApp x e se -> NegApp x <$> instrumentLExpr e <*> pure se
-  OpApp x l op r -> OpApp x <$> instrumentLExpr l <*> pure op <*> instrumentLExpr r
+  OpApp x l op r ->
+    OpApp x
+      <$> instrumentLExpr l
+      <*> pure op
+      <*> local
+        ( \env ->
+            env
+              { instrumentEnvEnclosingCalls =
+                  pushEnclosingCall
+                    (if isDollar op then headOf l else Nothing)
+                    (instrumentEnvEnclosingCalls env)
+              }
+        )
+        (instrumentLExpr r)
   ExplicitTuple x args bx -> ExplicitTuple x <$> mapM instrumentTupArg args <*> pure bx
   RecordCon x con flds -> RecordCon x con <$> instrumentRecordBinds flds
   -- XExpr nodes appear after typechecking for operator expansion etc.
@@ -1033,6 +1069,34 @@ origBindStmtBinders = \case
   OrigStmt (L _ (BindStmt _ pat _)) ->
     Just (collectPatBinders CollNoDictBinders pat)
   _ -> Nothing
+
+-- | The function an application calls, as far as a config file would name it.
+--
+-- Given the function side of an @HsApp@, this is the name at its head, except
+-- that @$@ is not a call anybody means: @f $ x@ is @f@ applied to @x@, so the
+-- name to report is @f@'s.
+applicationCallee :: LHsExpr GhcTc -> Maybe Name
+applicationCallee fnSide =
+  let (hd, args) = collectApp fnSide
+   in case headFunctionName hd of
+        Just n
+          | getOccString n == "$",
+            (leftArg : _) <- args ->
+              headOf leftArg
+        other -> other
+
+-- | The name at the head of an application, whatever it is applied to.
+headOf :: LHsExpr GhcTc -> Maybe Name
+headOf = headFunctionName . fst . collectApp
+
+-- | Whether this operator is @$@, which stands for application rather than
+-- being a call of its own.
+isDollar :: LHsExpr GhcTc -> Bool
+isDollar op = maybe False ((== "$") . getOccString) (headFunctionName op)
+
+-- | Record a callee, when there was one to record.
+pushEnclosingCall :: Maybe Name -> [Name] -> [Name]
+pushEnclosingCall = maybe id (:)
 
 -- | If @orig@ is an 'OpApp' originating from source-level infix syntax,
 -- extract the outer, operator-token, and operand source spans plus the

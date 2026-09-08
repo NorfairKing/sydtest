@@ -47,3 +47,12 @@ operators:
   ConstConstructor:
     skip-calls-to:
       - constantDirection
+  # Exercises 'ListLit' suppression: 'report' (in Example.ListLitCallsLib)
+  # stands in for a log or an error function, whose argument is a message
+  # nobody asserts the wording of. Listing it here skips the operator on a list
+  # literal anywhere inside its argument, which is what makes the option useful:
+  # the call a list literal is the immediate argument of is always 'mconcat' or
+  # 'unwords', never the function that says what the message is for.
+  ListLit:
+    skip-calls-to:
+      - report

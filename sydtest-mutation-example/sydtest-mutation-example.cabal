@@ -33,6 +33,7 @@ library
       Example.IgnoreLib
       Example.Lib
       Example.ListLib
+      Example.ListLitCallsLib
       Example.LocalDisableLib
       Example.LogicLib
       Example.MaybeCompoundLib

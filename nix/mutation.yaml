@@ -56,3 +56,11 @@ operators:
   ListLit:
     skip-calls-to:
       - report
+  # 'ConstEmptyList' reaches the same lists from the other side, by their type
+  # rather than their syntax, so it takes the same entry. Sharing 'report' with
+  # 'ListLit' above is what leaves Example.ListLitCallsLib with no ANN pragma
+  # at all: both operators are answered by this config, which is the point of
+  # the key, since a list inside an instance method has no binding to annotate.
+  ConstEmptyList:
+    skip-calls-to:
+      - report

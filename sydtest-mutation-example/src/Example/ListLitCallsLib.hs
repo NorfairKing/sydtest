@@ -16,9 +16,8 @@ where
 -- second test of that.
 --
 -- 'ConstEmptyList' would otherwise fire on the argument lists below, which
--- are the same lists this is about; disable that one operator so what is left
--- is only what 'ListLit' does.
-{-# ANN report ("DisableMutation: ConstEmptyList" :: String) #-}
+-- are the same lists this is about. It is answered by the same
+-- @skip-calls-to@ entry, under its own name, so there is no pragma here.
 report :: String -> Int
 report = length
 
@@ -26,13 +25,11 @@ report = length
 -- applications in, since @mconcat@ is the call it is the immediate argument
 -- of, so only matching an enclosing call rather than the immediate one
 -- suppresses it.
-{-# ANN reportPlain ("DisableMutation: ConstEmptyList" :: String) #-}
 reportPlain :: String -> Int
 reportPlain x = report (mconcat ["problem: ", x])
 
 -- | @$@ application: @report $ mconcat [...]@.  GHC expands @$@ into an
 -- @HsApp@ chain whose head is @$@ rather than @report@, so the callee has to
 -- be read through it.
-{-# ANN reportDollar ("DisableMutation: ConstEmptyList" :: String) #-}
 reportDollar :: String -> Int
 reportDollar x = report $ mconcat ["problem: ", x]

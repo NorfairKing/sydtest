@@ -1,5 +1,7 @@
 module Example.ListLitCallsLib
   ( report,
+    Codes (..),
+    reportCodes,
     reportPlain,
     reportDollar,
   )
@@ -33,3 +35,15 @@ reportPlain x = report (mconcat ["problem: ", x])
 -- be read through it.
 reportDollar :: String -> Int
 reportDollar x = report $ mconcat ["problem: ", x]
+
+-- | What 'reportCodes' answers with, so that there is a constructor to name.
+newtype Codes = Codes [Int]
+
+-- | A constructor application says what a list is for exactly as a function
+-- call does, so 'Codes' is listed under both operators' @skip-calls-to@ in the
+-- plugin config and the list literal here yields no mutation.
+--
+-- A constructor of this module's own rather than one of 'Either''s, so that
+-- what is skipped is one named constructor and not every 'Left' in the suite.
+reportCodes :: Int -> Codes
+reportCodes x = Codes (mconcat [[x], [x]])

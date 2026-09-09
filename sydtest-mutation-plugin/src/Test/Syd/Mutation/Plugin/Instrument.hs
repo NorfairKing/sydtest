@@ -46,6 +46,7 @@ import qualified Data.Text.Encoding as TE
 -- 'GHC.Runtime.Eval', which clashes with the 'GHC.Core.Type.typeKind' used below.
 import GHC hiding (typeKind)
 import GHC.Builtin.Types (charTy, manyDataConTy, mkListTy)
+import GHC.Core.ConLike (conLikeName)
 import GHC.Core.Predicate (isEvVar)
 import GHC.Core.TyCo.Rep (Scaled (..))
 import GHC.Core.Type (isLiftedTypeKind, typeKind)
@@ -1078,7 +1079,7 @@ origBindStmtBinders = \case
 applicationCallee :: LHsExpr GhcTc -> Maybe Name
 applicationCallee fnSide =
   let (hd, args) = collectApp fnSide
-   in case headFunctionName hd of
+   in case calleeName hd of
         Just n
           | getOccString n == "$",
             (leftArg : _) <- args ->
@@ -1087,7 +1088,32 @@ applicationCallee fnSide =
 
 -- | The name at the head of an application, whatever it is applied to.
 headOf :: LHsExpr GhcTc -> Maybe Name
-headOf = headFunctionName . fst . collectApp
+headOf = calleeName . fst . collectApp
+
+-- | The name at the head of an application, for the purpose of saying which
+-- call an expression is inside.
+--
+-- A data constructor counts. @Left (mconcat [..])@ is an application whose
+-- head says what the list is for exactly as @fail (mconcat [..])@ does, and a
+-- codec or a column rejecting what it was handed says so by returning a
+-- @Left@. Read here rather than in 'headFunctionName', which several operators
+-- use to decide what is an elidable or swappable /call/: a constructor is not
+-- one of those, and teaching that function about constructors would change
+-- which mutants they produce.
+calleeName :: LHsExpr GhcTc -> Maybe Name
+calleeName le = case headFunctionName le of
+  Just n -> Just n
+  Nothing -> constructorName le
+
+-- | The 'Name' of a data constructor at its post-typechecking 'ConLikeTc'
+-- node, which is what GHC rewrites a constructor's 'HsVar' into.
+constructorName :: LHsExpr GhcTc -> Maybe Name
+constructorName le = case unLoc le of
+  XExpr (ConLikeTc con _ _) -> Just (conLikeName con)
+  XExpr (WrapExpr (HsWrap _ e)) -> constructorName (noLocA e)
+  HsAppType _ f _ -> constructorName f
+  HsPar _ e -> constructorName e
+  _ -> Nothing
 
 -- | Whether this operator is @$@, which stands for application rather than
 -- being a call of its own.

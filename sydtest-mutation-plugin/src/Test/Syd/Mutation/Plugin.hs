@@ -1,23 +1,40 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Test.Syd.Mutation.Plugin (plugin) where
+module Test.Syd.Mutation.Plugin
+  ( plugin,
+    ModuleMutationAnns (..),
+    parseModuleMutationAnns,
+    DeadModuleDisable (..),
+    deadModuleDisables,
+    renderDeadModuleDisable,
+    deadModuleDisableSpan,
+  )
+where
 
-import Control.Monad (when)
+import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.Data (Data, cast, gmapQ)
 import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
-import Data.List (isPrefixOf, stripPrefix)
+import Data.List (isPrefixOf)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
+import Data.Set (Set)
+import qualified Data.Set as Set
 import GHC
-import GHC.Data.FastString (unpackFS)
+import GHC.Data.FastString (mkFastString, unpackFS)
 import GHC.Driver.Env (Hsc, HscEnv (..))
 import GHC.Driver.Plugins
 import GHC.Driver.Session (WarningFlag (..), gopt_unset, wopt_unset)
 import GHC.Serialized (deserializeWithData)
+import GHC.Tc.Errors.Types (mkTcRnUnknownMessage)
 import GHC.Tc.Types
+import GHC.Tc.Utils.Monad (addErrAt)
 import GHC.Types.Annotations (AnnTarget (..), findAnns)
+import GHC.Types.Error (mkPlainError, noHints)
+import GHC.Utils.Outputable (text)
 import Path
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), writeManifestFile)
@@ -30,37 +47,108 @@ import Test.Syd.Mutation.Plugin.OptParse
     resolveSettings,
   )
 
-data DisabledMutation
-  = DisableAll
-  | DisableNamed String
-  deriving (Eq)
+-- | Parsed result of all mutation-related module-level
+-- @{-# ANN module ... #-}@ annotations on one module.
+data ModuleMutationAnns = ModuleMutationAnns
+  { -- | What the module's annotations disable across the whole module.
+    mmaDisable :: !MutationDisable,
+    -- | Annotation strings that announced themselves as mutation disables but
+    -- are none of the forms a module accepts.  A @DisableMutationsFor <name>@
+    -- is one of these: it names a local binding of the scope it annotates,
+    -- and a module has none.
+    mmaMalformed :: ![String]
+  }
+  deriving (Eq, Show)
 
--- | Parse a list of @{-# ANN #-}@ string payloads into disabled-mutation specs.
---
--- Recognised formats:
---   @"DisableMutations"@              — disable all mutations on this scope
---   @"DisableMutations: Arith, BoolLit"@ — disable the listed mutation types
---   @"DisableMutation: Arith"@        — disable exactly one named mutation type
---
--- Spaces after the colon and after each comma are optional.
-parseMutationAnnStrings :: [String] -> [DisabledMutation]
-parseMutationAnnStrings = concatMap parse
+-- | Parse all the module-level @{-# ANN module #-}@ string payloads on one
+-- module.  The binding-level counterpart is 'parseFunMutationAnns'.
+parseModuleMutationAnns :: [String] -> ModuleMutationAnns
+parseModuleMutationAnns = foldr combine (ModuleMutationAnns (DisableOps []) [])
   where
-    parse s
-      | s == "DisableMutations" = [DisableAll]
-      | Just rest <- stripPrefix "DisableMutations:" s =
-          map (DisableNamed . trim) (splitOnComma rest)
-      | Just rest <- stripPrefix "DisableMutation:" s =
-          [DisableNamed (trim rest)]
-      | otherwise = []
+    combine :: String -> ModuleMutationAnns -> ModuleMutationAnns
+    combine s soFar = case parseDisableAnn s of
+      AnnSelf d -> soFar {mmaDisable = mergeDisables d (mmaDisable soFar)}
+      AnnLocal _ _ -> soFar {mmaMalformed = s : mmaMalformed soFar}
+      AnnMalformed _ -> soFar {mmaMalformed = s : mmaMalformed soFar}
+      AnnUnrelated -> soFar
 
-trim :: String -> String
-trim = dropWhile (== ' ')
+-- | A module-level mutation annotation that disables nothing.
+data DeadModuleDisable
+  = -- | An annotation that looks like a mutation disable but is none of the
+    -- forms a module accepts.
+    MalformedModuleAnnotation String
+  | -- | What the module's annotations disable is inert.
+    DeadModuleDisable DeadInScope
+  deriving (Eq, Show)
 
-splitOnComma :: String -> [String]
-splitOnComma s = case break (== ',') s of
-  (w, []) -> [w]
-  (w, _ : rest) -> w : splitOnComma rest
+-- | Everything a module's mutation annotations deserve to be told about.
+--
+-- @known@ is every operator name the plugin has and @fired@ the operators
+-- that produce a mutation in the module with its module-level disables lifted
+-- (but the configuration's disables still in force, so "disables nothing"
+-- means "removing this annotation would not change the manifest").
+deadModuleDisables :: Set String -> ModuleMutationAnns -> Set String -> [DeadModuleDisable]
+deadModuleDisables known (ModuleMutationAnns disable malformed) fired =
+  map MalformedModuleAnnotation malformed
+    ++ map DeadModuleDisable (deadInScope known disable fired)
+
+-- | The compile error one dead module-level annotation earns.
+renderDeadModuleDisable :: Set String -> DeadModuleDisable -> String
+renderDeadModuleDisable known = \case
+  MalformedModuleAnnotation ann ->
+    concat
+      [ "Module-level mutation annotation `",
+        ann,
+        "` is none of the recognised module-level disable annotations, ",
+        "so it disables no mutations. ",
+        "Recognised forms are `DisableMutations`, `DisableMutation: <Operator>` ",
+        "and `DisableMutations: <Operator>, <Operator>`."
+      ]
+  DeadModuleDisable dead ->
+    concat
+      [ "Module-level mutation disable annotation ",
+        renderDeadInScope known "this module" dead
+      ]
+
+-- | Where to point a complaint about a module-level annotation.
+--
+-- @recorded@ pairs each module-level annotation payload the parsed AST saw
+-- with the span of its pragma, so a complaint lands on the pragma it is
+-- about.  @fallback@ is used when no recorded annotation accounts for the
+-- complaint, which takes a payload that is not a literal string (and so is
+-- invisible in the parsed AST, though 'findAnns' still sees it).
+deadModuleDisableSpan :: SrcSpan -> [(String, SrcSpan)] -> DeadModuleDisable -> SrcSpan
+deadModuleDisableSpan fallback recorded dead =
+  let -- Every constructor is enumerated rather than defaulted, so that adding
+      -- a way for an annotation to be inert forces a decision about which
+      -- annotation a complaint about it points at.
+      accountsFor :: DeadInScope -> MutationDisable -> Bool
+      accountsFor scope disable = case disable of
+        DisableAllOps -> case scope of
+          ScopeDeadAll -> True
+          ScopeControlOperator -> False
+          ScopeDeadOperator _ -> False
+          ScopeUnknownOperator _ -> False
+        DisableOps ops -> case scope of
+          ScopeDeadAll -> False
+          ScopeControlOperator -> any namesControlOperator ops
+          ScopeDeadOperator op -> op `elem` ops
+          ScopeUnknownOperator op -> op `elem` ops
+
+      accounts :: String -> Bool
+      accounts payload = case dead of
+        MalformedModuleAnnotation ann -> ann == payload
+        DeadModuleDisable scope -> case parseDisableAnn payload of
+          AnnSelf disable -> accountsFor scope disable
+          -- A "...For <name>" payload and an unparsable one are themselves
+          -- complained about, as malformed; neither contributes to the
+          -- module's disable, so neither can account for one being inert.
+          AnnLocal _ _ -> False
+          AnnMalformed _ -> False
+          AnnUnrelated -> False
+   in case [sp | (payload, sp) <- recorded, accounts payload] of
+        (sp : _) -> sp
+        [] -> fallback
 
 plugin :: Plugin
 plugin =
@@ -118,19 +206,25 @@ plugin =
 -- This ensures sydtest-mutation-plugin is registered as used (it is already in
 -- build-depends as the plugin package), and satisfies -Wunused-packages.
 --
--- Also, when @--skip-th-splices@ is set, walk the parsed AST to collect
--- 'RealSrcSpan's covering every 'HsUntypedSplice', 'HsTypedSplice', and
--- declaration-level 'SpliceD'.  These are stored in a process-global IORef
--- keyed by module name and consulted by 'recordMutation' (via the
--- 'instrumentEnvSpliceSpans' field of 'InstrumentEnv') to drop mutations whose own
--- span is contained inside any splice span.
+-- Also walks the parsed AST for what only it can see, and records both in a
+-- process-global IORef keyed by module name for 'mutationTypeCheckAction' to
+-- read back:
+--
+--   * When @--skip-th-splices@ is set, 'RealSrcSpan's covering every
+--     'HsUntypedSplice', 'HsTypedSplice', and declaration-level 'SpliceD'.
+--     'recordMutation' consults these (via the 'instrumentEnvSpliceSpans'
+--     field of 'InstrumentEnv') to drop mutations whose own span is contained
+--     inside any splice span.
+--   * The module-level annotation payloads with the spans of their pragmas,
+--     so a complaint about one can point at it.
 --
 -- Why parse-time: many top-level splices (e.g. @mkYesodData@,
 -- @mkPersist [persistLowerCase| ... |]@) are evaluated during renaming and
 -- their results are spliced into the typechecker as if they were original
 -- code, so the typechecked AST no longer carries an 'ExpandedThingTc'
 -- wrapper we could pattern-match on.  The original splice nodes are still
--- present in the parsed AST.
+-- present in the parsed AST.  Annotation spans are parse-time for a simpler
+-- reason: 'findAnns' hands over payloads without any source location.
 mutationAddRuntimeImport ::
   [CommandLineOption] ->
   ModSummary ->
@@ -148,42 +242,37 @@ mutationAddRuntimeImport opts ms pr = do
     else do
       let pm = parsedResultModule pr
           lm = hpm_module pm
-          -- Look for a module-level
-          -- {-# ANN module ("DisableMutations" :: String) #-} in the parsed
-          -- AST.  When present, this module will be skipped in the
-          -- typecheck phase, so there's no point in walking its AST here to
-          -- collect splice spans.  Keep the runtime-import injection
-          -- regardless, so -Wunused-packages stays happy on the
-          -- sydtest-mutation-plugin dep.
-          disabled = hasDisableMutationsAnn (unLoc lm)
-      liftIO $
-        when (skipThSplices && not disabled) $ do
-          let spliceRanges = collectSpliceSpans lm
-          atomicModifyIORef' spliceSpansMap (\m -> (Map.insert mn spliceRanges m, ()))
+          info =
+            ModuleParseInfo
+              { mpiSpliceSpans = if skipThSplices then collectSpliceSpans lm else [],
+                mpiModuleAnns = moduleAnnStrings (unLoc lm)
+              }
+      liftIO $ atomicModifyIORef' moduleParseInfoMap (\m -> (Map.insert mn info m, ()))
       let runtimeImport = noLocA (simpleImportDecl (mkModuleName "Test.Syd.Mutation.Plugin.Runtime"))
           lm' = fmap (\m -> m {hsmodImports = runtimeImport : hsmodImports m}) lm
       pure pr {parsedResultModule = pm {hpm_module = lm'}}
 
--- | Recognise @{-# ANN module ("DisableMutations" :: String) #-}@ at the
--- top level of the parsed module.  Only looks at module-level annotations
--- (ignores @ANN someFunction ...@) so it mirrors the typecheck-phase
--- check that uses 'tcg_ann_env' with 'ModuleTarget'.
-hasDisableMutationsAnn :: HsModule GhcPs -> Bool
-hasDisableMutationsAnn m = any isDisableMutationsDecl (hsmodDecls m)
+-- | The module-level @{-# ANN module ("..." :: String) #-}@ payloads in the
+-- parsed module, each with the span of its pragma.
+--
+-- Only looks at module-level annotations (ignores @ANN someFunction ...@) so
+-- it mirrors the typecheck-phase read of 'tcg_ann_env' with a 'ModuleTarget'.
+moduleAnnStrings :: HsModule GhcPs -> [(String, SrcSpan)]
+moduleAnnStrings m = concatMap annString (hsmodDecls m)
   where
-    isDisableMutationsDecl :: LHsDecl GhcPs -> Bool
-    isDisableMutationsDecl (L _ d) = case d of
+    annString :: LHsDecl GhcPs -> [(String, SrcSpan)]
+    annString ld = case unLoc ld of
       AnnD _ (HsAnnotation _ ModuleAnnProvenance {} expr) ->
-        annExprIsDisableMutations expr
-      _ -> False
+        [(s, getLocA ld) | Just s <- [annExprString expr]]
+      _ -> []
 
     -- The payload of {-# ANN module ("DisableMutations" :: String) #-}
     -- parses as @ExprWithTySig _ "DisableMutations" String@; strip
     -- parentheses and type signatures to find the underlying string.
-    annExprIsDisableMutations :: LHsExpr GhcPs -> Bool
-    annExprIsDisableMutations le = case unLoc (stripExpr le) of
-      HsLit _ (HsString _ s) -> unpackFS s == "DisableMutations"
-      _ -> False
+    annExprString :: LHsExpr GhcPs -> Maybe String
+    annExprString le = case unLoc (stripExpr le) of
+      HsLit _ (HsString _ s) -> Just (unpackFS s)
+      _ -> Nothing
 
     stripExpr :: LHsExpr GhcPs -> LHsExpr GhcPs
     stripExpr le = case unLoc le of
@@ -191,18 +280,31 @@ hasDisableMutationsAnn m = any isDisableMutationsDecl (hsmodDecls m)
       ExprWithTySig _ inner _ -> stripExpr inner
       _ -> le
 
--- | Per-module splice spans collected by 'mutationAddRuntimeImport' when
--- @--skip-th-splices@ is set, read back by 'mutationTypeCheckAction' and
--- threaded through 'InstrumentEnv'.  Lives in a process-global IORef
--- because 'Hsc' and 'TcM' don't share state cleanly across compilation
+-- | What 'mutationAddRuntimeImport' saw in one parsed module that
+-- 'mutationTypeCheckAction' cannot see for itself.
+data ModuleParseInfo = ModuleParseInfo
+  { mpiSpliceSpans :: ![RealSrcSpan],
+    mpiModuleAnns :: ![(String, SrcSpan)]
+  }
+
+noModuleParseInfo :: ModuleParseInfo
+noModuleParseInfo =
+  ModuleParseInfo
+    { mpiSpliceSpans = [],
+      mpiModuleAnns = []
+    }
+
+-- | Per-module parse-stage findings, written by 'mutationAddRuntimeImport'
+-- and read back by 'mutationTypeCheckAction'.  Lives in a process-global
+-- IORef because 'Hsc' and 'TcM' don't share state cleanly across compilation
 -- units, and GHC may compile many modules in one process.  Switched from
 -- 'stm-containers' to 'IORef'+'atomicModifyIORef'' to avoid loading the
 -- 'stm' package into the GHC-as-host process, which has been observed to
 -- hang the plugin during the parsed-result action on real-world libraries
 -- (e.g. safe-coloured-text).
-{-# NOINLINE spliceSpansMap #-}
-spliceSpansMap :: IORef (Map String [RealSrcSpan])
-spliceSpansMap = unsafePerformIO (newIORef Map.empty)
+{-# NOINLINE moduleParseInfoMap #-}
+moduleParseInfoMap :: IORef (Map String ModuleParseInfo)
+moduleParseInfoMap = unsafePerformIO (newIORef Map.empty)
 
 -- | Generic traversal that collects 'RealSrcSpan's of all parsed-AST
 -- splice and quasi-quote nodes.  Uses 'Data' generics so we don't have
@@ -258,25 +360,47 @@ mutationTypeCheckAction opts ms tcGblEnv = do
     else do
       let annEnv = tcg_ann_env tcGblEnv
       let modAnns = findAnns deserializeWithData annEnv (ModuleTarget (tcg_mod tcGblEnv)) :: [String]
-      let disabledFromModAnns = parseMutationAnnStrings modAnns
-      -- A "disable-mutations" annotation with no names means disable all
-      -- mutations for this module.  Skip both the AST walk and the splice-
-      -- span lookup; the module's compiled artefacts are returned unchanged.
-      if DisableAll `elem` disabledFromModAnns
-        then do
+      let moduleDisables = parseModuleMutationAnns modAnns
+      let configDisabled = disabledFromConfig ++ disabledFromOperatorsConfig
+      let mSrcPath = ml_hs_file (ms_location ms)
+      parseInfo <- liftIO $ Map.findWithDefault noModuleParseInfo mn <$> readIORef moduleParseInfoMap
+      let spliceSpans = if skipThSplices then mpiSpliceSpans parseInfo else []
+      let walk :: InstrumentPurpose -> [String] -> TcM (LHsBinds GhcTc, [MutationGroup])
+          walk purpose disabled =
+            runInstrument tcGblEnv allOperators purpose annEnv disabled mSrcPath debug skipThSplices operatorsConfig spliceSpans ignore $
+              instrumentModule (tcg_binds tcGblEnv)
+      -- What the module-level annotations are worth: the operators that fire
+      -- with only the configuration's disables in force.  Measured on a walk
+      -- whose result is thrown away, and only when there is an annotation to
+      -- judge, since the walk costs as much as instrumenting the module does.
+      let measureModule :: TcM (Set String)
+          measureModule = operatorNamesIn . snd <$> walk MeasureOnly configDisabled
+      let reportDeadModuleDisables :: Set String -> TcM ()
+          reportDeadModuleDisables fired =
+            forM_ (deadModuleDisables knownOperators moduleDisables fired) $ \dead ->
+              addErrAt (deadModuleDisableSpan (moduleStartSpan ms) (mpiModuleAnns parseInfo) dead) $
+                mkTcRnUnknownMessage $
+                  mkPlainError noHints $
+                    text (renderDeadModuleDisable knownOperators dead)
+      case mmaDisable moduleDisables of
+        -- The module asks not to be mutated at all, so its compiled artefacts
+        -- are returned unchanged.  It is still walked once with the
+        -- annotation lifted, to find out whether the annotation is worth
+        -- anything, and that walk is thrown away.  A module whose
+        -- instrumentation itself misbehaves belongs in @exceptions@, which is
+        -- checked above this and never walks the module at all.
+        DisableAllOps -> do
+          reportDeadModuleDisables =<< measureModule
           liftIO $ putStrLn $ "mutation: skipping " ++ mn ++ " (DisableMutations)"
           pure tcGblEnv
-        else do
-          let disabledNames = disabledFromConfig ++ disabledFromOperatorsConfig ++ [n | DisableNamed n <- disabledFromModAnns]
+        DisableOps moduleAnnNames -> do
+          fired <-
+            if null moduleAnnNames
+              then pure Set.empty
+              else measureModule
+          reportDeadModuleDisables fired
           liftIO $ putStrLn $ "mutation: instrumenting " ++ mn
-          let mSrcPath = ml_hs_file (ms_location ms)
-          spliceSpans <-
-            if skipThSplices
-              then liftIO $ Map.findWithDefault [] mn <$> readIORef spliceSpansMap
-              else pure []
-          (binds', groups) <-
-            runInstrument tcGblEnv allOperators annEnv disabledNames mSrcPath debug skipThSplices operatorsConfig spliceSpans ignore $
-              instrumentModule (tcg_binds tcGblEnv)
+          (binds', groups) <- walk Instrument (configDisabled ++ moduleAnnNames)
           let totalMutations = sum [length rs | MutationGroup rs <- groups]
           liftIO $ do
             putStrLn $ "added " ++ show totalMutations ++ " mutations in " ++ show (length groups) ++ " groups"
@@ -284,6 +408,19 @@ mutationTypeCheckAction opts ms tcGblEnv = do
               Nothing -> pure ()
               Just dir -> writeModuleManifest dir mn groups
           pure tcGblEnv {tcg_binds = binds'}
+
+-- | Every operator name the plugin has, for judging a disable annotation that
+-- names one.
+knownOperators :: Set String
+knownOperators = Set.fromList (map operatorName allOperators)
+
+-- | A span at the start of the module's source file, for a complaint about an
+-- annotation whose own span is not available.
+moduleStartSpan :: ModSummary -> SrcSpan
+moduleStartSpan ms =
+  let file = fromMaybe (ms_hspp_file ms) (ml_hs_file (ms_location ms))
+      loc = mkSrcLoc (mkFastString file) 1 1
+   in mkSrcSpan loc loc
 
 -- | Write the manifest for one module to @<dir>/<ModuleName>.json@ and a
 -- coloured human-readable rendering to @<dir>/<ModuleName>.txt@.  Each

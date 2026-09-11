@@ -72,6 +72,7 @@
         forwardCompatibility = horizonPkgs.sydtestReleaseWithoutMutation;
         release = haskellPackages.sydtestRelease;
         mutation-manifest-example = pkgs.callPackage ./nix/mutationManifestCheck.nix { inherit haskellPackages; };
+        mutation-dead-disable = pkgs.callPackage ./nix/deadDisableCheck.nix { inherit haskellPackages; };
       } // (import ./nix/mutation-checks.nix {
         inherit haskellPackages;
       }) // {

@@ -1,0 +1,1 @@
+disables every operator, but nothing in `inner` would be mutated

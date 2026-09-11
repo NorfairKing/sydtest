@@ -1,0 +1,1 @@
+disables `BoolLit`, which produces no mutation in its body

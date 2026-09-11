@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.5.0.0] - 2026-09-11
+
+### Added
+
+* A mutation-disable annotation that disables nothing is now a compile error,
+  whether it annotates a module, a binding, or a local binding of one.
+* An annotation naming something that is not a mutation operator says so, and
+  lists the operators.
+* An annotation naming `Control` among the operators it disables says that a
+  control is only inserted where an operator fires, so naming it takes nothing
+  away.
+* A `DisableMutation`-prefixed annotation string that parses as none of the
+  recognised forms is an error rather than being ignored, which includes
+  `DisableMutationFor <name>` with no operator after it.
+* Judging a module-level disable walks the module and throws the result away,
+  so a module whose instrumentation misbehaves belongs in `exceptions` rather
+  than behind the annotation.
+
+### Fixed
+
+* `debug` now controls the per-mutation printing it documents; it was read
+  into the instrumentation environment and never consulted, so every
+  instrumented build printed a line per mutation.
+
+
 ## [0.4.6.0] - 2026-07-29
 
 ### Added

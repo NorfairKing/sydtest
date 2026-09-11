@@ -19,19 +19,30 @@ module Test.Syd.Mutation.Plugin.Instrument
     instrumentModule,
     applySpanRemoval,
     applySwapSpans,
+    InstrumentPurpose (..),
+    parseDisableAnn,
+    ParsedDisableAnn (..),
     parseFunMutationAnns,
     FunMutationAnns (..),
-    LocalDisable (..),
-    deadDisableTargets,
+    MutationDisable (..),
+    mergeDisables,
+    DeadInScope (..),
+    deadInScope,
+    renderDeadInScope,
+    namesControlOperator,
+    DeadDisable (..),
+    deadDisables,
+    renderDeadDisable,
+    operatorNamesIn,
   )
 where
 
-import Control.Monad (filterM, foldM, forM_)
+import Control.Monad (filterM, foldM, forM_, when)
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Control.Monad.Writer.Strict
 import qualified Data.ByteString as SB
-import Data.List (stripPrefix)
+import Data.List (intercalate, isPrefixOf, nub, stripPrefix)
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import Data.Map.Strict (Map)
@@ -205,6 +216,21 @@ data ClauseAlt = ClauseAlt
 -- ---------------------------------------------------------------------------
 -- Monad
 
+-- | Whether a walk is the real instrumentation or a measurement of what the
+-- real instrumentation would do.
+--
+-- A 'MeasureOnly' walk exists to answer "which operators fire in here", which
+-- is what decides whether a disable annotation disables anything.  Its
+-- syntax and its effect on 'InstrState' are thrown away afterwards
+-- ('operatorsFiringIn'), so it must also stay silent and must not measure
+-- again: otherwise a diagnostic would be reported once per measurement, and
+-- nested annotations would each re-walk a subtree an enclosing annotation is
+-- already re-walking.
+data InstrumentPurpose
+  = Instrument
+  | MeasureOnly
+  deriving (Eq)
+
 data InstrumentEnv = InstrumentEnv
   { instrumentEnvModule :: Module,
     -- | Source name ('OccName' string) of the enclosing top-level binding we
@@ -223,10 +249,17 @@ data InstrumentEnv = InstrumentEnv
     -- uses the 'ExpressionOperator's and the binding walker the
     -- 'FunctionDeclarationOperator's.
     instrumentEnvOperators :: [MutationOperator],
+    -- | Whether this walk instruments or only measures which operators fire.
+    -- See 'InstrumentPurpose' and 'operatorsFiringIn'.
+    instrumentEnvPurpose :: InstrumentPurpose,
+    -- | The name of every operator the plugin has, whether or not this run
+    -- enables it.  A disable annotation naming something absent from here
+    -- names nothing at all, which is a different (and more useful) complaint
+    -- than naming an operator that fires nowhere - and one that must not
+    -- depend on how a particular run is configured.
+    instrumentEnvKnownOperators :: Set String,
     -- | Annotation environment for reading {-# ANN #-} annotations.
     instrumentEnvAnnEnv :: AnnEnv,
-    -- | Mutation type names disabled at module or global scope.
-    instrumentEnvDisabledMutations :: [String],
     -- | Source file (relative path) and pre-read lines, read once per module.
     instrumentEnvSourceFile :: Maybe (Path Rel File, [Text]),
     -- | Print each mutation site as it is recorded (enabled by --debug plugin opt).
@@ -269,7 +302,7 @@ data InstrumentEnv = InstrumentEnv
     -- annotation is present, and consumed by 'instrumentBind' when entering
     -- a matching local 'FunBind' or 'VarBind'.  Cleared at the start of each
     -- top-level binding so disables don't leak across them.
-    instrumentEnvLocalDisables :: Map String LocalDisable,
+    instrumentEnvLocalDisables :: Map String MutationDisable,
     -- | True when we are currently instrumenting a local binding inside a
     -- @let@ or @where@.  Gates 'withLocalDisable' so it never matches the
     -- top-level binding itself — which would happen at @XHsBindsLR
@@ -339,16 +372,19 @@ data OpAppCtx = OpAppCtx
 
 -- | The 'StateT' state threaded through instrumentation.
 data InstrState = InstrState
-  { -- | Names of 'DisableMutationsFor' targets that 'applyLocalDisables' has
+  { -- | For each 'DisableMutationsFor' target that 'applyLocalDisables' has
     -- matched against a real local binding within the body currently being
-    -- walked.  'withFunBindEnv' brackets each declaring binding by resetting
-    -- this to empty, walking the body, and reading it back: any declared
-    -- target still absent named a binding that does not exist, so the
-    -- annotation is dead and we raise a compile error (see
-    -- 'deadDisableTargets').  Bracketing per declaring binding keeps the
+    -- walked, the operators that fire inside that binding once the target's
+    -- own disables are lifted.  'withFunBindEnv' brackets each declaring
+    -- binding by resetting this to empty, walking the body, and reading it
+    -- back, and 'deadDisables' then reads both halves of it: a declared
+    -- target still absent named a binding that does not exist, and a target
+    -- present but missing an operator it disables named a binding that
+    -- operator does not mutate.  Either way the annotation is dead and we
+    -- raise a compile error.  Bracketing per declaring binding keeps the
     -- bookkeeping correct even when several bindings disable the same local
-    -- name (e.g. an @inner@ in each), which a single threaded set could not.
-    instrConsumedDisables :: !(Set String),
+    -- name (e.g. an @inner@ in each), which a single threaded map could not.
+    instrLocalDisableHits :: !(Map String (Set String)),
     -- | Count of real mutations recorded since the last control (no-op)
     -- mutation was inserted.  When it reaches 'controlInterval', the next
     -- expression-level mutation site also emits a control and this resets.
@@ -363,7 +399,7 @@ data InstrState = InstrState
 emptyInstrState :: InstrState
 emptyInstrState =
   InstrState
-    { instrConsumedDisables = Set.empty,
+    { instrLocalDisableHits = Map.empty,
       instrSinceControl = 0,
       instrControlSeq = 0
     }
@@ -394,6 +430,8 @@ liftTcM = lift . lift . lift
 runInstrument ::
   TcGblEnv ->
   [MutationOperator] ->
+  -- | Whether to instrument for real or only to measure which operators fire.
+  InstrumentPurpose ->
   -- | Annotation environment for reading {-# ANN #-} annotations.
   AnnEnv ->
   -- | Mutation type names disabled globally or at module scope.
@@ -414,7 +452,7 @@ runInstrument ::
   [String] ->
   InstrM a ->
   TcM (a, [MutationGroup])
-runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThSplices operatorsConfig spliceSpans ignore action = do
+runInstrument tcGblEnv operators purpose annEnv disabledMutations mSrcPath debug skipThSplices operatorsConfig spliceSpans ignore action = do
   let rdrEnv = tcg_rdr_env tcGblEnv
       modul = tcg_mod tcGblEnv
   ifMutId <- lookupRdrEnvId rdrEnv "ifMutation"
@@ -435,10 +473,13 @@ runInstrument tcGblEnv operators annEnv disabledMutations mSrcPath debug skipThS
         instrumentEnvIfMutationId = ifMutId,
         instrumentEnvMutationIdCon = mutIdCon,
         instrumentEnvOperators = activeOperators,
+        instrumentEnvPurpose = purpose,
+        instrumentEnvKnownOperators = Set.fromList (map operatorName operators),
         instrumentEnvAnnEnv = annEnv,
-        instrumentEnvDisabledMutations = disabledMutations,
         instrumentEnvSourceFile = mSrcFile,
-        instrumentEnvDebug = debug,
+        -- A measuring walk is thrown away, so announcing its mutations would
+        -- be announcing mutations that never make it into the manifest.
+        instrumentEnvDebug = debug && purpose == Instrument,
         instrumentEnvSkipThSplices = skipThSplices,
         instrumentEnvOperatorsConfig = operatorsConfig,
         instrumentEnvSpliceSpans = spliceSpans,
@@ -581,6 +622,11 @@ withLocalDisableMany ids =
 -- | Common implementation: look up any of @occs@ in 'instrumentEnvLocalDisables',
 -- narrow operators by the merged disable list, and remove all matched
 -- entries from the map for the wrapped action.
+--
+-- Also records what the matched entries are worth, by measuring the same
+-- binding with them lifted.  This is the only place that knows which syntax a
+-- @DisableMutationsFor <name>@ actually covers, so it is the only place that
+-- can measure it.
 applyLocalDisables :: [String] -> InstrM a -> InstrM a
 applyLocalDisables occs action = do
   InstrumentEnv {instrumentEnvLocalDisables, instrumentEnvOperators} <- ask
@@ -588,7 +634,6 @@ applyLocalDisables occs action = do
   case matches of
     [] -> action
     _ -> do
-      modify' (\s -> s {instrConsumedDisables = Set.union (Set.fromList (map fst matches)) (instrConsumedDisables s)})
       let disableAll = any ((== DisableAllOps) . snd) matches
           namedDisables = concat [ns | (_, DisableOps ns) <- matches]
           operators' =
@@ -596,6 +641,23 @@ applyLocalDisables occs action = do
               then []
               else filter (\op -> operatorName op `notElem` namedDisables) instrumentEnvOperators
           remaining = foldr (Map.delete . fst) instrumentEnvLocalDisables matches
+      -- Measure with the matched entries lifted but removed from the map all
+      -- the same, so that a shadowing binding of the same name inside does not
+      -- narrow the measurement.  The real walk removes them for the same
+      -- reason: an entry is spent on the outermost binding that matches it.
+      fired <-
+        operatorsFiringIn instrumentEnvOperators $
+          local (\env -> env {instrumentEnvLocalDisables = remaining}) action
+      modify'
+        ( \s ->
+            s
+              { instrLocalDisableHits =
+                  foldr
+                    (\(occ, _) -> Map.insertWith Set.union occ fired)
+                    (instrLocalDisableHits s)
+                    matches
+              }
+        )
       local
         ( \env ->
             env
@@ -605,17 +667,53 @@ applyLocalDisables occs action = do
         )
         action
 
--- | The 'DisableMutationsFor' targets that never matched a local binding.
+-- | The operators that produce a mutation in @action@ when it is walked with
+-- @operators@ available.
 --
--- @declared@ is the local-disable map a top-level binding's annotations
--- installed (keyed by target name); @consumed@ is the set of target names that
--- 'applyLocalDisables' actually matched against a real local binding while
--- walking that binding's body.  A declared target absent from @consumed@ named
--- a binding that does not exist (e.g. a typo or a since-renamed local), so the
--- annotation disables nothing and should be removed.
-deadDisableTargets :: Map String LocalDisable -> Set String -> [String]
-deadDisableTargets declared consumed =
-  filter (`Set.notMember` consumed) (Map.keys declared)
+-- Runs the walk for its mutation records only: the groups it emits are
+-- censored away, the instrumentation state is put back, and the instrumented
+-- syntax it returns is dropped.  What is left is which operators would have
+-- fired, which is what decides whether a disable annotation disables
+-- anything.  Measuring with the real walk rather than asking each operator
+-- whether it matches is what keeps the answer from drifting away from the
+-- manifest: the @ignore@ list, per-operator @skip-calls-to@ keys, splice
+-- filtering and the dropping of mutants that do not desugar all happen inside
+-- the walk, and each of them can be the reason an operator produces nothing.
+--
+-- Answers 'Set.empty' without walking at all when there is nothing to
+-- measure: no operators that could fire, or a walk that is itself already a
+-- measurement, so a nested annotation does not re-walk a subtree its
+-- enclosing annotation is already re-walking.
+operatorsFiringIn :: [MutationOperator] -> InstrM a -> InstrM (Set String)
+operatorsFiringIn operators action = do
+  purpose <- asks instrumentEnvPurpose
+  if null operators || purpose == MeasureOnly
+    then pure Set.empty
+    else do
+      saved <- get
+      (_, groups) <-
+        censor (const []) $
+          listen $
+            local
+              ( \env ->
+                  env
+                    { instrumentEnvOperators = operators,
+                      instrumentEnvPurpose = MeasureOnly,
+                      instrumentEnvDebug = False
+                    }
+              )
+              action
+      put saved
+      pure (operatorNamesIn groups)
+
+-- | The operators that recorded a mutation in a walk's output.
+--
+-- Reading the answer off the records rather than off the operators that were
+-- tried is what makes a measurement mean "these would have been in the
+-- manifest".
+operatorNamesIn :: [MutationGroup] -> Set String
+operatorNamesIn groups =
+  Set.fromList [T.unpack (mutRecOperator record) | MutationGroup records <- groups, record <- records]
 
 -- | Run an instrumentation action with the operator list filtered by any
 -- {-# ANN funName ("DisableMutations..." :: String) #-} annotations on the
@@ -629,36 +727,36 @@ deadDisableTargets declared consumed =
 -- 'findAnns' returns @[]@; in that case this is the identity on the
 -- environment (the existing 'instrumentEnvLocalDisables' from the enclosing
 -- top-level binding is preserved).
+--
+-- An annotated binding is also where every complaint about its annotations is
+-- raised, because this is the scope those annotations cover: measuring the
+-- body with the binding's own disables lifted says what they are worth, and
+-- 'deadDisables' turns that into the complaints.
 withFunBindEnv :: Name -> InstrM a -> InstrM a
 withFunBindEnv funName action = do
-  InstrumentEnv {instrumentEnvAnnEnv, instrumentEnvOperators, instrumentEnvLocalDisables} <- ask
+  InstrumentEnv
+    { instrumentEnvAnnEnv,
+      instrumentEnvOperators,
+      instrumentEnvLocalDisables,
+      instrumentEnvKnownOperators,
+      instrumentEnvPurpose
+    } <-
+    ask
   let funAnns = findAnns deserializeWithData instrumentEnvAnnEnv (NamedTarget funName) :: [String]
-      FunMutationAnns selfDisable localDisables = parseFunMutationAnns funAnns
-      operators' = case selfDisable of
+  let anns = parseFunMutationAnns funAnns
+  let FunMutationAnns selfDisable localDisables _ = anns
+  let operators' = case selfDisable of
         DisableAllOps -> []
         DisableOps disabled -> filter (\op -> operatorName op `notElem` disabled) instrumentEnvOperators
-      -- Only replace instrumentEnvLocalDisables when this binding actually contributes
-      -- entries.  Local bindings have no ANN entries, so they return an empty
-      -- map and we must keep the enclosing top-level binding's map intact.
-      localDisables' =
+  -- Only replace instrumentEnvLocalDisables when this binding actually contributes
+  -- entries.  Local bindings have no ANN entries, so they return an empty
+  -- map and we must keep the enclosing top-level binding's map intact.
+  let localDisables' =
         if Map.null localDisables
           then instrumentEnvLocalDisables
           else localDisables
-  if Map.null localDisables
-    then
-      -- This binding contributes no 'DisableMutationsFor' targets, so it leaves
-      -- the consumed-targets state alone: a local binding consumed inside it
-      -- must still count for whichever outer binding declared the target.
-      local (\env -> env {instrumentEnvOperators = operators'}) action
-    else do
-      -- This binding declares targets, so bracket the consumed-targets state:
-      -- reset it to empty, walk the body, then read back exactly what this
-      -- binding's body consumed.  A single threaded set would be wrong here,
-      -- since several bindings can disable the same local name (e.g. an @inner@
-      -- in each), and the first consumption would mask the others.
-      saved <- gets instrConsumedDisables
-      modify' (\s -> s {instrConsumedDisables = Set.empty})
-      result <-
+  let withDisables :: InstrM b -> InstrM b
+      withDisables =
         local
           ( \env ->
               env
@@ -666,41 +764,235 @@ withFunBindEnv funName action = do
                   instrumentEnvLocalDisables = localDisables'
                 }
           )
-          action
-      consumed <- gets instrConsumedDisables
-      -- Restore the enclosing scope's consumption, plus what this body added,
-      -- so an outer declaring binding still sees targets consumed in here.
-      modify' (\s -> s {instrConsumedDisables = saved `Set.union` consumed})
-      -- Any declared target that was never consumed named a binding that does
-      -- not exist, so the annotation disables nothing: raise a compile error
-      -- asking for its removal.
-      forM_ (deadDisableTargets localDisables consumed) $ \target ->
-        liftTcM $
-          addErrAt (nameSrcSpan funName) $
-            mkTcRnUnknownMessage $
-              mkPlainError noHints $
-                text $
-                  "Mutation DisableMutationsFor annotation on `"
-                    ++ getOccString funName
-                    ++ "` targets `"
-                    ++ target
-                    ++ "`, which is not a local binding in its body. "
-                    ++ "It disables no mutations; remove it."
+  if not (hasMutationAnns anns)
+    then
+      -- This binding carries no mutation annotation, so it has nothing to
+      -- measure and nothing to answer for.  It also leaves the per-target
+      -- hits alone: a target hit inside it must still count for whichever
+      -- outer binding declared that target.
+      withDisables action
+    else do
+      -- What the binding's own disable is worth: the operators that fire in
+      -- the body with that disable lifted, but with every other disable
+      -- (configuration, an enclosing annotation, this binding's own
+      -- per-target entries) still in force.  So "fires nowhere" means
+      -- "removing this annotation would not change the manifest".
+      selfFired <-
+        if disablesNothing selfDisable
+          then pure Set.empty
+          else
+            operatorsFiringIn instrumentEnvOperators $
+              local (\env -> env {instrumentEnvLocalDisables = localDisables'}) action
+      -- Bracket the per-target hits: reset them, walk the body, then read back
+      -- exactly what this binding's body contributed.  A single threaded map
+      -- would be wrong here, since several bindings can disable the same local
+      -- name (e.g. an @inner@ in each), and the first hit would mask the
+      -- others.
+      saved <- gets instrLocalDisableHits
+      modify' (\s -> s {instrLocalDisableHits = Map.empty})
+      result <- withDisables action
+      localFired <- gets instrLocalDisableHits
+      -- Restore the enclosing scope's hits, plus what this body added, so an
+      -- outer declaring binding still sees targets hit in here.
+      modify' (\s -> s {instrLocalDisableHits = Map.unionWith Set.union saved localFired})
+      case instrumentEnvPurpose of
+        MeasureOnly -> pure ()
+        Instrument ->
+          forM_ (deadDisables instrumentEnvKnownOperators anns selfFired localFired) $ \dead ->
+            liftTcM $
+              addErrAt (nameSrcSpan funName) $
+                mkTcRnUnknownMessage $
+                  mkPlainError noHints $
+                    text $
+                      renderDeadDisable instrumentEnvKnownOperators (getOccString funName) dead
       pure result
+
+-- | A mutation-disable annotation on a binding that disables nothing.
+--
+-- Every constructor is a way for an annotation to be inert: removing it would
+-- not change the manifest.  Each is a compile error, so an annotation either
+-- earns its place or has to go.
+data DeadDisable
+  = -- | A string that announces itself as a mutation annotation but is none
+    -- of the recognised forms, so it never reached a scope at all.
+    MalformedAnnotation String
+  | -- | What the binding disables on itself is inert.
+    DeadSelf DeadInScope
+  | -- | What the binding disables inside the named local binding is inert.
+    DeadLocal String DeadInScope
+  | -- | A @DisableMutationsFor <target>@ whose target is no local binding in
+    -- the annotated binding's body: a typo, or a since-renamed local.
+    DeadTarget String
+  deriving (Eq, Show)
+
+-- | Everything a binding's mutation annotations deserve to be told about.
+--
+-- @known@ is every operator name the plugin has, @selfFired@ the operators
+-- that fire in the binding's body with its self-disable lifted, and
+-- @localFired@ the same per local-disable target - with a target absent
+-- altogether when it matched no local binding in the body.
+deadDisables ::
+  Set String ->
+  FunMutationAnns ->
+  Set String ->
+  Map String (Set String) ->
+  [DeadDisable]
+deadDisables known (FunMutationAnns selfDisable localDisables malformed) selfFired localFired =
+  let localDead :: (String, MutationDisable) -> [DeadDisable]
+      localDead (target, disable) = case Map.lookup target localFired of
+        Nothing -> [DeadTarget target]
+        Just fired -> map (DeadLocal target) (deadInScope known disable fired)
+   in concat
+        [ map MalformedAnnotation malformed,
+          map DeadSelf (deadInScope known selfDisable selfFired),
+          concatMap localDead (Map.toList localDisables)
+        ]
+
+-- | The compile error one dead disable on @binding@ earns.
+renderDeadDisable :: Set String -> String -> DeadDisable -> String
+renderDeadDisable known binding =
+  let onBinding :: String -> String
+      onBinding rest = concat ["Mutation disable annotation on `", binding, "` ", rest]
+   in \case
+        MalformedAnnotation ann ->
+          concat
+            [ "Mutation annotation `",
+              ann,
+              "` on `",
+              binding,
+              "` is none of the recognised disable annotations, so it disables no mutations. ",
+              recognisedFormsPhrase
+            ]
+        DeadSelf dead -> onBinding (renderDeadInScope known "its body" dead)
+        DeadLocal target dead ->
+          onBinding (renderDeadInScope known (concat ["`", target, "`"]) dead)
+        DeadTarget target ->
+          concat
+            [ "Mutation DisableMutationsFor annotation on `",
+              binding,
+              "` targets `",
+              target,
+              "`, which is not a local binding in its body. ",
+              "It disables no mutations; remove it."
+            ]
+
+-- | What is inert about one scope's disable, whatever kind of scope it is: a
+-- module, a binding, or one local binding inside a binding.
+data DeadInScope
+  = -- | The annotation names something that is not a mutation operator.
+    ScopeUnknownOperator String
+  | -- | The annotation names the control (no-op) mutation among the operators
+    -- it disables.  A control is inserted on a cadence at a site where an
+    -- operator already fired, so it is not in the operator list a disable
+    -- filters and naming it takes nothing away - but the name is right there
+    -- in every report, which is what makes reaching for it a natural mistake.
+    ScopeControlOperator
+  | -- | The named operator produces no mutation in the scope.
+    ScopeDeadOperator String
+  | -- | An all-operator disable on a scope that would be mutated nowhere.
+    ScopeDeadAll
+  deriving (Eq, Show)
+
+-- | Everything inert about one scope's disable.
+--
+-- @known@ is every operator name the plugin has and @fired@ the operators
+-- that produce a mutation in the scope with the scope's own disables lifted.
+--
+-- A name that is no operator is reported as unknown rather than as dead: the
+-- name is the problem, and whether a non-operator fires anywhere is not a
+-- question worth answering.
+deadInScope :: Set String -> MutationDisable -> Set String -> [DeadInScope]
+deadInScope known disable fired =
+  let verdict :: String -> [DeadInScope]
+      verdict op
+        | namesControlOperator op = [ScopeControlOperator]
+        | not (op `Set.member` known) = [ScopeUnknownOperator op]
+        | not (op `Set.member` fired) = [ScopeDeadOperator op]
+        | otherwise = []
+   in case disable of
+        DisableAllOps -> [ScopeDeadAll | Set.null fired]
+        DisableOps ops -> concatMap verdict (nub ops)
+
+-- | The rest of the sentence about one inert disable, after the words that
+-- name the annotation.  @scope@ names what the disable applies to, in a form
+-- that reads after "in": @its body@, @`inner`@, @this module@.
+renderDeadInScope :: Set String -> String -> DeadInScope -> String
+renderDeadInScope known scope = \case
+  ScopeUnknownOperator op ->
+    concat ["names `", op, "`, which is not a mutation operator. ", knownOperatorsPhrase known]
+  ScopeControlOperator ->
+    concat
+      [ "names `",
+        T.unpack controlOperatorName,
+        "`, which is the control (no-op) mutation rather than an operator. ",
+        "A control is only ever inserted where an operator fires, so naming it ",
+        "among operators to disable takes nothing away; remove it. ",
+        "Disabling every operator on a scope leaves it with no controls either."
+      ]
+  ScopeDeadOperator op ->
+    concat
+      [ "disables `",
+        op,
+        "`, which produces no mutation in ",
+        scope,
+        " (it may already be disabled by configuration or by another annotation). ",
+        "It disables no mutations; remove it."
+      ]
+  ScopeDeadAll ->
+    concat
+      [ "disables every operator, but nothing in ",
+        scope,
+        " would be mutated. It disables no mutations; remove it."
+      ]
+
+-- | Whether an annotation's operator name names the control (no-op) mutation
+-- rather than an operator.
+namesControlOperator :: String -> Bool
+namesControlOperator = (== controlOperatorName) . T.pack
+
+-- | The operator names, for an error message that has just rejected one.
+knownOperatorsPhrase :: Set String -> String
+knownOperatorsPhrase known =
+  concat ["The mutation operators are: ", intercalate ", " (Set.toAscList known), "."]
+
+-- | The disable annotations a binding accepts, for an error message that has
+-- just rejected something that looked like one.
+recognisedFormsPhrase :: String
+recognisedFormsPhrase =
+  unwords
+    [ "Recognised forms are `DisableMutations`, `DisableMutation: <Operator>`,",
+      "`DisableMutations: <Operator>, <Operator>`, `DisableMutationsFor <name>`,",
+      "`DisableMutationFor <name>: <Operator>`",
+      "and `DisableMutationsFor <name>: <Operator>, <Operator>`."
+    ]
 
 -- | Parsed result of all mutation-related @{-# ANN funName ... #-}@
 -- annotations on a single top-level binding.
 data FunMutationAnns = FunMutationAnns
   { -- | What to do with mutations inside the binding itself.
-    famSelfDisable :: !LocalDisable,
+    famSelfDisable :: !MutationDisable,
     -- | Disables targeted at specific local bindings within this top-level
     -- binding's body, keyed by the local binding's user-visible name.
-    famLocalDisables :: !(Map String LocalDisable)
+    famLocalDisables :: !(Map String MutationDisable),
+    -- | Annotation strings that announced themselves as mutation disables but
+    -- are none of the recognised forms.  Kept rather than dropped because
+    -- such a string disables nothing, which is a mistake worth reporting.
+    famMalformed :: ![String]
   }
   deriving (Eq, Show)
 
+-- | Whether a binding carries any mutation annotation at all.
+--
+-- A binding that carries none has nothing to measure and nothing to answer
+-- for, which is the overwhelmingly common case and worth not paying for.
+hasMutationAnns :: FunMutationAnns -> Bool
+hasMutationAnns (FunMutationAnns selfDisable localDisables malformed) =
+  not (disablesNothing selfDisable)
+    || not (Map.null localDisables)
+    || not (null malformed)
+
 -- | What a single annotation disables on a scope.
-data LocalDisable
+data MutationDisable
   = -- | Disable all operators on this scope.
     DisableAllOps
   | -- | Disable exactly the listed operator names on this scope. An empty
@@ -708,71 +1000,110 @@ data LocalDisable
     DisableOps [String]
   deriving (Eq, Show)
 
--- | Parse a list of @{-# ANN funName #-}@ string payloads.
+-- | Whether a disable disables nothing by construction, because it names no
+-- operator.  This is what the absence of any annotation parses to, so it is
+-- also how "no disable here" is asked about.
+disablesNothing :: MutationDisable -> Bool
+disablesNothing = \case
+  DisableAllOps -> False
+  DisableOps ops -> null ops
+
+-- | Parse all the @{-# ANN funName #-}@ string payloads on one binding.
+parseFunMutationAnns :: [String] -> FunMutationAnns
+parseFunMutationAnns = foldr combine (FunMutationAnns (DisableOps []) Map.empty [])
+  where
+    combine :: String -> FunMutationAnns -> FunMutationAnns
+    combine ann soFar = case parseDisableAnn ann of
+      AnnSelf d -> soFar {famSelfDisable = mergeDisables d (famSelfDisable soFar)}
+      AnnLocal n d ->
+        soFar {famLocalDisables = Map.insertWith mergeDisables n d (famLocalDisables soFar)}
+      AnnMalformed s -> soFar {famMalformed = s : famMalformed soFar}
+      AnnUnrelated -> soFar
+
+-- | What one @{-# ANN #-}@ string payload asks the plugin to disable.
+data ParsedDisableAnn
+  = -- | Disable on the annotated scope itself.
+    AnnSelf MutationDisable
+  | -- | Disable inside the named local binding of the annotated scope.
+    AnnLocal String MutationDisable
+  | -- | A string that announces itself as a mutation disable but is none of
+    -- the recognised forms, so it disables nothing.
+    AnnMalformed String
+  | -- | Not a mutation annotation at all.  @{-# ANN #-}@ string payloads are
+    -- a shared mechanism (dekking's coverage marks functions with
+    -- @"nocover"@), so a string that does not announce itself as a mutation
+    -- disable has to be left alone rather than complained about.
+    AnnUnrelated
+  deriving (Eq, Show)
+
+-- | Parse one @{-# ANN #-}@ string payload.
 --
 -- Recognised forms (whitespace after the colon and commas is tolerated):
 --
---   * @DisableMutations@                            — disable all operators on the binding.
---   * @DisableMutations: A, B@                      — disable the listed operators on the binding.
---   * @DisableMutation: A@                          — disable the single named operator on the binding.
+--   * @DisableMutations@                            — disable all operators on the scope.
+--   * @DisableMutations: A, B@                      — disable the listed operators on the scope.
+--   * @DisableMutation: A@                          — disable the single named operator on the scope.
 --   * @DisableMutationsFor <name>@                  — disable all operators inside the
 --                                                    local binding named @\<name\>@.
 --   * @DisableMutationsFor <name>: A, B@            — disable the listed operators inside @\<name\>@.
 --   * @DisableMutationFor <name>: A@                — disable the single named operator inside @\<name\>@.
 --
 -- @\<name\>@ matches the source-level identifier of a local binding inside
--- the annotated top-level function's body. Unrecognised strings are ignored.
-parseFunMutationAnns :: [String] -> FunMutationAnns
-parseFunMutationAnns =
-  foldr combine (FunMutationAnns (DisableOps []) Map.empty) . concatMap parseOne
+-- the annotated top-level function's body.
+parseDisableAnn :: String -> ParsedDisableAnn
+parseDisableAnn s
+  -- Try the "...For <name>" forms first so they don't get swallowed by
+  -- the shorter prefixes.
+  | Just rest <- stripPrefix "DisableMutationsFor " s = localAnn rest (Just DisableAllOps)
+  | Just rest <- stripPrefix "DisableMutationFor " s = localAnn rest Nothing
+  | s == "DisableMutations" = AnnSelf DisableAllOps
+  | Just rest <- stripPrefix "DisableMutations:" s = selfAnn (map trim (splitOnComma rest))
+  | Just rest <- stripPrefix "DisableMutation:" s = selfAnn [trim rest]
+  -- Announcing itself as a mutation disable is what makes a string ours to
+  -- complain about.  A typo bad enough to lose that prefix is indistinguishable
+  -- from an annotation meant for something else, so it stays unrelated.
+  | "DisableMutation" `isPrefixOf` s = AnnMalformed s
+  | otherwise = AnnUnrelated
   where
-    combine (Self d) (FunMutationAnns s ls) = FunMutationAnns (mergeDisable s d) ls
-    combine (Local n d) (FunMutationAnns s ls) =
-      FunMutationAnns s (Map.insertWith mergeDisable n d ls)
-
-    parseOne :: String -> [ParsedAnn]
-    parseOne s
-      -- Try the "...For <name>" forms first so they don't get swallowed by
-      -- the shorter prefixes.
-      | Just rest <- stripPrefix "DisableMutationsFor " s =
-          [Local n d | (n, d) <- splitForPayload rest DisableAllOps]
-      | Just rest <- stripPrefix "DisableMutationFor " s =
-          [Local n d | (n, d) <- splitForPayload rest (DisableOps [])]
-      | s == "DisableMutations" = [Self DisableAllOps]
-      | Just rest <- stripPrefix "DisableMutations:" s =
-          [Self (DisableOps (map trim (splitOnComma rest)))]
-      | Just rest <- stripPrefix "DisableMutation:" s =
-          [Self (DisableOps [trim rest])]
-      | otherwise = []
+    selfAnn :: [String] -> ParsedDisableAnn
+    selfAnn ops
+      | any null ops = AnnMalformed s
+      | otherwise = AnnSelf (DisableOps ops)
 
     -- After "DisableMutationsFor " (or "DisableMutationFor "), the rest is
-    -- either "<name>"            (no colon → default disable)
-    --        "<name>: A, B, ..."  (colon → DisableOps with named operators).
-    -- For DisableMutationsFor without a colon, default = DisableAllOps.
-    -- For DisableMutationFor without a colon, default = DisableOps [] (no-op),
-    -- but we accept it for symmetry.
-    splitForPayload :: String -> LocalDisable -> [(String, LocalDisable)]
-    splitForPayload rest defaultDisable =
+    -- either "<name>" or "<name>: A, B, ...".  Stopping at the name means
+    -- "all operators" for the plural form; the singular form promises exactly
+    -- one operator, so stopping at the name names none, which is a mistake
+    -- rather than a shorthand.
+    localAnn :: String -> Maybe MutationDisable -> ParsedDisableAnn
+    localAnn rest noColonDisable =
       case break (== ':') (trim rest) of
-        (name, []) ->
-          let n = trimTrailing name
-           in [(n, defaultDisable) | not (null n)]
+        (name, []) -> case noColonDisable of
+          Nothing -> AnnMalformed s
+          Just d -> named (trim name) d
         (name, _ : opsRest) ->
-          let n = trimTrailing name
-              ops = map trim (splitOnComma opsRest)
-           in [(n, DisableOps ops) | not (null n)]
+          let ops = map trim (splitOnComma opsRest)
+           in if any null ops
+                then AnnMalformed s
+                else named (trim name) (DisableOps ops)
 
-    mergeDisable :: LocalDisable -> LocalDisable -> LocalDisable
-    mergeDisable DisableAllOps _ = DisableAllOps
-    mergeDisable _ DisableAllOps = DisableAllOps
-    mergeDisable (DisableOps a) (DisableOps b) = DisableOps (a ++ b)
+    named :: String -> MutationDisable -> ParsedDisableAnn
+    named name d
+      | null name = AnnMalformed s
+      | otherwise = AnnLocal name d
 
-    trim = dropWhile (== ' ')
-    trimTrailing = reverse . dropWhile (== ' ') . reverse . trim
+-- | Combine two disables on the same scope: disabling everything wins,
+-- otherwise the named operators accumulate.
+mergeDisables :: MutationDisable -> MutationDisable -> MutationDisable
+mergeDisables DisableAllOps _ = DisableAllOps
+mergeDisables _ DisableAllOps = DisableAllOps
+mergeDisables (DisableOps a) (DisableOps b) = DisableOps (a ++ b)
 
-data ParsedAnn
-  = Self LocalDisable
-  | Local String LocalDisable
+-- | Strip the space around a name in an annotation.  Space at either end of
+-- an operator name or a target name is invisible in the pragma, so keeping it
+-- would reject a perfectly good annotation as naming nothing.
+trim :: String -> String
+trim = dropWhile (== ' ') . reverse . dropWhile (== ' ') . reverse
 
 splitOnComma :: String -> [String]
 splitOnComma s = case break (== ',') s of
@@ -1291,12 +1622,16 @@ applyOperator origExpr fallthrough op = case operatorKind op of
           validated <- liftTcM $ filterM (liftIO . validateAlt hscEnv) alts
           case validated of
             [] -> do
-              liftTcM $
-                liftIO $
-                  putStrLn $
-                    "mutation: WARNING all replacements dropped for operator "
-                      ++ operatorName op
-                      ++ locStr (getLocA origExpr)
+              -- A measuring walk is thrown away, so warning from it would
+              -- report the same site once per measurement.
+              purpose <- asks instrumentEnvPurpose
+              when (purpose == Instrument) $
+                liftTcM $
+                  liftIO $
+                    putStrLn $
+                      "mutation: WARNING all replacements dropped for operator "
+                        ++ operatorName op
+                        ++ locStr (getLocA origExpr)
               pure fallthrough
             (x : xs) -> applyAlts (getLocA origExpr) (operatorName op) (x :| xs) fallthrough
 
@@ -1484,7 +1819,7 @@ recordMutationAt ::
   Int ->
   InstrM (MutationId, Maybe MutationRecord)
 recordMutationAt sp op origStr replStr delta mitigation altIndex = do
-  InstrumentEnv {instrumentEnvModule, instrumentEnvSourceFile, instrumentEnvSkipThSplices, instrumentEnvSpliceSpans, instrumentEnvCurrentBinding} <- ask
+  InstrumentEnv {instrumentEnvModule, instrumentEnvSourceFile, instrumentEnvSkipThSplices, instrumentEnvSpliceSpans, instrumentEnvCurrentBinding, instrumentEnvDebug} <- ask
   case sp of
     RealSrcSpan rss _
       | instrumentEnvSkipThSplices && any (`containsSpan` rss) instrumentEnvSpliceSpans ->
@@ -1563,18 +1898,19 @@ recordMutationAt sp op origStr replStr delta mitigation altIndex = do
                 mutRecMitigation = mitigation
               }
       liftTcM $
-        liftIO $ do
-          let MutationId parts = mutRecId record
-          case parts of
-            (modName : _op : lineStr : colStartStr : colEndStr : _) ->
-              let filePath = case mutRecSourceFile record of
-                    Just p -> fromRelFile p
-                    Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
-                  variantSuffix = case parts of
-                    [_, _, _, _, _, altIdx] -> " #" ++ altIdx
-                    _ -> ""
-               in putStrLn $ "added mutation " ++ T.unpack (mutRecOperator record) ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
-            _ -> putStrLn $ "added mutation " ++ show parts
+        liftIO $
+          when instrumentEnvDebug $ do
+            let MutationId parts = mutRecId record
+            case parts of
+              (modName : _op : lineStr : colStartStr : colEndStr : _) ->
+                let filePath = case mutRecSourceFile record of
+                      Just p -> fromRelFile p
+                      Nothing -> map (\c -> if c == '.' then '/' else c) modName ++ ".hs"
+                    variantSuffix = case parts of
+                      [_, _, _, _, _, altIdx] -> " #" ++ altIdx
+                      _ -> ""
+                 in putStrLn $ "added mutation " ++ T.unpack (mutRecOperator record) ++ " at " ++ filePath ++ ":" ++ lineStr ++ ":" ++ colStartStr ++ "-" ++ colEndStr ++ variantSuffix
+              _ -> putStrLn $ "added mutation " ++ show parts
       pure (mid, Just record)
     UnhelpfulSpan _ -> pure (MutationId [], Nothing)
 

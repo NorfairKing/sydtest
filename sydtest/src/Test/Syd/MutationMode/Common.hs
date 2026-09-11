@@ -114,8 +114,12 @@ data MutationResult
 
 -- | Per-suite outcome of running a single mutation child.
 data SuiteOutcome
-  = -- | Child exited non-zero — mutation killed by this suite.
-    SuiteKilled
+  = -- | Child exited non-zero — mutation killed by this suite.  The optional
+    -- log path points at the captured stdout\/stderr, which is kept only when
+    -- the kill is itself the finding: a killed control.  Keeping it for every
+    -- kill would mean a log per mutation in the manifest, which is the bulk of
+    -- a run and says nothing a passing suite does not.
+    SuiteKilled (Maybe (Path Rel File))
   | -- | Child exited zero — mutation survived in this suite. The optional
     -- log path points at the captured stdout/stderr (when a report dir is
     -- configured).
@@ -140,7 +144,7 @@ classifySyncExceptionAsKilled action =
   Exception.handle
     ( \(e :: Exception.SomeException) -> case Exception.fromException e of
         Just (_ :: Exception.SomeAsyncException) -> Exception.throwIO e
-        Nothing -> pure SuiteKilled
+        Nothing -> pure (SuiteKilled Nothing)
     )
     action
 
@@ -386,7 +390,14 @@ renderMutationRunReport MutationRunReport {..} =
     renderControlFailed cf =
       let rec = controlFailedMutationRecord cf
           mid = augmentedMutationRecordId rec
-       in [] : formatMutationLog mid rec
+          -- The output of the run that killed it is the only place the
+          -- offending test is named, so say where it is rather than leaving
+          -- the reader to know the naming convention.
+          logLines = case controlFailedMutationLogFile cf of
+            Nothing -> []
+            Just relFile ->
+              [[chunk "  Output of the run that killed it: ", fore cyan (chunk (T.pack (fromRelFile relFile)))]]
+       in ([] : formatMutationLog mid rec) ++ logLines
     renderSurvivor sm =
       let rec = survivedMutationRecord sm
           mid = augmentedMutationRecordId rec

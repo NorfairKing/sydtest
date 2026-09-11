@@ -281,15 +281,16 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
             -- timeout is the control failing (the suite is unsound).
             pure $
               if isControlOperator (augmentedMutationRecordOperator record)
-                then asControlResult (classifyOutcomes record outcomes)
+                then asControlResult outcomes (classifyOutcomes record outcomes)
                 else classifyOutcomes record outcomes
 
     -- Map a control mutation's raw classification onto the control-specific
     -- results.  An uncovered control never reaches here (it short-circuits
     -- above), and 'classifyOutcomes' only ever yields killed/timed-out/survived.
-    asControlResult = \case
+    asControlResult outcomes = \case
       MutationSurvived sm -> MutationControlPassed (survivedMutationRecord sm)
-      MutationKilled record -> MutationControlFailed (ControlFailedMutation record Nothing)
+      MutationKilled record ->
+        MutationControlFailed (ControlFailedMutation record (killingSuiteLog outcomes))
       MutationTimedOut tm ->
         MutationControlFailed
           (ControlFailedMutation (timedOutMutationRecord tm) (timedOutMutationLogFile tm))
@@ -317,9 +318,15 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
                     listToMaybe [rf | SuiteSurvived (Just rf) <- NE.toList outcomes]
                 }
       where
-        isKilled SuiteKilled = True
+        isKilled (SuiteKilled _) = True
         isKilled _ = False
         mTimedOut = listToMaybe [(micros, mLog) | SuiteTimedOut micros mLog <- NE.toList outcomes]
+
+    -- \| The log of the first suite that killed the mutation, when one was
+    -- kept.  Only a control's kill keeps one (see 'runOneSuite'), which is
+    -- also the only caller.
+    killingSuiteLog outcomes =
+      listToMaybe [rf | SuiteKilled (Just rf) <- NE.toList outcomes]
 
     runOneSuite record mid suiteName = do
       (exe, mResourceDir) <- case Map.lookup suiteName suiteConfigs of
@@ -386,7 +393,17 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
               mRelFile <- copyChildLog "timeout-" mid suiteName logPath
               pure (SuiteTimedOut elapsedMicros mRelFile)
             Right ec -> case ec of
-              ExitFailure _ -> pure SuiteKilled
+              ExitFailure _ -> do
+                -- A kill is the expected outcome and its output says nothing,
+                -- except for a control: a no-op cannot legitimately be killed,
+                -- so the child's output is the only place that names the test
+                -- which killed it, and without it the flaky test behind a
+                -- control failure cannot be found.
+                mRelFile <-
+                  if isControlOperator (augmentedMutationRecordOperator record)
+                    then copyChildLog "control-failure-" mid suiteName logPath
+                    else pure Nothing
+                pure (SuiteKilled mRelFile)
               ExitSuccess -> do
                 mRelFile <- copyChildLog "survivor-" mid suiteName logPath
                 pure (SuiteSurvived mRelFile)

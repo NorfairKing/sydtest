@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.31.0.0] - 2026-09-11
+
+### Changed
+
+* `SuiteOutcome`'s `SuiteKilled` carries the killed child's log file.
+
+### Fixed
+
+* A failed control names the output of the run that killed it.
+
+
 ## [0.30.0.0] - 2026-09-02
 
 ### Changed

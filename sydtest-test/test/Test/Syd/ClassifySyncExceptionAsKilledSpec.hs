@@ -28,8 +28,8 @@ import Test.Syd.MutationMode (SuiteOutcome (..), classifySyncExceptionAsKilled)
 spec :: Spec
 spec = describe "classifySyncExceptionAsKilled (bug #2)" $ do
   it "passes through SuiteKilled unchanged" $ do
-    outcome <- classifySyncExceptionAsKilled (pure SuiteKilled)
-    outcome `shouldBe` SuiteKilled
+    outcome <- classifySyncExceptionAsKilled (pure (SuiteKilled Nothing))
+    outcome `shouldBe` SuiteKilled Nothing
 
   it "passes through SuiteSurvived unchanged" $ do
     outcome <- classifySyncExceptionAsKilled (pure (SuiteSurvived Nothing))
@@ -41,15 +41,15 @@ spec = describe "classifySyncExceptionAsKilled (bug #2)" $ do
 
   it "treats BlockedIndefinitelyOnMVar (the <<loop>> case) as SuiteKilled" $ do
     outcome <- classifySyncExceptionAsKilled (throwIO BlockedIndefinitelyOnMVar)
-    outcome `shouldBe` SuiteKilled
+    outcome `shouldBe` SuiteKilled Nothing
 
   it "treats ErrorCall as SuiteKilled" $ do
     outcome <- classifySyncExceptionAsKilled (throwIO (ErrorCall "boom"))
-    outcome `shouldBe` SuiteKilled
+    outcome `shouldBe` SuiteKilled Nothing
 
   it "treats ArithException as SuiteKilled" $ do
     outcome <- classifySyncExceptionAsKilled (throwIO DivideByZero)
-    outcome `shouldBe` SuiteKilled
+    outcome `shouldBe` SuiteKilled Nothing
 
   it "re-throws SomeAsyncException (so Ctrl-C still cancels the runner)" $ do
     -- 'UserInterrupt' is an 'AsyncException', which is a child of
@@ -60,7 +60,7 @@ spec = describe "classifySyncExceptionAsKilled (bug #2)" $ do
         classifySyncExceptionAsKilled $ do
           tid <- myThreadId
           throwTo tid UserInterrupt
-          pure SuiteKilled
+          pure (SuiteKilled Nothing)
     case result :: Either SomeException SuiteOutcome of
       Right _ -> expectationFailure "expected the async exception to be re-thrown"
       Left _ -> pure ()

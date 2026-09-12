@@ -240,11 +240,11 @@ postgresqlStandbySetupFunc StandbyConfig {..} db = SetupFunc $ \takeStandby ->
                   },
               standbyDataDirectory = dataDir
             }
-    let start = runProcessLoudly "pg_ctl" ["-D", dataDir, "-l", logFile, "-w", "start"]
+    let startStandby = runProcessLoudly "pg_ctl" ["-D", dataDir, "-l", logFile, "-w", "start"]
         -- Immediate: nothing here is worth a clean shutdown, and a standby
         -- that is deliberately behind would spend the apply delay on one.
-        stop = runProcessLoudly "pg_ctl" ["-D", dataDir, "-m", "immediate", "-w", "stop"]
-    bracket_ start stop $ takeStandby standby
+        stopStandby = runProcessLoudly "pg_ctl" ["-D", dataDir, "-m", "immediate", "-w", "stop"]
+    bracket_ startStandby stopStandby $ takeStandby standby
 
 -- | Wait until the standby has replayed everything the primary had committed
 -- when this was called.

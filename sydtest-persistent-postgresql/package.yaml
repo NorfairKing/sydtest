@@ -49,7 +49,6 @@ tests:
     - persistent
     - postgresql-simple
     - sydtest
-    - sydtest-persistent
     - sydtest-persistent-postgresql
     when:
       - condition: flag(sydtest_integration_tests)

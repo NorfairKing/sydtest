@@ -12,9 +12,7 @@ mkDerivation {
     postgres-options postgresql-simple random sydtest
     sydtest-persistent temporary text tmp-postgres typed-process
   ];
-  testHaskellDepends = [
-    base persistent postgresql-simple sydtest sydtest-persistent
-  ];
+  testHaskellDepends = [ base persistent postgresql-simple sydtest ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   description = "An persistent-postgresql companion library for sydtest";

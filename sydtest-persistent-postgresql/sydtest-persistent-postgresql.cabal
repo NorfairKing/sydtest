@@ -73,7 +73,6 @@ test-suite sydtest-persistent-postgresql-test
     , persistent
     , postgresql-simple
     , sydtest
-    , sydtest-persistent
     , sydtest-persistent-postgresql
   default-language: Haskell2010
   if flag(sydtest_integration_tests)

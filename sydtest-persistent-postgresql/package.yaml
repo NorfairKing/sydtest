@@ -20,6 +20,8 @@ dependencies:
 library:
   source-dirs: src
   dependencies:
+  - directory
+  - filepath
   - monad-logger
   - mtl
   - persistent-postgresql
@@ -28,8 +30,10 @@ library:
   - random
   - sydtest
   - sydtest-persistent
+  - temporary
   - text
   - tmp-postgres
+  - typed-process
 
 tests:
   sydtest-persistent-postgresql-test:
@@ -43,7 +47,9 @@ tests:
     - -Wall
     dependencies:
     - persistent
+    - postgresql-simple
     - sydtest
+    - sydtest-persistent
     - sydtest-persistent-postgresql
     when:
       - condition: flag(sydtest_integration_tests)

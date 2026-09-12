@@ -39,6 +39,8 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , directory
+    , filepath
     , monad-logger
     , mtl
     , persistent-postgresql
@@ -47,8 +49,10 @@ library
     , random
     , sydtest
     , sydtest-persistent
+    , temporary
     , text
     , tmp-postgres
+    , typed-process
   default-language: Haskell2010
 
 test-suite sydtest-persistent-postgresql-test
@@ -56,6 +60,7 @@ test-suite sydtest-persistent-postgresql-test
   main-is: Spec.hs
   other-modules:
       Test.Syd.Persistent.Example
+      Test.Syd.Persistent.Postgresql.StandbySpec
       Test.Syd.Persistent.PostgresqlSpec
       Paths_sydtest_persistent_postgresql
   hs-source-dirs:
@@ -66,7 +71,9 @@ test-suite sydtest-persistent-postgresql-test
   build-depends:
       base >=4.7 && <5
     , persistent
+    , postgresql-simple
     , sydtest
+    , sydtest-persistent
     , sydtest-persistent-postgresql
   default-language: Haskell2010
   if flag(sydtest_integration_tests)

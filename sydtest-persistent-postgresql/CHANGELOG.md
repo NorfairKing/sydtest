@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0.0] - 2026-09-14
+
+### Changed
+
+* `replicatedDBStandby` is an `IO Standby` rather than a `Standby`. The standby
+  is started by the first test that asks for one and not at all by a suite that
+  never does, so a suite pays for a replica only if it reads from one.
+
+  Worth about 0.17s per process that never reads a replica, measured after the
+  base backup stopped waiting for a spread checkpoint in 0.5.1.0. Before that
+  it would have been worth 13.5s.
+
+### Added
+
+* `lazyStandbySetupFunc`, the standby that starts on demand, and
+  `acquireStandby` behind it for a caller that wants to start and stop one
+  itself.
+
 ## [0.5.1.0] - 2026-09-14
 
 ### Changed

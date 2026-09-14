@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -44,6 +45,8 @@ module Test.Syd.Persistent.Postgresql
     Standby (..),
     replicationPrimaryConfig,
     postgresqlStandbySetupFunc,
+    lazyStandbySetupFunc,
+    acquireStandby,
     standbyPoolSetupFunc,
     replicatedPoolsSetupFunc,
 
@@ -60,6 +63,7 @@ module Test.Syd.Persistent.Postgresql
 where
 
 import Control.Concurrent (threadDelay)
+import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 import Control.Monad.Logger
@@ -79,7 +83,7 @@ import Database.Postgres.Temp as Temp
 import System.Directory
 import System.Environment
 import System.FilePath
-import System.IO.Temp (withSystemTempDirectory)
+import System.IO.Temp (createTempDirectory)
 import System.Process.Typed
 import System.Random
 import Test.Syd
@@ -212,8 +216,18 @@ renderReplicaLag lag = show @Integer (round (lag * 1000)) ++ "ms"
 -- The server has to have been started with 'replicationPrimaryConfig', or
 -- there is no write-ahead log to stream.
 postgresqlStandbySetupFunc :: ReplicaConfig -> Temp.DB -> SetupFunc Standby
-postgresqlStandbySetupFunc ReplicaConfig {..} db = SetupFunc $ \takeStandby ->
-  withSystemTempDirectory "sydtest-postgresql-standby" $ \tmpDir -> do
+postgresqlStandbySetupFunc config db =
+  SetupFunc $ \takeStandby ->
+    bracket (acquireStandby config db) snd (takeStandby . fst)
+
+-- | Start a standby, and say how to stop it again.
+--
+-- Split from a bracket so that starting can be put off until something asks
+-- for it. See 'lazyStandbySetupFunc'.
+acquireStandby :: ReplicaConfig -> Temp.DB -> IO (Standby, IO ())
+acquireStandby ReplicaConfig {..} db = do
+  tmpDir <- createTempDirectory "/tmp" "sydtest-postgresql-standby"
+  flip onException (removeDirectoryRecursive tmpDir) $ do
     let dataDir = tmpDir </> "data"
     let socketDir = tmpDir </> "socket"
     let logFile = tmpDir </> "standby.log"
@@ -292,7 +306,27 @@ postgresqlStandbySetupFunc ReplicaConfig {..} db = SetupFunc $ \takeStandby ->
         -- Immediate: nothing here is worth a clean shutdown, and a standby
         -- that is deliberately behind would spend the apply delay on one.
         stopStandby = runProcessLoudly "pg_ctl" ["-D", dataDir, "-m", "immediate", "-w", "stop"]
-    bracket_ startStandby stopStandby $ takeStandby standby
+    startStandby
+    pure (standby, stopStandby `finally` removeDirectoryRecursive tmpDir)
+
+-- | A standby that is started the first time it is asked for, and stopped with
+-- the suite only if it ever was.
+--
+-- A suite pays for a replica it never reads from otherwise. That is invisible
+-- amortised over a suite and is the whole cost under mutation testing, where
+-- the suite is rerun once per mutant and each run would take a base backup to
+-- serve tests that never touch it.
+lazyStandbySetupFunc :: ReplicaConfig -> Temp.DB -> SetupFunc (IO Standby)
+lazyStandbySetupFunc config db = SetupFunc $ \takeGetStandby -> do
+  startedVar <- newMVar Nothing
+  let getStandby :: IO Standby
+      getStandby = modifyMVar startedVar $ \case
+        Just started@(standby, _) -> pure (Just started, standby)
+        Nothing -> do
+          started@(standby, _) <- acquireStandby config db
+          pure (Just started, standby)
+  takeGetStandby getStandby
+    `finally` (readMVar startedVar >>= mapM_ snd)
 
 -- | 'awaitReplica' for a caller that has the two pools loose rather than in a
 -- 'ReplicatedPools'.
@@ -454,13 +488,15 @@ awaitReplica ReplicatedPools {..} =
 -- cost more than the tests do.
 data ReplicatedDB = ReplicatedDB
   { replicatedDBTemplate :: !TemplateDB,
-    replicatedDBStandby :: !Standby
+    -- | Started by the first test that asks, and not at all by a suite that
+    -- never does.
+    replicatedDBStandby :: !(IO Standby)
   }
 
 replicatedDBSetupFunc :: ReplicaConfig -> Migration -> SetupFunc ReplicatedDB
 replicatedDBSetupFunc config migration = do
   templateDB <- templateDBSetupFunc replicationPrimaryConfig migration
-  standby <- postgresqlStandbySetupFunc config (fst templateDB)
+  standby <- lazyStandbySetupFunc config (fst templateDB)
   pure
     ReplicatedDB
       { replicatedDBTemplate = templateDB,
@@ -534,7 +570,8 @@ replicatedPoolsSpec =
 replicatedPoolsSetupFunc :: ReplicatedDB -> SetupFunc ReplicatedPools
 replicatedPoolsSetupFunc ReplicatedDB {..} = do
   (options, primaryPool) <- testDatabaseSetupFunc replicatedDBTemplate
-  standbyPool <- standbyPoolSetupFunc replicatedDBStandby options
+  standby <- liftIO replicatedDBStandby
+  standbyPool <- standbyPoolSetupFunc standby options
   pure
     ReplicatedPools
       { replicatedPoolsPrimary = primaryPool,

@@ -3,14 +3,17 @@
 
 module Test.Syd.Persistent.Postgresql.StandbySpec (spec) where
 
+import Data.Int (Int64)
 import Database.Persist
+import Database.Persist.Sql (Single (..), rawSql, runSqlPool)
 import Database.PostgreSQL.Simple (SqlError (..))
+import Database.Postgres.Temp (toConnectionOptions)
 import Test.Syd
 import Test.Syd.Persistent.Example
 import Test.Syd.Persistent.Postgresql
 
 spec :: Spec
-spec =
+spec = do
   describe "persistPostgresqlReplicatedSpec" $
     persistPostgresqlReplicatedSpec migrateExample $ do
       it "does not show a write on the replica while it is behind" $ \pools -> do
@@ -42,3 +45,21 @@ spec =
         awaitReplica unreplicated
         mPerson <- onReplica unreplicated $ get i
         mPerson `shouldBe` Just p
+
+  describe "lazyStandbySetupFunc" $ do
+    -- What a suite pays for a replica it never reads: nothing.
+    it "starts no standby until one is asked for" $
+      unSetupFunc (postgresqlServerSetupFuncWith replicationPrimaryConfig) $ \db ->
+        unSetupFunc (lazyStandbySetupFunc defaultReplicaConfig db) $ \getStandby ->
+          unSetupFunc (postgresqlPoolSetupFunc (toConnectionOptions db)) $ \pool -> do
+            let streaming :: IO Int64
+                streaming = do
+                  rows <- runSqlPool (rawSql "SELECT count(*) FROM pg_stat_replication" []) pool
+                  case rows of
+                    [Single n] -> pure n
+                    _ -> expectationFailure "Expected exactly one row."
+            streaming `shouldReturn` 0
+            standby <- getStandby
+            -- The same standby every time, rather than one per ask.
+            standby' <- getStandby
+            standbyDataDirectory standby' `shouldBe` standbyDataDirectory standby

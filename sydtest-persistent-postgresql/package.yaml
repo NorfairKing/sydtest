@@ -1,5 +1,5 @@
 name: sydtest-persistent-postgresql
-version: 0.5.1.0
+version: 0.6.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -51,6 +51,7 @@ tests:
     - postgresql-simple
     - sydtest
     - sydtest-persistent-postgresql
+    - tmp-postgres
     when:
       - condition: flag(sydtest_integration_tests)
         then:

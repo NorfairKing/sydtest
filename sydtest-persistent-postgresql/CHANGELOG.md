@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.6.0.0] - 2026-09-14
+
+### Changed
+
+* `pg_basebackup` now takes its checkpoint immediately rather than spreading it
+  out. The default spreads the checkpoint over the checkpoint interval, which
+  is a wait proportional to how busy the server is, and the server a standby is
+  taken from is busy by definition: a suite is running against it. This was
+  most of what a replica cost. The package's own suite went from **78s to
+  little over a second**.
+
+* `replicatedDBStandby` is an `IO Standby` rather than a `Standby`. The standby
+  is started by the first test that asks for one and not at all by a suite that
+  never does, so a suite pays for a replica only if it reads from one. That is
+  invisible amortised over a suite and is the whole cost under mutation
+  testing, where the suite is rerun once per mutant.
+
+### Added
+
+* `lazyStandbySetupFunc`, the standby that starts on demand, and
+  `acquireStandby` behind it for a caller that wants to start and stop one
+  itself.
+
 ## [0.5.0.0] - 2026-09-13
 
 ### Added

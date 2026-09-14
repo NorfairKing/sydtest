@@ -1,5 +1,5 @@
 name: sydtest-mutation-driver
-version: 0.2.0.0
+version: 0.3.0.0
 github: "NorfairKing/sydtest"
 license: OtherLicense
 license-file: LICENSE.md
@@ -29,7 +29,7 @@ library:
   - safe-coloured-text
   - stm
   - sydtest
-  - sydtest-mutation-runtime >=0.1
+  - sydtest-mutation-runtime >=0.1.2
   - text
   - typed-process
 

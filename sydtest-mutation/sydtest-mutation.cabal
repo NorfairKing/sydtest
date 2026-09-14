@@ -19,8 +19,14 @@ build-type:     Simple
 extra-source-files:
     CHANGELOG.md
     test_resources/augmented-manifest.json
+    test_resources/coverage-phase-timing.html
+    test_resources/coverage-phase-timing.txt
     test_resources/legacy-mutation-manifest.json
     test_resources/mutation-manifest.json
+    test_resources/mutation-phase-timing-abridged.txt
+    test_resources/mutation-phase-timing.html
+    test_resources/mutation-phase-timing.json
+    test_resources/mutation-phase-timing.txt
     test_resources/mutation-run-report.json
 
 source-repository head
@@ -53,6 +59,7 @@ test-suite sydtest-mutation-test
       Test.Syd.PhaseBoundarySpec
       Test.Syd.ReorderSpec
       Test.Syd.TestLocationSpec
+      Test.Syd.TimingReportSpec
       Paths_sydtest_mutation
   hs-source-dirs:
       test
@@ -73,6 +80,6 @@ test-suite sydtest-mutation-test
     , safe-coloured-text
     , sydtest
     , sydtest-mutation
-    , sydtest-mutation-runtime >=0.1.1
+    , sydtest-mutation-runtime >=0.1.2
     , text
   default-language: Haskell2010

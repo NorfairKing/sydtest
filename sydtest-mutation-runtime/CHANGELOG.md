@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.2.0] - 2026-09-14
+
+### Added
+
+* `Test.Syd.Mutation.Timing`: `ChildTiming`, what a mutation or coverage child
+  measures of itself and writes to the file the parent names with
+  `--mutation-timing-output`.
+* `Test.Syd.Mutation.TimingReport`: the recorded per-child timings of a
+  mutation or coverage phase, the aggregation over them, and the terminal
+  rendering - where a run's time goes, split per child into process startup,
+  suite setup and test execution, and grouped by suite, outcome, operator,
+  module and mutation.
+* `Test.Syd.Mutation.TimingReport.Html`: the same summary as a standalone
+  page, with the whole per-child listing sortable by any column and
+  filterable, rather than the worst few rows a build log has room for.  No
+  external assets, so it opens straight from a Nix store path.
+
 ## [0.1.1.0] - 2026-07-29
 
 ### Fixed

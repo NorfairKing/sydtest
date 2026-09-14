@@ -20,13 +20,14 @@ import Control.Concurrent.Async (mapConcurrently)
 import Control.Exception (bracket_)
 import qualified Control.Exception as Exception
 import qualified Data.ByteString.Lazy as LB
+import Data.IORef (modifyIORef', newIORef, readIORef)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8Lenient)
-import GHC.Conc (getNumCapabilities)
+import GHC.Clock (getMonotonicTimeNSec)
 import Path
 import Path.IO (withSystemTempDir)
 import System.Exit (ExitCode (..), exitWith)
@@ -57,12 +58,15 @@ import Test.Syd.Mutation.TestBaselineMap
   )
 import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), readTestCoverageMapFile)
 import Test.Syd.Mutation.TestId (TestId, parseTestIdFilterArg, renderTestId)
+import Test.Syd.Mutation.Timing (readChildTimingFileIfExists)
+import Test.Syd.Mutation.TimingReport (CoverageChildTiming (..))
 import Test.Syd.MutationMode.Common
   ( CoverageFailFast (..),
     CoverageProgressEvent (..),
     CoverageProgressPhase (..),
     CoverageProgressSkipReason (..),
     CoverageProgressTestEvent (..),
+    diffMonotonicNanos,
     renderCoverageProgressEvent,
     retryingIO,
   )
@@ -83,16 +87,17 @@ runCoverageMode ::
   [Path Abs Dir] ->
   -- | Augmented-manifest directory.
   Path Abs Dir ->
-  -- | Maximum coverage-child concurrency.  'Nothing' means
-  -- 'getNumCapabilities'.
-  Maybe Word ->
+  -- | Maximum coverage-child concurrency.
+  Word ->
   -- | Retry budget for a failing coverage child.
   Word ->
   -- | Name of this suite (used as the covering-tests key).
   Text ->
   -- | Path to the suite executable to invoke as a coverage child.
   Path Abs File ->
-  IO ()
+  -- | One timing per test whose coverage child ran, for the caller to
+  -- accumulate across suites into the phase's timing report.
+  IO [CoverageChildTiming]
 runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteName childExe = do
   -- LineBuffering on stderr so our writes hit the fd at line boundaries,
   -- not when the buffer happens to fill. Coverage children inherit this
@@ -111,6 +116,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
     then do
       emitCoverageEvent (CoverageProgressSkipped CoverageSkipNoMutations)
       writeEmptyAugmented
+      pure []
     else do
       leafIds <- listSuiteTestIds childExe
       let total = length leafIds
@@ -118,11 +124,9 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
         then do
           emitCoverageEvent (CoverageProgressSkipped CoverageSkipNoTests)
           writeEmptyAugmented
+          pure []
         else do
-          n <- case coverageJobs of
-            Just j | j > 0 -> pure (fromIntegral j)
-            _ -> getNumCapabilities
-          sem <- newQSem n
+          sem <- newQSem (fromIntegral coverageJobs)
           -- A coverage child that observes a test failure (and was
           -- launched with --mutation-fail-fast) throws 'CoverageFailFast'
           -- from its worker thread.  'mapConcurrently' cancels the
@@ -133,7 +137,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
               mapConcurrently
                 (runCoverageChild sem total)
                 (zip [1 :: Int ..] leafIds)
-          let (coverageMaps, baselineMaps) = unzip childResults
+          let (coverageMaps, baselineMaps, timings) = unzip3 childResults
               TestCoverageMap coverageMap = mconcat coverageMaps
               TestBaselineMap baselineMap = mconcat baselineMaps
               mutationCoverage = invertCoverageMap coverageMap
@@ -147,6 +151,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
           -- across suites (slowest time wins), so the mutation child can order
           -- covering tests cheapest-first.
           mergeBaselineIntoDir (mconcat baselineMaps)
+          pure timings
   where
     mergeBaselineIntoDir :: TestBaselineMap -> IO ()
     mergeBaselineIntoDir newBaseline = do
@@ -163,8 +168,15 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
                 coverageProgressTestId = tid,
                 coverageProgressTestPhase = CoverageProgressStarting
               }
-        result <- runCoverageChildAttempt tid coverageRetry
-        let TestCoverageMap m = fst result
+        -- Count attempts here rather than deriving them from 'retryingIO',
+        -- so a test whose flakiness is what makes coverage slow shows up as
+        -- such in the timing report.
+        attemptsVar <- newIORef (0 :: Word)
+        startTime <- getMonotonicTimeNSec
+        (coverageMap, baselineMap, mInner) <- runCoverageChildAttempt attemptsVar tid coverageRetry
+        endTime <- getMonotonicTimeNSec
+        attempts <- readIORef attemptsVar
+        let TestCoverageMap m = coverageMap
             covered = fromMaybe Set.empty (Map.lookup tid m)
         emitCoverageEvent $
           CoverageProgressTest
@@ -174,10 +186,24 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
                 coverageProgressTestId = tid,
                 coverageProgressTestPhase = CoverageProgressDone (Set.size covered)
               }
-        pure result
+        pure
+          ( coverageMap,
+            baselineMap,
+            CoverageChildTiming
+              { coverageChildTimingSuite = suiteName,
+                coverageChildTimingTestId = tid,
+                coverageChildTimingWallNanos = diffMonotonicNanos endTime startTime,
+                coverageChildTimingAttempts = attempts,
+                coverageChildTimingMutationsCovered = fromIntegral (Set.size covered),
+                coverageChildTimingInner = mInner
+              }
+          )
 
-    runCoverageChildAttempt tid retriesLeft = do
-      result <- retryingIO retriesLeft (logCoverageRetry tid) (runOneCoverageChild tid)
+    runCoverageChildAttempt attemptsVar tid retriesLeft = do
+      result <-
+        retryingIO retriesLeft (logCoverageRetry tid) $ do
+          modifyIORef' attemptsVar succ
+          runOneCoverageChild tid
       case result of
         Right v -> pure v
         Left reason ->
@@ -198,6 +224,7 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
       withSystemTempDir "coverage-child" $ \tmpDir -> do
         let outputFile = fromAbsFile (tmpDir </> [relfile|coverage.json|])
             baselineFile = fromAbsFile (tmpDir </> [relfile|baseline.json|])
+            timingFile = tmpDir </> [relfile|timing.json|]
             failFastArg =
               if failFast
                 then "--mutation-fail-fast"
@@ -209,6 +236,8 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
                 outputFile,
                 "--mutation-coverage-baseline-output",
                 baselineFile,
+                "--mutation-timing-output",
+                fromAbsFile timingFile,
                 failFastArg,
                 "--mutation-suite-name",
                 T.unpack suiteName
@@ -234,7 +263,9 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
                 eBaseline <- readTestBaselineMapFile baselineFile
                 case eBaseline of
                   Left err -> pure $ Left ("unreadable baseline map: " ++ err)
-                  Right baselineMap -> pure $ Right (coverageMap, baselineMap)
+                  Right baselineMap -> do
+                    mInner <- readChildTimingFileIfExists timingFile
+                    pure $ Right (coverageMap, baselineMap, mInner)
 
     logCoverageRetry tid reason retriesAfter =
       hPutChunksUtf8With With8BitColours stderr $

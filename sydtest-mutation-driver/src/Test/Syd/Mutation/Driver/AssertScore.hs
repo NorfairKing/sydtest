@@ -15,6 +15,7 @@ module Test.Syd.Mutation.Driver.AssertScore
   )
 where
 
+import Control.Monad (when)
 import Data.Foldable (for_)
 import qualified Data.Text as T
 import Path
@@ -139,25 +140,37 @@ runAssertScore assertNoneUncovered reportDir mOutDir = do
         unlinesChunks (assertScoreHeader result : [] : body)
       -- Print the path lines so they appear in the build log even when
       -- the body alone scrolls them off-screen.
+      let timingHtmlPath = reportDir </> [relfile|timing.html|]
+      timingExists <- doesFileExist timingHtmlPath
       hPutChunksUtf8With With8BitColours stdout $
-        unlinesChunks
+        unlinesChunks $
           [ [],
             [chunk "Full report:             ", chunk (T.pack (fromAbsFile txtPath))],
             [chunk "Machine-readable report: ", chunk (T.pack (fromAbsFile jsonPath))]
           ]
+            ++ [ [chunk "Timing report:           ", chunk (T.pack (fromAbsFile timingHtmlPath))]
+               | timingExists
+               ]
       if assertScoreFailed result
         then exitWith (ExitFailure 1)
         else for_ mOutDir (symlinkReportsInto reportDir)
 
--- | Symlink @report.txt@ and @report.json@ from the report directory
--- into the given output directory.  Creates @outDir@ if it does not
--- already exist.  Used by 'runAssertScore' when @--out-dir@ is set.
+-- | Symlink the report files from the report directory into the given output
+-- directory.  Creates @outDir@ if it does not already exist.  Used by
+-- 'runAssertScore' when @--out-dir@ is set.
+--
+-- The timing files are linked when present rather than required: a report
+-- directory produced before the timing report existed has neither, and a
+-- passing check should not turn into a crash over a diagnostic.
 symlinkReportsInto :: Path Abs Dir -> Path Abs Dir -> IO ()
 symlinkReportsInto reportDir outDir = do
   ensureDir outDir
-  let txtSrc = reportDir </> [relfile|report.txt|]
-      jsonSrc = reportDir </> [relfile|report.json|]
-      txtDest = outDir </> [relfile|report.txt|]
-      jsonDest = outDir </> [relfile|report.json|]
-  createFileLink (fromAbsFile txtSrc) (fromAbsFile txtDest)
-  createFileLink (fromAbsFile jsonSrc) (fromAbsFile jsonDest)
+  for_ [[relfile|report.txt|], [relfile|report.json|]] $ \relFile ->
+    createFileLink
+      (fromAbsFile (reportDir </> relFile))
+      (fromAbsFile (outDir </> relFile))
+  for_ [[relfile|timing.html|], [relfile|timing.json|]] $ \relFile -> do
+    let src = reportDir </> relFile
+    srcExists <- doesFileExist src
+    when srcExists $
+      createFileLink (fromAbsFile src) (fromAbsFile (outDir </> relFile))

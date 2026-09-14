@@ -6,3 +6,6 @@ result*
 *.tix
 dist-newstyle
 *.html
+# Golden HTML output is source, not a build artifact; the rule above is aimed
+# at haddock and coverage output.
+!**/test_resources/*.html

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timing report: coverage phase</title>
+<style>
+:root{--bg:#fbfbfa;--panel:#fff;--ink:#1a1a19;--muted:#6b6b66;--line:#e4e4e0;
+--start:#c9432f;--setup:#c98a12;--tests:#2f8f4e;--unattr:#4a63c9;--accent:#3b5bdb}
+@media (prefers-color-scheme:dark){:root{--bg:#16161a;--panel:#1d1d22;--ink:#e9e9e6;--muted:#9a9a94;--line:#2e2e35;
+--start:#e8705c;--setup:#e5ad3d;--tests:#5cbf7c;--unattr:#7d92e8;--accent:#8ea2f0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:1400px;margin:0 auto;padding:32px 24px 96px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px}
+/* A scroll box of its own, so the sticky header sticks to the table rather
+   than scrolling away with the page on a listing thousands of rows long. */
+.table-wrap.tall{max-height:70vh}
+.table-wrap table{border:0;border-radius:0}
+header{margin-bottom:36px}
+h1{font-size:22px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+h1 .phase{color:var(--muted);font-weight:450;margin-left:10px}
+.lede{color:var(--muted);margin:0 0 22px;max-width:70ch}
+h2{font-size:13px;font-weight:650;text-transform:uppercase;letter-spacing:.07em;
+color:var(--muted);margin:0 0 12px}
+section{margin-bottom:40px}
+.stats{display:flex;flex-wrap:wrap;gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 18px;min-width:145px}
+.stat-value{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.stat-label{color:var(--muted);font-size:12px;margin-top:2px}
+.hero-bar{display:flex;height:30px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:16px}
+.hero-bar .seg{height:100%}
+.seg.s-start{background:var(--start)}.seg.s-setup{background:var(--setup)}
+.seg.s-tests{background:var(--tests)}.seg.s-unattr{background:var(--unattr)}
+table{width:100%;border-collapse:collapse;background:var(--panel)}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+thead th{position:sticky;top:0;background:var(--panel);z-index:1;font-size:12px;
+font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
+table.sortable thead th{cursor:pointer;user-select:none}
+table.sortable thead th:hover{color:var(--ink)}
+table.sortable thead th[aria-sort]:after{content:'\2191';margin-left:5px;opacity:.75}
+table.sortable thead th[aria-sort=descending]:after{content:'\2193'}
+tbody tr:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.label{word-break:break-word}
+.costs th{font-weight:600}
+.costs .hint{font-weight:400;color:var(--muted);font-size:12px;margin-top:2px;max-width:62ch}
+.costs .swatch{width:1px;padding-right:0}
+.key{display:inline-block;width:11px;height:11px;border-radius:3px;margin-top:4px}
+.key.s-start{background:var(--start)}.key.s-setup{background:var(--setup)}
+.key.s-tests{background:var(--tests)}.key.s-unattr{background:var(--unattr)}
+.total th,.total td{font-weight:600;border-top:1px solid var(--line)}
+.bar-col{width:220px}
+.track{display:flex;width:200px;height:9px;border-radius:5px;overflow:hidden;
+background:color-mix(in srgb,var(--ink) 8%,transparent);margin-top:4px}
+.track .seg{height:100%}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+#filter{flex:0 1 320px;padding:7px 11px;border:1px solid var(--line);border-radius:7px;
+background:var(--panel);color:var(--ink);font:inherit}
+#filter:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.count{color:var(--muted);font-size:12px}
+.num.unknown{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Timing report<span class="phase">coverage phase</span></h1>
+<p class="lede">Where this phase's child processes spent their time. Every share and bar below is a share of the summed child wall time, so a bar in one section is comparable to a bar in another.</p>
+<div class="stats">
+<div class="stat">
+<div class="stat-value">20.00s</div>
+<div class="stat-label">Wall clock</div>
+</div>
+<div class="stat">
+<div class="stat-value">2</div>
+<div class="stat-label">Children</div>
+</div>
+<div class="stat">
+<div class="stat-value">36.00s</div>
+<div class="stat-label">Sum of child wall time</div>
+</div>
+<div class="stat">
+<div class="stat-value">1.80× of 4</div>
+<div class="stat-label">Achieved parallelism</div>
+</div>
+<div class="stat">
+<div class="stat-value">1</div>
+<div class="stat-label">Tests that needed a retry</div>
+</div>
+</div>
+</header>
+<section>
+<h2>Where the child time goes</h2>
+<div class="hero-bar">
+<span class="seg s-start" style="width:16.6667%" title="process startup: 6.00s"></span>
+<span class="seg s-setup" style="width:79.8611%" title="suite setup: 28.75s"></span>
+<span class="seg s-tests" style="width:3.4722%" title="test execution: 1.25s"></span>
+</div>
+<div class="table-wrap">
+<table class="costs">
+<tbody>
+<tr>
+<td class="swatch"><span class="key s-start"></span></td>
+<th scope="row">process startup<div class="hint">Spawning the process, RTS init, reading the manifest, building the spec forest, printing output. Dominated by this, the run gets faster by doing more per child process, not by making the tests faster.</div></th>
+<td class="num">6.00s</td>
+<td class="num">16.7%</td>
+</tr>
+<tr>
+<td class="swatch"><span class="key s-setup"></span></td>
+<th scope="row">suite setup<div class="hint">around/aroundAll resources, paid once per child instead of once per suite. Dominated by this, the run gets faster by sharing those resources across children.</div></th>
+<td class="num">28.75s</td>
+<td class="num">79.9%</td>
+</tr>
+<tr>
+<td class="swatch"><span class="key s-tests"></span></td>
+<th scope="row">test execution<div class="hint">The leaf tests themselves. Dominated by this, the tests are genuinely slow, or a mutation&#39;s covering-test set is too large.</div></th>
+<td class="num">1.25s</td>
+<td class="num">3.5%</td>
+</tr>
+<tr class="total">
+<td></td>
+<th scope="row">total</th>
+<td class="num">36.00s</td>
+<td class="num">100.0%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>By suite</h2>
+<div class="table-wrap">
+<table class="sortable">
+<thead><tr>
+<th>suite</th>
+<th class="num">children</th>
+<th class="num">time</th>
+<th class="num">share</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">foo-test</td>
+<td class="num" data-v="2">2</td>
+<td class="num" data-v="36000000000">36.00s</td>
+<td class="num" data-v="36000000000">100.0%</td>
+<td><span class="track" title="36.00s"><span class="seg s-start" style="width:16.6667%"></span><span class="seg s-setup" style="width:79.8611%"></span><span class="seg s-tests" style="width:3.4722%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>Per child</h2>
+<div class="toolbar">
+<input id="filter" type="search" placeholder="Filter rows..." aria-label="Filter rows">
+<span class="count" id="count">2 rows</span>
+</div>
+<div class="table-wrap tall">
+<table class="sortable" id="entries">
+<thead><tr>
+<th>test</th>
+<th>suite</th>
+<th>mutations covered</th>
+<th>attempts</th>
+<th class="num">wall</th>
+<th class="num">startup</th>
+<th class="num">setup</th>
+<th class="num">tests</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">add.commutativity:1</td>
+<td class="label">foo-test</td>
+<td class="label">12</td>
+<td class="label">3</td>
+<td class="num" data-v="25000000000">25.00s</td>
+<td class="num" data-v="4000000000">4.00s</td>
+<td class="num" data-v="20000000000">20.00s</td>
+<td class="num" data-v="1000000000">1.00s</td>
+<td><span class="track" title="25.00s"><span class="seg s-start" style="width:11.1111%"></span><span class="seg s-setup" style="width:55.5556%"></span><span class="seg s-tests" style="width:2.7778%"></span></span></td>
+</tr>
+<tr>
+<td class="label">add.adds two numbers</td>
+<td class="label">foo-test</td>
+<td class="label">12</td>
+<td class="label">1</td>
+<td class="num" data-v="11000000000">11.00s</td>
+<td class="num" data-v="2000000000">2.00s</td>
+<td class="num" data-v="8750000000">8.75s</td>
+<td class="num" data-v="250000000">250.0ms</td>
+<td><span class="track" title="11.00s"><span class="seg s-start" style="width:5.5556%"></span><span class="seg s-setup" style="width:24.3056%"></span><span class="seg s-tests" style="width:0.6944%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<script>
+document.querySelectorAll('table.sortable').forEach(function (table) {
+  var heads = table.tHead.rows[0].cells;
+  Array.prototype.forEach.call(heads, function (th, i) {
+    th.addEventListener('click', function () {
+      var desc = th.getAttribute('aria-sort') !== 'descending';
+      Array.prototype.forEach.call(heads, function (o) { o.removeAttribute('aria-sort'); });
+      th.setAttribute('aria-sort', desc ? 'descending' : 'ascending');
+      var body = table.tBodies[0];
+      var rows = Array.prototype.slice.call(body.rows);
+      var key = function (row) {
+        var cell = row.cells[i];
+        if (!cell) { return { n: null, s: '' }; }
+        var v = cell.getAttribute('data-v');
+        return v === null ? { n: null, s: cell.textContent } : { n: Number(v), s: '' };
+      };
+      rows.sort(function (a, b) {
+        var ka = key(a), kb = key(b);
+        var c = ka.n !== null && kb.n !== null ? ka.n - kb.n : ka.s.localeCompare(kb.s);
+        return desc ? -c : c;
+      });
+      rows.forEach(function (row) { body.appendChild(row); });
+    });
+  });
+});
+var filter = document.getElementById('filter');
+if (filter) {
+  var entries = document.getElementById('entries');
+  var count = document.getElementById('count');
+  var rows = Array.prototype.slice.call(entries.tBodies[0].rows);
+  filter.addEventListener('input', function () {
+    var needle = filter.value.toLowerCase();
+    var shown = 0;
+    rows.forEach(function (row) {
+      var hit = row.textContent.toLowerCase().indexOf(needle) !== -1;
+      row.hidden = !hit;
+      if (hit) { shown++; }
+    });
+    count.textContent = shown + ' of ' + rows.length + ' rows';
+  });
+}
+</script>
+</body>
+</html>

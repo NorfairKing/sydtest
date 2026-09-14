@@ -25,6 +25,8 @@ import Control.Monad (unless, when)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import Data.Text (Text)
+import GHC.Clock (getMonotonicTimeNSec)
+import GHC.Conc (getNumCapabilities)
 import Path
 import Path.IO (getCurrentDir, setCurrentDir)
 import System.Exit (ExitCode (..), die, exitWith)
@@ -48,9 +50,17 @@ import Test.Syd.Mutation.Driver.DiffRun (runDiff)
 import Test.Syd.Mutation.Driver.Mutate (runMutationMode)
 import Test.Syd.Mutation.Driver.OptParse
 import Test.Syd.Mutation.Driver.SuitePkg (walkSuitePkgs)
+import Test.Syd.Mutation.Driver.Timing (emitPhaseTimingReport)
 import Test.Syd.Mutation.Manifest (MutationGroup (..), MutationManifest (..), MutationRecord (..), readManifestDir)
 import Test.Syd.Mutation.Runtime (renderMutationId)
 import Test.Syd.Mutation.TestBaselineMap (writeTestBaselineMapDir)
+import Test.Syd.Mutation.TimingReport
+  ( CoverageChildTiming,
+    CoveragePhaseTiming (..),
+    summariseCoveragePhase,
+    writeCoveragePhaseTiming,
+  )
+import Test.Syd.MutationMode.Common (diffMonotonicNanos)
 
 -- | Top-level entry point: parse the dispatch and run the chosen
 -- subcommand.  The default subcommand is @run@, which runs both mutation
@@ -176,15 +186,35 @@ prepareAugmentedFromCoverageDirs manifestDirs coverageDirs augDir = do
 runCoverage :: CoverageSettings -> IO ()
 runCoverage CoverageSettings {..} = do
   suites <- walkSuitePkgs coverageSettingSuitePkgs
-  mapM_
-    ( runOneSuiteCoverage
-        coverageSettingManifests
-        coverageSettingAugmentedManifestDir
-        coverageSettingCoverageJobs
-        coverageSettingCoverageRetry
-        coverageSettingFailFast
-    )
-    (Map.toAscList suites)
+  jobs <- case coverageSettingCoverageJobs of
+    Just j | j > 0 -> pure j
+    _ -> fromIntegral <$> getNumCapabilities
+  phaseStart <- getMonotonicTimeNSec
+  timings <-
+    concat
+      <$> mapM
+        ( runOneSuiteCoverage
+            coverageSettingManifests
+            coverageSettingAugmentedManifestDir
+            jobs
+            coverageSettingCoverageRetry
+            coverageSettingFailFast
+        )
+        (Map.toAscList suites)
+  phaseEnd <- getMonotonicTimeNSec
+  -- The timing report lands next to the augmented manifest, which is what
+  -- the coverage derivation installs, so a slow coverage phase can be
+  -- diagnosed from the cached coverage output without re-running it.
+  let phaseTiming =
+        CoveragePhaseTiming
+          { coveragePhaseTimingWallNanos = diffMonotonicNanos phaseEnd phaseStart,
+            coveragePhaseTimingJobs = jobs,
+            coveragePhaseTimingChildren = timings
+          }
+  writeCoveragePhaseTiming coverageSettingAugmentedManifestDir phaseTiming
+  emitPhaseTimingReport
+    coverageSettingAugmentedManifestDir
+    (summariseCoveragePhase phaseTiming)
   hFlush stdout
 
 -- | Run the coverage phase for one suite, with optional @cd@ into its
@@ -192,11 +222,11 @@ runCoverage CoverageSettings {..} = do
 runOneSuiteCoverage ::
   [Path Abs Dir] ->
   Path Abs Dir ->
-  Maybe Word ->
+  Word ->
   Word ->
   Bool ->
   (Text, SuiteConfig) ->
-  IO ()
+  IO [CoverageChildTiming]
 runOneSuiteCoverage manifests augmentedManifestDir coverageJobs coverageRetry failFast (suiteName, SuiteConfig {suiteConfigExe, suiteConfigResourceDir}) =
   withMaybeCurrentDir suiteConfigResourceDir $
     runCoverageMode

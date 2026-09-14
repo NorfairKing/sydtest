@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.32.0.0] - 2026-09-14
+
+### Added
+
+* `--mutation-timing-output`: a mutation or coverage child writes its own
+  timing breakdown there, so the driver's timing report can tell process
+  startup, suite setup and test execution apart.
+* `childTimingOf`, `diffMonotonicNanos`.
+
+### Changed
+
+* `CoverageChildSettings` and `MutationChildSettings` each carry the
+  `--mutation-timing-output` path.
+
+
 ## [0.31.0.0] - 2026-09-11
 
 ### Changed

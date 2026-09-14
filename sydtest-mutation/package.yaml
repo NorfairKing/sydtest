@@ -44,5 +44,5 @@ tests:
     - safe-coloured-text
     - sydtest
     - sydtest-mutation
-    - sydtest-mutation-runtime >=0.1.1
+    - sydtest-mutation-runtime >=0.1.2
     - text

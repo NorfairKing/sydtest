@@ -1,0 +1,67 @@
+{
+    "children": [
+        {
+            "covering_tests": 7,
+            "id": [
+                "Foo.Bar",
+                "ArithOp",
+                "5",
+                "14",
+                "15"
+            ],
+            "inner": {
+                "forest_nanos": 9500000000,
+                "test_nanos": 500000000,
+                "tests_run": 1
+            },
+            "line": 5,
+            "module": "Foo.Bar",
+            "operator": "ArithOp",
+            "outcome": "killed",
+            "source_file": "src/Foo/Bar.hs",
+            "suite": "foo-test",
+            "wall_nanos": 12000000000
+        },
+        {
+            "covering_tests": 7,
+            "id": [
+                "Foo.Bar",
+                "BoolOp",
+                "12",
+                "8",
+                "10"
+            ],
+            "inner": {
+                "forest_nanos": 17000000000,
+                "test_nanos": 8000000000,
+                "tests_run": 7
+            },
+            "line": 12,
+            "module": "Foo.Bar",
+            "operator": "BoolOp",
+            "outcome": "survived",
+            "source_file": "src/Foo/Bar.hs",
+            "suite": "foo-test",
+            "wall_nanos": 20000000000
+        },
+        {
+            "covering_tests": 2,
+            "id": [
+                "Foo.Qux",
+                "ConstBool",
+                "40",
+                "3",
+                "7"
+            ],
+            "line": 40,
+            "module": "Foo.Qux",
+            "operator": "ConstBool",
+            "outcome": "timed_out",
+            "suite": "qux-test",
+            "wall_nanos": 30000000000
+        }
+    ],
+    "jobs": 4,
+    "uncovered": 2,
+    "wall_nanos": 45000000000
+}

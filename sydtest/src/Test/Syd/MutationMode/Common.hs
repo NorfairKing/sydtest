@@ -45,6 +45,8 @@ module Test.Syd.MutationMode.Common
 
     -- * Timing utilities
     diffMonotonicMicros,
+    diffMonotonicNanos,
+    childTimingOf,
   )
 where
 
@@ -73,20 +75,27 @@ import Test.Syd.Mutation.AugmentedManifest
 import Test.Syd.Mutation.Manifest.Render (renderUnifiedDiff)
 import Test.Syd.Mutation.Runtime (MutationId (..), renderMutationId)
 import Test.Syd.Mutation.TestId (TestId, renderTestId)
+import Test.Syd.Mutation.Timing (ChildTiming (..))
 import Test.Syd.OptParse (Settings, settingTerminalCapabilities)
+import Test.Syd.Run (Timed (..), timedTime)
+import Test.Syd.SpecDef (ResultForest, TestSuiteStats (..), computeTestSuiteStats)
 import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksUtf8With, red, unlinesChunks, yellow)
 
+-- | Difference of two 'getMonotonicTimeNSec' readings.  The monotonic clock
+-- is not affected by NTP slew or step, so timing comparisons here are robust
+-- against system-clock changes that 'getCurrentTime' would have observed.
+--
+-- 'getMonotonicTimeNSec' is monotonically non-decreasing, so @end >= start@
+-- holds whenever they were measured in this order.  Guard with a defensive
+-- max anyway, in case a future change captures the two times across an
+-- unexpected boundary.
+diffMonotonicNanos :: Word64 -> Word64 -> Word64
+diffMonotonicNanos end start = max end start - start
+
 -- | Difference of two 'getMonotonicTimeNSec' readings expressed in
--- microseconds.  The monotonic clock is not affected by NTP slew or
--- step, so timing comparisons here are robust against system-clock
--- changes that 'getCurrentTime' would have observed.
+-- microseconds.  See 'diffMonotonicNanos'.
 diffMonotonicMicros :: Word64 -> Word64 -> Word
-diffMonotonicMicros end start =
-  -- 'getMonotonicTimeNSec' is monotonically non-decreasing, so @end >=
-  -- start@ holds whenever they were measured in this order.  Guard
-  -- with a defensive max anyway, in case a future change captures the
-  -- two times across an unexpected boundary.
-  fromIntegral ((max end start - start) `div` 1000)
+diffMonotonicMicros end start = fromIntegral (diffMonotonicNanos end start `div` 1000)
 
 data MutationResult
   = MutationUncovered UncoveredMutation
@@ -597,3 +606,20 @@ formatMutationLog (MutationId parts) AugmentedMutationRecord {augmentedMutationR
 
 -- 'renderUnifiedDiff' moved to 'Test.Syd.Mutation.Manifest.Render' so it
 -- is shared with the plugin's @.txt@ manifest writer.
+
+-- | The child's own account of where its time went, computed from the
+-- result forest it just ran.
+--
+-- 'timedTime' covers the whole spec-forest run, so subtracting the summed
+-- leaf times leaves the suite's @around@\/@aroundAll@ setup and teardown —
+-- which a mutation run pays once per child rather than once per suite, and
+-- is therefore the cost most worth telling apart from the tests themselves.
+childTimingOf :: Settings -> Timed ResultForest -> ChildTiming
+childTimingOf settings timedResult =
+  let stats = computeTestSuiteStats settings (timedValue timedResult)
+   in ChildTiming
+        { childTimingForestNanos = timedTime timedResult,
+          childTimingTestNanos = testSuiteStatSumTime stats,
+          childTimingTestsRun =
+            testSuiteStatSuccesses stats + testSuiteStatFailures stats
+        }

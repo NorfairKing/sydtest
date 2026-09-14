@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timing report: mutation phase</title>
+<style>
+:root{--bg:#fbfbfa;--panel:#fff;--ink:#1a1a19;--muted:#6b6b66;--line:#e4e4e0;
+--start:#c9432f;--setup:#c98a12;--tests:#2f8f4e;--unattr:#4a63c9;--accent:#3b5bdb}
+@media (prefers-color-scheme:dark){:root{--bg:#16161a;--panel:#1d1d22;--ink:#e9e9e6;--muted:#9a9a94;--line:#2e2e35;
+--start:#e8705c;--setup:#e5ad3d;--tests:#5cbf7c;--unattr:#7d92e8;--accent:#8ea2f0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:14px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:1400px;margin:0 auto;padding:32px 24px 96px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px}
+/* A scroll box of its own, so the sticky header sticks to the table rather
+   than scrolling away with the page on a listing thousands of rows long. */
+.table-wrap.tall{max-height:70vh}
+.table-wrap table{border:0;border-radius:0}
+header{margin-bottom:36px}
+h1{font-size:22px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+h1 .phase{color:var(--muted);font-weight:450;margin-left:10px}
+.lede{color:var(--muted);margin:0 0 22px;max-width:70ch}
+h2{font-size:13px;font-weight:650;text-transform:uppercase;letter-spacing:.07em;
+color:var(--muted);margin:0 0 12px}
+section{margin-bottom:40px}
+.stats{display:flex;flex-wrap:wrap;gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 18px;min-width:145px}
+.stat-value{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.stat-label{color:var(--muted);font-size:12px;margin-top:2px}
+.hero-bar{display:flex;height:30px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:16px}
+.hero-bar .seg{height:100%}
+.seg.s-start{background:var(--start)}.seg.s-setup{background:var(--setup)}
+.seg.s-tests{background:var(--tests)}.seg.s-unattr{background:var(--unattr)}
+table{width:100%;border-collapse:collapse;background:var(--panel)}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+thead th{position:sticky;top:0;background:var(--panel);z-index:1;font-size:12px;
+font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
+table.sortable thead th{cursor:pointer;user-select:none}
+table.sortable thead th:hover{color:var(--ink)}
+table.sortable thead th[aria-sort]:after{content:'\2191';margin-left:5px;opacity:.75}
+table.sortable thead th[aria-sort=descending]:after{content:'\2193'}
+tbody tr:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.label{word-break:break-word}
+.costs th{font-weight:600}
+.costs .hint{font-weight:400;color:var(--muted);font-size:12px;margin-top:2px;max-width:62ch}
+.costs .swatch{width:1px;padding-right:0}
+.key{display:inline-block;width:11px;height:11px;border-radius:3px;margin-top:4px}
+.key.s-start{background:var(--start)}.key.s-setup{background:var(--setup)}
+.key.s-tests{background:var(--tests)}.key.s-unattr{background:var(--unattr)}
+.total th,.total td{font-weight:600;border-top:1px solid var(--line)}
+.bar-col{width:220px}
+.track{display:flex;width:200px;height:9px;border-radius:5px;overflow:hidden;
+background:color-mix(in srgb,var(--ink) 8%,transparent);margin-top:4px}
+.track .seg{height:100%}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+#filter{flex:0 1 320px;padding:7px 11px;border:1px solid var(--line);border-radius:7px;
+background:var(--panel);color:var(--ink);font:inherit}
+#filter:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.count{color:var(--muted);font-size:12px}
+.num.unknown{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Timing report<span class="phase">mutation phase</span></h1>
+<p class="lede">Where this phase's child processes spent their time. Every share and bar below is a share of the summed child wall time, so a bar in one section is comparable to a bar in another.</p>
+<div class="stats">
+<div class="stat">
+<div class="stat-value">45.00s</div>
+<div class="stat-label">Wall clock</div>
+</div>
+<div class="stat">
+<div class="stat-value">3</div>
+<div class="stat-label">Children</div>
+</div>
+<div class="stat">
+<div class="stat-value">1m02s</div>
+<div class="stat-label">Sum of child wall time</div>
+</div>
+<div class="stat">
+<div class="stat-value">1.38× of 4</div>
+<div class="stat-label">Achieved parallelism</div>
+</div>
+<div class="stat">
+<div class="stat-value">2</div>
+<div class="stat-label">Uncovered (no child run)</div>
+</div>
+</div>
+</header>
+<section>
+<h2>Where the child time goes</h2>
+<div class="hero-bar">
+<span class="seg s-start" style="width:8.8710%" title="process startup: 5.50s"></span>
+<span class="seg s-setup" style="width:29.0323%" title="suite setup: 18.00s"></span>
+<span class="seg s-tests" style="width:13.7097%" title="test execution: 8.50s"></span>
+<span class="seg s-unattr" style="width:48.3871%" title="unattributed: 30.00s"></span>
+</div>
+<div class="table-wrap">
+<table class="costs">
+<tbody>
+<tr>
+<td class="swatch"><span class="key s-start"></span></td>
+<th scope="row">process startup<div class="hint">Spawning the process, RTS init, reading the manifest, building the spec forest, printing output. Dominated by this, the run gets faster by doing more per child process, not by making the tests faster.</div></th>
+<td class="num">5.50s</td>
+<td class="num">8.9%</td>
+</tr>
+<tr>
+<td class="swatch"><span class="key s-setup"></span></td>
+<th scope="row">suite setup<div class="hint">around/aroundAll resources, paid once per child instead of once per suite. Dominated by this, the run gets faster by sharing those resources across children.</div></th>
+<td class="num">18.00s</td>
+<td class="num">29.0%</td>
+</tr>
+<tr>
+<td class="swatch"><span class="key s-tests"></span></td>
+<th scope="row">test execution<div class="hint">The leaf tests themselves. Dominated by this, the tests are genuinely slow, or a mutation&#39;s covering-test set is too large.</div></th>
+<td class="num">8.50s</td>
+<td class="num">13.7%</td>
+</tr>
+<tr>
+<td class="swatch"><span class="key s-unattr"></span></td>
+<th scope="row">unattributed<div class="hint">Children that reported no breakdown, such as one killed on its timeout.</div></th>
+<td class="num">30.00s</td>
+<td class="num">48.4%</td>
+</tr>
+<tr class="total">
+<td></td>
+<th scope="row">total</th>
+<td class="num">1m02s</td>
+<td class="num">100.0%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>By suite</h2>
+<div class="table-wrap">
+<table class="sortable">
+<thead><tr>
+<th>suite</th>
+<th class="num">children</th>
+<th class="num">time</th>
+<th class="num">share</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">foo-test</td>
+<td class="num" data-v="2">2</td>
+<td class="num" data-v="32000000000">32.00s</td>
+<td class="num" data-v="32000000000">51.6%</td>
+<td><span class="track" title="32.00s"><span class="seg s-start" style="width:8.8710%"></span><span class="seg s-setup" style="width:29.0323%"></span><span class="seg s-tests" style="width:13.7097%"></span></span></td>
+</tr>
+<tr>
+<td class="label">qux-test</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="30000000000">30.00s</td>
+<td class="num" data-v="30000000000">48.4%</td>
+<td><span class="track" title="30.00s"><span class="seg s-unattr" style="width:48.3871%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>By outcome</h2>
+<div class="table-wrap">
+<table class="sortable">
+<thead><tr>
+<th>outcome</th>
+<th class="num">children</th>
+<th class="num">time</th>
+<th class="num">share</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">timed out</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="30000000000">30.00s</td>
+<td class="num" data-v="30000000000">48.4%</td>
+<td><span class="track" title="30.00s"><span class="seg s-unattr" style="width:48.3871%"></span></span></td>
+</tr>
+<tr>
+<td class="label">survived</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="20000000000">20.00s</td>
+<td class="num" data-v="20000000000">32.3%</td>
+<td><span class="track" title="20.00s"><span class="seg s-start" style="width:4.8387%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:12.9032%"></span></span></td>
+</tr>
+<tr>
+<td class="label">killed</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="12000000000">12.00s</td>
+<td class="num" data-v="12000000000">19.4%</td>
+<td><span class="track" title="12.00s"><span class="seg s-start" style="width:4.0323%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:0.8065%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>By operator</h2>
+<div class="table-wrap">
+<table class="sortable">
+<thead><tr>
+<th>operator</th>
+<th class="num">children</th>
+<th class="num">time</th>
+<th class="num">share</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">ConstBool</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="30000000000">30.00s</td>
+<td class="num" data-v="30000000000">48.4%</td>
+<td><span class="track" title="30.00s"><span class="seg s-unattr" style="width:48.3871%"></span></span></td>
+</tr>
+<tr>
+<td class="label">BoolOp</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="20000000000">20.00s</td>
+<td class="num" data-v="20000000000">32.3%</td>
+<td><span class="track" title="20.00s"><span class="seg s-start" style="width:4.8387%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:12.9032%"></span></span></td>
+</tr>
+<tr>
+<td class="label">ArithOp</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="12000000000">12.00s</td>
+<td class="num" data-v="12000000000">19.4%</td>
+<td><span class="track" title="12.00s"><span class="seg s-start" style="width:4.0323%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:0.8065%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>By module</h2>
+<div class="table-wrap">
+<table class="sortable">
+<thead><tr>
+<th>module</th>
+<th class="num">children</th>
+<th class="num">time</th>
+<th class="num">share</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">Foo.Bar</td>
+<td class="num" data-v="2">2</td>
+<td class="num" data-v="32000000000">32.00s</td>
+<td class="num" data-v="32000000000">51.6%</td>
+<td><span class="track" title="32.00s"><span class="seg s-start" style="width:8.8710%"></span><span class="seg s-setup" style="width:29.0323%"></span><span class="seg s-tests" style="width:13.7097%"></span></span></td>
+</tr>
+<tr>
+<td class="label">Foo.Qux</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="30000000000">30.00s</td>
+<td class="num" data-v="30000000000">48.4%</td>
+<td><span class="track" title="30.00s"><span class="seg s-unattr" style="width:48.3871%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>By mutation</h2>
+<div class="table-wrap">
+<table class="sortable">
+<thead><tr>
+<th>mutation</th>
+<th class="num">children</th>
+<th class="num">time</th>
+<th class="num">share</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">Foo.Qux/ConstBool/40/3/7</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="30000000000">30.00s</td>
+<td class="num" data-v="30000000000">48.4%</td>
+<td><span class="track" title="30.00s"><span class="seg s-unattr" style="width:48.3871%"></span></span></td>
+</tr>
+<tr>
+<td class="label">Foo.Bar/BoolOp/12/8/10</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="20000000000">20.00s</td>
+<td class="num" data-v="20000000000">32.3%</td>
+<td><span class="track" title="20.00s"><span class="seg s-start" style="width:4.8387%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:12.9032%"></span></span></td>
+</tr>
+<tr>
+<td class="label">Foo.Bar/ArithOp/5/14/15</td>
+<td class="num" data-v="1">1</td>
+<td class="num" data-v="12000000000">12.00s</td>
+<td class="num" data-v="12000000000">19.4%</td>
+<td><span class="track" title="12.00s"><span class="seg s-start" style="width:4.0323%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:0.8065%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section>
+<h2>Per child</h2>
+<div class="toolbar">
+<input id="filter" type="search" placeholder="Filter rows..." aria-label="Filter rows">
+<span class="count" id="count">3 rows</span>
+</div>
+<div class="table-wrap tall">
+<table class="sortable" id="entries">
+<thead><tr>
+<th>operator</th>
+<th>location</th>
+<th>suite</th>
+<th>outcome</th>
+<th>tests run</th>
+<th>mutation</th>
+<th class="num">wall</th>
+<th class="num">startup</th>
+<th class="num">setup</th>
+<th class="num">tests</th>
+<th class="bar-col">startup / setup / tests</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="label">ConstBool</td>
+<td class="label">Foo.Qux:40</td>
+<td class="label">qux-test</td>
+<td class="label">timed out</td>
+<td class="label"></td>
+<td class="label">Foo.Qux/ConstBool/40/3/7</td>
+<td class="num" data-v="30000000000">30.00s</td>
+<td class="num unknown" data-v="-1">&mdash;</td>
+<td class="num unknown" data-v="-1">&mdash;</td>
+<td class="num unknown" data-v="-1">&mdash;</td>
+<td><span class="track" title="30.00s"><span class="seg s-unattr" style="width:48.3871%"></span></span></td>
+</tr>
+<tr>
+<td class="label">BoolOp</td>
+<td class="label">src/Foo/Bar.hs:12</td>
+<td class="label">foo-test</td>
+<td class="label">survived</td>
+<td class="label">7/7</td>
+<td class="label">Foo.Bar/BoolOp/12/8/10</td>
+<td class="num" data-v="20000000000">20.00s</td>
+<td class="num" data-v="3000000000">3.00s</td>
+<td class="num" data-v="9000000000">9.00s</td>
+<td class="num" data-v="8000000000">8.00s</td>
+<td><span class="track" title="20.00s"><span class="seg s-start" style="width:4.8387%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:12.9032%"></span></span></td>
+</tr>
+<tr>
+<td class="label">ArithOp</td>
+<td class="label">src/Foo/Bar.hs:5</td>
+<td class="label">foo-test</td>
+<td class="label">killed</td>
+<td class="label">1/7</td>
+<td class="label">Foo.Bar/ArithOp/5/14/15</td>
+<td class="num" data-v="12000000000">12.00s</td>
+<td class="num" data-v="2500000000">2.50s</td>
+<td class="num" data-v="9000000000">9.00s</td>
+<td class="num" data-v="500000000">500.0ms</td>
+<td><span class="track" title="12.00s"><span class="seg s-start" style="width:4.0323%"></span><span class="seg s-setup" style="width:14.5161%"></span><span class="seg s-tests" style="width:0.8065%"></span></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<script>
+document.querySelectorAll('table.sortable').forEach(function (table) {
+  var heads = table.tHead.rows[0].cells;
+  Array.prototype.forEach.call(heads, function (th, i) {
+    th.addEventListener('click', function () {
+      var desc = th.getAttribute('aria-sort') !== 'descending';
+      Array.prototype.forEach.call(heads, function (o) { o.removeAttribute('aria-sort'); });
+      th.setAttribute('aria-sort', desc ? 'descending' : 'ascending');
+      var body = table.tBodies[0];
+      var rows = Array.prototype.slice.call(body.rows);
+      var key = function (row) {
+        var cell = row.cells[i];
+        if (!cell) { return { n: null, s: '' }; }
+        var v = cell.getAttribute('data-v');
+        return v === null ? { n: null, s: cell.textContent } : { n: Number(v), s: '' };
+      };
+      rows.sort(function (a, b) {
+        var ka = key(a), kb = key(b);
+        var c = ka.n !== null && kb.n !== null ? ka.n - kb.n : ka.s.localeCompare(kb.s);
+        return desc ? -c : c;
+      });
+      rows.forEach(function (row) { body.appendChild(row); });
+    });
+  });
+});
+var filter = document.getElementById('filter');
+if (filter) {
+  var entries = document.getElementById('entries');
+  var count = document.getElementById('count');
+  var rows = Array.prototype.slice.call(entries.tBodies[0].rows);
+  filter.addEventListener('input', function () {
+    var needle = filter.value.toLowerCase();
+    var shown = 0;
+    rows.forEach(function (row) {
+      var hit = row.textContent.toLowerCase().indexOf(needle) !== -1;
+      row.hidden = !hit;
+      if (hit) { shown++; }
+    });
+    count.textContent = shown + ' of ' + rows.length + ' rows';
+  });
+}
+</script>
+</body>
+</html>

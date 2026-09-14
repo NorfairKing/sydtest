@@ -13,16 +13,20 @@
 # so each piece can be built and inspected on its own:
 #
 # - 'passthru.report': an attrset, keyed by instrumented-library package name,
-#   of per-library mutation reports ('report.txt'/'report.json' each).  The
-#   mutation phase is split per library: 'passthru.report.<lib>' is the report
-#   for one library, the same derivation that library's sealed check is built
-#   from.  The returned derivation itself is an aggregate that symlinks every
-#   per-library piece under '<lib>/', so building it builds them all.
+#   of per-library mutation reports ('report.txt'/'report.json' each, plus
+#   'timing.html'/'timing.json': where that library's mutation phase spent its
+#   time, broken down per child into process startup, suite setup and test
+#   execution, and grouped by suite, outcome, operator, module and mutation).
+#   The mutation phase is split per library: 'passthru.report.<lib>' is the
+#   report for one library, the same derivation that library's sealed check is
+#   built from.  The returned derivation itself is an aggregate that symlinks
+#   every per-library piece under '<lib>/', so building it builds them all.
 #
 # - 'passthru.coverage': a separate, much cheaper set of derivations that run
 #   only the coverage phase and emit the augmented manifest ('augmented/', the
-#   which-test-covers-which-mutation map) plus the per-suite test-location
-#   listings ('test-locations/<suite>.json').  Coverage is gathered in one
+#   which-test-covers-which-mutation map, and the coverage phase's own
+#   'augmented/timing.html' + 'augmented/timing.json') plus the per-suite
+#   test-location listings ('test-locations/<suite>.json').  Coverage is gathered in one
 #   derivation per test-package (so editing one package's tests only
 #   invalidates that package's coverage, and the per-package runs build in
 #   parallel).  None of this runs the mutation phase.  Each per-package

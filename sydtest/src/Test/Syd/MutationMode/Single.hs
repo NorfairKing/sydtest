@@ -9,6 +9,7 @@ module Test.Syd.MutationMode.Single
   )
 where
 
+import Data.Foldable (for_)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
@@ -22,6 +23,8 @@ import Test.Syd.Mutation.Forest (filterTestForestByTrie, reorderForMutationChild
 import Test.Syd.Mutation.Runtime (parseMutationId, setActiveMutation)
 import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap (..), readTestBaselineMapDirIfExists)
 import Test.Syd.Mutation.TestId (TestId)
+import Test.Syd.Mutation.Timing (writeChildTimingFile)
+import Test.Syd.MutationMode.Common (childTimingOf)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run (Timed (..))
@@ -72,6 +75,8 @@ runSingleMutationMode settings mutChild spec = do
   setActiveMutation (Just mid)
   timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous, settingFailFast = True}) orderedForest
   setActiveMutation Nothing
+  for_ (mutationChildTimingOutput mutChild) $ \timingFile ->
+    writeChildTimingFile timingFile (childTimingOf settings timedResult)
   printOutputSpecForest settings timedResult
   if shouldExitFail settings (timedValue timedResult)
     then exitWith (ExitFailure 1)

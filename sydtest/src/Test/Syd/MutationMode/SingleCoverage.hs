@@ -13,6 +13,7 @@ module Test.Syd.MutationMode.SingleCoverage
 where
 
 import Control.Monad (when)
+import Data.Foldable (for_)
 import Data.IORef
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -25,7 +26,8 @@ import Test.Syd.Mutation.Runtime (withCoverageSlot)
 import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap (..), writeTestBaselineMapFile)
 import Test.Syd.Mutation.TestCoverageMap (TestCoverageMap (..), writeTestCoverageMapFile)
 import Test.Syd.Mutation.TestId (parseTestIdFilterArg, renderTestId)
-import Test.Syd.MutationMode.Common (diffMonotonicMicros)
+import Test.Syd.Mutation.Timing (writeChildTimingFile)
+import Test.Syd.MutationMode.Common (childTimingOf, diffMonotonicMicros)
 import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run (Timed (..))
@@ -60,6 +62,8 @@ runSingleCoverageMode settings failFast covChild spec = do
       elapsedMicros = diffMonotonicMicros endTime startTime
   writeTestCoverageMapFile outputFile coverageMap
   writeTestBaselineMapFile baselineFile (TestBaselineMap (Map.singleton tid elapsedMicros))
+  for_ (coverageChildTimingOutput covChild) $ \timingFile ->
+    writeChildTimingFile timingFile (childTimingOf settings resultForest)
   -- Mutation testing only makes sense against a passing baseline: if a test
   -- is red before any mutation is applied, its mutation scores are
   -- meaningless.  Print the offending test's output and a loud warning in

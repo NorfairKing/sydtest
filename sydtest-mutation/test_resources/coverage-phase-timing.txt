@@ -1,0 +1,20 @@
+Timing report: coverage phase
+
+  Wall clock                      20.00s
+  Children                             2
+  Sum of child wall time          36.00s
+  Achieved parallelism        1.80x of 4
+  Tests that needed a retry            1
+
+Where the child time goes  (▓ startup  ▒ setup  █ tests  ░ unattributed)
+  process startup          6.00s   16.7%  ▓▓▓▓
+  suite setup             28.75s   79.9%  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+  test execution           1.25s    3.5%  █
+  total                   36.00s
+
+By suite
+       2      36.00s  100.0%  ▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█  foo-test
+
+Per child, slowest first  (wall, bar, then startup/setup/tests)
+        25.00s  ▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒█                 4.00s/20.00s/1.00s  add.commutativity:1 (foo-test, 12 mutations, 3 attempts)
+        11.00s  ▓▒▒▒▒▒▒                          2.00s/8.75s/250.0ms  add.adds two numbers (foo-test, 12 mutations)

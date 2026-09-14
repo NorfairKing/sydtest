@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           sydtest-mutation-runtime
-version:        0.1.1.0
+version:        0.1.2.0
 synopsis:       Runtime support library for sydtest's mutation testing
 description:    Runtime support library for sydtest's mutation testing. It provides the manifest, coverage and identifier types shared between the core sydtest library, the mutation plugin, and the mutation driver. See https://github.com/NorfairKing/sydtest#readme for more information.
 category:       Testing
@@ -33,6 +33,9 @@ library
       Test.Syd.Mutation.TestCoverageMap
       Test.Syd.Mutation.TestId
       Test.Syd.Mutation.TestLocation
+      Test.Syd.Mutation.Timing
+      Test.Syd.Mutation.TimingReport
+      Test.Syd.Mutation.TimingReport.Html
   other-modules:
       Paths_sydtest_mutation_runtime
   hs-source-dirs:

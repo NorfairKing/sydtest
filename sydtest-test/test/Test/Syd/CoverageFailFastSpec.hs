@@ -35,7 +35,8 @@ spec = describe "runSingleCoverageMode fail-fast" $ do
               { coverageChildTestId = "always-fails",
                 coverageChildOutput = outputFile,
                 coverageChildBaselineOutput = baselineFile,
-                coverageChildSuiteName = Nothing
+                coverageChildSuiteName = Nothing,
+                coverageChildTimingOutput = Nothing
               }
           failingSpec :: Spec
           failingSpec = it "always-fails" (expectationFailure "intentional" :: IO ())
@@ -54,7 +55,8 @@ spec = describe "runSingleCoverageMode fail-fast" $ do
               { coverageChildTestId = "always-passes",
                 coverageChildOutput = outputFile,
                 coverageChildBaselineOutput = baselineFile,
-                coverageChildSuiteName = Nothing
+                coverageChildSuiteName = Nothing,
+                coverageChildTimingOutput = Nothing
               }
           passingSpec :: Spec
           passingSpec = it "always-passes" (pure () :: IO ())
@@ -73,7 +75,8 @@ spec = describe "runSingleCoverageMode fail-fast" $ do
               { coverageChildTestId = "always-fails",
                 coverageChildOutput = outputFile,
                 coverageChildBaselineOutput = baselineFile,
-                coverageChildSuiteName = Nothing
+                coverageChildSuiteName = Nothing,
+                coverageChildTimingOutput = Nothing
               }
           failingSpec :: Spec
           failingSpec = it "always-fails" (expectationFailure "intentional" :: IO ())

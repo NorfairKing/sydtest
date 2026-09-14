@@ -53,15 +53,24 @@ import Test.Syd.Mutation.AugmentedManifest
     writeMutationRunReport,
   )
 import Test.Syd.Mutation.Driver.OptParse (SuiteConfig (..))
+import Test.Syd.Mutation.Driver.Timing (emitPhaseTimingReport)
 import Test.Syd.Mutation.Manifest (isControlOperator)
 import Test.Syd.Mutation.Runtime (renderMutationId)
+import Test.Syd.Mutation.Timing (readChildTimingFileIfExists)
+import Test.Syd.Mutation.TimingReport
+  ( ChildRunOutcome (..),
+    MutationChildTiming (..),
+    MutationPhaseTiming (..),
+    summariseMutationPhase,
+    writeMutationPhaseTiming,
+  )
 import Test.Syd.MutationMode.Common
   ( MutationFailFast (..),
     MutationResult (..),
     OutcomeTally (..),
     SuiteOutcome (..),
     classifySyncExceptionAsKilled,
-    diffMonotonicMicros,
+    diffMonotonicNanos,
     renderMutationProgressEvent,
     renderMutationRunReport,
     resultToOutcome,
@@ -179,10 +188,14 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- partial report (after a global fail-fast abort) reflects the work
   -- done.
   groupResultsVar <- newTVarIO (Map.empty :: Map.Map Int [MutationResult])
+  -- Every child run's timing, accumulated as the workers finish.  Kept
+  -- separate from the results because a mutation covered by several suites
+  -- spawns several children, and the timing report is about children.
+  timingsVar <- newTVarIO ([] :: [MutationChildTiming])
   let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
-          (runOne indexByMutationId totalMutations sem)
+          (runOne timingsVar indexByMutationId totalMutations sem)
           ( \r ->
               atomically $
                 modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
@@ -192,10 +205,12 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- already landed in 'groupResultsVar') is still written out.  Re-throw
   -- after the report write unless the exception is the expected
   -- 'MutationFailFast' fast-path.
+  phaseStart <- getMonotonicTimeNSec
   mWorkerException <-
     Exception.try @Exception.SomeException $ do
       _ <- mapConcurrently runGroup' (zip [0 :: Int ..] groups)
       pure ()
+  phaseEnd <- getMonotonicTimeNSec
   finalGroupResults <- readTVarIO groupResultsVar
   -- Preserve original group order; reverse each group's results because
   -- they were accumulated cons-style.
@@ -238,6 +253,18 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   let renderedChunks = renderMutationRunReport jsonReport
   writeReportTxt renderedChunks outDir
   putChunksUtf8With With8BitColours (unlinesChunks renderedChunks)
+  childTimings <- readTVarIO timingsVar
+  let phaseTiming =
+        MutationPhaseTiming
+          { mutationPhaseTimingWallNanos = diffMonotonicNanos phaseEnd phaseStart,
+            mutationPhaseTimingJobs = fromIntegral n,
+            mutationPhaseTimingUncovered = uncovered,
+            -- Accumulated cons-style from concurrent workers, so the list
+            -- order says nothing; the summary sorts by time anyway.
+            mutationPhaseTimingChildren = childTimings
+          }
+  writeMutationPhaseTiming outDir phaseTiming
+  emitPhaseTimingReport outDir (summariseMutationPhase phaseTiming)
   -- Force out any block-buffered progress events before we return.  This
   -- matters even though we don't 'exitWith' here ourselves: callers (e.g.
   -- 'runDriver' under --fail-fast) may, and a buffered stderr line that
@@ -258,7 +285,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- when fail-fast trips.
   pure jsonReport
   where
-    runOne indexByMutationId totalMutations sem record =
+    runOne timingsVar indexByMutationId totalMutations sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
             -- This mutation's stable 1-based position in the manifest.
@@ -275,7 +302,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
             -- if any child exits non-zero; timed out (counted as killed)
             -- if any child exceeded its budget without any other child
             -- killing it first; otherwise survived.
-            outcomes <- mapM (runOneSuite record mid) suiteNames
+            outcomes <- mapM (runOneSuite timingsVar record mid) suiteNames
             -- A control (no-op) mutation is expected to survive.  Reinterpret
             -- its raw outcome: survival is the control passing, a kill or
             -- timeout is the control failing (the suite is unsound).
@@ -328,7 +355,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
     killingSuiteLog outcomes =
       listToMaybe [rf | SuiteKilled (Just rf) <- NE.toList outcomes]
 
-    runOneSuite record mid suiteName = do
+    runOneSuite timingsVar record mid suiteName = do
       (exe, mResourceDir) <- case Map.lookup suiteName suiteConfigs of
         Just SuiteConfig {suiteConfigExe, suiteConfigResourceDir} ->
           pure (fromAbsFile suiteConfigExe, suiteConfigResourceDir)
@@ -348,19 +375,25 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
             Nothing -> []
             Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
           suiteNameStr = T.unpack suiteName
-          args =
-            [ "--mutation-one",
-              renderMutationId mid,
-              "--mutation-augmented-manifest-dir",
-              fromAbsDir augDir,
-              "--mutation-suite-name",
-              suiteNameStr
-            ]
-              ++ rtsArgs
       classifySyncExceptionAsKilled $
         withSystemTempDir "mutation-child" $ \tmpDir -> do
           let logPath = tmpDir </> [relfile|child.log|]
-          (outcomeRaw, elapsedMicros) <-
+              -- The child writes its own timing breakdown here, so the report
+              -- can separate process startup from suite setup from the tests
+              -- themselves.  A child killed on its timeout leaves no file.
+              timingPath = tmpDir </> [relfile|timing.json|]
+              args =
+                [ "--mutation-one",
+                  renderMutationId mid,
+                  "--mutation-augmented-manifest-dir",
+                  fromAbsDir augDir,
+                  "--mutation-suite-name",
+                  suiteNameStr,
+                  "--mutation-timing-output",
+                  fromAbsFile timingPath
+                ]
+                  ++ rtsArgs
+          (outcomeRaw, elapsedNanos) <-
             withFile (fromAbsFile logPath) WriteMode $ \logHandle -> do
               let childProc =
                     -- Run the child in the suite's resource directory, so it
@@ -384,14 +417,40 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
               startTime <- getMonotonicTimeNSec
               raw <- startProcessAndWait childProc micros
               endTime <- getMonotonicTimeNSec
-              pure (raw, diffMonotonicMicros endTime startTime)
+              pure (raw, diffMonotonicNanos endTime startTime)
+          mInner <- readChildTimingFileIfExists timingPath
+          let recordTiming childOutcome =
+                atomically $
+                  modifyTVar'
+                    timingsVar
+                    ( MutationChildTiming
+                        { mutationChildTimingId = mid,
+                          mutationChildTimingSuite = suiteName,
+                          mutationChildTimingOperator = augmentedMutationRecordOperator record,
+                          mutationChildTimingModule = augmentedMutationRecordModule record,
+                          mutationChildTimingSourceFile = augmentedMutationRecordSourceFile record,
+                          mutationChildTimingLine = augmentedMutationRecordLine record,
+                          mutationChildTimingOutcome = childOutcome,
+                          mutationChildTimingWallNanos = elapsedNanos,
+                          mutationChildTimingCoveringTests =
+                            fromIntegral $
+                              length $
+                                Map.findWithDefault
+                                  []
+                                  suiteName
+                                  (augmentedMutationRecordCoveringTests record),
+                          mutationChildTimingInner = mInner
+                        }
+                        :
+                    )
           case outcomeRaw of
             Left () -> do
               -- Timed out: parent killed the child.  Preserve whatever
               -- the child managed to write so the report retains useful
               -- context.
               mRelFile <- copyChildLog "timeout-" mid suiteName logPath
-              pure (SuiteTimedOut elapsedMicros mRelFile)
+              recordTiming ChildTimedOut
+              pure (SuiteTimedOut (fromIntegral (elapsedNanos `div` 1000)) mRelFile)
             Right ec -> case ec of
               ExitFailure _ -> do
                 -- A kill is the expected outcome and its output says nothing,
@@ -403,9 +462,11 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
                   if isControlOperator (augmentedMutationRecordOperator record)
                     then copyChildLog "control-failure-" mid suiteName logPath
                     else pure Nothing
+                recordTiming ChildKilled
                 pure (SuiteKilled mRelFile)
               ExitSuccess -> do
                 mRelFile <- copyChildLog "survivor-" mid suiteName logPath
+                recordTiming ChildSurvived
                 pure (SuiteSurvived mRelFile)
 
     copyChildLog prefix mid suiteName logPath = do

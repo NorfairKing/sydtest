@@ -125,7 +125,10 @@ data CoverageChildSettings = CoverageChildSettings
   { coverageChildTestId :: !Text,
     coverageChildOutput :: !FilePath,
     coverageChildBaselineOutput :: !FilePath,
-    coverageChildSuiteName :: !(Maybe Text)
+    coverageChildSuiteName :: !(Maybe Text),
+    -- | Where to write this child's own timing breakdown, when the parent
+    -- asked for one.
+    coverageChildTimingOutput :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -135,7 +138,10 @@ data CoverageChildSettings = CoverageChildSettings
 data MutationChildSettings = MutationChildSettings
   { mutationChildId :: !String,
     mutationChildAugmentedManifestDir :: !(Path Abs Dir),
-    mutationChildSuiteName :: !(Maybe Text)
+    mutationChildSuiteName :: !(Maybe Text),
+    -- | Where to write this child's own timing breakdown, when the parent
+    -- asked for one.
+    mutationChildTimingOutput :: !(Maybe FilePath)
   }
   deriving (Show, Eq, Generic)
 
@@ -302,7 +308,8 @@ resolveMutationSettings Flags {..} =
                   { coverageChildTestId = tid,
                     coverageChildOutput = outputFile,
                     coverageChildBaselineOutput = baselineFile,
-                    coverageChildSuiteName = flagMutationSuiteName
+                    coverageChildSuiteName = flagMutationSuiteName,
+                    coverageChildTimingOutput = flagMutationTimingOutput
                   }
         (False, Nothing, Just mid) -> do
           augDir <- case flagMutationAugmentedManifestDir of
@@ -314,7 +321,8 @@ resolveMutationSettings Flags {..} =
                 MutationChildSettings
                   { mutationChildId = mid,
                     mutationChildAugmentedManifestDir = augDir,
-                    mutationChildSuiteName = flagMutationSuiteName
+                    mutationChildSuiteName = flagMutationSuiteName,
+                    mutationChildTimingOutput = flagMutationTimingOutput
                   }
         (False, Nothing, Nothing) -> pure Nothing
 
@@ -403,6 +411,7 @@ data Flags = Flags
     flagMutationCoverageOne :: !(Maybe Text),
     flagMutationCoverageOutput :: !(Maybe FilePath),
     flagMutationCoverageBaselineOutput :: !(Maybe FilePath),
+    flagMutationTimingOutput :: !(Maybe FilePath),
     flagMutationCoverageList :: !Bool,
     flagMutationCoverageListLocations :: !Bool,
     flagMutationFailFast :: !(Maybe Bool)
@@ -633,6 +642,16 @@ instance HasParser Flags where
             reader str,
             option,
             long "mutation-coverage-baseline-output",
+            metavar "FILE",
+            hidden
+          ]
+    flagMutationTimingOutput <-
+      optional $
+        setting
+          [ help "File path where a mutation or coverage child process writes its own timing breakdown (used internally)",
+            reader str,
+            option,
+            long "mutation-timing-output",
             metavar "FILE",
             hidden
           ]

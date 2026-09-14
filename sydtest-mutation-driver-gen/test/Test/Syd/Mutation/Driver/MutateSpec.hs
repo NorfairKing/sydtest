@@ -27,6 +27,13 @@ import Test.Syd.Mutation.Driver.OptParse (SuiteConfig (..))
 import Test.Syd.Mutation.Manifest (controlOperatorName)
 import Test.Syd.Mutation.Runtime (MutationId (..))
 import Test.Syd.Mutation.TestId (TestId (..))
+import Test.Syd.Mutation.Timing (ChildTiming (..))
+import Test.Syd.Mutation.TimingReport
+  ( ChildRunOutcome (..),
+    MutationChildTiming (..),
+    MutationPhaseTiming (..),
+    readMutationPhaseTiming,
+  )
 
 spec :: Spec
 spec = describe "runMutationMode" $ do
@@ -348,3 +355,92 @@ spec = describe "runMutationMode" $ do
             )
         logs <- listDirRel outDir
         filter (isInfixOf "control-failure-" . fromRelFile) (snd logs) `shouldBe` []
+
+  it "records a timing per child, with the breakdown the child reported" $
+    withSystemTempDir "timing-manifest" $ \manifestDir ->
+      withSystemTempDir "timing-out" $ \outDir -> do
+        let exeFile = manifestDir </> [relfile|suite-exe|]
+        -- A stand-in suite exe that writes the timing breakdown the real
+        -- child would, so the parent's reading of it is exercised.
+        writeFile
+          (fromAbsFile exeFile)
+          ( unlines
+              [ "#!/bin/sh",
+                "while [ $# -gt 0 ]; do",
+                "  if [ \"$1\" = \"--mutation-timing-output\" ]; then",
+                "    shift",
+                "    printf '%s' '{\"forest_nanos\":5000000000,\"test_nanos\":2000000000,\"tests_run\":2}' > \"$1\"",
+                "  fi",
+                "  shift",
+                "done",
+                "exit 1"
+              ]
+          )
+        perms <- getPermissions exeFile
+        setPermissions exeFile (setOwnerExecutable True perms)
+        let record =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["M", "Op", "1", "1", "2"],
+                  augmentedMutationRecordOperator = "Op",
+                  augmentedMutationRecordOriginal = "+",
+                  augmentedMutationRecordReplacement = "-",
+                  augmentedMutationRecordModule = "M",
+                  augmentedMutationRecordLine = 1,
+                  augmentedMutationRecordEndLine = 1,
+                  augmentedMutationRecordColStart = 1,
+                  augmentedMutationRecordColEnd = 2,
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = [],
+                  augmentedMutationRecordCoveringTests =
+                    Map.singleton "suite" [TestId (("t", 0) :| []), TestId (("u", 0) :| [])],
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
+                }
+        writeAugmentedManifestFile
+          manifestDir
+          (AugmentedManifest [AugmentedMutationGroup [record]])
+        _ <-
+          runMutationMode
+            False
+            False
+            manifestDir
+            outDir
+            Nothing
+            (Just 2)
+            ( Map.singleton
+                "suite"
+                SuiteConfig
+                  { suiteConfigExe = exeFile,
+                    suiteConfigResourceDir = Nothing
+                  }
+            )
+        errOrTiming <- readMutationPhaseTiming outDir
+        case errOrTiming of
+          Left err -> expectationFailure ("could not read timing.json: " ++ err)
+          Right timing -> do
+            mutationPhaseTimingJobs timing `shouldBe` 2
+            mutationPhaseTimingUncovered timing `shouldBe` 0
+            case mutationPhaseTimingChildren timing of
+              [child] -> do
+                mutationChildTimingId child `shouldBe` MutationId ["M", "Op", "1", "1", "2"]
+                mutationChildTimingSuite child `shouldBe` "suite"
+                mutationChildTimingOperator child `shouldBe` "Op"
+                mutationChildTimingOutcome child `shouldBe` ChildKilled
+                mutationChildTimingCoveringTests child `shouldBe` 2
+                mutationChildTimingInner child
+                  `shouldBe` Just
+                    ChildTiming
+                      { childTimingForestNanos = 5000000000,
+                        childTimingTestNanos = 2000000000,
+                        childTimingTestsRun = 2
+                      }
+              children ->
+                expectationFailure
+                  ("expected exactly one child timing, got " ++ show (length children))
+        timingFiles <- listDirRel outDir
+        filter ((== "timing.html") . fromRelFile) (snd timingFiles)
+          `shouldBe` [[relfile|timing.html|]]

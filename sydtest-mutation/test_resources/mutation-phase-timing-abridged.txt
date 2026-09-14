@@ -1,0 +1,39 @@
+Timing report: mutation phase
+
+  Wall clock                      45.00s
+  Children                             3
+  Sum of child wall time           1m02s
+  Achieved parallelism        1.38x of 4
+  Uncovered (no child run)             2
+
+Where the child time goes  (▓ startup  ▒ setup  █ tests  ░ unattributed)
+  process startup          5.50s    8.9%  ▓▓
+  suite setup             18.00s   29.0%  ▒▒▒▒▒▒▒
+  test execution           8.50s   13.7%  ███
+  unattributed            30.00s   48.4%  ░░░░░░░░░░░░
+  unattributed is children that reported no breakdown, such as one killed on its timeout
+  total                    1m02s
+
+By suite
+       2      32.00s   51.6%  ▓▓▒▒▒▒▒▒▒███              foo-test
+    ... and 1 more suite; timing.html has the full listing
+
+By outcome
+       1      30.00s   48.4%  ░░░░░░░░░░░░              timed out
+    ... and 2 more outcomes; timing.html has the full listing
+
+By operator
+       1      30.00s   48.4%  ░░░░░░░░░░░░              ConstBool
+    ... and 2 more operators; timing.html has the full listing
+
+By module
+       2      32.00s   51.6%  ▓▓▒▒▒▒▒▒▒███              Foo.Bar
+    ... and 1 more module; timing.html has the full listing
+
+By mutation
+       1      30.00s   48.4%  ░░░░░░░░░░░░              Foo.Qux/ConstBool/40/3/7
+    ... and 2 more mutations; timing.html has the full listing
+
+Per child, slowest first  (wall, bar, then startup/setup/tests)
+        30.00s  ░░░░░░░░░░░░                            unattributed  ConstBool at Foo.Qux:40 (qux-test, timed out)
+    ... and 2 more children; timing.html has the full listing

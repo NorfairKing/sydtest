@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.1.0] - 2026-09-14
+
+### Changed
+
+* `pg_basebackup` now takes its checkpoint immediately rather than spreading it
+  out. The default spreads the checkpoint over the checkpoint interval, which
+  is a wait proportional to how busy the server is, and the server a standby is
+  taken from is busy by definition: a suite is running against it.
+
+  This was nearly all of what a replica cost. This package's own suite goes
+  from **78 seconds to a little over one**, and starting a standby goes from
+  about 13.5 seconds to about 0.17.
+
 ## [0.5.0.0] - 2026-09-13
 
 ### Added

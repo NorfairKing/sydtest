@@ -490,13 +490,13 @@ data ReplicatedDB = ReplicatedDB
   { replicatedDBTemplate :: !TemplateDB,
     -- | Started by the first test that asks, and not at all by a suite that
     -- never does.
-    replicatedDBStandby :: !(IO Standby)
+    replicatedDBStandby :: !Standby
   }
 
 replicatedDBSetupFunc :: ReplicaConfig -> Migration -> SetupFunc ReplicatedDB
 replicatedDBSetupFunc config migration = do
   templateDB <- templateDBSetupFunc replicationPrimaryConfig migration
-  standby <- lazyStandbySetupFunc config (fst templateDB)
+  standby <- postgresqlStandbySetupFunc config (fst templateDB)
   pure
     ReplicatedDB
       { replicatedDBTemplate = templateDB,
@@ -570,8 +570,7 @@ replicatedPoolsSpec =
 replicatedPoolsSetupFunc :: ReplicatedDB -> SetupFunc ReplicatedPools
 replicatedPoolsSetupFunc ReplicatedDB {..} = do
   (options, primaryPool) <- testDatabaseSetupFunc replicatedDBTemplate
-  standby <- liftIO replicatedDBStandby
-  standbyPool <- standbyPoolSetupFunc standby options
+  standbyPool <- standbyPoolSetupFunc replicatedDBStandby options
   pure
     ReplicatedPools
       { replicatedPoolsPrimary = primaryPool,

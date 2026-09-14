@@ -51,7 +51,6 @@ tests:
     - postgresql-simple
     - sydtest
     - sydtest-persistent-postgresql
-    - tmp-postgres
     when:
       - condition: flag(sydtest_integration_tests)
         then:

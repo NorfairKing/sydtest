@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1.0] - 2026-09-14
+
+### Changed
+
+* `pg_basebackup` takes its checkpoint immediately rather than spreading it
+  out. Starting a standby goes from about 13.5 seconds to about 0.17.
+
 ## [0.5.0.0] - 2026-09-13
 
 ### Added

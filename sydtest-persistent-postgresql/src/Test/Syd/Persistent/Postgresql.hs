@@ -241,6 +241,11 @@ postgresqlStandbySetupFunc ReplicaConfig {..} db = SetupFunc $ \takeStandby ->
             -- the copy a standby rather than a second copy of the data.
             "--write-recovery-conf",
             "--wal-method=stream",
+            -- Take the checkpoint now rather than spreading it out. The
+            -- default spreads it over the checkpoint interval, which is a wait
+            -- proportional to how busy the server is, and this server is busy:
+            -- a suite is running against it.
+            "--checkpoint=fast",
             -- Never dropped, and a physical slot with nothing attached to it
             -- makes a server keep its write-ahead log forever. Harmless here
             -- only because the server this slot is on is torn down moments

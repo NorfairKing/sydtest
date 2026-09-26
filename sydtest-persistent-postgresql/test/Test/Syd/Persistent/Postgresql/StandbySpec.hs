@@ -4,6 +4,7 @@
 module Test.Syd.Persistent.Postgresql.StandbySpec (spec) where
 
 import Database.Persist
+import Database.Persist.Sql (rawExecute, runSqlPoolNoTransaction)
 import Database.PostgreSQL.Simple (SqlError (..))
 import Test.Syd
 import Test.Syd.Persistent.Example
@@ -42,3 +43,39 @@ spec =
         awaitReplica unreplicated
         mPerson <- onReplica unreplicated $ get i
         mPerson `shouldBe` Just p
+
+      -- A read on the standby holds a snapshot.  If the primary is free to
+      -- remove the row versions that snapshot needs, replaying the cleanup
+      -- leaves the standby no choice but to cancel the read, and the
+      -- application sees SQLSTATE 40001 rather than its data.
+      --
+      -- Nothing the application does can avoid that, so the standby has to
+      -- tell the primary what it is holding.
+      it "keeps a read on the replica alive while the primary vacuums what it is reading" $ \pools -> do
+        let people = [Person {personName = "Vacuumed " ++ show i, personAge = Just i} | i <- [1 :: Int .. 100]]
+        _ <- onPrimary pools $ insertMany people
+        awaitReplica pools
+
+        onReplica pools $ do
+          -- Read committed takes a new snapshot per statement and lets the
+          -- old one go, so there would be nothing held across the cleanup.
+          -- An application that reads twice and compares needs this.
+          rawExecute "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ" []
+
+          -- Take the snapshot the cleanup below has to be kept away from.
+          firstRead <- selectList ([] :: [Filter Person]) []
+          liftIO $ length firstRead `shouldBe` 100
+
+          liftIO $ do
+            -- Every row gets a new version, so every old version is garbage,
+            -- and the vacuum writes the cleanup that conflicts.
+            onPrimary pools $ updateWhere ([] :: [Filter Person]) [PersonAge =. Just 0]
+            -- VACUUM refuses to run inside a transaction block.
+            runSqlPoolNoTransaction
+              (rawExecute "VACUUM person" [])
+              (replicatedPoolsPrimary pools)
+              Nothing
+            awaitReplica pools
+
+          secondRead <- selectList ([] :: [Filter Person]) []
+          liftIO $ length secondRead `shouldBe` 100

@@ -270,7 +270,27 @@ postgresqlStandbySetupFunc ReplicaConfig {..} db = SetupFunc $ \takeStandby ->
           [ [ "port = " ++ show primaryPort,
               "unix_socket_directories = '" ++ socketDir ++ "'",
               "listen_addresses = ''",
-              "hot_standby = on"
+              "hot_standby = on",
+              -- Tell the primary what this standby's readers still need, so
+              -- it keeps those row versions instead of vacuuming them away
+              -- and leaving recovery to cancel the reader that wanted them.
+              -- The base backup took a replication slot, which is what
+              -- carries the feedback, so this has somewhere to be recorded.
+              "hot_standby_feedback = on",
+              -- Feedback is only sent this often, and the default of ten
+              -- seconds is longer than the databases here live, so without
+              -- this the primary would learn what to keep long after it had
+              -- already thrown it away.
+              "wal_receiver_status_interval = 1s",
+              -- Feedback closes the window rather than the door: it cannot
+              -- retract a cleanup already in flight, and it says nothing
+              -- about the conflicts that are not about row versions at all,
+              -- such as a lock a replayed DDL wants. Recovery waiting is the
+              -- right answer to those here, because a replica in a test
+              -- suite is there to be behind, and a test that wanted it
+              -- caught up says so with 'awaitReplica'.
+              "max_standby_streaming_delay = -1",
+              "max_standby_archive_delay = -1"
             ],
             ["recovery_min_apply_delay = '" ++ renderReplicaLag replicaConfigLag ++ "'"]
           ]

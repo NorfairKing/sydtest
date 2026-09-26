@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.2.0] - 2026-09-26
+
+### Fixed
+
+* A read against the standby is no longer destroyed by a vacuum on the
+  primary. The standby was configured to serve reads and to stay deliberately
+  behind, and then left to postgres' defaults on what should happen when
+  recovery met one of those reads: the primary was never told what a standby
+  reader was holding, so it was free to remove those row versions, and
+  replaying the cleanup cancelled the reader. The read came back as `SQLSTATE
+  40001`, or, when the session was holding a snapshot, as a dropped
+  connection.
+
+  The standby now sends `hot_standby_feedback`, so the primary keeps what the
+  standby's readers still need, and reports it often enough to matter for
+  databases that live as briefly as these do. Recovery also waits for a
+  conflicting read rather than cancelling it, which covers the conflicts
+  feedback does not: a cleanup already in flight, or a lock that replayed DDL
+  wants. A replica in a test suite is there to be behind, and a test that
+  wants it caught up says so with `awaitReplica`.
+
 ## [0.5.1.0] - 2026-09-14
 
 ### Changed

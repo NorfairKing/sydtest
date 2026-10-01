@@ -6,6 +6,14 @@
 # shows surviving (or uncovered) mutations.  On success, populates $out
 # with symlinks to the report files.
 #
+# Only the score is decided here.  Whether the run was sound enough to have a
+# score at all was decided when the report was produced: a run that failed a
+# control exits non-zero there and writes nothing, so no such report reaches
+# this step.  A mutation that kept running out of time does reach it, and
+# fails the score like a survivor: a mutation easily turns a loop into one
+# that never ends, so letting those pass quietly would leave them unmeasured
+# in bulk.
+#
 # All of the work — assertion check, rendering, symlinking — lives in
 # 'sydtest-mutation-driver assert-score'.  This file is just the
 # mkDerivation wrapping.

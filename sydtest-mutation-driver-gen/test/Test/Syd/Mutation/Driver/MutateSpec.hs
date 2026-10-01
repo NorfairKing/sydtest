@@ -348,3 +348,121 @@ spec = describe "runMutationMode" $ do
             )
         logs <- listDirRel outDir
         filter (isInfixOf "control-failure-" . fromRelFile) (snd logs) `shouldBe` []
+
+  it "gives a mutation that only overran its budget another go" $
+    -- A kill and a survival are observations and stand on the first run;
+    -- repeating either would bias the score towards whatever we repeated
+    -- into.  An overrun is not an observation, so it is worth another go: on
+    -- a loaded machine a run exceeds ten times its idle baseline with
+    -- nothing wrong, and the run it belongs to is far too expensive to throw
+    -- away for that.
+    --
+    -- The suite here overruns its timeout once and is prompt afterwards, so
+    -- the mutation survives only if the overrun was retried.
+    withSystemTempDir "overrun-retry-manifest" $ \manifestDir ->
+      withSystemTempDir "overrun-retry-out" $ \outDir -> do
+        let exeFile = manifestDir </> [relfile|suite-exe|]
+            slowOnceFile = manifestDir </> [relfile|slow-once|]
+        writeFile
+          (fromAbsFile exeFile)
+          ( unlines
+              [ "#!/bin/sh",
+                "if [ ! -e '" ++ fromAbsFile slowOnceFile ++ "' ]; then",
+                "  touch '" ++ fromAbsFile slowOnceFile ++ "'",
+                "  sleep 5",
+                "fi",
+                "exit 0"
+              ]
+          )
+        perms <- getPermissions exeFile
+        setPermissions exeFile (setOwnerExecutable True perms)
+        let record =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["M", "Op", "1", "1", "2"],
+                  augmentedMutationRecordOperator = "Op",
+                  augmentedMutationRecordOriginal = "+",
+                  augmentedMutationRecordReplacement = "-",
+                  augmentedMutationRecordModule = "M",
+                  augmentedMutationRecordLine = 1,
+                  augmentedMutationRecordEndLine = 1,
+                  augmentedMutationRecordColStart = 1,
+                  augmentedMutationRecordColEnd = 2,
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = [],
+                  augmentedMutationRecordCoveringTests =
+                    Map.singleton "suite" [TestId (("t", 0) :| [])],
+                  augmentedMutationRecordTimeoutMicros = 200000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
+                }
+        writeAugmentedManifestFile
+          manifestDir
+          (AugmentedManifest [AugmentedMutationGroup [record]])
+        report <-
+          runMutationMode
+            False
+            False
+            manifestDir
+            outDir
+            Nothing
+            Nothing
+            ( Map.singleton
+                "suite"
+                SuiteConfig {suiteConfigExe = exeFile, suiteConfigResourceDir = Nothing}
+            )
+        mutationTallySurvived (mutationRunReportMutations report) `shouldBe` 1
+        mutationTallyTimedOut (mutationRunReportMutations report) `shouldBe` 0
+
+  it "counts a mutation that kept overrunning as timed out, not as killed" $
+    -- Scoring an overrun as a kill says the tests caught the mutation when
+    -- all that happened is that we never found out, so a loaded machine
+    -- could raise the score.  It is its own category instead.
+    withSystemTempDir "overrun-tally-manifest" $ \manifestDir ->
+      withSystemTempDir "overrun-tally-out" $ \outDir -> do
+        let exeFile = manifestDir </> [relfile|suite-exe|]
+        writeFile (fromAbsFile exeFile) (unlines ["#!/bin/sh", "sleep 5", "exit 0"])
+        perms <- getPermissions exeFile
+        setPermissions exeFile (setOwnerExecutable True perms)
+        let record =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["M", "Op", "1", "1", "2"],
+                  augmentedMutationRecordOperator = "Op",
+                  augmentedMutationRecordOriginal = "+",
+                  augmentedMutationRecordReplacement = "-",
+                  augmentedMutationRecordModule = "M",
+                  augmentedMutationRecordLine = 1,
+                  augmentedMutationRecordEndLine = 1,
+                  augmentedMutationRecordColStart = 1,
+                  augmentedMutationRecordColEnd = 2,
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = [],
+                  augmentedMutationRecordCoveringTests =
+                    Map.singleton "suite" [TestId (("t", 0) :| [])],
+                  augmentedMutationRecordTimeoutMicros = 200000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
+                }
+        writeAugmentedManifestFile
+          manifestDir
+          (AugmentedManifest [AugmentedMutationGroup [record]])
+        report <-
+          runMutationMode
+            False
+            False
+            manifestDir
+            outDir
+            Nothing
+            Nothing
+            ( Map.singleton
+                "suite"
+                SuiteConfig {suiteConfigExe = exeFile, suiteConfigResourceDir = Nothing}
+            )
+        mutationTallyTimedOut (mutationRunReportMutations report) `shouldBe` 1
+        mutationTallyKilled (mutationRunReportMutations report) `shouldBe` 0
+        mutationTallySurvived (mutationRunReportMutations report) `shouldBe` 0

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2.0] - 2026-10-01
+
+### Added
+
+* `runSoundness`, for whether a run measured what it set out to measure, and
+  `runFoundFailure`, for whether it found anything that fails it.
+
+
 ## [0.1.1.0] - 2026-07-29
 
 ### Fixed

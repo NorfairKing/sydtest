@@ -361,6 +361,16 @@ let
   # compiled in).  Passing one library's manifest restricts which mutations the
   # driver toggles to that library, with no recompilation: the others stay at
   # baseline.
+  #
+  # This derivation gates soundness and 'assertMutationScore' below gates the
+  # score, which is why the two are separate.  A score is reproducible, so
+  # running for it once and reading the answer as often as asked is exactly
+  # what a derivation is for.  Soundness is not: what makes a run unsound is a
+  # suite nobody can rely on, so its verdict is about the machine it landed on.
+  # The driver therefore exits non-zero rather than writing such a verdict
+  # here, and because nix does not keep a failed build there is nothing for a
+  # later attempt to read back: retrying is another 'nix build' rather than a
+  # hunt for the store path holding the stale answer.
   perLibraryReport = libPkg:
     pkgs.stdenv.mkDerivation {
       name = "${name}-mutation-${libPkg}";

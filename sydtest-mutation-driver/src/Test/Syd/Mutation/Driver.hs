@@ -33,12 +33,12 @@ import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationGroup (..),
     AugmentedMutationRecord (..),
-    ControlTally (..),
-    MutationRunReport (..),
-    MutationTally (..),
+    RunSoundness (..),
     filterAugmentedManifestByIds,
     readAndUnionBaselineDirs,
     readAndUnionCoverageDirs,
+    runFoundFailure,
+    runSoundness,
     writeAugmentedManifestFile,
   )
 import Test.Syd.Mutation.Driver.AssertScore (runAssertScore)
@@ -94,9 +94,8 @@ runDriver MutationDriverSettings {..} = do
   -- 'SuiteConfig' map, not just the exes), so no parent-side 'cd' is needed
   -- here.  It prints the report to stdout and writes report.json +
   -- report.txt + per-suite *.log files to the out dir.  It returns the run
-  -- report; under --fail-fast we then exit non-zero ourselves, preserving
-  -- the historical behaviour of the @run@ subcommand (a downstream
-  -- @assert-score@ step is the gate when --fail-fast is off).
+  -- report; we then decide the exit code from it below (a downstream
+  -- @assert-score@ step is the gate for survivors when --fail-fast is off).
   report <-
     runMutationMode
       mutationDriverSettingFailFast
@@ -107,14 +106,24 @@ runDriver MutationDriverSettings {..} = do
       mutationDriverSettingMutationJobs
       suites
   hFlush stdout
-  when
-    ( mutationDriverSettingFailFast
-        && ( mutationTallySurvived (mutationRunReportMutations report) > 0
-               || mutationTallyUncovered (mutationRunReportMutations report) > 0
-               || controlTallyFailed (mutationRunReportControls report) > 0
-           )
-    )
-    $ exitWith (ExitFailure 1)
+  -- A failed control fails this run even without --fail-fast, which a
+  -- survivor deliberately does not.
+  --
+  -- The difference is whether the verdict can be reproduced. Survivors can
+  -- be, so writing them to a report that a later assert-score step reads is
+  -- what we want: the expensive run is done once and the cheap gate reports
+  -- it as often as asked. A failed control cannot be, because the thing that
+  -- fails a control is a suite nobody can rely on: flaky, or too slow for its
+  -- budget on the machine it happened to land on. Succeeding here would store
+  -- that verdict in a build artefact, and every later attempt would read the
+  -- stored copy rather than run anything, so the run could not be retried
+  -- without hunting down and deleting the artefact. Failing leaves nothing
+  -- behind to read, and the next attempt runs the mutations again.
+  case runSoundness report of
+    RunUnsound -> exitWith (ExitFailure 1)
+    RunSound -> pure ()
+  when (mutationDriverSettingFailFast && runFoundFailure report) $
+    exitWith (ExitFailure 1)
 
 -- | Assemble the augmented manifest the mutation phase reads from pre-computed
 -- per-package coverage directories, instead of running the coverage phase.

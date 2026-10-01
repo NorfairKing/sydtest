@@ -272,10 +272,10 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
           Nothing -> pure (MutationUncovered (UncoveredMutation record))
           Just suiteNames -> do
             -- Run one child per covering suite.  The mutation is killed
-            -- if any child exits non-zero; timed out (counted as killed)
-            -- if any child exceeded its budget without any other child
-            -- killing it first; otherwise survived.
-            outcomes <- mapM (runOneSuite record mid) suiteNames
+            -- if any child exits non-zero; timed out if any child exceeded
+            -- its budget without any other child killing it first;
+            -- otherwise survived.
+            outcomes <- runSuitesRetryingOverruns record mid suiteNames attemptsOnOverrun
             -- A control (no-op) mutation is expected to survive.  Reinterpret
             -- its raw outcome: survival is the control passing, a kill or
             -- timeout is the control failing (the suite is unsound).
@@ -283,6 +283,34 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
               if isControlOperator (augmentedMutationRecordOperator record)
                 then asControlResult outcomes (classifyOutcomes record outcomes)
                 else classifyOutcomes record outcomes
+
+    -- How many times a mutation may overrun its budget before the overrun is
+    -- taken at face value.
+    attemptsOnOverrun :: Word
+    attemptsOnOverrun = 3
+
+    -- Run every covering suite, repeating only while the run tells us
+    -- nothing.
+    --
+    -- A kill and a survival are both observations and stand on the first run.
+    -- Repeating either would bias the score towards whichever outcome we
+    -- repeated into, which is the trap sydtest's own 'flaky' warns about from
+    -- the other side: retrying a survivor until something fails scores the
+    -- mutation as caught on the strength of an accidental failure.
+    --
+    -- An overrun is not an observation. The budget is ten times a baseline
+    -- measured on an idle machine, so a loaded one exceeds it with nothing
+    -- wrong, and re-running replaces a non-observation with a real one
+    -- without favouring either outcome. That is worth doing here rather than
+    -- leaving to whoever re-runs the check, because the run this belongs to
+    -- costs the better part of an hour.
+    runSuitesRetryingOverruns record mid suiteNames attemptsLeft = do
+      outcomes <- mapM (runOneSuite record mid) suiteNames
+      case classifyOutcomes record outcomes of
+        MutationTimedOut _
+          | attemptsLeft > 1 ->
+              runSuitesRetryingOverruns record mid suiteNames (attemptsLeft - 1)
+        _ -> pure outcomes
 
     -- Map a control mutation's raw classification onto the control-specific
     -- results.  An uncovered control never reaches here (it short-circuits

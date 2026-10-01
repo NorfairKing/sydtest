@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.32.0.0] - 2026-10-01
+
+### Changed
+
+* A timed-out mutation is no longer scored as killed.  It is its own line in
+  the report, and it stops its group like a survivor does.
+
+
 ## [0.31.0.0] - 2026-09-11
 
 ### Changed

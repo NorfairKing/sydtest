@@ -30,6 +30,9 @@ module Test.Syd.Mutation.AugmentedManifest
     MutationTally (..),
     ControlTally (..),
     MutationRunReport (..),
+    RunSoundness (..),
+    runSoundness,
+    runFoundFailure,
     writeMutationRunReport,
     readMutationRunReport,
     MutationRunReportDecodeException (..),
@@ -532,9 +535,11 @@ instance GenValid MutationGroupReport where
 
 -- | The score for the normal (non-control) mutations of a run.
 --
--- 'mutationTallyKilled' includes timed-out mutations (a hung mutation is
--- treated as killed for scoring).  'mutationTallyTimedOut' is the count of
--- those specifically.  'mutationTallySkipped' counts mutations that were not
+-- 'mutationTallyTimedOut' counts mutations whose run did not finish inside
+-- its budget, even after being given another go.  They are their own
+-- category rather than kills: the tests did not catch anything, we only
+-- failed to find out, so counting them as kills would let a loaded machine
+-- raise the score.  'mutationTallySkipped' counts mutations that were not
 -- tested because an earlier mutation in the same group already failed.
 data MutationTally = MutationTally
   { mutationTallyKilled :: Word,
@@ -611,6 +616,42 @@ instance HasCodec MutationRunReport where
         <$> requiredField' "mutations" .= mutationRunReportMutations
         <*> requiredField' "controls" .= mutationRunReportControls
         <*> requiredField' "groups" .= mutationRunReportGroups
+
+-- | Whether a run measured what it set out to measure.
+--
+-- Separate from whether the verdict was good: a run full of survivors is
+-- sound, it just says the tests are weak.
+data RunSoundness
+  = -- | Every control behaved, so the killed\/survived split means what it says.
+    RunSound
+  | -- | A control did not, so nothing the run says about the other mutations
+    -- can be relied on.
+    RunUnsound
+  deriving stock (Show, Eq, Generic)
+
+-- | Whether the run's verdict is worth keeping.
+--
+-- A caller that stores a report somewhere it will be read again should ask
+-- this first: an unsound run's verdict is about the machine it ran on rather
+-- than about the code, so storing it buries a result nobody can reproduce
+-- where everybody will keep reading it.
+runSoundness :: MutationRunReport -> RunSoundness
+runSoundness report
+  | controlTallyFailed (mutationRunReportControls report) > 0 = RunUnsound
+  | otherwise = RunSound
+
+-- | Whether the run found something that fails it: a mutation that survived,
+-- one that ran out of time, or one no test covers.
+--
+-- The same set that stops a group early, so a run cannot abort on one of
+-- them and still report success.  Leaving one out here would mean writing a
+-- report of a run that gave up partway as though it had finished.
+runFoundFailure :: MutationRunReport -> Bool
+runFoundFailure report =
+  let tally = mutationRunReportMutations report
+   in mutationTallySurvived tally > 0
+        || mutationTallyTimedOut tally > 0
+        || mutationTallyUncovered tally > 0
 
 mutationRunReportRelFile :: Path Rel File
 mutationRunReportRelFile = [relfile|report.json|]

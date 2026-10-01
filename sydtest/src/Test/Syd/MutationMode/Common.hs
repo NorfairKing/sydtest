@@ -91,9 +91,10 @@ diffMonotonicMicros end start =
 data MutationResult
   = MutationUncovered UncoveredMutation
   | MutationKilled AugmentedMutationRecord
-  | -- | At least one suite's child exceeded its monotonic-clock timeout. The
-    -- mutation is counted as killed in the overall score but also recorded
-    -- separately in the report for visibility.
+  | -- | At least one suite's child exceeded its monotonic-clock timeout, and
+    -- still did when given another go.  Counted as neither killed nor
+    -- survived, because the tests caught nothing, but it fails the run all
+    -- the same: see 'isMutationFailure'.
     MutationTimedOut TimedOutMutation
   | MutationSurvived SurvivedMutation
   | -- | The mutation was not tested because an earlier mutation in the same
@@ -204,16 +205,22 @@ data CoverageFailFast = CoverageFailFast
 instance Exception CoverageFailFast
 
 -- | A mutation result that should trip within-group fail-fast: the test
--- suite did not detect the mutation (survivor) or no test reaches the
--- mutation site (uncovered).  Timeouts count as killed, so they do not
--- trip; 'MutationSkipped' is itself a consequence of a prior failure and
--- does not trip again.
+-- suite did not detect the mutation (survivor), no test reaches the
+-- mutation site (uncovered), or the suite never finished (timed out).
+-- 'MutationSkipped' is itself a consequence of a prior failure and does not
+-- trip again.
 isMutationFailure :: MutationResult -> Bool
 isMutationFailure = \case
   MutationSurvived _ -> True
   MutationUncovered _ -> True
   MutationKilled _ -> False
-  MutationTimedOut _ -> False
+  -- A mutation easily turns a loop into one that never ends, so a run that
+  -- keeps overrunning is the expected shape of a mutation nothing asserted
+  -- against.  Treating it as its own quiet category would let those go
+  -- unmeasured in bulk, so it fails like a survivor; a mutation that is
+  -- meant to hang gets a disable annotation, as any other unwanted mutation
+  -- does.
+  MutationTimedOut _ -> True
   MutationSkipped _ -> False
   -- A passing control is the expected outcome, so it is not a failure (and must
   -- not trip fail-fast).  A failed control IS a failure: a no-op cannot be
@@ -274,7 +281,10 @@ tallyGroups = foldr (\(MutationGroupReport os) acc -> foldr step acc os) emptyOu
   where
     step = \case
       OutcomeKilled _ -> \t -> t {tallyKilled = tallyKilled t + 1}
-      OutcomeTimedOut _ -> \t -> t {tallyKilled = tallyKilled t + 1, tallyTimedOut = tallyTimedOut t + 1}
+      -- Not a kill. The tests did not catch the mutation; the run simply did
+      -- not finish, which is a fact about the budget and the machine. Scoring
+      -- it as a kill let a loaded machine raise the score.
+      OutcomeTimedOut _ -> \t -> t {tallyTimedOut = tallyTimedOut t + 1}
       OutcomeSurvived _ -> \t -> t {tallySurvived = tallySurvived t + 1}
       OutcomeUncovered _ -> \t -> t {tallyUncovered = tallyUncovered t + 1}
       OutcomeSkipped _ -> \t -> t {tallySkipped = tallySkipped t + 1}
@@ -326,7 +336,7 @@ renderMutationRunReport MutationRunReport {..} =
   let MutationTally {..} = mutationRunReportMutations
       ControlTally {..} = mutationRunReportControls
    in [ [chunk "Killed: ", fore green (chunk (T.pack (show mutationTallyKilled)))],
-        [chunk "  (of which timed out: ", fore yellow (chunk (T.pack (show mutationTallyTimedOut))), chunk ")"],
+        [chunk "Timed out: ", fore yellow (chunk (T.pack (show mutationTallyTimedOut)))],
         [chunk "Survived: ", fore red (chunk (T.pack (show mutationTallySurvived)))],
         [chunk "Uncovered: ", fore yellow (chunk (T.pack (show mutationTallyUncovered)))],
         [chunk "Skipped: ", fore yellow (chunk (T.pack (show mutationTallySkipped)))]

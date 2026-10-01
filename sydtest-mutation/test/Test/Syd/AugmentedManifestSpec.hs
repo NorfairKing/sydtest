@@ -271,3 +271,50 @@ spec = do
                         ]
                     ]
                 }
+
+  describe "runSoundness" $ do
+    it "calls a run with a failed control unsound" $
+      -- A failed control means the run cannot be relied on, and a verdict
+      -- that cannot be relied on must not be stored anywhere it will be read
+      -- again: the run has to be repeatable instead.
+      runSoundness
+        MutationRunReport
+          { mutationRunReportMutations = MutationTally 0 0 0 0 0,
+            mutationRunReportControls = ControlTally 0 1,
+            mutationRunReportGroups = []
+          }
+        `shouldBe` RunUnsound
+
+    it "calls a run with survivors sound" $
+      -- Survivors say the tests are weak, which is a fact about the code and
+      -- reproducible, so the report is worth keeping and the gate on it can
+      -- be as cheap as it likes.
+      runSoundness
+        MutationRunReport
+          { mutationRunReportMutations = MutationTally 0 3 0 0 0,
+            mutationRunReportControls = ControlTally 1 0,
+            mutationRunReportGroups = []
+          }
+        `shouldBe` RunSound
+
+  describe "runFoundFailure" $ do
+    it "counts a timed-out mutation as something that failed the run" $
+      -- A timed-out mutation stops its group, so a fail-fast run can abort on
+      -- one.  If it did not also count here, the driver would exit zero after
+      -- aborting and write the partial report as though the run had finished.
+      runFoundFailure
+        MutationRunReport
+          { mutationRunReportMutations = MutationTally 3 0 1 0 0,
+            mutationRunReportControls = ControlTally 1 0,
+            mutationRunReportGroups = []
+          }
+        `shouldBe` True
+
+    it "finds nothing wrong with a run that killed everything" $
+      runFoundFailure
+        MutationRunReport
+          { mutationRunReportMutations = MutationTally 4 0 0 0 0,
+            mutationRunReportControls = ControlTally 1 0,
+            mutationRunReportGroups = []
+          }
+        `shouldBe` False

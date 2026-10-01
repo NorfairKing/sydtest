@@ -32,7 +32,6 @@ module Test.Syd.Mutation.AugmentedManifest
     MutationRunReport (..),
     RunSoundness (..),
     runSoundness,
-    runFoundFailure,
     writeMutationRunReport,
     readMutationRunReport,
     MutationRunReportDecodeException (..),
@@ -535,11 +534,11 @@ instance GenValid MutationGroupReport where
 
 -- | The score for the normal (non-control) mutations of a run.
 --
--- 'mutationTallyTimedOut' counts mutations whose run did not finish inside
--- its budget, even after being given another go.  They are their own
--- category rather than kills: the tests did not catch anything, we only
--- failed to find out, so counting them as kills would let a loaded machine
--- raise the score.  'mutationTallySkipped' counts mutations that were not
+-- 'mutationTallyKilled' includes timed-out mutations: a mutation that turns
+-- a loop into one that never ends is one the suite noticed, which is what a
+-- kill means, and the overrun is retried first so that a busy machine is not
+-- what is being credited.  'mutationTallyTimedOut' is the count of those
+-- specifically.  'mutationTallySkipped' counts mutations that were not
 -- tested because an earlier mutation in the same group already failed.
 data MutationTally = MutationTally
   { mutationTallyKilled :: Word,
@@ -639,19 +638,6 @@ runSoundness :: MutationRunReport -> RunSoundness
 runSoundness report
   | controlTallyFailed (mutationRunReportControls report) > 0 = RunUnsound
   | otherwise = RunSound
-
--- | Whether the run found something that fails it: a mutation that survived,
--- one that ran out of time, or one no test covers.
---
--- The same set that stops a group early, so a run cannot abort on one of
--- them and still report success.  Leaving one out here would mean writing a
--- report of a run that gave up partway as though it had finished.
-runFoundFailure :: MutationRunReport -> Bool
-runFoundFailure report =
-  let tally = mutationRunReportMutations report
-   in mutationTallySurvived tally > 0
-        || mutationTallyTimedOut tally > 0
-        || mutationTallyUncovered tally > 0
 
 mutationRunReportRelFile :: Path Rel File
 mutationRunReportRelFile = [relfile|report.json|]

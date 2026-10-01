@@ -296,25 +296,3 @@ spec = do
             mutationRunReportGroups = []
           }
         `shouldBe` RunSound
-
-  describe "runFoundFailure" $ do
-    it "counts a timed-out mutation as something that failed the run" $
-      -- A timed-out mutation stops its group, so a fail-fast run can abort on
-      -- one.  If it did not also count here, the driver would exit zero after
-      -- aborting and write the partial report as though the run had finished.
-      runFoundFailure
-        MutationRunReport
-          { mutationRunReportMutations = MutationTally 3 0 1 0 0,
-            mutationRunReportControls = ControlTally 1 0,
-            mutationRunReportGroups = []
-          }
-        `shouldBe` True
-
-    it "finds nothing wrong with a run that killed everything" $
-      runFoundFailure
-        MutationRunReport
-          { mutationRunReportMutations = MutationTally 4 0 0 0 0,
-            mutationRunReportControls = ControlTally 1 0,
-            mutationRunReportGroups = []
-          }
-        `shouldBe` False

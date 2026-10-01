@@ -416,10 +416,12 @@ spec = describe "runMutationMode" $ do
         mutationTallySurvived (mutationRunReportMutations report) `shouldBe` 1
         mutationTallyTimedOut (mutationRunReportMutations report) `shouldBe` 0
 
-  it "counts a mutation that kept overrunning as timed out, not as killed" $
-    -- Scoring an overrun as a kill says the tests caught the mutation when
-    -- all that happened is that we never found out, so a loaded machine
-    -- could raise the score.  It is its own category instead.
+  it "counts a mutation that kept overrunning as killed, and as timed out" $
+    -- A suite that never finishes is a suite that noticed: a mutation easily
+    -- turns a loop into one that never ends, and that is a kill.  The
+    -- overrun is already retried, so one that survives that is the
+    -- mutation's doing rather than the machine's.  It is recorded as timed
+    -- out as well, so the report says which kills were of that shape.
     withSystemTempDir "overrun-tally-manifest" $ \manifestDir ->
       withSystemTempDir "overrun-tally-out" $ \outDir -> do
         let exeFile = manifestDir </> [relfile|suite-exe|]
@@ -464,5 +466,5 @@ spec = describe "runMutationMode" $ do
                 SuiteConfig {suiteConfigExe = exeFile, suiteConfigResourceDir = Nothing}
             )
         mutationTallyTimedOut (mutationRunReportMutations report) `shouldBe` 1
-        mutationTallyKilled (mutationRunReportMutations report) `shouldBe` 0
+        mutationTallyKilled (mutationRunReportMutations report) `shouldBe` 1
         mutationTallySurvived (mutationRunReportMutations report) `shouldBe` 0

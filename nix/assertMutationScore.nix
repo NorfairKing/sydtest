@@ -10,9 +10,8 @@
 # score at all was decided when the report was produced: a run that failed a
 # control exits non-zero there and writes nothing, so no such report reaches
 # this step.  A mutation that kept running out of time does reach it, and
-# fails the score like a survivor: a mutation easily turns a loop into one
-# that never ends, so letting those pass quietly would leave them unmeasured
-# in bulk.
+# counts as a kill: a mutation that turns a loop into one that never ends is
+# one the suite noticed.
 #
 # All of the work — assertion check, rendering, symlinking — lives in
 # 'sydtest-mutation-driver assert-score'.  This file is just the

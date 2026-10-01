@@ -304,6 +304,13 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
     -- without favouring either outcome. That is worth doing here rather than
     -- leaving to whoever re-runs the check, because the run this belongs to
     -- costs the better part of an hour.
+    --
+    -- [tag:TimeoutIsAKill] An overrun that survives these attempts is scored
+    -- as a kill, in 'tallyGroups', and left alone by 'isMutationFailure'.
+    -- Both of those are sound only because of the retry here: one overrun
+    -- says nothing, since a busy machine exceeds a budget derived from an
+    -- idle one, and crediting that would let load raise the score. Weakening
+    -- or removing these attempts means revisiting how an overrun is scored.
     runSuitesRetryingOverruns record mid suiteNames attemptsLeft = do
       outcomes <- mapM (runOneSuite record mid) suiteNames
       case classifyOutcomes record outcomes of

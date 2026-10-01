@@ -273,18 +273,17 @@ spec = do
           result = assertScoreResult True report
       T.unpack (renderChunksText WithoutColours (assertScoreHeader result))
         `shouldBe` "FAIL: 2 surviving, 1 uncovered out of 6 mutation(s)."
-
-    it "fails on a timed-out mutation and counts it in the total" $ do
-      -- A mutation easily turns a loop into one that never ends, so an
-      -- overrun is the expected shape of a mutation nothing asserted
-      -- against; letting it pass quietly would leave those unmeasured in
-      -- bulk.  It also has to be added back into the total, which named it
-      -- only while it was inside the killed count.
+    it "passes a timed-out mutation, which is a kill" $ do
+      -- A mutation easily turns a loop into one that never ends, and a suite
+      -- that never finishes is a suite that noticed.  The overrun is already
+      -- retried, so one that survives that is the mutation's doing rather
+      -- than the machine's, and crediting the kill is what it means.
+      -- Counting it as anything else would mark a caught mutation uncaught.
       let report =
             MutationRunReport
               { mutationRunReportMutations =
                   MutationTally
-                    { mutationTallyKilled = 4,
+                    { mutationTallyKilled = 5,
                       mutationTallySurvived = 0,
                       mutationTallyTimedOut = 1,
                       mutationTallyUncovered = 0,
@@ -298,6 +297,6 @@ spec = do
                 mutationRunReportGroups = []
               }
           result = assertScoreResult True report
-      assertScoreFailed result `shouldBe` True
+      assertScoreFailed result `shouldBe` False
       T.unpack (renderChunksText WithoutColours (assertScoreHeader result))
-        `shouldBe` "FAIL: 0 surviving, 0 uncovered, 1 timed out out of 5 mutation(s)."
+        `shouldBe` "PASS: All 5 mutation(s) accounted for."

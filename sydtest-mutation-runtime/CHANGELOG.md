@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.0.0] - 2026-10-01
+
+### Removed
+
+* `runFoundFailure`.  It existed only because a timed-out mutation could
+  abort a fail-fast run that the driver then reported as finished, and a
+  timeout no longer stops a run at all.
+
+
 ## [0.1.2.0] - 2026-10-01
 
 ### Added

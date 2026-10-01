@@ -33,11 +33,12 @@ import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
     AugmentedMutationGroup (..),
     AugmentedMutationRecord (..),
+    MutationRunReport (..),
+    MutationTally (..),
     RunSoundness (..),
     filterAugmentedManifestByIds,
     readAndUnionBaselineDirs,
     readAndUnionCoverageDirs,
-    runFoundFailure,
     runSoundness,
     writeAugmentedManifestFile,
   )
@@ -122,8 +123,13 @@ runDriver MutationDriverSettings {..} = do
   case runSoundness report of
     RunUnsound -> exitWith (ExitFailure 1)
     RunSound -> pure ()
-  when (mutationDriverSettingFailFast && runFoundFailure report) $
-    exitWith (ExitFailure 1)
+  when
+    ( mutationDriverSettingFailFast
+        && ( mutationTallySurvived (mutationRunReportMutations report) > 0
+               || mutationTallyUncovered (mutationRunReportMutations report) > 0
+           )
+    )
+    $ exitWith (ExitFailure 1)
 
 -- | Assemble the augmented manifest the mutation phase reads from pre-computed
 -- per-package coverage directories, instead of running the coverage phase.

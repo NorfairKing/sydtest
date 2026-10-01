@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.33.0.0] - 2026-10-01
+
+### Fixed
+
+* A timed-out mutation counts as killed again.
+
+  Mutating code easily stops it terminating.  A `ConstBool` on a loop's exit
+  condition turns `while done` into `while True`, and the suite then runs
+  until its budget is gone rather than failing an assertion.  A suite that
+  never finishes is still a suite that noticed the mutation, which is what a
+  kill means.  0.32.0.0 scored those as neither killed nor survived and
+  failed the run over them, so a mutation the tests had caught was reported
+  as one they had not.
+
+  The reason to doubt the kill is that a busy machine overruns the budget
+  too, and crediting that would let load raise the score.  The retry, also
+  new in 0.32.0.0, is what answers it: an overrun is given three goes, so one
+  that survives all three is the mutation's doing rather than the machine's.
+  The two belong together, and only the retry was worth keeping on its own.
+
+
 ## [0.32.0.0] - 2026-10-01
 
 ### Changed

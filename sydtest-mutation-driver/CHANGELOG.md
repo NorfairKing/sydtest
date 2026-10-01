@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0.0] - 2026-10-01
+
+### Fixed
+
+* `assert-score` no longer fails on a mutation that ran out of time, and nor
+  does a `--fail-fast` run.  Such a mutation is a kill again -- mutating a
+  loop's exit condition turns it into `while True`, and a suite that never
+  finishes is one that noticed -- so there is nothing left to fail on.  See
+  sydtest 0.33.0.0.
+
+
 ## [0.3.0.0] - 2026-10-01
 
 ### Changed

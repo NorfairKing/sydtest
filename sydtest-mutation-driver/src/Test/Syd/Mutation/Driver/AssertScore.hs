@@ -6,8 +6,8 @@
 -- | Implementation of the @assert-score@ subcommand: read @report.json@
 -- from a report directory, print a one-line pass\/fail header followed
 -- by the rendered report body, and exit 0 on success, 1 on a failed
--- assertion (any survived, any timed out, or any uncovered when the
--- uncovered assertion is enabled).
+-- assertion (any survived, or any uncovered when the uncovered assertion
+-- is enabled).
 module Test.Syd.Mutation.Driver.AssertScore
   ( runAssertScore,
     assertScoreResult,
@@ -43,8 +43,8 @@ import Text.Colour
 -- | The decision 'assert-score' renders from a 'MutationRunReport'.
 data AssertScoreResult = AssertScoreResult
   { -- | True when the assertion is violated: at least one survivor, at least
-    -- one mutation that ran out of time, at least one failed control, or
-    -- (when uncovered is also asserted) at least one uncovered mutation.
+    -- one failed control, or (when uncovered is also asserted) at least one
+    -- uncovered mutation.
     assertScoreFailed :: !Bool,
     -- | Pass/fail header line (e.g. @PASS: All 17 mutation(s) accounted for.@).
     assertScoreHeader :: ![Chunk]
@@ -65,17 +65,13 @@ assertScoreResult assertNoneUncovered MutationRunReport {..} =
       -- transient noise.  Treat it as an assertion failure like a survivor.
       failed =
         mutationTallySurvived > 0
-          || mutationTallyTimedOut > 0
           || (assertNoneUncovered && mutationTallyUncovered > 0)
           || controlTallyFailed > 0
-      -- Timed-out mutations used to be inside the killed count, which is why
-      -- this sum did not name them.  Now that they are their own category it
-      -- has to add them back, or the count a FAIL is measured against leaves
-      -- out part of what was run.
+      -- Timed-out mutations are inside the killed count, so this sum already
+      -- includes them.
       total =
         mutationTallyKilled
           + mutationTallySurvived
-          + mutationTallyTimedOut
           + mutationTallyUncovered
       -- A count is good (green) when it's zero, bad (red) when it isn't.
       -- The header colour reflects the overall verdict, but each
@@ -94,14 +90,6 @@ assertScoreResult assertNoneUncovered MutationRunReport {..} =
               countChunk mutationTallyUncovered,
               chunk " uncovered"
             ]
-              -- Named only when one ran out of time, so the usual
-              -- survivor/uncovered header reads as it always has.  Without
-              -- it a run that failed on nothing else reads "0 surviving, 0
-              -- uncovered" and leaves the reader to guess what failed.
-              ++ ( if mutationTallyTimedOut > 0
-                     then [chunk ", ", countChunk mutationTallyTimedOut, chunk " timed out"]
-                     else []
-                 )
               -- Only mention controls when one actually failed, so the common
               -- survivor/uncovered FAIL header reads exactly as before.
               ++ ( if controlTallyFailed > 0

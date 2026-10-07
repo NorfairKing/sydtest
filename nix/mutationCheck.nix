@@ -267,6 +267,23 @@ let
   # invalidates that package's coverage derivation, the others stay cached, and
   # the per-package coverage runs build in parallel.
 
+  # The locale the Haskell builder gives an ordinary test derivation.
+  #
+  # A test suite run here has to behave the way it behaves under that builder,
+  # and a locale is not something a suite is expected to establish for itself.
+  # Without one, anything a test spawns that consults the locale is configured
+  # differently here than it is anywhere else the same suite runs: PostgreSQL's
+  # initdb takes its database encoding from the locale, so an unset LANG gives
+  # a test an SQL_ASCII cluster where every other run of it gets UTF8, and
+  # SQL_ASCII makes SUBSTRING and friends count bytes instead of characters.
+  # The failure that surfaces from that looks like a flaky test rather than a
+  # difference in environment, and it is only reachable through this check.
+  localeEnv = {
+    LANG = "en_US.UTF-8";
+  } // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.libc == "glibc") {
+    LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+  };
+
   # One per-package coverage derivation: run the 'coverage' subcommand for a
   # single --suite-pkg (but against ALL --manifest dirs, so the full mutation
   # set is known), writing that package's augmented manifest to $out/augmented
@@ -277,7 +294,7 @@ let
   # cd into the package's resource dir first so spec-definition IO ('runIO')
   # resolves relative paths the same way the driver does.
   perPackageCoverage = pkg:
-    pkgs.stdenv.mkDerivation {
+    pkgs.stdenv.mkDerivation (localeEnv // {
       name = "${name}-coverage-${pkg}";
       dontUnpack = true;
       buildInputs = [ (builtTestPkg pkg) driver ];
@@ -306,7 +323,7 @@ let
       '';
       # buildPhase populates $out directly; there is nothing to install.
       dontInstall = true;
-    };
+    });
 
   perPackageCoverages = map perPackageCoverage testPackages;
 
@@ -372,7 +389,7 @@ let
   # later attempt to read back: retrying is another 'nix build' rather than a
   # hunt for the store path holding the stale answer.
   perLibraryReport = libPkg:
-    pkgs.stdenv.mkDerivation {
+    pkgs.stdenv.mkDerivation (localeEnv // {
       name = "${name}-mutation-${libPkg}";
       dontUnpack = true;
       buildInputs = testPkgInputs ++ [ driver ];
@@ -407,7 +424,7 @@ let
       # buildPhase writes report.txt/report.json into $out directly; there is
       # nothing to install.
       dontInstall = true;
-    };
+    });
 
   # The per-library reports keyed by instrumented-library package name, exposed
   # as the '.report.<lib>' passthru so each library's report can be built and

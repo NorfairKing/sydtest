@@ -267,6 +267,27 @@ let
   # invalidates that package's coverage derivation, the others stay cached, and
   # the per-package coverage runs build in parallel.
 
+  # The locale a Haskell derivation is built and tested under, taken from one
+  # rather than restated.
+  #
+  # These derivations run test executables that the Haskell builder produced,
+  # but they are plain stdenv derivations, so they get none of the environment
+  # that builder establishes. A locale is part of that environment and not
+  # something a test suite is expected to set up for itself. Without one,
+  # anything a test spawns that consults the locale is configured differently
+  # here than it is anywhere else the same suite runs: PostgreSQL's initdb
+  # takes its database encoding from the locale, so an unset LANG gives a test
+  # an SQL_ASCII cluster where every other run of it gets UTF8, and SQL_ASCII
+  # makes SUBSTRING and friends count bytes instead of characters. What
+  # surfaces from that reads as a flaky test rather than as a difference in
+  # environment, and it is reachable only through this check.
+  #
+  # Copied off 'driver' because it is a Haskell package that is always in
+  # scope here, so these follow whatever nixpkgs decides the Haskell locale is
+  # instead of drifting from it. 'intersectAttrs' rather than 'inherit' because
+  # the builder sets LOCALE_ARCHIVE only on glibc.
+  localeEnv = builtins.intersectAttrs { LANG = null; LOCALE_ARCHIVE = null; } driver;
+
   # One per-package coverage derivation: run the 'coverage' subcommand for a
   # single --suite-pkg (but against ALL --manifest dirs, so the full mutation
   # set is known), writing that package's augmented manifest to $out/augmented
@@ -277,7 +298,7 @@ let
   # cd into the package's resource dir first so spec-definition IO ('runIO')
   # resolves relative paths the same way the driver does.
   perPackageCoverage = pkg:
-    pkgs.stdenv.mkDerivation {
+    pkgs.stdenv.mkDerivation (localeEnv // {
       name = "${name}-coverage-${pkg}";
       dontUnpack = true;
       buildInputs = [ (builtTestPkg pkg) driver ];
@@ -306,7 +327,7 @@ let
       '';
       # buildPhase populates $out directly; there is nothing to install.
       dontInstall = true;
-    };
+    });
 
   perPackageCoverages = map perPackageCoverage testPackages;
 
@@ -372,7 +393,7 @@ let
   # later attempt to read back: retrying is another 'nix build' rather than a
   # hunt for the store path holding the stale answer.
   perLibraryReport = libPkg:
-    pkgs.stdenv.mkDerivation {
+    pkgs.stdenv.mkDerivation (localeEnv // {
       name = "${name}-mutation-${libPkg}";
       dontUnpack = true;
       buildInputs = testPkgInputs ++ [ driver ];
@@ -407,7 +428,7 @@ let
       # buildPhase writes report.txt/report.json into $out directly; there is
       # nothing to install.
       dontInstall = true;
-    };
+    });
 
   # The per-library reports keyed by instrumented-library package name, exposed
   # as the '.report.<lib>' passthru so each library's report can be built and

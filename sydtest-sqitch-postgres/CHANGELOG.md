@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.1.0] - 2026-10-09
+
+### Added
+
+- `withPlanScaledTimeout`, which multiplies the per-test timeout by the
+  number of changes in the plan, and `readSqitchPlanSteps` to read them.
+  `sqitchPostgresqlSpec` now uses both, so a budget that used to cover
+  the whole plan at once covers one change.
+
 ## [0.1.0.0] - 2026-06-27
 
 ### Changed

@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -8,6 +10,7 @@ import Data.Text (Text)
 import Path
 import Path.IO
 import Test.Syd
+import Test.Syd.OptParse (Settings (..), Timeout (..), defaultSettings)
 import Test.Syd.Persistent.Postgresql (emptyPostgresOptionsSetupFunc)
 import Test.Syd.Sqitch.Postgresql
 
@@ -33,6 +36,26 @@ settingsFor relDir mTag = do
 spec :: Spec
 spec = sequential $ do
   describe "sqitchPostgresqlSpec" $ do
+    -- Both tests do work proportional to the number of changes, so a
+    -- fixed budget would shrink as the plan grows.
+    it "gives the sqitch tests a timeout that scales with the number of changes" $ do
+      settings <- settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
+      forest <-
+        execTestDefM (defaultSettings {settingRandomiseExecutionOrder = False}) $
+          sqitchPostgresqlSpec settings
+      -- Both tests have to be inside the node, not merely beside it.
+      case forest of
+        [ DefDescribeNode
+            _
+            [ DefTimeoutNode
+                scaleTimeout
+                [DefSpecifyNode _ _ _, DefSpecifyNode _ _ _]
+              ]
+          ] ->
+            map scaleTimeout [DoNotTimeout, TimeoutAfterMicros 1_000_000]
+              `shouldBe` [DoNotTimeout, TimeoutAfterMicros 3_000_000]
+        _ -> expectationFailure "expected both sqitch tests to sit under a timeout node"
+
     describe "toy-sqitch-ok" $ do
       settings <- runIO $ settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
       sqitchPostgresqlSpec settings

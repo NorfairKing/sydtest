@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -57,6 +58,8 @@
 -- @public@.
 module Test.Syd.Sqitch.Postgresql
   ( sqitchPostgresqlSpec,
+    readSqitchPlanSteps,
+    withPlanScaledTimeout,
     runSqitchPerChangeChecks,
     runSqitchWholePlanCycle,
     module Test.Syd.Sqitch.Postgresql.Plan,
@@ -75,6 +78,7 @@ import qualified Database.Persist.Sql as DB
 import qualified Database.PostgreSQL.Simple.Options as Postgres
 import Path
 import Test.Syd
+import Test.Syd.OptParse (Timeout (..))
 import Test.Syd.Persistent.Postgresql
   ( emptyPostgresOptionsSetupFunc,
     postgresqlPoolSetupFunc,
@@ -97,16 +101,37 @@ sqitchPostgresqlSpec ::
   SqitchSettings ->
   TestDef outers ()
 sqitchPostgresqlSpec settings =
-  describe "sqitch sanity checks" $
-    setupAround emptyPostgresOptionsSetupFunc $ do
-      perChangeIt settings
-      wholePlanCycleIt settings
+  describe "sqitch sanity checks" $ do
+    steps <- runIO $ readSqitchPlanSteps settings
+    withPlanScaledTimeout steps $
+      setupAround emptyPostgresOptionsSetupFunc $ do
+        perChangeIt settings steps
+        wholePlanCycleIt settings
 
-perChangeIt :: SqitchSettings -> TestDef outers Postgres.Options
-perChangeIt settings =
+-- | Give the tests below one per-test timeout per change in the plan,
+-- rather than one for all of them together.
+--
+-- For tests that shell out to sqitch once or more per change: the work
+-- they do grows with the plan, while sydtest's per-test timeout is one
+-- fixed wall-clock budget. Left alone, that budget covers less and less
+-- of the job as migrations are added, until a loaded machine blows it
+-- and the failure names whichever change was in flight rather than
+-- anything actually wrong. Scaling keeps the headroom per change
+-- constant instead, and keeps honouring whatever the caller configured,
+-- including no timeout at all.
+--
+-- Scales once per application, so wrapping tests that already scale
+-- multiplies twice. 'sqitchPostgresqlSpec' applies it to its own.
+withPlanScaledTimeout :: [PlanStep] -> TestDef outers inner -> TestDef outers inner
+withPlanScaledTimeout steps = modifyTimeout $ \case
+  DoNotTimeout -> DoNotTimeout
+  TimeoutAfterMicros micros -> TimeoutAfterMicros (micros * max 1 (length steps))
+
+perChangeIt :: SqitchSettings -> [PlanStep] -> TestDef outers Postgres.Options
+perChangeIt settings steps =
   it "round-trips and (unless grandfathered) is idempotent for every change in sqitch.plan" $
     \(opts :: Postgres.Options) ->
-      runSqitchPerChangeChecks settings opts
+      runPerChangeChecks settings steps opts
 
 wholePlanCycleIt :: SqitchSettings -> TestDef outers Postgres.Options
 wholePlanCycleIt settings =
@@ -118,19 +143,17 @@ wholePlanCycleIt settings =
 -- fresh empty database described by the given options. Exposed in 'IO'
 -- so callers can wrap it in 'expectFailing' for negative tests.
 runSqitchPerChangeChecks :: SqitchSettings -> Postgres.Options -> IO ()
-runSqitchPerChangeChecks settings opts =
+runSqitchPerChangeChecks settings opts = do
+  steps <- readSqitchPlanSteps settings
+  runPerChangeChecks settings steps opts
+
+runPerChangeChecks :: SqitchSettings -> [PlanStep] -> Postgres.Options -> IO ()
+runPerChangeChecks settings steps opts =
   unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool ->
     -- Deploy into a fresh non-public schema, created and torn down here,
     -- so any migration that hardcodes a schema surfaces.
     unSetupFunc (randomSchemaSetupFunc pool) $ \schema -> do
       let target = sqitchTargetFromOptions schema opts
-
-      planRel <- parseRelFile "sqitch.plan"
-      steps <-
-        readSqitchPlan
-          (sqitchSettingsGrandfatherTag settings)
-          (sqitchSettingsProjectDir settings </> planRel)
-
       iterateSteps settings schema target pool steps
 
 -- | Deploy the entire plan, snapshot the schema, revert everything,
@@ -204,3 +227,11 @@ readDeployScript settings scriptName = do
   Text.decodeUtf8Lenient
     <$> SB.readFile
       (fromAbsFile (sqitchSettingsProjectDir settings </> deployDir </> fileRel))
+
+-- | The changes in the project's @sqitch.plan@, in plan order.
+readSqitchPlanSteps :: SqitchSettings -> IO [PlanStep]
+readSqitchPlanSteps settings = do
+  planRel <- parseRelFile "sqitch.plan"
+  readSqitchPlan
+    (sqitchSettingsGrandfatherTag settings)
+    (sqitchSettingsProjectDir settings </> planRel)

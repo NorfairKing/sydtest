@@ -59,9 +59,11 @@ sqitchPersistentPostgresqlSpec ::
   TestDef outers ()
 sqitchPersistentPostgresqlSpec settings = do
   sqitchPostgresqlSpec (sqitchPersistentSqitch settings)
-  describe "sqitch+persistent" $
-    setupAround emptyPostgresOptionsSetupFunc $
-      schemaEqualityIt settings
+  describe "sqitch+persistent" $ do
+    steps <- runIO $ readSqitchPlanSteps (sqitchPersistentSqitch settings)
+    withPlanScaledTimeout steps $
+      setupAround emptyPostgresOptionsSetupFunc $
+        schemaEqualityIt settings
 
 schemaEqualityIt ::
   SqitchPersistentSettings ->

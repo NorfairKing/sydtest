@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1.0] - 2026-10-09
+
+### Changed
+
+- The schema-equality check now runs under `withPlanScaledTimeout`
+  (following the change in `sydtest-sqitch-postgres` 0.1.1.0), so its
+  timeout grows with the plan.
+
 ## [0.1.0.0] - 2026-06-27
 
 ### Changed

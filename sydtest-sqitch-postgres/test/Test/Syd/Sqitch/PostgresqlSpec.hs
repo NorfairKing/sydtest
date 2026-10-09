@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -49,6 +50,30 @@ spec = sequential $ do
                      "sqitch sanity checks.every change round-trips and (unless grandfathered) is idempotent.add-color",
                      "sqitch sanity checks.the whole plan deploys, reverts, and redeploys to the same schema"
                    ]
+
+    -- The per-change tests share one database and walk the plan in order,
+    -- so running them concurrently or out of order would break them in
+    -- ways that only show up as confusing failures elsewhere.
+    it "runs the per-change tests one at a time, in plan order" $ do
+      settings <- settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
+      forest <-
+        execTestDefM (defaultSettings {settingRandomiseExecutionOrder = False}) $
+          sqitchPostgresqlSpec settings
+      case forest of
+        [ DefDescribeNode
+            _
+            ( DefDescribeNode
+                _
+                [ DefAroundAllNode
+                    _
+                    [DefRandomisationNode randomisation [DefParallelismNode parallelism _]]
+                  ]
+                : _
+              )
+          ] -> (randomisation, parallelism) `shouldBe` (DoNotRandomiseExecutionOrder, Sequential)
+        _ ->
+          expectationFailure
+            "expected the per-change tests to sit under an aroundAll, a randomisation node and a parallelism node"
 
     describe "toy-sqitch-ok" $ do
       settings <- runIO $ settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing

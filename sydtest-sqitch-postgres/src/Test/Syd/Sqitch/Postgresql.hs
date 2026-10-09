@@ -103,64 +103,6 @@ sqitchPostgresqlSpec settings =
     perChangeSpec settings steps
     setupAround emptyPostgresOptionsSetupFunc $ wholePlanCycleIt settings
 
--- | Declare the per-change round-trip and idempotence checks as one
--- test per change.
---
--- One test per change rather than one test over the whole plan, because
--- sydtest's per-test timeout is a fixed wall-clock budget: with a single
--- test it has to cover every change's sqitch invocations at once, so it
--- shrinks as the plan grows and a loaded machine can blow it. It also
--- makes the failing change a test name instead of whatever happened to
--- be in flight when the clock ran out.
---
--- The tests share one database and walk the plan in order, each
--- deploying on top of what the previous one left behind. That is
--- deliberate: starting every change from a clean database would hide
--- interactions between migrations. It is also why this group must not be
--- run in parallel or in a randomised order.
-perChangeSpec :: SqitchSettings -> [PlanStep] -> TestDef outers ()
-perChangeSpec settings steps =
-  describe "every change round-trips and (unless grandfathered) is idempotent" $
-    setupAroundAll sqitchDatabaseSetupFunc $
-      doNotRandomiseExecutionOrder $
-        sequential $
-          forM_ (stepsWithPredecessors steps) $ \(step, mPrev) ->
-            itWithOuter (Text.unpack (stepLabel step)) $ \db ->
-              checkStep settings db step mPrev
-
-wholePlanCycleIt :: SqitchSettings -> TestDef outers Postgres.Options
-wholePlanCycleIt settings =
-  it "the whole plan deploys, reverts, and redeploys to the same schema" $
-    \opts -> runSqitchWholePlanCycle settings opts
-
--- | Run the per-change round-trip and idempotence checks against a
--- fresh empty database described by the given options. Exposed in 'IO'
--- so callers can wrap it in 'expectFailing' for negative tests.
-runSqitchPerChangeChecks :: SqitchSettings -> Postgres.Options -> IO ()
-runSqitchPerChangeChecks settings opts =
-  unSetupFunc (sqitchDatabaseSetupFuncFor opts) $ \db -> do
-    steps <- readPlanSteps settings
-    forM_ (stepsWithPredecessors steps) $ \(step, mPrev) ->
-      context (Text.unpack (stepLabel step)) $ checkStep settings db step mPrev
-
--- | Deploy the entire plan, snapshot the schema, revert everything,
--- redeploy the entire plan, snapshot again, assert the two snapshots
--- are equal. Runs against a fresh empty database.
-runSqitchWholePlanCycle :: SqitchSettings -> Postgres.Options -> IO ()
-runSqitchWholePlanCycle settings opts =
-  unSetupFunc (sqitchDatabaseSetupFuncFor opts) $ \db -> do
-    let target = sqitchDatabaseTarget db
-
-    sqitchAt settings target "deploy" ["--verify"]
-    schemaFirst <- snapshot db
-
-    sqitchRevertAll settings target
-    sqitchAt settings target "deploy" ["--verify"]
-    schemaSecond <- snapshot db
-
-    context "whole-plan deploy/revert/redeploy cycle" $
-      compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
-
 -- | An empty database to deploy a sqitch plan into, together with the
 -- 'SqitchTarget' naming it.
 data SqitchDatabase = SqitchDatabase
@@ -190,6 +132,64 @@ sqitchDatabaseSetupFuncFor opts = do
         sqitchDatabaseSchema = schema,
         sqitchDatabaseTarget = sqitchTargetFromOptions schema opts
       }
+
+-- | Declare the per-change round-trip and idempotence checks as one
+-- test per change.
+--
+-- One test per change rather than one test over the whole plan, because
+-- sydtest's per-test timeout is a fixed wall-clock budget: with a single
+-- test it has to cover every change's sqitch invocations at once, so it
+-- shrinks as the plan grows and a loaded machine can blow it. It also
+-- makes the failing change a test name instead of whatever happened to
+-- be in flight when the clock ran out.
+--
+-- The tests share one database and walk the plan in order, each
+-- deploying on top of what the previous one left behind. That is
+-- deliberate: starting every change from a clean database would hide
+-- interactions between migrations. It is also why this group must not be
+-- run in parallel or in a randomised order.
+perChangeSpec :: SqitchSettings -> [PlanStep] -> TestDef outers ()
+perChangeSpec settings steps =
+  describe "every change round-trips and (unless grandfathered) is idempotent" $
+    setupAroundAll sqitchDatabaseSetupFunc $
+      doNotRandomiseExecutionOrder $
+        sequential $
+          forM_ (stepsWithPredecessors steps) $ \(step, mPrev) ->
+            itWithOuter (Text.unpack (stepLabel step)) $ \db ->
+              checkStep settings db step mPrev
+
+wholePlanCycleIt :: SqitchSettings -> TestDef outers Postgres.Options
+wholePlanCycleIt settings =
+  it "the whole plan deploys, reverts, and redeploys to the same schema" $
+    runSqitchWholePlanCycle settings
+
+-- | Run the per-change round-trip and idempotence checks against a
+-- fresh empty database described by the given options. Exposed in 'IO'
+-- so callers can wrap it in 'expectFailing' for negative tests.
+runSqitchPerChangeChecks :: SqitchSettings -> Postgres.Options -> IO ()
+runSqitchPerChangeChecks settings opts =
+  unSetupFunc (sqitchDatabaseSetupFuncFor opts) $ \db -> do
+    steps <- readPlanSteps settings
+    forM_ (stepsWithPredecessors steps) $ \(step, mPrev) ->
+      context (Text.unpack (stepLabel step)) $ checkStep settings db step mPrev
+
+-- | Deploy the entire plan, snapshot the schema, revert everything,
+-- redeploy the entire plan, snapshot again, assert the two snapshots
+-- are equal. Runs against a fresh empty database.
+runSqitchWholePlanCycle :: SqitchSettings -> Postgres.Options -> IO ()
+runSqitchWholePlanCycle settings opts =
+  unSetupFunc (sqitchDatabaseSetupFuncFor opts) $ \db -> do
+    let target = sqitchDatabaseTarget db
+
+    sqitchAt settings target "deploy" ["--verify"]
+    schemaFirst <- snapshot db
+
+    sqitchRevertAll settings target
+    sqitchAt settings target "deploy" ["--verify"]
+    schemaSecond <- snapshot db
+
+    context "whole-plan deploy/revert/redeploy cycle" $
+      compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
 
 -- | Pair every step with the step before it (or 'Nothing' for the first
 -- step), so the per-step revert knows where to land.

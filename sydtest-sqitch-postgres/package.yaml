@@ -48,6 +48,7 @@ tests:
     - path
     - path-io
     - sydtest
+    - sydtest-mutation-runtime
     - sydtest-persistent-postgresql
     - sydtest-sqitch-postgres
     - text

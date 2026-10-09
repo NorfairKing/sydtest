@@ -8,6 +8,9 @@ import Data.Text (Text)
 import Path
 import Path.IO
 import Test.Syd
+import Test.Syd.Mutation.Forest (flattenTestForestWithIds)
+import Test.Syd.Mutation.TestId (renderTestId)
+import Test.Syd.OptParse (Settings (..), defaultSettings)
 import Test.Syd.Persistent.Postgresql (emptyPostgresOptionsSetupFunc)
 import Test.Syd.Sqitch.Postgresql
 
@@ -33,6 +36,20 @@ settingsFor relDir mTag = do
 spec :: Spec
 spec = sequential $ do
   describe "sqitchPostgresqlSpec" $ do
+    -- One test per change, so that the per-test timeout is a budget for a
+    -- single change instead of for the whole plan.
+    it "declares one test per change in the plan" $ do
+      settings <- settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
+      forest <-
+        execTestDefM (defaultSettings {settingRandomiseExecutionOrder = False}) $
+          sqitchPostgresqlSpec settings
+      map (renderTestId . fst) (flattenTestForestWithIds forest)
+        `shouldBe` [ "sqitch sanity checks.every change round-trips and (unless grandfathered) is idempotent.init",
+                     "sqitch sanity checks.every change round-trips and (unless grandfathered) is idempotent.add-color@v1",
+                     "sqitch sanity checks.every change round-trips and (unless grandfathered) is idempotent.add-color",
+                     "sqitch sanity checks.the whole plan deploys, reverts, and redeploys to the same schema"
+                   ]
+
     describe "toy-sqitch-ok" $ do
       settings <- runIO $ settingsFor [reldir|test_resources/toy-sqitch-ok|] Nothing
       sqitchPostgresqlSpec settings

@@ -1,7 +1,7 @@
 { mkDerivation, base, bytestring, containers, lib, monad-logger
 , network-uri, path, path-io, persistent, postgres-options, random
-, sydtest, sydtest-discover, sydtest-persistent-postgresql, text
-, typed-process, unliftio
+, sydtest, sydtest-discover, sydtest-mutation-runtime
+, sydtest-persistent-postgresql, text, typed-process, unliftio
 }:
 mkDerivation {
   pname = "sydtest-sqitch-postgres";
@@ -13,8 +13,8 @@ mkDerivation {
     typed-process
   ];
   testHaskellDepends = [
-    base bytestring path path-io sydtest sydtest-persistent-postgresql
-    text unliftio
+    base bytestring path path-io sydtest sydtest-mutation-runtime
+    sydtest-persistent-postgresql text unliftio
   ];
   testToolDepends = [ sydtest-discover ];
   homepage = "https://github.com/NorfairKing/sydtest#readme";

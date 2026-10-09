@@ -108,6 +108,7 @@ test-suite sydtest-sqitch-postgres-test
     , path
     , path-io
     , sydtest
+    , sydtest-mutation-runtime
     , sydtest-persistent-postgresql
     , sydtest-sqitch-postgres
     , text

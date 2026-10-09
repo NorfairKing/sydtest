@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Sanity-check tests for a sqitch project against a temporary
 -- PostgreSQL database.
@@ -44,9 +43,11 @@
 --      (1) skips, and also exercises sqitch's own registry across a
 --      full cycle.
 --
--- Each check runs against a fresh empty database (its own server,
--- user, and DB), allocated and torn down by the spec combinator. The
--- caller never sees the postgres machinery in its outer-type stack.
+-- Checks (1) and (2) are declared as one test per change, walking the
+-- plan in order against a single database. Check (3) gets a database of
+-- its own. Each database is a fresh empty one (its own server, user, and
+-- DB), allocated and torn down by the spec combinator. The caller never
+-- sees the postgres machinery in its outer-type stack.
 --
 -- Migrations are deployed into a fresh, randomly-named /non-public/
 -- schema (created and torn down by 'randomSchemaSetupFunc', put on the
@@ -97,105 +98,149 @@ sqitchPostgresqlSpec ::
   SqitchSettings ->
   TestDef outers ()
 sqitchPostgresqlSpec settings =
-  describe "sqitch sanity checks" $
-    setupAround emptyPostgresOptionsSetupFunc $ do
-      perChangeIt settings
-      wholePlanCycleIt settings
+  describe "sqitch sanity checks" $ do
+    steps <- runIO $ readPlanSteps settings
+    perChangeSpec settings steps
+    setupAround emptyPostgresOptionsSetupFunc $ wholePlanCycleIt settings
 
-perChangeIt :: SqitchSettings -> TestDef outers Postgres.Options
-perChangeIt settings =
-  it "round-trips and (unless grandfathered) is idempotent for every change in sqitch.plan" $
-    \(opts :: Postgres.Options) ->
-      runSqitchPerChangeChecks settings opts
+-- | Declare the per-change round-trip and idempotence checks as one
+-- test per change.
+--
+-- One test per change rather than one test over the whole plan, because
+-- sydtest's per-test timeout is a fixed wall-clock budget: with a single
+-- test it has to cover every change's sqitch invocations at once, so it
+-- shrinks as the plan grows and a loaded machine can blow it. It also
+-- makes the failing change a test name instead of whatever happened to
+-- be in flight when the clock ran out.
+--
+-- The tests share one database and walk the plan in order, each
+-- deploying on top of what the previous one left behind. That is
+-- deliberate: starting every change from a clean database would hide
+-- interactions between migrations. It is also why this group must not be
+-- run in parallel or in a randomised order.
+perChangeSpec :: SqitchSettings -> [PlanStep] -> TestDef outers ()
+perChangeSpec settings steps =
+  describe "every change round-trips and (unless grandfathered) is idempotent" $
+    setupAroundAll sqitchDatabaseSetupFunc $
+      doNotRandomiseExecutionOrder $
+        sequential $
+          forM_ (stepsWithPredecessors steps) $ \(step, mPrev) ->
+            itWithOuter (Text.unpack (stepLabel step)) $ \db ->
+              checkStep settings db step mPrev
 
 wholePlanCycleIt :: SqitchSettings -> TestDef outers Postgres.Options
 wholePlanCycleIt settings =
   it "the whole plan deploys, reverts, and redeploys to the same schema" $
-    \(opts :: Postgres.Options) ->
-      runSqitchWholePlanCycle settings opts
+    \opts -> runSqitchWholePlanCycle settings opts
 
 -- | Run the per-change round-trip and idempotence checks against a
 -- fresh empty database described by the given options. Exposed in 'IO'
 -- so callers can wrap it in 'expectFailing' for negative tests.
 runSqitchPerChangeChecks :: SqitchSettings -> Postgres.Options -> IO ()
 runSqitchPerChangeChecks settings opts =
-  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool ->
-    -- Deploy into a fresh non-public schema, created and torn down here,
-    -- so any migration that hardcodes a schema surfaces.
-    unSetupFunc (randomSchemaSetupFunc pool) $ \schema -> do
-      let target = sqitchTargetFromOptions schema opts
-
-      planRel <- parseRelFile "sqitch.plan"
-      steps <-
-        readSqitchPlan
-          (sqitchSettingsGrandfatherTag settings)
-          (sqitchSettingsProjectDir settings </> planRel)
-
-      iterateSteps settings schema target pool steps
+  unSetupFunc (sqitchDatabaseSetupFuncFor opts) $ \db -> do
+    steps <- readPlanSteps settings
+    forM_ (stepsWithPredecessors steps) $ \(step, mPrev) ->
+      context (Text.unpack (stepLabel step)) $ checkStep settings db step mPrev
 
 -- | Deploy the entire plan, snapshot the schema, revert everything,
 -- redeploy the entire plan, snapshot again, assert the two snapshots
 -- are equal. Runs against a fresh empty database.
 runSqitchWholePlanCycle :: SqitchSettings -> Postgres.Options -> IO ()
 runSqitchWholePlanCycle settings opts =
-  unSetupFunc (postgresqlPoolSetupFunc opts) $ \pool ->
-    unSetupFunc (randomSchemaSetupFunc pool) $ \schema -> do
-      let target = sqitchTargetFromOptions schema opts
+  unSetupFunc (sqitchDatabaseSetupFuncFor opts) $ \db -> do
+    let target = sqitchDatabaseTarget db
 
-      sqitchAt settings target "deploy" ["--verify"]
-      schemaFirst <- runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
+    sqitchAt settings target "deploy" ["--verify"]
+    schemaFirst <- snapshot db
 
-      sqitchRevertAll settings target
-      sqitchAt settings target "deploy" ["--verify"]
-      schemaSecond <- runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
+    sqitchRevertAll settings target
+    sqitchAt settings target "deploy" ["--verify"]
+    schemaSecond <- snapshot db
 
-      context "whole-plan deploy/revert/redeploy cycle" $
-        compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
+    context "whole-plan deploy/revert/redeploy cycle" $
+      compareSchemaSnapshots "first deploy" schemaSecond schemaFirst
 
--- | Walk the plan one step at a time.
+-- | An empty database to deploy a sqitch plan into, together with the
+-- 'SqitchTarget' naming it.
+data SqitchDatabase = SqitchDatabase
+  { sqitchDatabasePool :: !DB.ConnectionPool,
+    sqitchDatabaseSchema :: !Text,
+    sqitchDatabaseTarget :: !SqitchTarget
+  }
+
+-- | Allocate a fresh empty postgres server, a connection pool to it, and
+-- a randomly-named non-public schema to deploy into.
+sqitchDatabaseSetupFunc :: SetupFunc SqitchDatabase
+sqitchDatabaseSetupFunc = do
+  opts <- emptyPostgresOptionsSetupFunc
+  sqitchDatabaseSetupFuncFor opts
+
+-- | Like 'sqitchDatabaseSetupFunc', but against a postgres server that
+-- the caller already has options for.
+sqitchDatabaseSetupFuncFor :: Postgres.Options -> SetupFunc SqitchDatabase
+sqitchDatabaseSetupFuncFor opts = do
+  pool <- postgresqlPoolSetupFunc opts
+  -- A fresh non-public schema, so any migration that hardcodes a schema
+  -- surfaces here instead of passing in the default one.
+  schema <- randomSchemaSetupFunc pool
+  pure
+    SqitchDatabase
+      { sqitchDatabasePool = pool,
+        sqitchDatabaseSchema = schema,
+        sqitchDatabaseTarget = sqitchTargetFromOptions schema opts
+      }
+
+-- | Pair every step with the step before it (or 'Nothing' for the first
+-- step), so the per-step revert knows where to land.
+stepsWithPredecessors :: [PlanStep] -> [(PlanStep, Maybe PlanStep)]
+stepsWithPredecessors steps = zip steps (Nothing : map Just steps)
+
+-- | Deploy one step and check it round-trips and is idempotent.
 --
--- @prevTargets@ pairs each step with the step before it (or 'Nothing'
--- for the first step), so the per-step revert knows where to land. We
--- do not start each step from a clean DB because that would defeat the
--- test's ability to catch FK/dependency interactions between migrations.
-iterateSteps ::
-  SqitchSettings ->
-  Text ->
-  SqitchTarget ->
-  DB.ConnectionPool ->
-  [PlanStep] ->
-  IO ()
-iterateSteps settings schema target pool steps =
-  forM_ (zip steps prevTargets) $ \(step, mPrev) ->
-    context (Text.unpack (stepLabel step)) $ do
-      sqitchDeployTo settings target (stepDeployTarget step)
-      schemaPostStep <-
-        runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
+-- Takes the preceding step rather than a clean database, so the round-trip
+-- reverts to exactly the state this step was deployed on top of.
+checkStep :: SqitchSettings -> SqitchDatabase -> PlanStep -> Maybe PlanStep -> IO ()
+checkStep settings db step mPrev = do
+  let target = sqitchDatabaseTarget db
 
-      -- Round-trip: see module-level docs for the skip conditions.
-      unless (stepIsReworkHead step || stepIsGrandfathered step) $ do
-        case mPrev of
-          Nothing -> sqitchRevertTo settings target "@ROOT"
-          Just prev -> sqitchRevertTo settings target (stepDeployTarget prev)
-        sqitchDeployTo settings target (stepDeployTarget step)
-        schemaAfterRoundtrip <-
-          runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
-        context "round-trip (revert one step then redeploy)" $
-          compareSchemaSnapshots "after redeploy" schemaAfterRoundtrip schemaPostStep
+  sqitchDeployTo settings target (stepDeployTarget step)
+  schemaPostStep <- snapshot db
 
-      -- Idempotence: re-run the deploy script's raw SQL bypassing
-      -- sqitch (which would short-circuit on "already deployed").
-      unless (stepIsGrandfathered step) $ do
-        script <- readDeployScript settings (stepScriptName step)
-        runNoLoggingT $
-          flip DB.runSqlPool pool $
-            useTestSchema schema >> DB.rawExecute script []
-        schemaAfterRerun <-
-          runNoLoggingT $ DB.runSqlPool (useTestSchema schema >> querySchema) pool
-        context "idempotence (re-run the deploy script)" $
-          compareSchemaSnapshots "after rerun" schemaAfterRerun schemaPostStep
-  where
-    prevTargets = Nothing : map Just steps
+  -- Round-trip: see module-level docs for the skip conditions.
+  unless (stepIsReworkHead step || stepIsGrandfathered step) $ do
+    case mPrev of
+      Nothing -> sqitchRevertTo settings target "@ROOT"
+      Just prev -> sqitchRevertTo settings target (stepDeployTarget prev)
+    sqitchDeployTo settings target (stepDeployTarget step)
+    schemaAfterRoundtrip <- snapshot db
+    context "round-trip (revert one step then redeploy)" $
+      compareSchemaSnapshots "after redeploy" schemaAfterRoundtrip schemaPostStep
+
+  -- Idempotence: re-run the deploy script's raw SQL bypassing
+  -- sqitch (which would short-circuit on "already deployed").
+  unless (stepIsGrandfathered step) $ do
+    script <- readDeployScript settings (stepScriptName step)
+    runNoLoggingT $
+      flip DB.runSqlPool (sqitchDatabasePool db) $
+        useTestSchema (sqitchDatabaseSchema db) >> DB.rawExecute script []
+    schemaAfterRerun <- snapshot db
+    context "idempotence (re-run the deploy script)" $
+      compareSchemaSnapshots "after rerun" schemaAfterRerun schemaPostStep
+
+snapshot :: SqitchDatabase -> IO SchemaSnapshot
+snapshot db =
+  runNoLoggingT $
+    DB.runSqlPool
+      (useTestSchema (sqitchDatabaseSchema db) >> querySchema)
+      (sqitchDatabasePool db)
+
+readPlanSteps :: SqitchSettings -> IO [PlanStep]
+readPlanSteps settings = do
+  planRel <- parseRelFile "sqitch.plan"
+  readSqitchPlan
+    (sqitchSettingsGrandfatherTag settings)
+    (sqitchSettingsProjectDir settings </> planRel)
 
 readDeployScript :: SqitchSettings -> Text -> IO Text
 readDeployScript settings scriptName = do

@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "sydtest-sqitch-postgres";
-  version = "0.1.0.0";
+  version = "0.2.0.0";
   src = ./.;
   libraryHaskellDepends = [
     base bytestring containers monad-logger network-uri path persistent

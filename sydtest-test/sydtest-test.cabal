@@ -112,6 +112,7 @@ test-suite sydtest-test
       Test.Syd.ParallelWithSpec
       Test.Syd.PathSpec
       Test.Syd.RetryingIOSpec
+      Test.Syd.Runner.AsynchronousSpec
       Test.Syd.RunnerSpec
       Test.Syd.ScenarioSpec
       Test.Syd.SequentialSpec

@@ -78,6 +78,9 @@ type HandleForest a b = SpecDefForest a b (MVar (Timed TestRunReport))
 
 type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunReport))
 
+makeHandleForest :: TestForest a b -> IO (HandleForest a b)
+makeHandleForest = traverse $ traverse $ \() -> newEmptyMVar
+
 -- | Why the suite stops before every test has produced a result.
 --
 -- Both reasons mean the runner must stop scheduling tests, but they differ in
@@ -104,9 +107,6 @@ awaitTestResult abortVar var = do
     Left AbortFailFast -> pure Nothing
     Left (AbortException e) -> throwIO e
     Right result -> pure (Just result)
-
-makeHandleForest :: TestForest a b -> IO (HandleForest a b)
-makeHandleForest = traverse $ traverse $ \() -> newEmptyMVar
 
 type Job = Int -> IO ()
 

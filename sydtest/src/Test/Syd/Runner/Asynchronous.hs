@@ -39,9 +39,9 @@ runSpecForestAsynchronously :: Settings -> Word -> TestForest '[] () -> IO (Time
 runSpecForestAsynchronously settings nbThreads testForest = do
   setPseudorandomness (settingSeed settings)
   handleForest <- makeHandleForest testForest
-  failFastVar <- newEmptyMVar
-  let runRunner = runner settings nbThreads failFastVar handleForest
-      runPrinter = liftIO $ waiter failFastVar handleForest
+  abortVar <- newEmptyMVar
+  let runRunner = runner settings nbThreads abortVar handleForest
+      runPrinter = liftIO $ waiter abortVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
   pure resultForest
 
@@ -49,12 +49,12 @@ runSpecForestInterleavedWithOutputAsynchronously :: Settings -> Word -> TestFore
 runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest = do
   setPseudorandomness (settingSeed settings)
   handleForest <- makeHandleForest testForest
-  failFastVar <- newEmptyMVar
+  abortVar <- newEmptyMVar
   suiteBegin <- getMonotonicTimeNSec
-  let runRunner = runner settings nbThreads failFastVar handleForest
+  let runRunner = runner settings nbThreads abortVar handleForest
       runPrinter = case settingOutputFormat settings of
-        OutputFormatPretty -> liftIO $ printer settings failFastVar suiteBegin handleForest
-        OutputFormatTerse -> liftIO $ waiter failFastVar handleForest
+        OutputFormatPretty -> liftIO $ printer settings abortVar suiteBegin handleForest
+        OutputFormatTerse -> liftIO $ waiter abortVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
 
   let outputLine :: [Chunk] -> IO ()
@@ -77,6 +77,33 @@ runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest =
 type HandleForest a b = SpecDefForest a b (MVar (Timed TestRunReport))
 
 type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunReport))
+
+-- | Why the suite stops before every test has produced a result.
+--
+-- Both reasons mean the runner must stop scheduling tests, but they differ in
+-- what the result-collecting thread owes the caller: fail-fast is an orderly
+-- stop, whereas an escaped exception leaves nothing to report.
+data Abort
+  = -- | The user asked for fail-fast and a test failed.
+    AbortFailFast
+  | -- | An exception escaped a test function, so the test that threw it will
+    -- never deliver a result and no test queued behind it will either.
+    --
+    -- 'Test.Syd.Run.exceptionHandlers' re-throws asynchronously-classified
+    -- exceptions on purpose, so this is the normal way for such an exception
+    -- to reach the caller.  Re-throwing it is what the synchronous runners do.
+    AbortException !SomeException
+
+-- | Wait for a test's result, unless the suite is being aborted.
+--
+-- 'Nothing' means the suite stopped early, so this test has no result.
+awaitTestResult :: MVar Abort -> MVar (Timed TestRunReport) -> IO (Maybe (Timed TestRunReport))
+awaitTestResult abortVar var = do
+  abortOrResult <- race (readMVar abortVar) (takeMVar var)
+  case abortOrResult of
+    Left AbortFailFast -> pure Nothing
+    Left (AbortException e) -> throwIO e
+    Right result -> pure (Just result)
 
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
 makeHandleForest = traverse $ traverse $ \() -> newEmptyMVar
@@ -181,8 +208,8 @@ jobQueueWorker jobQueue workerIx = do
 --
 -- 2. Asks workers to wait after finishing what they were doing at the end of
 --     an outer resource block.
-runner :: Settings -> Word -> MVar () -> HandleForest '[] () -> IO ()
-runner settings nbThreads failFastVar handleForest = do
+runner :: Settings -> Word -> MVar Abort -> HandleForest '[] () -> IO ()
+runner settings nbThreads abortVar handleForest = do
   let nbWorkers = nbThreads
   let nbSpacesOnTheJobQueue = nbWorkers * 2
   jobQueue <- newJobQueue nbSpacesOnTheJobQueue
@@ -197,10 +224,13 @@ runner settings nbThreads failFastVar handleForest = do
         goTree :: forall a. HandleTree a () -> R a ()
         goTree = \case
           DefSpecifyNode _ td var -> do
-            -- If the fail-fast var has been put, we stop enqueuing jobs.
-            mDoneEarly <- liftIO $ tryReadMVar failFastVar
-            case mDoneEarly of
-              Just () -> pure ()
+            -- Once the suite is aborting, we stop enqueuing jobs.
+            mAbort <- liftIO $ tryReadMVar abortVar
+            case mAbort of
+              Just AbortFailFast -> pure ()
+              -- The result-collecting thread re-throws, so there is nothing
+              -- left for the runner to do but stop.
+              Just (AbortException _) -> pure ()
               Nothing -> do
                 Env {..} <- ask
 
@@ -218,14 +248,25 @@ runner settings nbThreads failFastVar handleForest = do
 
                   let job :: Int -> IO ()
                       job workerNr = do
-                        -- Start the test
-                        result <- runNow workerNr
+                        -- Start the test.
+                        --
+                        -- An exception can still escape the test function:
+                        -- 'Test.Syd.Run.exceptionHandlers' re-throws
+                        -- asynchronously-classified ones instead of turning
+                        -- them into a result.  Recording it before it kills
+                        -- this worker is what keeps the result-collecting
+                        -- thread from waiting forever for a result that will
+                        -- never be put.
+                        result <-
+                          runNow workerNr `catch` \e -> do
+                            void $ tryPutMVar abortVar $ AbortException e
+                            throwIO (e :: SomeException)
 
                         -- Put the result in the mvar
                         putMVar var result
 
                         -- If we should fail fast, put the
-                        -- fail-fast var so that no new
+                        -- abort var so that no new
                         -- jobs are started by the
                         -- scheduler.
                         when
@@ -233,7 +274,11 @@ runner settings nbThreads failFastVar handleForest = do
                               && testRunReportFailed settings (timedValue result)
                           )
                           $ do
-                            putMVar failFastVar ()
+                            -- 'tryPutMVar' because another worker may be
+                            -- failing fast at the same time, and blocking here
+                            -- would leave this worker counted as working
+                            -- forever.
+                            void $ tryPutMVar abortVar AbortFailFast
 
                   -- When enqueuing a sequential job, make sure all workers are
                   -- done before and after.
@@ -368,8 +413,8 @@ data Env externalResources = Env
     eExternalResources :: !(HList externalResources)
   }
 
-printer :: Settings -> MVar () -> Word64 -> HandleForest '[] () -> IO (Timed ResultForest)
-printer settings failFastVar suiteBegin handleForest = do
+printer :: Settings -> MVar Abort -> Word64 -> HandleForest '[] () -> IO (Timed ResultForest)
+printer settings abortVar suiteBegin handleForest = do
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks =
         liftIO $
@@ -401,14 +446,10 @@ printer settings failFastVar suiteBegin handleForest = do
       goTree :: HandleTree a b -> P (Maybe ResultTree)
       goTree = \case
         DefSpecifyNode t td var -> do
-          failFastOrResult <-
-            liftIO $
-              race
-                (readMVar failFastVar)
-                (takeMVar var)
-          case failFastOrResult of
-            Left () -> pure Nothing
-            Right result -> do
+          mResult <- liftIO $ awaitTestResult abortVar var
+          case mResult of
+            Nothing -> pure Nothing
+            Just result -> do
               let td' = td {testDefVal = result}
               level <- ask
               outputLinesP $ outputSpecifyLines settings level treeWidth t td'
@@ -417,9 +458,10 @@ printer settings failFastVar suiteBegin handleForest = do
           outputLinesP $ outputPendingLines t mr
           pure $ Just $ PendingNode t mr
         DefDescribeNode t sf -> do
-          mDoneEarly <- liftIO $ tryReadMVar failFastVar
-          case mDoneEarly of
-            Just () -> pure Nothing
+          mAbort <- liftIO $ tryReadMVar abortVar
+          case mAbort of
+            Just AbortFailFast -> pure Nothing
+            Just (AbortException e) -> liftIO $ throwIO e
             Nothing -> do
               outputLineP $ outputDescribeLine t
               fmap (DescribeNode t) <$> addLevel (goForest sf)
@@ -454,8 +496,8 @@ addLevel = withReaderT succ
 
 type P = ReaderT Int IO
 
-waiter :: MVar () -> HandleForest '[] () -> IO (Timed ResultForest)
-waiter failFastVar handleForest = timeItT 0 $ do
+waiter :: MVar Abort -> HandleForest '[] () -> IO (Timed ResultForest)
+waiter abortVar handleForest = timeItT 0 $ do
   let goForest :: HandleForest a b -> IO (Maybe ResultForest)
       goForest hts = do
         rts <- catMaybes <$> mapM goTree hts
@@ -464,13 +506,10 @@ waiter failFastVar handleForest = timeItT 0 $ do
       goTree :: HandleTree a b -> IO (Maybe ResultTree)
       goTree = \case
         DefSpecifyNode t td var -> do
-          failFastOrResult <-
-            race
-              (readMVar failFastVar)
-              (takeMVar var)
-          case failFastOrResult of
-            Left () -> pure Nothing
-            Right result -> do
+          mResult <- awaitTestResult abortVar var
+          case mResult of
+            Nothing -> pure Nothing
+            Just result -> do
               let td' = td {testDefVal = result}
               pure $ Just $ SpecifyNode t td'
         DefPendingNode t mr -> pure $ Just $ PendingNode t mr

@@ -12,6 +12,9 @@
 -- merges the results into @manifest-augmented.json@.
 module Test.Syd.Mutation.Driver.Coverage
   ( runCoverageMode,
+    annotateRecord,
+    controlCoveringTests,
+    controlCoveringTestLimit,
   )
 where
 
@@ -46,9 +49,10 @@ import Test.Syd.Mutation.Manifest
   ( MutationGroup (..),
     MutationManifest (..),
     MutationRecord (..),
+    isControlOperator,
     readManifestDir,
   )
-import Test.Syd.Mutation.Runtime (MutationId)
+import Test.Syd.Mutation.Runtime (MutationId, renderMutationId)
 import Test.Syd.Mutation.TestBaselineMap
   ( TestBaselineMap (..),
     readTestBaselineMapDirIfExists,
@@ -255,30 +259,74 @@ runCoverageMode failFast manifestDirs augDir coverageJobs coverageRetry suiteNam
       AugmentedManifest
         [ AugmentedMutationGroup augmented
         | MutationGroup recs <- mgroups,
-          let augmented = concatMap (annotateRecord mutationCoverage baselineMap) recs,
+          let augmented = concatMap (annotateRecord suiteName mutationCoverage baselineMap) recs,
           not (null augmented)
         ]
 
-    annotateRecord mutationCoverage baselineMap rec =
-      let coveringTests =
-            Set.toList $
-              Map.findWithDefault Set.empty (mutRecId rec) mutationCoverage
-          -- Per-mutation timeout (microseconds) = 10 * sum of covering-test
-          -- baselines, floored at 30s.  Tests with no recorded baseline
-          -- contribute 0; the floor still applies.
-          coveringBaselineSum :: Word
-          coveringBaselineSum =
-            sum [Map.findWithDefault 0 t baselineMap | t <- coveringTests]
-          timeoutMicros = max defaultTimeoutMicros (10 * coveringBaselineSum)
-          annotated =
-            rec
-              { mutRecCoveringTests =
-                  Just $ Map.singleton suiteName coveringTests
-              }
-       in case fromMutationRecord annotated of
-            Nothing -> []
-            Just r ->
-              [r {augmentedMutationRecordTimeoutMicros = timeoutMicros}]
+-- | How many covering tests a control mutation is checked against.
+--
+-- A control is expected to survive, so its child cannot stop at a kill: it
+-- runs every covering test it is given, which makes an unbounded control the
+-- most expensive mutation in a run.  What it is for is noticing a suite that
+-- cannot be relied on, which the number of controls answers rather than the
+-- number of tests each one runs.
+controlCoveringTestLimit :: Int
+controlCoveringTestLimit = 10
+
+-- | Which of a control's covering tests it is checked against.
+--
+-- Not the cheapest of them: the fastest tests are the least likely to be the
+-- ones a suite cannot be relied on for, so taking those every time would aim
+-- the canary away from what it is watching for.  A window starting where the
+-- mutation's own id lands takes a different few for each control, so a run
+-- samples the covering sets across them rather than the same corner of each.
+--
+-- Which few follows from the id alone, so the manifest a coverage run writes,
+-- and the verdicts a mutation run reaches from it, stay the same on a rerun.
+controlCoveringTests :: MutationId -> [TestId] -> [TestId]
+controlCoveringTests mid tests =
+  let total = length tests
+      offset = sum (map fromEnum (renderMutationId mid)) `mod` max 1 total
+   in take (min controlCoveringTestLimit total) (drop offset (cycle tests))
+
+-- | Annotate one mutation record with the tests that cover it and the budget
+-- its child gets.
+--
+-- A control keeps only 'controlCoveringTestLimit' of its covering tests, so its
+-- budget shrinks with them.
+annotateRecord ::
+  -- | The name of the suite whose coverage this is.
+  Text ->
+  -- | Which tests cover each mutation.
+  Map.Map MutationId (Set.Set TestId) ->
+  -- | What each test cost on its own.
+  Map.Map TestId Word ->
+  MutationRecord ->
+  [AugmentedMutationRecord]
+annotateRecord suiteName mutationCoverage baselineMap rec =
+  let costOf t = Map.findWithDefault 0 t baselineMap
+      allCoveringTests =
+        Set.toList $
+          Map.findWithDefault Set.empty (mutRecId rec) mutationCoverage
+      coveringTests
+        | isControlOperator (mutRecOperator rec) =
+            controlCoveringTests (mutRecId rec) allCoveringTests
+        | otherwise = allCoveringTests
+      -- Per-mutation timeout (microseconds) = 10 * sum of covering-test
+      -- baselines, floored at 30s.  Tests with no recorded baseline
+      -- contribute 0; the floor still applies.
+      coveringBaselineSum :: Word
+      coveringBaselineSum = sum (map costOf coveringTests)
+      timeoutMicros = max defaultTimeoutMicros (10 * coveringBaselineSum)
+      annotated =
+        rec
+          { mutRecCoveringTests =
+              Just $ Map.singleton suiteName coveringTests
+          }
+   in case fromMutationRecord annotated of
+        Nothing -> []
+        Just r ->
+          [r {augmentedMutationRecordTimeoutMicros = timeoutMicros}]
 
 emitCoverageEvent :: CoverageProgressEvent -> IO ()
 emitCoverageEvent ev =

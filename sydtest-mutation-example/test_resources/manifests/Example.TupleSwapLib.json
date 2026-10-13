@@ -111,6 +111,44 @@
   ],
   [
     {
+      "binding": "triple",
+      "col_end": 25,
+      "col_start": 16,
+      "context_after": [
+        "",
+        "-- | The same variable in both positions.  Every swap is a no-op on textually",
+        "-- identical components, so 'TupleSwap' produces nothing."
+      ],
+      "context_before": [
+        "-- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed",
+        "-- pairs, producing three mutants.",
+        "triple :: Int -> Int -> Int -> (Int, Int, Int)"
+      ],
+      "end_line": 20,
+      "id": [
+        "Example.TupleSwapLib",
+        "Control",
+        "20",
+        "16",
+        "25",
+        "0"
+      ],
+      "line": 20,
+      "module": "Example.TupleSwapLib",
+      "mutated_lines": [
+        "triple a b c = (a, b, c)"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/TupleSwapLib.hs",
+      "source_lines": [
+        "triple a b c = (a, b, c)"
+      ]
+    }
+  ],
+  [
+    {
       "binding": "orderedPair",
       "col_end": 25,
       "col_start": 19,

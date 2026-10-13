@@ -9,6 +9,13 @@ ConstEmptyList at src/Example/ListLib.hs:19:30-31 #1
 [31m-[m[31mtripleConcat a b c = concat [m[31m[[m[1;91ma[m[31m, b, c][m
 [32m+[m[32mtripleConcat a b c = concat [m[1;92m[[m[32m[[m[1;92m][m[32m, b, c][m
 
+Control at src/Example/ListLib.hs:19:30-31 #0
+[36m@@ -16,4 +16,4 @@[m
+ -- Mutation sites: ListLit produces an empty-list mutant, a drop-first mutant,
+ -- and a drop-last mutant on the literal @[a, b, c]@.
+ tripleConcat :: String -> String -> String -> String
+ tripleConcat a b c = concat [a, b, c]
+
 ConstEmptyList at src/Example/ListLib.hs:19:33-34 #1
 [36m@@ -16,4 +16,4 @@[m
  -- Mutation sites: ListLit produces an empty-list mutant, a drop-first mutant,
@@ -111,16 +118,6 @@ ListLit at src/Example/ListLib.hs:12:25-31 #2
  -- mutant on the literal @[a, b]@.
  pairConcat :: String -> String -> String
 [31m-pairConcat a b = concat [a, b][m
- 
- -- | Concatenate a three-element list of strings.
- --
-
-Control at src/Example/ListLib.hs:12:25-31 #0
-[36m@@ -9,7 +9,7 @@[m
- -- Mutation sites: ListLit produces an empty-list mutant and a drop-first
- -- mutant on the literal @[a, b]@.
- pairConcat :: String -> String -> String
- pairConcat a b = concat [a, b]
  
  -- | Concatenate a three-element list of strings.
  --

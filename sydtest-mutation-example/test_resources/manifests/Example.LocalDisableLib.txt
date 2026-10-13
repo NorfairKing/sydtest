@@ -1,5 +1,5 @@
 [36m# Example.LocalDisableLib[m
-40 mutations in 29 groups
+38 mutations in 27 groups
 
 ConstBool at src/Example/LocalDisableLib.hs:58:19-20 #1
 [36m@@ -55,5 +55,5 @@[m
@@ -17,6 +17,14 @@ ConstBool at src/Example/LocalDisableLib.hs:58:19-20 #2
  withBindKept toggle b = do
 [31m-[m[31m  inner <- toggle [m[1;91mb[m
 [32m+[m[32m  inner <- toggle [m[1;92mF[m[1;92ma[m[1;92mlse[m
+   pure inner
+
+Control at src/Example/LocalDisableLib.hs:58:19-20 #0
+[36m@@ -55,5 +55,5 @@[m
+ -- @toggle b@ is fully instrumented.
+ withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool
+ withBindKept toggle b = do
+   inner <- toggle b
    pure inner
 
 Negate at src/Example/LocalDisableLib.hs:58:19-20 #1
@@ -114,16 +122,6 @@ Negate at src/Example/LocalDisableLib.hs:36:19-20 #1
  withInnerKept b =
 [31m-[m[31m  let inner =[m[31m not [m[31mb[m
 [32m+[m[32m  let inner =[m[42m [m[1;92mn[m[1;92mo[m[1;92mt[m[32m not [m[1;92m([m[32mb[m[1;92m)[m
-    in inner
- 
- -- | Same idea as 'withInnerDisabled', but the local binding is introduced
-
-Control at src/Example/LocalDisableLib.hs:36:19-20 #0
-[36m@@ -33,7 +33,7 @@[m
- -- on the @inner@ binding's RHS.
- withInnerKept :: Bool -> Bool
- withInnerKept b =
-   let inner = not b
     in inner
  
  -- | Same idea as 'withInnerDisabled', but the local binding is introduced
@@ -264,16 +262,6 @@ ElideCall at src/Example/LocalDisableLib.hs:29:15-20 #1
  
  -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
 
-Control at src/Example/LocalDisableLib.hs:29:15-20 #1
-[36m@@ -26,7 +26,7 @@[m
- {-# ANN withInnerBoolLitDisabled ("DisableMutationsFor inner: ConstBool" :: String) #-}
- withInnerBoolLitDisabled :: Bool -> Bool
- withInnerBoolLitDisabled b =
-   let inner = not b
-    in inner
- 
- -- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire
-
 Negate at src/Example/LocalDisableLib.hs:29:15-20 #1
 [36m@@ -26,7 +26,7 @@[m
  {-# ANN withInnerBoolLitDisabled ("DisableMutationsFor inner: ConstBool" :: String) #-}
@@ -408,17 +396,6 @@ ConstBool at src/Example/LocalDisableLib.hs:20:3-12 #2
 [31m-[m[31m  [m[31ml[m[1;91met[m[1;91m inn[m[31me[m[1;91mr = not b[m
 [31m-   in inner[m
 [32m+[m[32m  [m[1;92mF[m[1;92ma[m[32ml[m[1;92ms[m[32me[m
- 
- -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
- -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@
-
-Control at src/Example/LocalDisableLib.hs:20:3-12 #2
-[36m@@ -17,8 +17,8 @@[m
- {-# ANN withInnerDisabled ("DisableMutationsFor inner" :: String) #-}
- withInnerDisabled :: Bool -> Bool
- withInnerDisabled b =
-   let inner = not b
-    in inner
  
  -- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside
  -- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@

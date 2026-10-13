@@ -40,6 +40,43 @@
     {
       "binding": "classify",
       "col_end": 10,
+      "col_start": 9,
+      "context_after": [
+        "  | n == 0 = \"zero\"",
+        "  | otherwise = \"positive\""
+      ],
+      "context_before": [
+        "-- (otherwise = True, so @otherwise -> True@ is a semantic no-op).",
+        "classify :: Int -> String",
+        "classify n"
+      ],
+      "end_line": 12,
+      "id": [
+        "Example.OtherwiseLib",
+        "Control",
+        "12",
+        "9",
+        "10",
+        "0"
+      ],
+      "line": 12,
+      "module": "Example.OtherwiseLib",
+      "mutated_lines": [
+        "  | n < 0 = \"negative\""
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/OtherwiseLib.hs",
+      "source_lines": [
+        "  | n < 0 = \"negative\""
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "classify",
+      "col_end": 10,
       "col_start": 5,
       "context_after": [
         "  | n == 0 = \"zero\"",
@@ -426,40 +463,6 @@
       "operator": "ConstEmptyList",
       "original": "e",
       "replacement": "[]",
-      "source_file": "src/Example/OtherwiseLib.hs",
-      "source_lines": [
-        "  | otherwise = \"positive\""
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "classify",
-      "col_end": 27,
-      "col_start": 17,
-      "context_after": [],
-      "context_before": [
-        "classify n",
-        "  | n < 0 = \"negative\"",
-        "  | n == 0 = \"zero\""
-      ],
-      "end_line": 14,
-      "id": [
-        "Example.OtherwiseLib",
-        "Control",
-        "14",
-        "17",
-        "27",
-        "0"
-      ],
-      "line": 14,
-      "module": "Example.OtherwiseLib",
-      "mutated_lines": [
-        "  | otherwise = \"positive\""
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/OtherwiseLib.hs",
       "source_lines": [
         "  | otherwise = \"positive\""

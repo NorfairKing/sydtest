@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1.0] - 2026-10-13
+
+### Changed
+
+* A control (no-op) mutation is inserted at every module's first mutation
+  site and then every hundred mutations, rather than every twelve.
+
+
 ## [0.5.0.0] - 2026-09-11
 
 ### Added

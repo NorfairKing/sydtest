@@ -1,5 +1,5 @@
 [36m# Example.ElideCallLib[m
-3 mutations in 3 groups
+4 mutations in 4 groups
 
 ElideCall at src/Example/ElideCallLib.hs:19:18-24 #1
 [36m@@ -16,7 +16,7 @@[m
@@ -8,6 +8,16 @@ ElideCall at src/Example/ElideCallLib.hs:19:18-24 #1
  absSucc :: Int -> Int
 [31m-[m[31mabsSucc x = abs ([m[1;91ms[m[1;91mu[m[1;91mc[m[1;91mc[m[41m [m[31mx)[m
 [32m+[m[32mabsSucc x = abs ([m[32mx)[m
+ 
+ -- | @id x@ and @x@ are the same value, so an 'ElideCall' mutant here would be
+ -- equivalent and unkillable.  Calls to 'id' are skipped by default, so
+
+Control at src/Example/ElideCallLib.hs:19:18-24 #0
+[36m@@ -16,7 +16,7 @@[m
+ -- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'
+ -- argument and an 'Int' result.  The test distinguishes all three values.
+ absSucc :: Int -> Int
+ absSucc x = abs (succ x)
  
  -- | @id x@ and @x@ are the same value, so an 'ElideCall' mutant here would be
  -- equivalent and unkillable.  Calls to 'id' are skipped by default, so

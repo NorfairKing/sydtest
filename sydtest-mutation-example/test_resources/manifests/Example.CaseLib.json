@@ -40,6 +40,44 @@
   [
     {
       "binding": "describeList",
+      "col_end": 26,
+      "col_start": 24,
+      "context_after": [
+        "  [] -> \"empty\"",
+        "  [_] -> \"singleton\"",
+        "  _ -> \"longer\""
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: RemoveCase removes one of the three alternatives.",
+        "describeList :: [a] -> String"
+      ],
+      "end_line": 7,
+      "id": [
+        "Example.CaseLib",
+        "Control",
+        "7",
+        "24",
+        "26",
+        "0"
+      ],
+      "line": 7,
+      "module": "Example.CaseLib",
+      "mutated_lines": [
+        "describeList xs = case xs of"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/CaseLib.hs",
+      "source_lines": [
+        "describeList xs = case xs of"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "describeList",
       "col_end": 16,
       "col_start": 9,
       "context_after": [

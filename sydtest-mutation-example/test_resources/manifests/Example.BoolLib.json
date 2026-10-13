@@ -36,6 +36,40 @@
   [
     {
       "binding": "negateWrapped",
+      "col_end": 21,
+      "col_start": 17,
+      "context_after": [],
+      "context_before": [
+        "",
+        "-- | Negates a wrapped boolean.",
+        "negateWrapped :: Maybe Bool -> Maybe Bool"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.BoolLib",
+        "Control",
+        "22",
+        "17",
+        "21",
+        "0"
+      ],
+      "line": 22,
+      "module": "Example.BoolLib",
+      "mutated_lines": [
+        "negateWrapped = fmap not"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/BoolLib.hs",
+      "source_lines": [
+        "negateWrapped = fmap not"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "negateWrapped",
       "col_end": 25,
       "col_start": 22,
       "context_after": [],

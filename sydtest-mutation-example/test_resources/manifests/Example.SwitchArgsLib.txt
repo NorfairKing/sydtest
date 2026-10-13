@@ -34,6 +34,16 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:47:20-29 #3
  -- | The same constructor applied to three textually identical arguments.
  -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
 
+Control at src/Example/SwitchArgsLib.hs:47:20-29 #0
+[36m@@ -44,7 +44,7 @@[m
+ -- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one
+ -- mutant per pair: swapping (r, g), (r, b), and (g, b).
+ makeColour :: Int -> Int -> Int -> RGB
+ makeColour r g b = RGB r g b
+ 
+ -- | The same constructor applied to three textually identical arguments.
+ -- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing.
+
 ElideCall at src/Example/SwitchArgsLib.hs:38:25-32 #1
 [36m@@ -35,7 +35,7 @@[m
  -- mutation must be produced exactly once -- not once for the parenthesis node
@@ -129,16 +139,6 @@ SwitchFunctionArguments at src/Example/SwitchArgsLib.hs:25:22-49 #1
  stripStorePrefix :: String -> Maybe String
 [31m-[m[31mstripStorePrefix s = stripPrefix[m[31m "/nix/store/"[m[1;91m s[m
 [32m+[m[32mstripStorePrefix s = stripPrefix[m[42m [m[1;92ms[m[32m "/nix/store/"[m
- 
- -- | Integer division.  Both arguments are 'Int', so
- -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@
-
-Control at src/Example/SwitchArgsLib.hs:25:22-49 #0
-[36m@@ -22,7 +22,7 @@[m
- -- while same-site operators with a @\'\/\'@-free replacement (e.g.
- -- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.
- stripStorePrefix :: String -> Maybe String
- stripStorePrefix s = stripPrefix "/nix/store/" s
  
  -- | Integer division.  Both arguments are 'Int', so
  -- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@

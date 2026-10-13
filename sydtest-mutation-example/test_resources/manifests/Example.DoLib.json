@@ -40,6 +40,44 @@
   [
     {
       "binding": "greet",
+      "col_end": 27,
+      "col_start": 14,
+      "context_after": [
+        "  where",
+        "    go :: Writer String ()",
+        "    go = do"
+      ],
+      "context_before": [
+        "--",
+        "-- Mutation sites: RemoveAction removes one of the three tell actions.",
+        "greet :: Bool -> String"
+      ],
+      "end_line": 9,
+      "id": [
+        "Example.DoLib",
+        "Control",
+        "9",
+        "14",
+        "27",
+        "0"
+      ],
+      "line": 9,
+      "module": "Example.DoLib",
+      "mutated_lines": [
+        "greet loud = execWriter go"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/DoLib.hs",
+      "source_lines": [
+        "greet loud = execWriter go"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "greet",
       "col_end": 19,
       "col_start": 12,
       "context_after": [

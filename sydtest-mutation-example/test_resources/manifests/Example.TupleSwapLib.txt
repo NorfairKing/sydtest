@@ -1,5 +1,5 @@
 [36m# Example.TupleSwapLib[m
-4 mutations in 2 groups
+5 mutations in 3 groups
 
 TupleSwap at src/Example/TupleSwapLib.hs:20:16-25 #1
 [36m@@ -17,7 +17,7 @@[m
@@ -30,6 +30,16 @@ TupleSwap at src/Example/TupleSwapLib.hs:20:16-25 #3
  triple :: Int -> Int -> Int -> (Int, Int, Int)
 [31m-[m[31mtriple a b c = (a, [m[1;91mb[m[31m, [m[1;91mc[m[31m)[m
 [32m+[m[32mtriple a b c = (a, [m[1;92mc[m[32m, [m[1;92mb[m[32m)[m
+ 
+ -- | The same variable in both positions.  Every swap is a no-op on textually
+ -- identical components, so 'TupleSwap' produces nothing.
+
+Control at src/Example/TupleSwapLib.hs:20:16-25 #0
+[36m@@ -17,7 +17,7 @@[m
+ -- | Three 'Int' components: 'TupleSwap' swaps each of the three same-typed
+ -- pairs, producing three mutants.
+ triple :: Int -> Int -> Int -> (Int, Int, Int)
+ triple a b c = (a, b, c)
  
  -- | The same variable in both positions.  Every swap is a no-op on textually
  -- identical components, so 'TupleSwap' produces nothing.

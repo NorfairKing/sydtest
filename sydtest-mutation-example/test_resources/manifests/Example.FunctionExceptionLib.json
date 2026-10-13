@@ -72,5 +72,43 @@
         "addOneArithDisabled n = n + 1"
       ]
     }
+  ],
+  [
+    {
+      "binding": "addOneArithDisabled",
+      "col_end": 30,
+      "col_start": 29,
+      "context_after": [
+        "",
+        "-- | Both Arith and IntLit mutations disabled on this function.",
+        "{-# ANN addOneArithAndIntLitDisabled (\"DisableMutations: Arith, IntLit\" :: String) #-}"
+      ],
+      "context_before": [
+        "-- IntLit mutations (replacing the literal @1@) still apply.",
+        "{-# ANN addOneArithDisabled (\"DisableMutation: Arith\" :: String) #-}",
+        "addOneArithDisabled :: Int -> Int"
+      ],
+      "end_line": 15,
+      "id": [
+        "Example.FunctionExceptionLib",
+        "Control",
+        "15",
+        "29",
+        "30",
+        "0"
+      ],
+      "line": 15,
+      "module": "Example.FunctionExceptionLib",
+      "mutated_lines": [
+        "addOneArithDisabled n = n + 1"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/FunctionExceptionLib.hs",
+      "source_lines": [
+        "addOneArithDisabled n = n + 1"
+      ]
+    }
   ]
 ]

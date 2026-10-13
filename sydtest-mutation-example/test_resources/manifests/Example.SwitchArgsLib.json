@@ -111,6 +111,44 @@
   ],
   [
     {
+      "binding": "makeColour",
+      "col_end": 29,
+      "col_start": 20,
+      "context_after": [
+        "",
+        "-- | The same constructor applied to three textually identical arguments.",
+        "-- Every swap would be a no-op, so 'SwitchFunctionArguments' produces nothing."
+      ],
+      "context_before": [
+        "-- | All three arguments are 'Int', so 'SwitchFunctionArguments' produces one",
+        "-- mutant per pair: swapping (r, g), (r, b), and (g, b).",
+        "makeColour :: Int -> Int -> Int -> RGB"
+      ],
+      "end_line": 47,
+      "id": [
+        "Example.SwitchArgsLib",
+        "Control",
+        "47",
+        "20",
+        "29",
+        "0"
+      ],
+      "line": 47,
+      "module": "Example.SwitchArgsLib",
+      "mutated_lines": [
+        "makeColour r g b = RGB r g b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/SwitchArgsLib.hs",
+      "source_lines": [
+        "makeColour r g b = RGB r g b"
+      ]
+    }
+  ],
+  [
+    {
       "binding": "parenDivide",
       "col_end": 32,
       "col_start": 25,
@@ -451,44 +489,6 @@
       "operator": "SwitchFunctionArguments",
       "original": "\"/nix/store/\" s",
       "replacement": "s \"/nix/store/\"",
-      "source_file": "src/Example/SwitchArgsLib.hs",
-      "source_lines": [
-        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "stripStorePrefix",
-      "col_end": 49,
-      "col_start": 22,
-      "context_after": [
-        "",
-        "-- | Integer division.  Both arguments are 'Int', so",
-        "-- 'SwitchFunctionArguments' produces one mutant that swaps them: @div b a@"
-      ],
-      "context_before": [
-        "-- while same-site operators with a @\\'\\/\\'@-free replacement (e.g.",
-        "-- 'Test.Syd.Mutation.Plugin.Operator.ConstNothing') were killed normally.",
-        "stripStorePrefix :: String -> Maybe String"
-      ],
-      "end_line": 25,
-      "id": [
-        "Example.SwitchArgsLib",
-        "Control",
-        "25",
-        "22",
-        "49",
-        "0"
-      ],
-      "line": 25,
-      "module": "Example.SwitchArgsLib",
-      "mutated_lines": [
-        "stripStorePrefix s = stripPrefix \"/nix/store/\" s"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/SwitchArgsLib.hs",
       "source_lines": [
         "stripStorePrefix s = stripPrefix \"/nix/store/\" s"

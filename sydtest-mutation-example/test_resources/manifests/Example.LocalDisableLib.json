@@ -85,6 +85,42 @@
       "end_line": 58,
       "id": [
         "Example.LocalDisableLib",
+        "Control",
+        "58",
+        "19",
+        "20",
+        "0"
+      ],
+      "line": 58,
+      "module": "Example.LocalDisableLib",
+      "mutated_lines": [
+        "  inner <- toggle b"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/LocalDisableLib.hs",
+      "source_lines": [
+        "  inner <- toggle b"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "withBindKept",
+      "col_end": 20,
+      "col_start": 19,
+      "context_after": [
+        "  pure inner"
+      ],
+      "context_before": [
+        "-- @toggle b@ is fully instrumented.",
+        "withBindKept :: (Bool -> IO Bool) -> Bool -> IO Bool",
+        "withBindKept toggle b = do"
+      ],
+      "end_line": 58,
+      "id": [
+        "Example.LocalDisableLib",
         "Negate",
         "58",
         "19",
@@ -423,44 +459,6 @@
       "operator": "Negate",
       "original": "e",
       "replacement": "not (e)",
-      "source_file": "src/Example/LocalDisableLib.hs",
-      "source_lines": [
-        "  let inner = not b"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "withInnerKept",
-      "col_end": 20,
-      "col_start": 19,
-      "context_after": [
-        "   in inner",
-        "",
-        "-- | Same idea as 'withInnerDisabled', but the local binding is introduced"
-      ],
-      "context_before": [
-        "-- on the @inner@ binding's RHS.",
-        "withInnerKept :: Bool -> Bool",
-        "withInnerKept b ="
-      ],
-      "end_line": 36,
-      "id": [
-        "Example.LocalDisableLib",
-        "Control",
-        "36",
-        "19",
-        "20",
-        "0"
-      ],
-      "line": 36,
-      "module": "Example.LocalDisableLib",
-      "mutated_lines": [
-        "  let inner = not b"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/LocalDisableLib.hs",
       "source_lines": [
         "  let inner = not b"
@@ -941,44 +939,6 @@
       "end_line": 29,
       "id": [
         "Example.LocalDisableLib",
-        "Control",
-        "29",
-        "15",
-        "20",
-        "1"
-      ],
-      "line": 29,
-      "module": "Example.LocalDisableLib",
-      "mutated_lines": [
-        "  let inner = not b"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
-      "source_file": "src/Example/LocalDisableLib.hs",
-      "source_lines": [
-        "  let inner = not b"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "withInnerBoolLitDisabled",
-      "col_end": 20,
-      "col_start": 15,
-      "context_after": [
-        "   in inner",
-        "",
-        "-- | Control: no disable annotation. Both @ConstBool@ and @Negate@ fire"
-      ],
-      "context_before": [
-        "{-# ANN withInnerBoolLitDisabled (\"DisableMutationsFor inner: ConstBool\" :: String) #-}",
-        "withInnerBoolLitDisabled :: Bool -> Bool",
-        "withInnerBoolLitDisabled b ="
-      ],
-      "end_line": 29,
-      "id": [
-        "Example.LocalDisableLib",
         "Negate",
         "29",
         "15",
@@ -1408,46 +1368,6 @@
       "operator": "ConstBool",
       "original": "e",
       "replacement": "False",
-      "source_file": "src/Example/LocalDisableLib.hs",
-      "source_lines": [
-        "  let inner = not b",
-        "   in inner"
-      ]
-    }
-  ],
-  [
-    {
-      "binding": "withInnerDisabled",
-      "col_end": 12,
-      "col_start": 3,
-      "context_after": [
-        "",
-        "-- | Like 'withInnerDisabled', but only @ConstBool@ is disabled inside",
-        "-- @inner@'s RHS. Other operators on @inner@'s RHS (notably the @Negate@"
-      ],
-      "context_before": [
-        "{-# ANN withInnerDisabled (\"DisableMutationsFor inner\" :: String) #-}",
-        "withInnerDisabled :: Bool -> Bool",
-        "withInnerDisabled b ="
-      ],
-      "end_line": 21,
-      "id": [
-        "Example.LocalDisableLib",
-        "Control",
-        "20",
-        "3",
-        "12",
-        "2"
-      ],
-      "line": 20,
-      "module": "Example.LocalDisableLib",
-      "mutated_lines": [
-        "  let inner = not b",
-        "   in inner"
-      ],
-      "operator": "Control",
-      "original": "no-op",
-      "replacement": "no-op",
       "source_file": "src/Example/LocalDisableLib.hs",
       "source_lines": [
         "  let inner = not b",

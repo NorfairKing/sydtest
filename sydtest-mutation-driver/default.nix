@@ -4,7 +4,7 @@
 }:
 mkDerivation {
   pname = "sydtest-mutation-driver";
-  version = "0.4.0.1";
+  version = "0.4.1.0";
   src = ./.;
   isLibrary = true;
   isExecutable = true;

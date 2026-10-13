@@ -41,6 +41,44 @@
   [
     {
       "binding": "absSucc",
+      "col_end": 24,
+      "col_start": 18,
+      "context_after": [
+        "",
+        "-- | @id x@ and @x@ are the same value, so an 'ElideCall' mutant here would be",
+        "-- equivalent and unkillable.  Calls to 'id' are skipped by default, so"
+      ],
+      "context_before": [
+        "-- with @succ x@) and @succ x@ (replaced with @x@), since each has an 'Int'",
+        "-- argument and an 'Int' result.  The test distinguishes all three values.",
+        "absSucc :: Int -> Int"
+      ],
+      "end_line": 19,
+      "id": [
+        "Example.ElideCallLib",
+        "Control",
+        "19",
+        "18",
+        "24",
+        "0"
+      ],
+      "line": 19,
+      "module": "Example.ElideCallLib",
+      "mutated_lines": [
+        "absSucc x = abs (succ x)"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/ElideCallLib.hs",
+      "source_lines": [
+        "absSucc x = abs (succ x)"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "absSucc",
       "col_end": 25,
       "col_start": 13,
       "context_after": [

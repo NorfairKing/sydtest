@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1.0] - 2026-10-13
+
+### Changed
+
+* A control (no-op) mutation is checked against ten of its covering tests
+  rather than against all of them.
+
+
 ## [0.4.0.1] - 2026-10-13
 
 ### Changed

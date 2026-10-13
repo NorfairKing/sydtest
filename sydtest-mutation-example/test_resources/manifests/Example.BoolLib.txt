@@ -1,5 +1,5 @@
 [36m# Example.BoolLib[m
-8 mutations in 7 groups
+9 mutations in 8 groups
 
 ConstNothing at src/Example/BoolLib.hs:22:17-21 #1
 [36m@@ -19,4 +19,4 @@[m
@@ -8,6 +8,13 @@ ConstNothing at src/Example/BoolLib.hs:22:17-21 #1
  negateWrapped :: Maybe Bool -> Maybe Bool
 [31m-[m[31mnegateWrapped =[m[31m [m[1;91mf[m[1;91mm[m[1;91map[m[31m not[m
 [32m+[m[32mnegateWrapped =[m[42m [m[1;92m([m[1;92m\[m[1;92m_[m[32m [m[1;92m_[m[42m [m[1;92m-> No[m[1;92mt[m[1;92mhin[m[1;92mg[m[1;92m)[m[32m not[m
+
+Control at src/Example/BoolLib.hs:22:17-21 #0
+[36m@@ -19,4 +19,4 @@[m
+ 
+ -- | Negates a wrapped boolean.
+ negateWrapped :: Maybe Bool -> Maybe Bool
+ negateWrapped = fmap not
 
 ConstBool at src/Example/BoolLib.hs:22:22-25 #1
 [36m@@ -19,4 +19,4 @@[m

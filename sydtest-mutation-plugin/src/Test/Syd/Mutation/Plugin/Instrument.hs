@@ -400,7 +400,11 @@ emptyInstrState :: InstrState
 emptyInstrState =
   InstrState
     { instrLocalDisableHits = Map.empty,
-      instrSinceControl = 0,
+      -- Due immediately, so the first mutation site of every module is also a
+      -- control.  Without this a module needs 'controlInterval' mutations of
+      -- its own to get one, which at the cadence that interval sets means a
+      -- project of small modules gets no canary at all.
+      instrSinceControl = controlInterval,
       instrControlSeq = 0
     }
 
@@ -409,12 +413,14 @@ emptyInstrState =
 -- harness for false kills, and even a handful across a run catches a systemic
 -- flaky\/nondeterministic suite - more just adds overhead and report noise.
 --
--- There is no per-module floor: a module (compilation unit) with fewer than
--- 'controlInterval' real mutations gets no control.  Any real mutation-testing
--- target has far more than this many mutations overall, so a run always ends up
--- with controls; only toy builds get none, and those do not need the canary.
+-- Sparser than a real mutation would warrant, because a control cannot stop at
+-- the test that kills it: it is expected to survive, so its child runs every
+-- covering test it is given.
+--
+-- Every module gets one regardless, at its first mutation site, since the
+-- count is per module ('emptyInstrState').
 controlInterval :: Int
-controlInterval = 12
+controlInterval = 100
 
 type InstrM = WriterT [MutationGroup] (StateT InstrState (ReaderT InstrumentEnv TcM))
 

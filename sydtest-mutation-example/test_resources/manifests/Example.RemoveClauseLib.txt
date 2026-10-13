@@ -1,5 +1,5 @@
 [36m# Example.RemoveClauseLib[m
-9 mutations in 4 groups
+10 mutations in 5 groups
 
 ConstConstructor at src/Example/RemoveClauseLib.hs:22:19-24 #1
 [36m@@ -19,6 +19,6 @@[m
@@ -18,6 +18,15 @@ ConstConstructor at src/Example/RemoveClauseLib.hs:22:19-24 #2
  describeSize :: [a] -> Size
 [31m-[m[31mdescribeSize [] = [m[1;91mE[m[1;91mmp[m[1;91mt[m[31my[m
 [32m+[m[32mdescribeSize [] = [m[1;92mM[m[1;92man[m[32my[m
+ describeSize [_] = Single
+ describeSize _ = Many
+
+Control at src/Example/RemoveClauseLib.hs:22:19-24 #0
+[36m@@ -19,6 +19,6 @@[m
+ --
+ -- Each is killed by the matching test.
+ describeSize :: [a] -> Size
+ describeSize [] = Empty
  describeSize [_] = Single
  describeSize _ = Many
 

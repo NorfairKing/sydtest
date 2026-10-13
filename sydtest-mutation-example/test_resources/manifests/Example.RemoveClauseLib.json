@@ -74,6 +74,43 @@
   [
     {
       "binding": "describeSize",
+      "col_end": 24,
+      "col_start": 19,
+      "context_after": [
+        "describeSize [_] = Single",
+        "describeSize _ = Many"
+      ],
+      "context_before": [
+        "--",
+        "-- Each is killed by the matching test.",
+        "describeSize :: [a] -> Size"
+      ],
+      "end_line": 22,
+      "id": [
+        "Example.RemoveClauseLib",
+        "Control",
+        "22",
+        "19",
+        "24",
+        "0"
+      ],
+      "line": 22,
+      "module": "Example.RemoveClauseLib",
+      "mutated_lines": [
+        "describeSize [] = Empty"
+      ],
+      "operator": "Control",
+      "original": "no-op",
+      "replacement": "no-op",
+      "source_file": "src/Example/RemoveClauseLib.hs",
+      "source_lines": [
+        "describeSize [] = Empty"
+      ]
+    }
+  ],
+  [
+    {
+      "binding": "describeSize",
       "col_end": 26,
       "col_start": 20,
       "context_after": [

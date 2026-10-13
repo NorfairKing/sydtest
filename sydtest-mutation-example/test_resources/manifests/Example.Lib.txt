@@ -1,5 +1,5 @@
 [36m# Example.Lib[m
-4 mutations in 2 groups
+5 mutations in 3 groups
 
 IntLit at src/Example/Lib.hs:8:16-17 #1
 [36m@@ -5,4 +5,4 @@[m
@@ -16,6 +16,13 @@ IntLit at src/Example/Lib.hs:8:16-17 #2
  addOne :: Int -> Int
 [31m-[m[31maddOne n = n + [m[31m1[m
 [32m+[m[32maddOne n = n + [m[1;92m-[m[32m1[m
+
+Control at src/Example/Lib.hs:8:16-17 #0
+[36m@@ -5,4 +5,4 @@[m
+ -- The literal '1' here is a mutation site: the plugin will also compile a
+ -- version where this returns @n + 0@ instead of @n + 1@.
+ addOne :: Int -> Int
+ addOne n = n + 1
 
 Arith at src/Example/Lib.hs:8:12-17 #1
 [36m@@ -5,4 +5,4 @@[m

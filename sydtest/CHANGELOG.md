@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.0.1] - 2026-10-13
+
+### Fixed
+
+* The asynchronous runner no longer hangs when an exception escapes a test.
+* `--fail-fast` no longer hangs when two tests fail at the same moment.
+
+
 ## [0.33.0.0] - 2026-10-01
 
 ### Fixed

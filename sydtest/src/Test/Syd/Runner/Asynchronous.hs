@@ -108,6 +108,20 @@ awaitTestResult abortVar var = do
     Left (AbortException e) -> throwIO e
     Right result -> pure (Just result)
 
+-- | Run an action, recording any exception that escapes it before letting it
+-- propagate unchanged.
+--
+-- This is a tee rather than a handler: nothing is swallowed, so catching
+-- 'SomeException' does not change which exceptions reach the caller, only
+-- which one gets reported if several race.  It has to be this broad because
+-- /any/ exception that escapes before a test's result is put leaves the
+-- result-collecting thread waiting forever for that result.
+recordEscapingExceptions :: MVar Abort -> IO a -> IO a
+recordEscapingExceptions abortVar action =
+  action `catch` \e -> do
+    void $ tryPutMVar abortVar $ AbortException e
+    throwIO (e :: SomeException)
+
 type Job = Int -> IO ()
 
 -- | Job queue for workers that can synchronise
@@ -227,10 +241,7 @@ runner settings nbThreads abortVar handleForest = do
             -- Once the suite is aborting, we stop enqueuing jobs.
             mAbort <- liftIO $ tryReadMVar abortVar
             case mAbort of
-              Just AbortFailFast -> pure ()
-              -- The result-collecting thread re-throws, so there is nothing
-              -- left for the runner to do but stop.
-              Just (AbortException _) -> pure ()
+              Just _ -> pure ()
               Nothing -> do
                 Env {..} <- ask
 
@@ -253,14 +264,8 @@ runner settings nbThreads abortVar handleForest = do
                         -- An exception can still escape the test function:
                         -- 'Test.Syd.Run.exceptionHandlers' re-throws
                         -- asynchronously-classified ones instead of turning
-                        -- them into a result.  Recording it before it kills
-                        -- this worker is what keeps the result-collecting
-                        -- thread from waiting forever for a result that will
-                        -- never be put.
-                        result <-
-                          runNow workerNr `catch` \e -> do
-                            void $ tryPutMVar abortVar $ AbortException e
-                            throwIO (e :: SomeException)
+                        -- them into a result.
+                        result <- recordEscapingExceptions abortVar $ runNow workerNr
 
                         -- Put the result in the mvar
                         putMVar var result

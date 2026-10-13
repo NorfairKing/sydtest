@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2.0] - 2026-10-13
+
+### Changed
+
+* The mutation groups of a run are started most expensive first, so that the
+  longest-running one is not left to hold a slot on its own at the end.
+
+
 ## [0.4.1.0] - 2026-10-13
 
 ### Changed

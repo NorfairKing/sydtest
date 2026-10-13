@@ -14,6 +14,7 @@
 module Test.Syd.Mutation.Driver.Mutate
   ( runMutationMode,
     writeChildTask,
+    scheduleGroups,
     UnknownCoveringSuite (..),
   )
 where
@@ -25,9 +26,11 @@ import Control.Exception (bracket, bracket_)
 import qualified Control.Exception as Exception
 import qualified Data.ByteString as SB
 import Data.Foldable (for_)
+import Data.List (sortOn)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Maybe (listToMaybe)
+import Data.Ord (Down (..))
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -101,6 +104,32 @@ writeReportTxt renderedChunks outDir =
   let renderedText = renderChunksText With8BitColours (unlinesChunks renderedChunks)
       reportFile = outDir </> [relfile|report.txt|]
    in SB.writeFile (fromAbsFile reportFile) (TE.encodeUtf8 renderedText)
+
+-- | The order to start the mutation groups of a run in, most expensive first.
+--
+-- Every group waits for a slot, so the order they are handed to the runner in
+-- is the order they get one.  A run's groups differ by orders of magnitude:
+-- most are a second, a few are minutes, because a group costs what the covering
+-- tests it runs cost.  Started last, one of those few holds a slot while the
+-- rest of them stand idle, so a run ends with one child and a quiet machine.
+--
+-- The cost here is what the covering tests cost on their own, which is what
+-- the per-mutation budgets are derived from as well.  It is an estimate: a
+-- mutation stops at the test that kills it, and which test that is cannot be
+-- known before running it.  Scheduling is all it decides, so an estimate is
+-- enough, and it leaves every verdict and the reported order alone.
+scheduleGroups :: Maybe TestBaselineMap -> [(Int, AugmentedMutationGroup)] -> [(Int, AugmentedMutationGroup)]
+scheduleGroups mBaselines = sortOn (Down . groupCost)
+  where
+    costs = maybe Map.empty (\(TestBaselineMap m) -> m) mBaselines
+    groupCost :: (Int, AugmentedMutationGroup) -> Word
+    groupCost (_, AugmentedMutationGroup recs) =
+      sum
+        [ Map.findWithDefault 0 t costs
+        | r <- recs,
+          ts <- Map.elems (augmentedMutationRecordCoveringTests r),
+          t <- ts
+        ]
 
 -- | Write the directory one mutation child is pointed at: the mutation it is
 -- being asked about, and the baselines of the tests it will consider.
@@ -228,7 +257,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- 'MutationFailFast' fast-path.
   mWorkerException <-
     Exception.try @Exception.SomeException $ do
-      _ <- mapConcurrently runGroup' (zip [0 :: Int ..] groups)
+      _ <- mapConcurrently runGroup' (scheduleGroups baselines (zip [0 :: Int ..] groups))
       pure ()
   finalGroupResults <- readTVarIO groupResultsVar
   -- Preserve original group order; reverse each group's results because

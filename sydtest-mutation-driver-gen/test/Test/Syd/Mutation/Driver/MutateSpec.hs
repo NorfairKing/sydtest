@@ -23,7 +23,7 @@ import Test.Syd.Mutation.AugmentedManifest
     readAugmentedManifestFile,
     writeAugmentedManifestFile,
   )
-import Test.Syd.Mutation.Driver.Mutate (UnknownCoveringSuite (..), runMutationMode, writeChildTask)
+import Test.Syd.Mutation.Driver.Mutate (UnknownCoveringSuite (..), runMutationMode, scheduleGroups, writeChildTask)
 import Test.Syd.Mutation.Driver.OptParse (SuiteConfig (..))
 import Test.Syd.Mutation.Manifest (controlOperatorName)
 import Test.Syd.Mutation.Runtime (MutationId (..))
@@ -32,6 +32,69 @@ import Test.Syd.Mutation.TestId (TestId (..))
 
 spec :: Spec
 spec = do
+  describe "scheduleGroups" $ do
+    it "hands over the most expensive group first" $ do
+      -- Every group waits for a slot, so this order is the order they get one,
+      -- and the expensive ones have to be under way before the run has only
+      -- idle slots left to offer them.  The index each group is reported under
+      -- travels with it.
+      let cheapTest = TestId (("cheap", 0) :| [])
+      let dearTest = TestId (("dear", 0) :| [])
+      let recordCoveredBy t =
+            AugmentedMutationRecord
+              { augmentedMutationRecordId = MutationId ["M", "Op", "1", "1", "2"],
+                augmentedMutationRecordOperator = "Op",
+                augmentedMutationRecordOriginal = "+",
+                augmentedMutationRecordReplacement = "-",
+                augmentedMutationRecordModule = "M",
+                augmentedMutationRecordLine = 1,
+                augmentedMutationRecordEndLine = 1,
+                augmentedMutationRecordColStart = 1,
+                augmentedMutationRecordColEnd = 2,
+                augmentedMutationRecordSourceFile = Nothing,
+                augmentedMutationRecordSourceLines = [],
+                augmentedMutationRecordMutatedLines = [],
+                augmentedMutationRecordContextBefore = [],
+                augmentedMutationRecordContextAfter = [],
+                augmentedMutationRecordCoveringTests = Map.singleton "suite" [t],
+                augmentedMutationRecordTimeoutMicros = 30000000,
+                augmentedMutationRecordBinding = Nothing,
+                augmentedMutationRecordMitigation = Nothing
+              }
+      let cheapGroup = AugmentedMutationGroup [recordCoveredBy cheapTest]
+      let dearGroup = AugmentedMutationGroup [recordCoveredBy dearTest]
+      let baselines = TestBaselineMap (Map.fromList [(cheapTest, 1), (dearTest, 1000)])
+      scheduleGroups (Just baselines) [(0, cheapGroup), (1, dearGroup)]
+        `shouldBe` [(1, dearGroup), (0, cheapGroup)]
+
+    it "leaves the groups in the order they came in when there are no baselines" $ do
+      -- Nothing to tell the groups apart by, and the order the manifest gives
+      -- is the order a reader of the progress output expects.
+      let record =
+            AugmentedMutationRecord
+              { augmentedMutationRecordId = MutationId ["M", "Op", "1", "1", "2"],
+                augmentedMutationRecordOperator = "Op",
+                augmentedMutationRecordOriginal = "+",
+                augmentedMutationRecordReplacement = "-",
+                augmentedMutationRecordModule = "M",
+                augmentedMutationRecordLine = 1,
+                augmentedMutationRecordEndLine = 1,
+                augmentedMutationRecordColStart = 1,
+                augmentedMutationRecordColEnd = 2,
+                augmentedMutationRecordSourceFile = Nothing,
+                augmentedMutationRecordSourceLines = [],
+                augmentedMutationRecordMutatedLines = [],
+                augmentedMutationRecordContextBefore = [],
+                augmentedMutationRecordContextAfter = [],
+                augmentedMutationRecordCoveringTests =
+                  Map.singleton "suite" [TestId (("t", 0) :| [])],
+                augmentedMutationRecordTimeoutMicros = 30000000,
+                augmentedMutationRecordBinding = Nothing,
+                augmentedMutationRecordMitigation = Nothing
+              }
+      let groups = [(0, AugmentedMutationGroup [record]), (1, AugmentedMutationGroup [record])]
+      scheduleGroups Nothing groups `shouldBe` groups
+
   describe "writeChildTask" $ do
     it "writes the mutation it is given and the baselines of that suite's covering tests" $
       -- The baselines of another suite's covering tests are left out because

@@ -21,8 +21,11 @@ instance Exception AsynchronouslyClassified where
   toException = asyncExceptionToException
   fromException = asyncExceptionFromException
 
+-- | Each of these tears a whole nested runner down mid-flight, which cancels
+-- its worker, printer and scheduler threads.  Running that alongside the rest
+-- of the suite destabilised the suite under load, so keep it to itself.
 spec :: Spec
-spec = describe "the asynchronous runner" $ do
+spec = sequential $ describe "the asynchronous runner" $ do
   it "propagates an asynchronously-classified exception out of runSpecForestAsynchronously" $ do
     let settings = defaultSettings {settingThreads = Asynchronous 2}
     specForest <-

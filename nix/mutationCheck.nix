@@ -196,7 +196,22 @@ let
       name = "${name}-testsuite-${pkgName}";
     });
 
-  manifests = map (pkg: instrumentedHaskellPackages.${pkg}.manifest) libraryPackages;
+  # The manifest of one instrumented library, from whichever build of it this
+  # check needs anyway.
+  #
+  # A package whose test suites are run here is built a second time with
+  # '--enable-tests', because that is what produces the test executables, and
+  # that build compiles the instrumented library again from the same source
+  # with the same flags.  Its manifest is therefore the same manifest, so
+  # taking it from there leaves the library compiled once instead of twice.
+  # For a library whose suites are somebody else's, there is no such build and
+  # the instrument-only one is all there is.
+  manifestFor = pkg:
+    if builtins.elem pkg testPackages
+    then (builtTestPkg pkg).manifest
+    else instrumentedHaskellPackages.${pkg}.manifest;
+
+  manifests = map manifestFor libraryPackages;
 
   # Resource directory for one package: the unpacked source tree of that
   # package.  Used by the driver to 'cd' into a suite's source tree before
@@ -414,7 +429,7 @@ let
         runHook preBuild
 
         ${driver}/bin/sydtest-mutation-driver run \
-          --manifest=${toString instrumentedHaskellPackages.${libPkg}.manifest} \
+          --manifest=${toString (manifestFor libPkg)} \
           ${pkgs.lib.concatStringsSep " " suitePkgFlags} \
           ${coverageDirFlags} \
           --child-mem-limit=${testProcessMemLimit} \

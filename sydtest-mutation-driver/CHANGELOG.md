@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0.1] - 2026-10-13
+
+### Changed
+
+* A mutation child is pointed at a directory holding only the mutation it is
+  asked about, instead of at the run's whole augmented manifest.
+
+
 ## [0.4.0.0] - 2026-10-01
 
 ### Fixed

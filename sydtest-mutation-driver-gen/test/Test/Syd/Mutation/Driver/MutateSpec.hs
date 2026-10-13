@@ -20,16 +20,97 @@ import Test.Syd.Mutation.AugmentedManifest
     MutationRunReport (..),
     MutationTally (..),
     mutationGroupReportOutcomes,
+    readAugmentedManifestFile,
     writeAugmentedManifestFile,
   )
-import Test.Syd.Mutation.Driver.Mutate (UnknownCoveringSuite (..), runMutationMode)
+import Test.Syd.Mutation.Driver.Mutate (UnknownCoveringSuite (..), runMutationMode, writeChildTask)
 import Test.Syd.Mutation.Driver.OptParse (SuiteConfig (..))
 import Test.Syd.Mutation.Manifest (controlOperatorName)
 import Test.Syd.Mutation.Runtime (MutationId (..))
+import Test.Syd.Mutation.TestBaselineMap (TestBaselineMap (..), readTestBaselineMapDirIfExists)
 import Test.Syd.Mutation.TestId (TestId (..))
 
 spec :: Spec
-spec = describe "runMutationMode" $ do
+spec = do
+  describe "writeChildTask" $ do
+    it "writes the mutation it is given and the baselines of that suite's covering tests" $
+      -- The baselines of another suite's covering tests are left out because
+      -- the child cannot use them: it orders a forest filtered to its own
+      -- suite's covering tests, which no other test id can match.
+      withSystemTempDir "child-task" $ \dir -> do
+        let coveringTest = TestId (("covering", 0) :| [])
+        let elsewhereTest = TestId (("elsewhere", 0) :| [])
+        let record =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["M", "Op", "1", "1", "2"],
+                  augmentedMutationRecordOperator = "Op",
+                  augmentedMutationRecordOriginal = "+",
+                  augmentedMutationRecordReplacement = "-",
+                  augmentedMutationRecordModule = "M",
+                  augmentedMutationRecordLine = 1,
+                  augmentedMutationRecordEndLine = 1,
+                  augmentedMutationRecordColStart = 1,
+                  augmentedMutationRecordColEnd = 2,
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = [],
+                  augmentedMutationRecordCoveringTests =
+                    Map.fromList
+                      [ ("suite", [coveringTest]),
+                        ("other-suite", [elsewhereTest])
+                      ],
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
+                }
+        writeChildTask
+          (Just (TestBaselineMap (Map.fromList [(coveringTest, 11), (elsewhereTest, 22)])))
+          record
+          "suite"
+          dir
+        writtenManifest <- readAugmentedManifestFile dir
+        writtenManifest `shouldBe` AugmentedManifest [AugmentedMutationGroup [record]]
+        writtenBaseline <- readTestBaselineMapDirIfExists dir
+        writtenBaseline `shouldBe` Just (TestBaselineMap (Map.singleton coveringTest 11))
+
+    it "writes no baseline file when the run has no baselines" $
+      -- An empty map is not the same as none: the child reorders whenever it
+      -- finds one, and with no costs that still sorts pending and leafless
+      -- subtrees last.
+      withSystemTempDir "child-task-no-baselines" $ \dir -> do
+        let record =
+              AugmentedMutationRecord
+                { augmentedMutationRecordId = MutationId ["M", "Op", "1", "1", "2"],
+                  augmentedMutationRecordOperator = "Op",
+                  augmentedMutationRecordOriginal = "+",
+                  augmentedMutationRecordReplacement = "-",
+                  augmentedMutationRecordModule = "M",
+                  augmentedMutationRecordLine = 1,
+                  augmentedMutationRecordEndLine = 1,
+                  augmentedMutationRecordColStart = 1,
+                  augmentedMutationRecordColEnd = 2,
+                  augmentedMutationRecordSourceFile = Nothing,
+                  augmentedMutationRecordSourceLines = [],
+                  augmentedMutationRecordMutatedLines = [],
+                  augmentedMutationRecordContextBefore = [],
+                  augmentedMutationRecordContextAfter = [],
+                  augmentedMutationRecordCoveringTests =
+                    Map.singleton "suite" [TestId (("covering", 0) :| [])],
+                  augmentedMutationRecordTimeoutMicros = 30000000,
+                  augmentedMutationRecordBinding = Nothing,
+                  augmentedMutationRecordMitigation = Nothing
+                }
+        writeChildTask Nothing record "suite" dir
+        (writtenDirs, writtenFiles) <- listDirRel dir
+        (writtenDirs, map fromRelFile writtenFiles)
+          `shouldBe` ([], ["manifest-augmented.json"])
+
+  describe "runMutationMode" runMutationModeSpec
+
+runMutationModeSpec :: Spec
+runMutationModeSpec = do
   it "runs each mutation child in its suite's resource directory" $
     -- Regression test: the diff runner used to spawn mutation children
     -- with no working directory, so they ran in the invocation dir instead

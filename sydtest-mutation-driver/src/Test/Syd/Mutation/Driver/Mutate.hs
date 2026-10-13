@@ -13,6 +13,7 @@
 -- otherwise it is a survivor (or timed-out).
 module Test.Syd.Mutation.Driver.Mutate
   ( runMutationMode,
+    writeChildTask,
     UnknownCoveringSuite (..),
   )
 where
@@ -23,9 +24,11 @@ import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
 import Control.Exception (bracket, bracket_)
 import qualified Control.Exception as Exception
 import qualified Data.ByteString as SB
+import Data.Foldable (for_)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Maybe (listToMaybe)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -50,11 +53,17 @@ import Test.Syd.Mutation.AugmentedManifest
     TimedOutMutation (..),
     UncoveredMutation (..),
     readAugmentedManifestFile,
+    writeAugmentedManifestFile,
     writeMutationRunReport,
   )
 import Test.Syd.Mutation.Driver.OptParse (SuiteConfig (..))
 import Test.Syd.Mutation.Manifest (isControlOperator)
 import Test.Syd.Mutation.Runtime (renderMutationId)
+import Test.Syd.Mutation.TestBaselineMap
+  ( TestBaselineMap (..),
+    readTestBaselineMapDirIfExists,
+    writeTestBaselineMapDir,
+  )
 import Test.Syd.MutationMode.Common
   ( MutationFailFast (..),
     MutationResult (..),
@@ -93,12 +102,35 @@ writeReportTxt renderedChunks outDir =
       reportFile = outDir </> [relfile|report.txt|]
    in SB.writeFile (fromAbsFile reportFile) (TE.encodeUtf8 renderedText)
 
+-- | Write the directory one mutation child is pointed at: the mutation it is
+-- being asked about, and the baselines of the tests it will consider.
+--
+-- A child needs only its own record, and parsing the whole manifest costs time
+-- and memory linear in its size, once per mutation per covering suite.
+--
+-- A run with no baselines gets no file at all: an empty map still reorders.
+writeChildTask :: Maybe TestBaselineMap -> AugmentedMutationRecord -> Text -> Path Abs Dir -> IO ()
+writeChildTask mBaselines record suiteName childAugDir = do
+  writeAugmentedManifestFile
+    childAugDir
+    (AugmentedManifest [AugmentedMutationGroup [record]])
+  let coveringHere =
+        Map.findWithDefault
+          []
+          suiteName
+          (augmentedMutationRecordCoveringTests record)
+  for_ mBaselines $ \(TestBaselineMap allBaselines) ->
+    writeTestBaselineMapDir
+      childAugDir
+      (TestBaselineMap (Map.restrictKeys allBaselines (Set.fromList coveringHere)))
+
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.
 --
 -- Each child receives @--mutation-one <id> --mutation-suite-name <suite>
 -- --mutation-augmented-manifest-dir <dir>@ and exits 0 (survived) or
--- non-zero (killed).
+-- non-zero (killed).  The directory is one written for that child alone
+-- ('writeChildTask'), not the run's own.
 --
 -- Suites with no covering tests for a given mutation are skipped — running
 -- a suite with an empty filter would cause sydtest to run all tests.
@@ -161,6 +193,8 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
           { unknownCoveringSuiteName = name,
             unknownCoveringSuiteDeclared = Map.keys suiteConfigs
           }
+  -- Read once here rather than once per child; see 'writeChildTask'.
+  baselines <- readTestBaselineMapDirIfExists augDir
   n <- case mutationJobs of
     Just j | j > 0 -> pure (fromIntegral j)
     _ -> getNumCapabilities
@@ -182,7 +216,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
-          (runOne indexByMutationId totalMutations sem)
+          (runOne baselines indexByMutationId totalMutations sem)
           ( \r ->
               atomically $
                 modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
@@ -258,7 +292,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- when fail-fast trips.
   pure jsonReport
   where
-    runOne indexByMutationId totalMutations sem record =
+    runOne baselines indexByMutationId totalMutations sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
             -- This mutation's stable 1-based position in the manifest.
@@ -275,7 +309,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
             -- if any child exits non-zero; timed out if any child exceeded
             -- its budget without any other child killing it first;
             -- otherwise survived.
-            outcomes <- runSuitesRetryingOverruns record mid suiteNames attemptsOnOverrun
+            outcomes <- runSuitesRetryingOverruns baselines record mid suiteNames attemptsOnOverrun
             -- A control (no-op) mutation is expected to survive.  Reinterpret
             -- its raw outcome: survival is the control passing, a kill or
             -- timeout is the control failing (the suite is unsound).
@@ -311,12 +345,12 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
     -- says nothing, since a busy machine exceeds a budget derived from an
     -- idle one, and crediting that would let load raise the score. Weakening
     -- or removing these attempts means revisiting how an overrun is scored.
-    runSuitesRetryingOverruns record mid suiteNames attemptsLeft = do
-      outcomes <- mapM (runOneSuite record mid) suiteNames
+    runSuitesRetryingOverruns baselines record mid suiteNames attemptsLeft = do
+      outcomes <- mapM (runOneSuite baselines record mid) suiteNames
       case classifyOutcomes record outcomes of
         MutationTimedOut _
           | attemptsLeft > 1 ->
-              runSuitesRetryingOverruns record mid suiteNames (attemptsLeft - 1)
+              runSuitesRetryingOverruns baselines record mid suiteNames (attemptsLeft - 1)
         _ -> pure outcomes
 
     -- Map a control mutation's raw classification onto the control-specific
@@ -363,7 +397,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
     killingSuiteLog outcomes =
       listToMaybe [rf | SuiteKilled (Just rf) <- NE.toList outcomes]
 
-    runOneSuite record mid suiteName = do
+    runOneSuite baselines record mid suiteName = do
       (exe, mResourceDir) <- case Map.lookup suiteName suiteConfigs of
         Just SuiteConfig {suiteConfigExe, suiteConfigResourceDir} ->
           pure (fromAbsFile suiteConfigExe, suiteConfigResourceDir)
@@ -383,18 +417,22 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
             Nothing -> []
             Just limit -> ["+RTS", "-M" ++ limit, "-RTS"]
           suiteNameStr = T.unpack suiteName
-          args =
-            [ "--mutation-one",
-              renderMutationId mid,
-              "--mutation-augmented-manifest-dir",
-              fromAbsDir augDir,
-              "--mutation-suite-name",
-              suiteNameStr
-            ]
-              ++ rtsArgs
-      classifySyncExceptionAsKilled $
-        withSystemTempDir "mutation-child" $ \tmpDir -> do
-          let logPath = tmpDir </> [relfile|child.log|]
+      -- Only the run of the child is classified: an exception from preparing
+      -- its directory says nothing about whether a test noticed the mutation.
+      withSystemTempDir "mutation-child" $ \tmpDir -> do
+        let logPath = tmpDir </> [relfile|child.log|]
+        let childAugDir = tmpDir </> [reldir|augmented|]
+        writeChildTask baselines record suiteName childAugDir
+        let args =
+              [ "--mutation-one",
+                renderMutationId mid,
+                "--mutation-augmented-manifest-dir",
+                fromAbsDir childAugDir,
+                "--mutation-suite-name",
+                suiteNameStr
+              ]
+                ++ rtsArgs
+        classifySyncExceptionAsKilled $ do
           (outcomeRaw, elapsedMicros) <-
             withFile (fromAbsFile logPath) WriteMode $ \logHandle -> do
               let childProc =

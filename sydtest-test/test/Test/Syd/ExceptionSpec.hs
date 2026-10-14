@@ -4,8 +4,24 @@ module Test.Syd.ExceptionSpec where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async
+import Control.Exception
 import Data.Time.Clock
+import System.Timeout (timeout)
 import Test.Syd
+import Test.Syd.OptParse
+
+-- | An exception that a test throws itself, but that is classified as
+-- asynchronous.
+--
+-- This is not exotic: @effectful@'s @Error@ effect is defined this way, so
+-- every test that fails through it throws one of these.
+-- See https://github.com/NorfairKing/sydtest/issues/110
+data SynchronousButClassifiedAsynchronous = SynchronousButClassifiedAsynchronous
+  deriving (Show, Eq)
+
+instance Exception SynchronousButClassifiedAsynchronous where
+  toException = asyncExceptionToException
+  fromException = asyncExceptionFromException
 
 spec :: TestDefM outers () ()
 spec = describe "exception handling" $ do
@@ -35,3 +51,38 @@ spec = describe "exception handling" $ do
     -- Less than 1 second
     (endTime `diffUTCTime` startTime) `shouldSatisfy` (< 1)
     pure ()
+
+  it "reports a test that throws an asynchronously-classified exception as a failure" $ do
+    specForest <-
+      execTestDefM defaultSettings $
+        it "throws an asynchronously-classified exception" (throwIO SynchronousButClassifiedAsynchronous :: IO ())
+    resultForest <- runSpecForestSynchronously defaultSettings specForest
+    let stats = computeTestSuiteStats defaultSettings (timedValue resultForest)
+    testSuiteStatFailures stats `shouldBe` 1
+    testSuiteStatSuccesses stats `shouldBe` 0
+
+  it "lets expectFailing accept a test that throws an asynchronously-classified exception" $ do
+    specForest <-
+      execTestDefM defaultSettings $
+        expectFailing $
+          it "throws an asynchronously-classified exception" (throwIO SynchronousButClassifiedAsynchronous :: IO ())
+    resultForest <- runSpecForestSynchronously defaultSettings specForest
+    let stats = computeTestSuiteStats defaultSettings (timedValue resultForest)
+    testSuiteStatSuccesses stats `shouldBe` 1
+    testSuiteStatFailures stats `shouldBe` 0
+
+  it "reports an asynchronously-classified exception as a failure in the asynchronous runner too" $ do
+    let settings = defaultSettings {settingThreads = Asynchronous 2}
+    specForest <-
+      execTestDefM settings $
+        it "throws an asynchronously-classified exception" (throwIO SynchronousButClassifiedAsynchronous :: IO ())
+    -- The timeout is here so that the asynchronous runner waiting forever for
+    -- a result that the test will never produce shows up as a failure instead
+    -- of a stuck test suite.
+    mResultForest <- timeout 10_000_000 $ runSpecForestAsynchronously settings 2 specForest
+    case mResultForest of
+      Nothing -> expectationFailure "the asynchronous runner never finished"
+      Just resultForest -> do
+        let stats = computeTestSuiteStats settings (timedValue resultForest)
+        testSuiteStatFailures stats `shouldBe` 1
+        testSuiteStatSuccesses stats `shouldBe` 0

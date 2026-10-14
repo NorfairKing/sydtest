@@ -17,8 +17,9 @@
   since 0.17.0.2 a test failing through it took the whole suite down with it
   and `expectFailing` could not accept it.
 
-* `exceptionHandlers` is gone, with nothing in its place: classifying
-  exceptions by type is what no longer happens.
+* `exceptionHandlers` is gone.  Nothing classifies exceptions by type any
+  more, so there is no replacement for it; `tryInOwnThread` is what runs a
+  test and catches what it throws.
 
 ### Fixed
 

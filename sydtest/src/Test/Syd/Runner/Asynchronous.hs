@@ -92,9 +92,7 @@ data Abort
   | -- | An exception escaped a test function, so the test that threw it will
     -- never deliver a result and no test queued behind it will either.
     --
-    -- 'Test.Syd.Run.exceptionHandlers' re-throws asynchronously-classified
-    -- exceptions on purpose, so this is the normal way for such an exception
-    -- to reach the caller.  Re-throwing it is what the synchronous runners do.
+    -- Re-throwing it is what the synchronous runners do.
     AbortException !SomeException
 
 -- | Wait for a test's result, unless the suite is being aborted.
@@ -259,12 +257,7 @@ runner settings nbThreads abortVar handleForest = do
 
                   let job :: Int -> IO ()
                       job workerNr = do
-                        -- Start the test.
-                        --
-                        -- An exception can still escape the test function:
-                        -- 'Test.Syd.Run.exceptionHandlers' re-throws
-                        -- asynchronously-classified ones instead of turning
-                        -- them into a result.
+                        -- Start the test
                         result <- recordEscapingExceptions abortVar $ runNow workerNr
 
                         -- Put the result in the mvar

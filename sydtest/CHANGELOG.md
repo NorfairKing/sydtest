@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.36.0.0] - 2026-10-15
+
+### Added
+
+* `ResourceFailureNode`, a result for a resource around a group of tests that
+  failed, rather than a suite that stops.
+
+  `afterAll`, `aroundAll` and `aroundAll_` run after the tests inside them
+  have all run and reported.  One that threw took the suite down at that
+  point, losing the summary and every result in it.  It is now reported where
+  it happened, named after the combinator it came from, and the tests keep
+  their results.
+
+  It counts as neither a success nor a failure, because there is no test whose
+  fault it is, so no count moves and `--terse`'s `Passed: n, Failed: 0` stays
+  exactly that.  The suite still exits non-zero: `shouldExitFail` is where a
+  resource failure tells.
+
+* A resource that finishes without ever running the tests inside it is
+  reported the same way.  Waiting for results that were not coming is what
+  that used to do.
+
+### Changed
+
+* `SpecTree` has a constructor more, so anything that matches on one
+  exhaustively needs a case for it.  `flattenSpecForest` leaves resource
+  failures out, as it does pending tests; `flattenResourceFailures` is what
+  returns them.
+
+
 ## [0.35.0.0] - 2026-10-15
 
 ### Changed

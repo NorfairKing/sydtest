@@ -18,9 +18,17 @@
   exactly that.  The suite still exits non-zero: `shouldExitFail` is where a
   resource failure tells.
 
-* A resource that finishes without ever running the tests inside it is
-  reported the same way.  Waiting for results that were not coming is what
-  that used to do.
+* A resource that fails *before* its tests is reported the same way, and every
+  test under it is reported as having failed for that reason.  Those results
+  are made rather than measured, because the tests never ran, and they carry
+  `ExpectPassing` whatever the tests around them asked for: a test that never
+  ran did not fail in the way `expectFailing` means.
+
+* A resource that finishes without ever running the tests inside it, or that
+  runs them more than once, is reported rather than waited on.  Waiting for
+  results that were not coming is what both of those used to do, which is the
+  hang `FootgunSpec` documented in comments.  Where a resource runs its tests
+  more than once, the first run is the one reported.
 
 ### Changed
 
@@ -28,6 +36,12 @@
   exhaustively needs a case for it.  `flattenSpecForest` leaves resource
   failures out, as it does pending tests; `flattenResourceFailures` is what
   returns them.
+
+### Removed
+
+* `applySimpleWrapper`, `applySimpleWrapper'` and `applySimpleWrapper''` from
+  `Test.Syd.Runner.Wrappers`.  Their reporting versions, which say what became
+  of the resource instead of letting it throw, replaced the only callers.
 
 
 ## [0.35.0.0] - 2026-10-15

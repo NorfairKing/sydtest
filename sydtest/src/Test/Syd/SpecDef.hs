@@ -238,14 +238,14 @@ reportUnrenderableDescriptions = goForest
     goForest = traverse goTree
 
     goTree :: TestTree a b -> IO (TestTree a b)
-    goTree t = case t of
-      DefSpecifyNode td tdef _ -> renderableOr (testDefCallStack tdef) t [td]
-      DefPendingNode td mr -> renderableOr emptyCallStack t (td : maybeToList mr)
-      DefDescribeNode td sdf -> do
-        errOrUnit <- try (forceDescriptions [td])
+    goTree tree = case tree of
+      DefSpecifyNode t td _ -> renderableOr (testDefCallStack td) tree [t]
+      DefPendingNode t mr -> renderableOr emptyCallStack tree (t : maybeToList mr)
+      DefDescribeNode t sdf -> do
+        errOrUnit <- try (forceDescriptions [t])
         case errOrUnit of
           Left e -> pure $ unrenderableDescriptionTest emptyCallStack e
-          Right () -> DefDescribeNode td <$> goForest sdf
+          Right () -> DefDescribeNode t <$> goForest sdf
       DefSetupNode func sdf -> DefSetupNode func <$> goForest sdf
       DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest sdf
       DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func <$> goForest sdf

@@ -82,7 +82,8 @@ runTestDefM sets defFunc = do
         if settingRandomiseExecutionOrder sets
           then evalRand (randomiseTestForest testForest') stdgen
           else testForest'
-  pure (a, testForest'')
+  renderableTestForest <- reportUnrenderableDescriptions testForest''
+  pure (a, renderableTestForest)
 
 -- | Get the path of 'describe' strings upwards.
 --

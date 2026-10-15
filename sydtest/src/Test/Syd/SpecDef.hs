@@ -17,6 +17,7 @@
 -- | This module defines all the functions you will use to define your test suite.
 module Test.Syd.SpecDef where
 
+import Control.Exception
 import Control.Monad
 import Control.Monad.Random
 import Data.DList (DList)
@@ -216,6 +217,90 @@ instance Traversable (SpecDefTree a c) where
           DefRetriesNode p sdf -> DefRetriesNode p <$> goF sdf
           DefFlakinessNode p sdf -> DefFlakinessNode p <$> goF sdf
           DefExpectationNode p sdf -> DefExpectationNode p <$> goF sdf
+
+-- | Replace every node whose description cannot be rendered with a test that
+-- fails for that reason.
+--
+-- A description is user code: @describe (nameFor x)@ throws whatever @nameFor@
+-- throws.  Nothing forces one until the output does, in the thread that
+-- collects results, where an exception takes the suite down along with the
+-- results of every test that had already run.  Worse, the terse output never
+-- forces a description at all, so the same suite passes piped into a file and
+-- dies in a terminal.  Forcing them all here, before any test runs, makes such
+-- a description one failing test either way.
+--
+-- A 'DefDescribeNode' takes its subtree with it, because a group that cannot
+-- say what it is cannot sensibly report what is under it.
+reportUnrenderableDescriptions :: TestForest outers inner -> IO (TestForest outers inner)
+reportUnrenderableDescriptions = goForest
+  where
+    goForest :: TestForest a b -> IO (TestForest a b)
+    goForest = traverse goTree
+
+    goTree :: TestTree a b -> IO (TestTree a b)
+    goTree t = case t of
+      DefSpecifyNode td tdef _ -> renderableOr (testDefCallStack tdef) t [td]
+      DefPendingNode td mr -> renderableOr emptyCallStack t (td : maybeToList mr)
+      DefDescribeNode td sdf -> do
+        errOrUnit <- try (forceDescriptions [td])
+        case errOrUnit of
+          Left e -> pure $ unrenderableDescriptionTest emptyCallStack e
+          Right () -> DefDescribeNode td <$> goForest sdf
+      DefSetupNode func sdf -> DefSetupNode func <$> goForest sdf
+      DefBeforeAllNode func sdf -> DefBeforeAllNode func <$> goForest sdf
+      DefBeforeAllWithNode func sdf -> DefBeforeAllWithNode func <$> goForest sdf
+      DefWrapNode func sdf -> DefWrapNode func <$> goForest sdf
+      DefAroundAllNode func sdf -> DefAroundAllNode func <$> goForest sdf
+      DefAroundAllWithNode func sdf -> DefAroundAllWithNode func <$> goForest sdf
+      DefAfterAllNode func sdf -> DefAfterAllNode func <$> goForest sdf
+      DefParallelismNode func sdf -> DefParallelismNode func <$> goForest sdf
+      DefRandomisationNode func sdf -> DefRandomisationNode func <$> goForest sdf
+      DefTimeoutNode func sdf -> DefTimeoutNode func <$> goForest sdf
+      DefRetriesNode func sdf -> DefRetriesNode func <$> goForest sdf
+      DefFlakinessNode func sdf -> DefFlakinessNode func <$> goForest sdf
+      DefExpectationNode func sdf -> DefExpectationNode func <$> goForest sdf
+
+    renderableOr :: CallStack -> TestTree a b -> [Text] -> IO (TestTree a b)
+    renderableOr cs keepIfRenderable ts = do
+      errOrUnit <- try (forceDescriptions ts)
+      pure $ case errOrUnit of
+        Left e -> unrenderableDescriptionTest cs e
+        Right () -> keepIfRenderable
+
+    forceDescriptions :: [Text] -> IO ()
+    forceDescriptions = mapM_ evaluate
+
+-- | The test that stands in for a node whose description could not be
+-- rendered.
+--
+-- Wrapped in a retry count of one: the failure is the same every time, so
+-- retrying it only buys a flakiness verdict about a description.
+unrenderableDescriptionTest :: CallStack -> SomeException -> TestTree a b
+unrenderableDescriptionTest cs e =
+  DefRetriesNode (const 1) $
+    pure $
+      DefSpecifyNode
+        "<description could not be rendered>"
+        TDef
+          { testDefVal = \_progressReporter _wrapper -> pure (descriptionFailureResult e),
+            testDefCallStack = cs
+          }
+        ()
+
+descriptionFailureResult :: SomeException -> TestRunResult
+descriptionFailureResult e =
+  TestRunResult
+    { testRunResultStatus = TestFailed,
+      testRunResultException = Just e,
+      testRunResultNumTests = Nothing,
+      testRunResultNumShrinks = Nothing,
+      testRunResultFailingInputs = [],
+      testRunResultLabels = Nothing,
+      testRunResultClasses = Nothing,
+      testRunResultTables = Nothing,
+      testRunResultGoldenCase = Nothing,
+      testRunResultExtraInfo = Nothing
+    }
 
 filterTestForest :: [Text] -> SpecDefForest outers inner result -> SpecDefForest outers inner result
 filterTestForest fs = fromMaybe [] . goForest DList.empty

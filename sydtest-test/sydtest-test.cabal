@@ -133,6 +133,7 @@ test-suite sydtest-test
       Test.Syd.SpecifySpec
       Test.Syd.TimeoutSpec
       Test.Syd.TimingSpec
+      Test.Syd.UnrenderableDescriptionSpec
       Paths_sydtest_test
   hs-source-dirs:
       test

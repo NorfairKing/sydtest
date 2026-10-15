@@ -314,8 +314,17 @@ runner settings nbThreads abortVar resourceFailuresVar handleForest = do
                         -- Start the test
                         result <- recordEscapingExceptions abortVar $ runNow workerNr
 
-                        -- Put the result in the mvar
-                        putMVar var result
+                        -- Put the result in the mvar.
+                        --
+                        -- 'tryPutMVar' because a resource that failed may have
+                        -- put a result here already: scheduling can stop
+                        -- part-way through a group, and the jobs already on the
+                        -- queue still run.  Blocking on a full var would leave
+                        -- this worker counted as working forever, which is the
+                        -- hang this whole mechanism is here to avoid.  A result
+                        -- that is already there says the resource this test
+                        -- needed failed, which is the more useful of the two.
+                        void $ tryPutMVar var result
 
                         -- If we should fail fast, put the
                         -- abort var so that no new

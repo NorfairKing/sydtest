@@ -23,7 +23,7 @@ data SpecTree a
     -- so after the tests it was around have all run and reported.  It still
     -- fails the suite, because a resource that could not be torn down is
     -- something to go and look at.
-    ResourceFailureNode Text SomeException
+    ResourceFailureNode !Text !SomeException
   deriving (Functor)
 
 instance Foldable SpecTree where

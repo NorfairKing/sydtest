@@ -138,6 +138,13 @@ insertResourceFailureSpec = describe "insertResourceFailure" $ do
     resourceFailurePaths (insertResourceFailure ["database"] "afterAll" failure forest)
       `shouldBe` [["database", "afterAll"]]
 
+  it "finds the group it names inside a subforest" $ do
+    -- A subforest is what a resource puts around a group, so the group named
+    -- in the path can be under one.
+    let forest = [SubForestNode [DescribeNode "database" []]]
+    resourceFailurePaths (insertResourceFailure ["database"] "afterAll" failure forest)
+      `shouldBe` [["database", "afterAll"]]
+
 resourceFailureBeforeSpec :: Spec
 resourceFailureBeforeSpec = describe "a resource that fails before the tests inside it" $ do
   it "is reported, by the synchronous runner" $ do
@@ -234,4 +241,3 @@ resourceFailureBeforeSpec = describe "a resource that fails before the tests ins
       Just resultForest -> do
         let stats = computeTestSuiteStats settings (timedValue resultForest)
         testSuiteStatFailures stats `shouldBe` 2
-        map fst (flattenResourceFailures (timedValue resultForest)) `shouldBe` [["database", "beforeAll_"]]

@@ -597,22 +597,40 @@ anyResourceFailures = not . null . flattenResourceFailures
 -- happened below.
 insertResourceFailures :: [([Text], Text, SomeException)] -> ResultForest -> ResultForest
 insertResourceFailures failures rf =
-  foldl (\sofar (path, kind, e) -> insertResourceFailure path kind e sofar) rf failures
+  foldl' (\sofar (path, kind, e) -> insertResourceFailure path kind e sofar) rf failures
 
 insertResourceFailure :: [Text] -> Text -> SomeException -> ResultForest -> ResultForest
 insertResourceFailure path kind e = go path
   where
     go :: [Text] -> ResultForest -> ResultForest
+    -- Nothing left of the path: this is the level it belongs on.
     go [] rf = rf ++ [ResourceFailureNode kind e]
-    go (t : rest) rf = case break (isDescribeOf t) rf of
-      (_, []) -> rf ++ [ResourceFailureNode kind e]
-      (before, DescribeNode _ sf : after) -> before ++ (DescribeNode t (go rest sf) : after)
-      (before, other : after) -> before ++ (other : after)
+    -- Nothing left of the forest: the group it names is not in here, so this
+    -- is as deep as it gets.
+    go _ [] = [ResourceFailureNode kind e]
+    go path'@(t : rest) (tree : trees) =
+      let keepLooking = tree : go path' trees
+       in case tree of
+            DescribeNode t' sf
+              | t' == t -> DescribeNode t' (go rest sf) : trees
+              | otherwise -> keepLooking
+            -- A subforest is structure rather than a name: it is what a
+            -- resource puts around a group, so the group named next in the
+            -- path can be inside one.
+            SubForestNode sf
+              | any (isNamed t) sf -> SubForestNode (go path' sf) : trees
+              | otherwise -> keepLooking
+            SpecifyNode _ _ -> keepLooking
+            PendingNode _ _ -> keepLooking
+            ResourceFailureNode _ _ -> keepLooking
 
-    isDescribeOf :: Text -> ResultTree -> Bool
-    isDescribeOf t = \case
+    isNamed :: Text -> ResultTree -> Bool
+    isNamed t = \case
       DescribeNode t' _ -> t' == t
-      _ -> False
+      SubForestNode sf -> any (isNamed t) sf
+      SpecifyNode _ _ -> False
+      PendingNode _ _ -> False
+      ResourceFailureNode _ _ -> False
 
 data TestRunReport = TestRunReport
   { testRunReportExpectationMode :: !ExpectationMode,

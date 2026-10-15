@@ -1,4 +1,5 @@
 {-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields -fno-warn-missing-methods -fno-warn-partial-fields -fno-warn-incomplete-uni-patterns -fno-warn-incomplete-record-updates #-}
 
@@ -92,7 +93,20 @@ main = do
         }
     tidyTDef :: TDef (Timed TestRunReport) -> TDef (Timed TestRunReport)
     tidyTDef = fmap (eraseTimed . fmap tidyTestRunReport)
+    -- A resource failure carries an exception of its own, which the tidying
+    -- above never reaches, and whose context holds the package-id hash that
+    -- makes a rendered backtrace differ between builds.
+    tidyResourceFailures :: ResultForest -> ResultForest
+    tidyResourceFailures = map tidyTree
+      where
+        tidyTree :: ResultTree -> ResultTree
+        tidyTree = \case
+          SpecifyNode t td -> SpecifyNode t td
+          PendingNode t mr -> PendingNode t mr
+          DescribeNode t sf -> DescribeNode t (tidyResourceFailures sf)
+          SubForestNode sf -> SubForestNode (tidyResourceFailures sf)
+          ResourceFailureNode t e -> ResourceFailureNode t (tidySomeException e)
     erasedTimedInResultForest :: ResultForest -> ResultForest
-    erasedTimedInResultForest = fmap (fmap tidyTDef)
+    erasedTimedInResultForest = tidyResourceFailures . fmap (fmap tidyTDef)
     eraseTiming :: Timed ResultForest -> Timed ResultForest
     eraseTiming = fmap erasedTimedInResultForest . eraseTimed

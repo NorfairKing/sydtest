@@ -130,35 +130,48 @@ runSpecForestInterleavedWithOutputSynchronously settings testForest = do
                   )
         DefWrapNode func sdf -> do
           e <- ask
-          liftIO $ fmap SubForestNode <$> applySimpleWrapper'' func (runReaderT (goForest sdf) e)
+          liftIO $
+            applySimpleWrapperReported'' func (runReaderT (goForest sdf) e)
+              >>= resourceSubtree "aroundAll_"
         DefAroundAllNode func sdf -> do
           e <- ask
           liftIO $
-            fmap SubForestNode
-              <$> applySimpleWrapper'
-                func
-                ( \b ->
-                    runReaderT
-                      (goForest sdf)
-                      (e {eExternalResources = HCons b (eExternalResources e)})
-                )
+            applySimpleWrapperReported'
+              func
+              ( \b ->
+                  runReaderT
+                    (goForest sdf)
+                    (e {eExternalResources = HCons b (eExternalResources e)})
+              )
+              >>= resourceSubtree "aroundAll"
         DefAroundAllWithNode func sdf -> do
           e <- ask
           let outers = eExternalResources e
           liftIO $
-            fmap SubForestNode
-              <$> applySimpleWrapper
-                func
-                ( \b ->
-                    runReaderT
-                      (goForest sdf)
-                      (e {eExternalResources = HCons b outers})
-                )
-                outers
+            applySimpleWrapperReported
+              func
+              ( \b ->
+                  runReaderT
+                    (goForest sdf)
+                    (e {eExternalResources = HCons b outers})
+              )
+              outers
+              >>= resourceSubtree "aroundAllWith"
         DefAfterAllNode func sdf -> do
           e <- ask
           let externalResources = eExternalResources e
-          liftIO $ fmap SubForestNode <$> (runReaderT (goForest sdf) e `finally` func externalResources)
+          liftIO $ do
+            -- The tests first, then the resource, and the resource even when
+            -- they threw: that is what 'finally' did here, and a resource that
+            -- is not torn down when something propagates is a resource leaked.
+            errOrResults <- try $ runReaderT (goForest sdf) e
+            errOrUnit <- try $ func externalResources
+            case errOrResults of
+              Left (propagating :: SomeException) -> throwIO propagating
+              Right nrf ->
+                resourceSubtree "afterAll" $ case errOrUnit of
+                  Right () -> ResourceRan nrf
+                  Left failure -> ResourceFailedAfter nrf failure
         DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest sdf -- Ignore, it's synchronous anyway
         DefRandomisationNode _ sdf -> fmap SubForestNode <$> goForest sdf -- Ignore, randomisation has already happened.
         DefTimeoutNode modTimeout sdf ->

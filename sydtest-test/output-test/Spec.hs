@@ -361,6 +361,12 @@ spec = do
   -- printing, after every test had already run.
   it "Failure whose rendering throws" (throwIO UnrenderableDisplay :: IO ())
 
+  -- Also last, for the same reason as above: a resource failure is rendered in
+  -- the tree and in the failures, and both of those are in the golden output.
+  describe "database" $
+    afterAll_ (throwIO (userError "could not drop the schema")) $
+      it "has a resource that fails after it" True
+
 -- | An exception that cannot be rendered: a 'displayException' that throws a
 -- plain 'userError', so that what the golden output records stays stable.
 --

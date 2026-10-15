@@ -324,6 +324,10 @@
     Retries: 3 (does not look flaky)
 [31m✗ [m[31mFailure whose rendering throws[m                                                    [32m      0.00 ms[m
   Retries: 3 (does not look flaky)
+[33mdatabase[m
+  [32m✓ [m[32mhas a resource that fails after it[m                                              [32m      0.00 ms[m
+  [31m✗ [m[31mafterAll[m
+    user error (could not drop the schema)
 
 
 [34mFailures:[m
@@ -901,9 +905,11 @@
        Retries: 3 (does not look flaky)
        This test failed, but its failure could not be rendered: user error (this displayException throws)
   
+  [31m✗ [m[31mdatabase.afterAll[m
+    user error (could not drop the schema)
 
-  Examples:                     [32m984[m
-  Passed:                       [32m31[m
+  Examples:                     [32m985[m
+  Passed:                       [32m32[m
   Failed:                       [31m82[m
   Flaky:                        [31m3[m
   Pending:                      [35m7[m

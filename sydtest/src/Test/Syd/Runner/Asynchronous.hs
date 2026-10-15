@@ -22,6 +22,7 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.Reader
 import Data.Maybe
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
 import GHC.Clock (getMonotonicTimeNSec)
@@ -31,6 +32,7 @@ import Test.Syd.OptParse
 import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.Runner.Single
+import Test.Syd.Runner.Wrappers
 import Test.Syd.SpecDef
 import Test.Syd.SpecForest
 import Text.Colour
@@ -40,22 +42,27 @@ runSpecForestAsynchronously settings nbThreads testForest = do
   setPseudorandomness (settingSeed settings)
   handleForest <- makeHandleForest testForest
   abortVar <- newEmptyMVar
-  let runRunner = runner settings nbThreads abortVar handleForest
+  resourceFailuresVar <- newTVarIO []
+  let runRunner = runner settings nbThreads abortVar resourceFailuresVar handleForest
       runPrinter = liftIO $ waiter abortVar handleForest
   ((), resultForest) <- concurrently runRunner runPrinter
-  pure resultForest
+  resourceFailures <- readTVarIO resourceFailuresVar
+  pure $ insertResourceFailures resourceFailures <$> resultForest
 
 runSpecForestInterleavedWithOutputAsynchronously :: Settings -> Word -> TestForest '[] () -> IO (Timed ResultForest)
 runSpecForestInterleavedWithOutputAsynchronously settings nbThreads testForest = do
   setPseudorandomness (settingSeed settings)
   handleForest <- makeHandleForest testForest
   abortVar <- newEmptyMVar
+  resourceFailuresVar <- newTVarIO []
   suiteBegin <- getMonotonicTimeNSec
-  let runRunner = runner settings nbThreads abortVar handleForest
+  let runRunner = runner settings nbThreads abortVar resourceFailuresVar handleForest
       runPrinter = case settingOutputFormat settings of
         OutputFormatPretty -> liftIO $ printer settings abortVar suiteBegin handleForest
         OutputFormatTerse -> liftIO $ waiter abortVar handleForest
-  ((), resultForest) <- concurrently runRunner runPrinter
+  ((), resultForestWithoutResourceFailures) <- concurrently runRunner runPrinter
+  resourceFailures <- readTVarIO resourceFailuresVar
+  let resultForest = insertResourceFailures resourceFailures <$> resultForestWithoutResourceFailures
 
   let outputLine :: [Chunk] -> IO ()
       outputLine lineChunks =
@@ -220,8 +227,16 @@ jobQueueWorker jobQueue workerIx = do
 --
 -- 2. Asks workers to wait after finishing what they were doing at the end of
 --     an outer resource block.
-runner :: Settings -> Word -> MVar Abort -> HandleForest '[] () -> IO ()
-runner settings nbThreads abortVar handleForest = do
+
+-- | A resource that failed, and the descriptions above it.
+--
+-- The thread that catches one is not the thread that builds the result forest,
+-- so these are collected here and put in the forest by path once both are
+-- done.  See 'insertResourceFailure'.
+type ResourceFailures = [([Text], Text, SomeException)]
+
+runner :: Settings -> Word -> MVar Abort -> TVar ResourceFailures -> HandleForest '[] () -> IO ()
+runner settings nbThreads abortVar resourceFailuresVar handleForest = do
   let nbWorkers = nbThreads
   let nbSpacesOnTheJobQueue = nbWorkers * 2
   jobQueue <- newJobQueue nbSpacesOnTheJobQueue
@@ -229,6 +244,23 @@ runner settings nbThreads abortVar handleForest = do
   withJobQueueWorkers nbWorkers jobQueue $ do
     let waitForWorkersDone :: IO ()
         waitForWorkersDone = blockUntilDone jobQueue
+
+    -- Record a resource that failed after the tests inside it ran, so that
+    -- the thread collecting results can put it in the forest.
+    --
+    -- A resource that failed before them is re-thrown: the tests under it have
+    -- no results, and this runner is the one that was going to give the
+    -- collecting thread any.
+    let reportResourceOutcome :: Text -> ResourceOutcome () -> R a ()
+        reportResourceOutcome kind outcome = do
+          path <- asks eDescriptionPath
+          liftIO $ case outcome of
+            ResourceRan () -> pure ()
+            ResourceFailedAfter () failure ->
+              atomically $ modifyTVar' resourceFailuresVar (++ [(path, kind, failure)])
+            ResourceFailedBefore failure -> throwIO failure
+            ResourceSkippedTests ->
+              throwIO (ExpectationFailed "This resource finished without ever running the tests inside it.")
 
     let goForest :: forall a. HandleForest a () -> R a ()
         goForest = mapM_ goTree
@@ -295,7 +327,8 @@ runner settings nbThreads abortVar handleForest = do
                       enqueueJob jobQueue $ \workerNr ->
                         bracket_ (waitQSem sem) (signalQSem sem) (job workerNr)
           DefPendingNode _ _ -> pure ()
-          DefDescribeNode _ sdf -> goForest sdf
+          DefDescribeNode t sdf ->
+            withReaderT (\e -> e {eDescriptionPath = eDescriptionPath e ++ [t]}) (goForest sdf)
           DefSetupNode func sdf -> do
             liftIO func
             goForest sdf
@@ -314,40 +347,57 @@ runner settings nbThreads abortVar handleForest = do
                 (e {eExternalResources = HCons b (eExternalResources e)})
           DefWrapNode func sdf -> do
             e <- ask
-            liftIO $
-              func $ do
-                runReaderT (goForest sdf) e
-                waitForWorkersDone
+            outcome <-
+              liftIO $
+                applySimpleWrapperReported'' func $ do
+                  runReaderT (goForest sdf) e
+                  waitForWorkersDone
+            reportResourceOutcome "aroundAll_" outcome
           DefAroundAllNode func sdf -> do
             e <- ask
-            liftIO $
-              func
-                ( \b -> do
-                    runReaderT
-                      (goForest sdf)
-                      (e {eExternalResources = HCons b (eExternalResources e)})
-                    waitForWorkersDone
-                )
+            outcome <-
+              liftIO $
+                applySimpleWrapperReported'
+                  func
+                  ( \b -> do
+                      runReaderT
+                        (goForest sdf)
+                        (e {eExternalResources = HCons b (eExternalResources e)})
+                      waitForWorkersDone
+                  )
+            reportResourceOutcome "aroundAll" outcome
           DefAroundAllWithNode func sdf -> do
             e <- ask
             let outers = eExternalResources e
-            liftIO $
-              func
-                ( \b -> do
-                    runReaderT
-                      (goForest sdf)
-                      (e {eExternalResources = HCons b outers})
-                    waitForWorkersDone
-                )
-                outers
+            outcome <-
+              liftIO $
+                applySimpleWrapperReported
+                  func
+                  ( \b -> do
+                      runReaderT
+                        (goForest sdf)
+                        (e {eExternalResources = HCons b outers})
+                      waitForWorkersDone
+                  )
+                  outers
+            reportResourceOutcome "aroundAllWith" outcome
           DefAfterAllNode func sdf -> do
             e <- ask
-            liftIO $
-              runReaderT (goForest sdf) e
-                `finally` ( do
-                              waitForWorkersDone
-                              func (eExternalResources e)
-                          )
+            errOrUnit <- liftIO $ do
+              -- The tests first, then the resource, and the resource even when
+              -- scheduling them threw: that is what 'finally' did here, and a
+              -- resource that is not torn down when something propagates is a
+              -- resource leaked.
+              errOrScheduled <- try $ runReaderT (goForest sdf) e
+              errOrUnit <- try $ do
+                waitForWorkersDone
+                func (eExternalResources e)
+              case errOrScheduled of
+                Left (propagating :: SomeException) -> throwIO propagating
+                Right () -> pure errOrUnit
+            reportResourceOutcome "afterAll" $ case errOrUnit of
+              Right () -> ResourceRan ()
+              Left failure -> ResourceFailedAfter () failure
           DefParallelismNode p' sdf -> do
             runParallelism <- liftIO $ resolveParallelism p'
             withReaderT
@@ -375,7 +425,8 @@ runner settings nbThreads abortVar handleForest = do
     runReaderT
       (goForest handleForest)
       Env
-        { eParallelism = RunParallel,
+        { eDescriptionPath = [],
+          eParallelism = RunParallel,
           eTimeout = settingTimeout settings,
           eRetries = settingRetries settings,
           eFlakinessMode = MayNotBeFlaky,
@@ -403,7 +454,8 @@ type R a = ReaderT (Env a) IO
 
 -- Not exported, on purpose.
 data Env externalResources = Env
-  { eParallelism :: !RunParallelism,
+  { eDescriptionPath :: ![Text],
+    eParallelism :: !RunParallelism,
     eTimeout :: !Timeout,
     eRetries :: !Word,
     eFlakinessMode :: !FlakinessMode,

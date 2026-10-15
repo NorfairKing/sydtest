@@ -463,6 +463,10 @@ computeTestSuiteStats settings = goF []
           }
       DescribeNode t sf -> goF (t : ts) sf
       SubForestNode sf -> goF ts sf
+      -- Neither a success nor a failure: there is no test whose fault it is,
+      -- and counting it as one would mean a count that no longer matches the
+      -- tests that were written.  'shouldExitFail' is where it tells.
+      ResourceFailureNode _ _ -> mempty
 
 data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
@@ -510,10 +514,45 @@ shouldExitFail settings resultForest =
   null resultForest
     -- ... or if any tests failed.
     || anyFailedTests settings resultForest
+    -- ... or if a resource around them did.  It is in no count, so this is
+    -- the only place a run that is otherwise green says so.
+    || anyResourceFailures resultForest
 
 anyFailedTests :: Settings -> ResultForest -> Bool
 anyFailedTests settings resultForest =
   any (any (testRunReportFailed settings . timedValue . testDefVal)) resultForest
+
+anyResourceFailures :: ResultForest -> Bool
+anyResourceFailures = not . null . flattenResourceFailures
+
+-- | Put a resource failure in the forest, under the descriptions it happened
+-- below.
+--
+-- The runner that catches one is not the one that builds the result forest, in
+-- the asynchronous case, so the path is how they agree on where it belongs.
+-- Two groups can share a path, in which case the first of them gets it: a
+-- misplaced resource failure beats a dropped one, and the exception says what
+-- happened either way.
+-- | Put every resource failure in the forest, each under the descriptions it
+-- happened below.
+insertResourceFailures :: [([Text], Text, SomeException)] -> ResultForest -> ResultForest
+insertResourceFailures failures rf =
+  foldl (\sofar (path, kind, e) -> insertResourceFailure path kind e sofar) rf failures
+
+insertResourceFailure :: [Text] -> Text -> SomeException -> ResultForest -> ResultForest
+insertResourceFailure path kind e = go path
+  where
+    go :: [Text] -> ResultForest -> ResultForest
+    go [] rf = rf ++ [ResourceFailureNode kind e]
+    go (t : rest) rf = case break (isDescribeOf t) rf of
+      (_, []) -> rf ++ [ResourceFailureNode kind e]
+      (before, DescribeNode _ sf : after) -> before ++ (DescribeNode t (go rest sf) : after)
+      (before, other : after) -> before ++ (other : after)
+
+    isDescribeOf :: Text -> ResultTree -> Bool
+    isDescribeOf t = \case
+      DescribeNode t' _ -> t' == t
+      _ -> False
 
 data TestRunReport = TestRunReport
   { testRunReportExpectationMode :: !ExpectationMode,

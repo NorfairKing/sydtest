@@ -4,6 +4,7 @@
 
 module Test.Syd.Output.Terse where
 
+import Control.Exception
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Builder as Text
@@ -34,8 +35,27 @@ outputTerseSummary settings trf =
       totalTimeSeconds = fromIntegral (timedTime trf) / 1_000_000_000 :: Double
    in concat
         [ concatMap (outputTerseFailure settings) failures,
+          concatMap outputTerseResourceFailure (flattenResourceFailures rf),
           [outputTerseStats stats totalTimeSeconds]
         ]
+
+-- | A resource failure in terse format.
+--
+-- It has no location to name, because what failed is a resource around a group
+-- of tests rather than a line in one, so the group's path is what says where
+-- to look.
+outputTerseResourceFailure :: ([Text], SomeException) -> [[Chunk]]
+outputTerseResourceFailure (path, e) =
+  concat
+    [ [ [ chunk "FAIL ",
+          chunk (T.intercalate "." path)
+        ]
+      ],
+      map
+        (\l -> if null l then l else padding : l)
+        (outputSomeException e),
+      [[chunk ""]]
+    ]
 
 -- | Output a single failure in terse format.
 outputTerseFailure :: Settings -> ([Text], TDef (Timed TestRunReport)) -> [[Chunk]]

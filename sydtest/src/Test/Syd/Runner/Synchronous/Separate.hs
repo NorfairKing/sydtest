@@ -64,32 +64,36 @@ runSpecForestSynchronously settings testForest = do
       DefPendingNode t mr -> pure $ Continue $ PendingNode t mr
       DefDescribeNode t sdf -> fmap (DescribeNode t) <$> goForest sdf
       DefSetupNode func sdf -> do
-        liftIO func
-        fmap SubForestNode <$> goForest sdf
+        errOrUnit <- liftIO $ try func
+        case errOrUnit of
+          Left failure -> pure $ Continue $ failedSubtree "beforeAll_" sdf failure
+          Right () -> fmap SubForestNode <$> goForest sdf
       DefBeforeAllNode func sdf -> do
-        fmap SubForestNode
-          <$> ( do
-                  b <- liftIO func
-                  withReaderT
-                    (\e -> e {eExternalResources = HCons b (eExternalResources e)})
-                    (goForest sdf)
-              )
+        errOrB <- liftIO $ try func
+        case errOrB of
+          Left failure -> pure $ Continue $ failedSubtree "beforeAll" sdf failure
+          Right b ->
+            fmap SubForestNode
+              <$> withReaderT
+                (\env -> env {eExternalResources = HCons b (eExternalResources env)})
+                (goForest sdf)
       DefBeforeAllWithNode func sdf -> do
         e <- ask
         let HCons x _ = eExternalResources e
-        liftIO $
-          fmap SubForestNode
-            <$> ( do
-                    b <- liftIO (func x)
-                    runReaderT
-                      (goForest sdf)
-                      (e {eExternalResources = HCons b (eExternalResources e)})
-                )
+        errOrB <- liftIO $ try $ func x
+        case errOrB of
+          Left failure -> pure $ Continue $ failedSubtree "beforeAllWith" sdf failure
+          Right b ->
+            liftIO $
+              fmap SubForestNode
+                <$> runReaderT
+                  (goForest sdf)
+                  (e {eExternalResources = HCons b (eExternalResources e)})
       DefWrapNode func sdf -> do
         e <- ask
         liftIO $
           applySimpleWrapperReported'' func (runReaderT (goForest sdf) e)
-            >>= resourceSubtree "aroundAll_"
+            >>= resourceSubtree "aroundAll_" sdf
       DefAroundAllNode func sdf -> do
         e <- ask
         liftIO $
@@ -100,7 +104,7 @@ runSpecForestSynchronously settings testForest = do
                   (goForest sdf)
                   (e {eExternalResources = HCons b (eExternalResources e)})
             )
-            >>= resourceSubtree "aroundAll"
+            >>= resourceSubtree "aroundAll" sdf
       DefAroundAllWithNode func sdf -> do
         e <- ask
         let outers = eExternalResources e
@@ -113,7 +117,7 @@ runSpecForestSynchronously settings testForest = do
                   (e {eExternalResources = HCons b outers})
             )
             outers
-            >>= resourceSubtree "aroundAllWith"
+            >>= resourceSubtree "aroundAllWith" sdf
       DefAfterAllNode func sdf -> do
         e <- ask
         let externalResources = eExternalResources e
@@ -126,7 +130,7 @@ runSpecForestSynchronously settings testForest = do
           case errOrResults of
             Left (propagating :: SomeException) -> throwIO propagating
             Right nrf ->
-              resourceSubtree "afterAll" $ case errOrUnit of
+              resourceSubtree "afterAll" sdf $ case errOrUnit of
                 Right () -> ResourceRan nrf
                 Left failure -> ResourceFailedAfter nrf failure
       DefParallelismNode _ sdf -> fmap SubForestNode <$> goForest sdf -- Ignore, it's synchronous anyway

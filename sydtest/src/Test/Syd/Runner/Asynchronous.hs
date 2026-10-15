@@ -21,6 +21,7 @@ import Control.Concurrent.STM as STM
 import Control.Exception
 import Control.Monad
 import Control.Monad.Reader
+import Data.Foldable (traverse_)
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -87,6 +88,17 @@ type HandleTree a b = SpecDefTree a b (MVar (Timed TestRunReport))
 
 makeHandleForest :: TestForest a b -> IO (HandleForest a b)
 makeHandleForest = traverse $ traverse $ \() -> newEmptyMVar
+
+-- | Give every test in a forest a result saying a resource it needed failed.
+--
+-- 'tryPutMVar' because a test that already has a result keeps it: this is for
+-- the tests that were never scheduled, and a resource failing on the way out
+-- does not take the results of the tests it was around.
+failTestsWith :: SomeException -> HandleForest a b -> IO ()
+failTestsWith failure =
+  traverse_ $
+    traverse_ $ \var ->
+      void $ tryPutMVar var $ zeroTimed $ resourceFailureReport failure
 
 -- | Why the suite stops before every test has produced a result.
 --
@@ -245,22 +257,32 @@ runner settings nbThreads abortVar resourceFailuresVar handleForest = do
     let waitForWorkersDone :: IO ()
         waitForWorkersDone = blockUntilDone jobQueue
 
-    -- Record a resource that failed after the tests inside it ran, so that
-    -- the thread collecting results can put it in the forest.
-    --
-    -- A resource that failed before them is re-thrown: the tests under it have
-    -- no results, and this runner is the one that was going to give the
-    -- collecting thread any.
-    let reportResourceOutcome :: Text -> ResourceOutcome () -> R a ()
-        reportResourceOutcome kind outcome = do
+    -- Record a resource that failed, so that the thread collecting results can
+    -- put it in the forest.
+    let recordResourceFailure :: Text -> SomeException -> R a ()
+        recordResourceFailure kind failure = do
           path <- asks eDescriptionPath
-          liftIO $ case outcome of
-            ResourceRan () -> pure ()
-            ResourceFailedAfter () failure ->
-              atomically $ modifyTVar' resourceFailuresVar (++ [(path, kind, failure)])
-            ResourceFailedBefore failure -> throwIO failure
-            ResourceSkippedTests ->
-              throwIO (ExpectationFailed "This resource finished without ever running the tests inside it.")
+          liftIO $ atomically $ modifyTVar' resourceFailuresVar (++ [(path, kind, failure)])
+
+    -- Report a resource that failed, and give the tests it never ran a result
+    -- saying so.
+    --
+    -- The results are what keep the collecting thread going: it waits on each
+    -- test in turn, so a subtree whose tests are never scheduled is a thread
+    -- that never stops waiting.
+    let reportResourceFailure :: Text -> HandleForest a' () -> SomeException -> R a ()
+        reportResourceFailure kind hf failure = do
+          recordResourceFailure kind failure
+          liftIO $ failTestsWith failure hf
+
+    let reportResourceOutcome :: Text -> HandleForest a' () -> ResourceOutcome () -> R a ()
+        reportResourceOutcome kind hf outcome = case outcome of
+          ResourceRan () -> pure ()
+          ResourceFailedAfter () failure -> recordResourceFailure kind failure
+          ResourceFailedBefore failure -> reportResourceFailure kind hf failure
+          ResourceSkippedTests ->
+            reportResourceFailure kind hf $
+              toException (ExpectationFailed "This resource finished without ever running the tests inside it.")
 
     let goForest :: forall a. HandleForest a () -> R a ()
         goForest = mapM_ goTree
@@ -330,21 +352,29 @@ runner settings nbThreads abortVar resourceFailuresVar handleForest = do
           DefDescribeNode t sdf ->
             withReaderT (\e -> e {eDescriptionPath = eDescriptionPath e ++ [t]}) (goForest sdf)
           DefSetupNode func sdf -> do
-            liftIO func
-            goForest sdf
+            errOrUnit <- liftIO $ try func
+            case errOrUnit of
+              Left failure -> reportResourceFailure "beforeAll_" sdf failure
+              Right () -> goForest sdf
           DefBeforeAllNode func sdf -> do
-            b <- liftIO func
-            withReaderT
-              (\e -> e {eExternalResources = HCons b (eExternalResources e)})
-              (goForest sdf)
+            errOrB <- liftIO $ try func
+            case errOrB of
+              Left failure -> reportResourceFailure "beforeAll" sdf failure
+              Right b ->
+                withReaderT
+                  (\e -> e {eExternalResources = HCons b (eExternalResources e)})
+                  (goForest sdf)
           DefBeforeAllWithNode func sdf -> do
             e <- ask
             let HCons x _ = eExternalResources e
-            b <- liftIO $ func x
-            liftIO $
-              runReaderT
-                (goForest sdf)
-                (e {eExternalResources = HCons b (eExternalResources e)})
+            errOrB <- liftIO $ try $ func x
+            case errOrB of
+              Left failure -> reportResourceFailure "beforeAllWith" sdf failure
+              Right b ->
+                liftIO $
+                  runReaderT
+                    (goForest sdf)
+                    (e {eExternalResources = HCons b (eExternalResources e)})
           DefWrapNode func sdf -> do
             e <- ask
             outcome <-
@@ -352,7 +382,7 @@ runner settings nbThreads abortVar resourceFailuresVar handleForest = do
                 applySimpleWrapperReported'' func $ do
                   runReaderT (goForest sdf) e
                   waitForWorkersDone
-            reportResourceOutcome "aroundAll_" outcome
+            reportResourceOutcome "aroundAll_" sdf outcome
           DefAroundAllNode func sdf -> do
             e <- ask
             outcome <-
@@ -365,7 +395,7 @@ runner settings nbThreads abortVar resourceFailuresVar handleForest = do
                         (e {eExternalResources = HCons b (eExternalResources e)})
                       waitForWorkersDone
                   )
-            reportResourceOutcome "aroundAll" outcome
+            reportResourceOutcome "aroundAll" sdf outcome
           DefAroundAllWithNode func sdf -> do
             e <- ask
             let outers = eExternalResources e
@@ -380,7 +410,7 @@ runner settings nbThreads abortVar resourceFailuresVar handleForest = do
                       waitForWorkersDone
                   )
                   outers
-            reportResourceOutcome "aroundAllWith" outcome
+            reportResourceOutcome "aroundAllWith" sdf outcome
           DefAfterAllNode func sdf -> do
             e <- ask
             errOrUnit <- liftIO $ do
@@ -395,7 +425,7 @@ runner settings nbThreads abortVar resourceFailuresVar handleForest = do
               case errOrScheduled of
                 Left (propagating :: SomeException) -> throwIO propagating
                 Right () -> pure errOrUnit
-            reportResourceOutcome "afterAll" $ case errOrUnit of
+            reportResourceOutcome "afterAll" sdf $ case errOrUnit of
               Right () -> ResourceRan ()
               Left failure -> ResourceFailedAfter () failure
           DefParallelismNode p' sdf -> do

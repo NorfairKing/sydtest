@@ -282,13 +282,15 @@ unrenderableDescriptionTest cs e =
       DefSpecifyNode
         "<description could not be rendered>"
         TDef
-          { testDefVal = \_progressReporter _wrapper -> pure (descriptionFailureResult e),
+          { testDefVal = \_progressReporter _wrapper -> pure (failedTestRunResult e),
             testDefCallStack = cs
           }
         ()
 
-descriptionFailureResult :: SomeException -> TestRunResult
-descriptionFailureResult e =
+-- | A test that failed with this exception, and has nothing else to say about
+-- itself.
+failedTestRunResult :: SomeException -> TestRunResult
+failedTestRunResult e =
   TestRunResult
     { testRunResultStatus = TestFailed,
       testRunResultException = Just e,
@@ -300,6 +302,64 @@ descriptionFailureResult e =
       testRunResultTables = Nothing,
       testRunResultGoldenCase = Nothing,
       testRunResultExtraInfo = Nothing
+    }
+
+-- | The report for a test that never ran, because a resource it needed failed.
+--
+-- 'ExpectPassing' whatever the tests around it asked for: a test that never
+-- ran did not fail in the way 'Test.Syd.expectFailing' means, so letting the
+-- surrounding expectation mode apply here would let a failed resource pass for
+-- an expected failure.
+--
+-- 'MayNotBeFlaky' for the same reason: there is one attempt and nothing to
+-- retry, since the resource is gone rather than the test flaky.
+resourceFailureReport :: SomeException -> TestRunReport
+resourceFailureReport e =
+  TestRunReport
+    { testRunReportExpectationMode = ExpectPassing,
+      testRunReportRawResults = failedTestRunResult e :| [],
+      testRunReportFlakinessMode = MayNotBeFlaky
+    }
+
+-- | Every test in a forest, reported as having failed because a resource it
+-- needed failed.
+--
+-- The tests never ran, so these results are made rather than measured, which
+-- is the honest alternative to leaving them out: a test whose resource failed
+-- is a test that did not pass, and a report that leaves it out says nothing
+-- about it at all.
+failedTestsForest :: SomeException -> SpecDefForest a b extra -> ResultForest
+failedTestsForest e = concatMap goTree
+  where
+    goTree :: SpecDefTree a b extra -> ResultForest
+    goTree = \case
+      DefSpecifyNode t (TDef _ cs) _ ->
+        [SpecifyNode t (TDef (zeroTimed (resourceFailureReport e)) cs)]
+      DefPendingNode t mr -> [PendingNode t mr]
+      DefDescribeNode t sdf -> [DescribeNode t (failedTestsForest e sdf)]
+      DefSetupNode _ sdf -> failedTestsForest e sdf
+      DefBeforeAllNode _ sdf -> failedTestsForest e sdf
+      DefBeforeAllWithNode _ sdf -> failedTestsForest e sdf
+      DefWrapNode _ sdf -> failedTestsForest e sdf
+      DefAroundAllNode _ sdf -> failedTestsForest e sdf
+      DefAroundAllWithNode _ sdf -> failedTestsForest e sdf
+      DefAfterAllNode _ sdf -> failedTestsForest e sdf
+      DefParallelismNode _ sdf -> failedTestsForest e sdf
+      DefRandomisationNode _ sdf -> failedTestsForest e sdf
+      DefTimeoutNode _ sdf -> failedTestsForest e sdf
+      DefRetriesNode _ sdf -> failedTestsForest e sdf
+      DefFlakinessNode _ sdf -> failedTestsForest e sdf
+      DefExpectationNode _ sdf -> failedTestsForest e sdf
+
+-- | A value with no time taken, for a result that was made rather than
+-- measured.
+zeroTimed :: a -> Timed a
+zeroTimed a =
+  Timed
+    { timedValue = a,
+      timedWorker = 0,
+      timedBegin = 0,
+      timedEnd = 0
     }
 
 filterTestForest :: [Text] -> SpecDefForest outers inner result -> SpecDefForest outers inner result

@@ -9,6 +9,7 @@ module Test.Syd.Runner.Wrappers where
 
 import Control.Concurrent
 import Control.Exception
+import Control.Monad (void)
 import Control.Monad.IO.Class
 import Data.Text (Text)
 import Test.Syd.OptParse
@@ -59,7 +60,7 @@ applySimpleWrapperReported' takeTakeA takeA = do
   errOrUnit <- try $
     takeTakeA $ \a -> do
       r <- takeA a
-      putMVar var r
+      void $ tryPutMVar var r
   resourceOutcome var errOrUnit
 
 -- | 'applySimpleWrapper', reporting what became of the resource instead of
@@ -76,7 +77,7 @@ applySimpleWrapperReported takeTakeA takeA b = do
       takeTakeA
         ( \a -> do
             r <- takeA a
-            putMVar var r
+            void $ tryPutMVar var r
         )
         b
   resourceOutcome var errOrUnit
@@ -92,7 +93,7 @@ applySimpleWrapperReported'' wrapper produceResult = do
   errOrUnit <- try $
     wrapper $ do
       r <- produceResult
-      putMVar var r
+      void $ tryPutMVar var r
   resourceOutcome var errOrUnit
 
 -- | The subtree to report for a group of tests and the resource around them.
@@ -101,21 +102,27 @@ applySimpleWrapperReported'' wrapper produceResult = do
 -- because those results are worth having: the tests ran and said what they
 -- found.
 --
--- A resource that threw before them is re-thrown, because there are no results
--- to report it next to and the tests under it never started.
-resourceSubtree :: Text -> ResourceOutcome (Next ResultForest) -> IO (Next ResultTree)
-resourceSubtree kind = \case
+-- A resource that threw before them is reported in front of the tests it
+-- never ran, each of which is reported as having failed for that reason.  The
+-- tests are in the report either way, which is what keeps a failed resource
+-- from quietly shrinking the suite.
+resourceSubtree :: Text -> SpecDefForest a b extra -> ResourceOutcome (Next ResultForest) -> IO (Next ResultTree)
+resourceSubtree kind sdf = \case
   ResourceRan nrf -> pure $ SubForestNode <$> nrf
   ResourceFailedAfter nrf e -> pure $ (\rf -> SubForestNode (rf ++ [ResourceFailureNode kind e])) <$> nrf
-  ResourceFailedBefore e -> throwIO e
+  ResourceFailedBefore e -> pure $ Continue $ failedSubtree kind sdf e
   ResourceSkippedTests ->
     -- The resource ran, and never ran the tests.  Waiting for results that
     -- are not coming is what this used to do.
     pure $
       Continue $
-        ResourceFailureNode
-          kind
-          (toException (ExpectationFailed "This resource finished without ever running the tests inside it."))
+        failedSubtree kind sdf $
+          toException (ExpectationFailed "This resource finished without ever running the tests inside it.")
+
+-- | The subtree for a resource that failed and the tests it never ran.
+failedSubtree :: Text -> SpecDefForest a b extra -> SomeException -> ResultTree
+failedSubtree kind sdf e =
+  SubForestNode (failedTestsForest e sdf ++ [ResourceFailureNode kind e])
 
 resourceOutcome :: MVar r -> Either SomeException () -> IO (ResourceOutcome r)
 resourceOutcome var errOrUnit = do
@@ -125,49 +132,6 @@ resourceOutcome var errOrUnit = do
     (Right (), Nothing) -> ResourceSkippedTests
     (Left e, Just r) -> ResourceFailedAfter r e
     (Left e, Nothing) -> ResourceFailedBefore e
-
-applySimpleWrapper ::
-  (MonadIO m) =>
-  ((a -> m ()) -> (b -> m ())) ->
-  (a -> m r) ->
-  (b -> m r)
-applySimpleWrapper takeTakeA takeA b = do
-  var <- liftIO newEmptyMVar
-  takeTakeA
-    ( \a -> do
-        r <- takeA a
-        liftIO $ putMVar var r
-    )
-    b
-  liftIO $ readMVar var
-
-applySimpleWrapper' ::
-  (MonadIO m) =>
-  ((a -> m ()) -> m ()) ->
-  (a -> m r) ->
-  m r
-applySimpleWrapper' takeTakeA takeA = do
-  var <- liftIO newEmptyMVar
-  takeTakeA
-    ( \a -> do
-        r <- takeA a
-        liftIO $ putMVar var r
-    )
-
-  liftIO $ readMVar var
-
-applySimpleWrapper'' ::
-  (MonadIO m) =>
-  (m () -> m ()) ->
-  m r ->
-  m r
-applySimpleWrapper'' wrapper produceResult = do
-  var <- liftIO newEmptyMVar
-  wrapper $ do
-    r <- produceResult
-    liftIO $ putMVar var r
-
-  liftIO $ readMVar var
 
 applySimpleWrapper2 ::
   (MonadIO m) =>

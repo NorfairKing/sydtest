@@ -15,13 +15,14 @@ data SpecTree a
   | PendingNode Text (Maybe Text)
   | DescribeNode Text (SpecForest a) -- A description
   | SubForestNode (SpecForest a)
-  | -- | A resource around a group of tests that failed, named by the kind of
-    -- resource it was.
+  | -- | A resource around a group of tests that failed, named after the
+    -- combinator it came from.
     --
     -- This is not a test, and counts as neither a success nor a failure,
-    -- because there is no test whose fault it is: a teardown that throws does
-    -- so after the tests it was around have all run and reported.  It still
-    -- fails the suite, because a resource that could not be torn down is
+    -- because there is no test whose fault it is: the resource failed either
+    -- before the tests it was around, which are reported as having failed for
+    -- that reason, or after they had all run and reported.  It still fails the
+    -- suite, because a resource that could not be set up or torn down is
     -- something to go and look at.
     ResourceFailureNode !Text !SomeException
   deriving (Functor)

@@ -225,6 +225,24 @@ resourceFailureBeforeSpec = describe "a resource that fails before the tests ins
     resultForest <- runSpecForestSynchronously defaultSettings specForest
     map fst (flattenResourceFailures (timedValue resultForest)) `shouldBe` [["aroundAll"]]
 
+  it "does not leave the asynchronous runner waiting when a wrapping resource throws on the way in" $ do
+    -- The wrapper never reaches the function it is given, so nothing in the
+    -- group is ever scheduled, and the thread collecting results is waiting
+    -- on every one of them.
+    let settings = defaultSettings {settingThreads = Asynchronous 2}
+    specForest <-
+      execTestDefM settings $
+        aroundAll_ (\_ -> throwIO (userError "could not start postgres")) $ do
+          it "reads a row" (pure () :: IO ())
+          it "writes a row" (pure () :: IO ())
+    mResultForest <- timeout 10_000_000 $ runSpecForestAsynchronously settings 2 specForest
+    case mResultForest of
+      Nothing -> expectationFailure "the asynchronous runner never finished"
+      Just resultForest -> do
+        let stats = computeTestSuiteStats settings (timedValue resultForest)
+        testSuiteStatFailures stats `shouldBe` 2
+        map fst (flattenResourceFailures (timedValue resultForest)) `shouldBe` [["aroundAll_"]]
+
   it "does not leave the asynchronous runner waiting for tests that never ran" $ do
     -- Its results are collected by a thread that waits on each test, so a
     -- subtree that never runs is a thread that never stops waiting.

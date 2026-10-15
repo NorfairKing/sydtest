@@ -134,6 +134,7 @@ test-suite sydtest-test
       Test.Syd.TimeoutSpec
       Test.Syd.TimingSpec
       Test.Syd.UnrenderableDescriptionSpec
+      Test.Syd.UnrenderableFailureSpec
       Paths_sydtest_test
   hs-source-dirs:
       test
@@ -146,6 +147,7 @@ test-suite sydtest-test
     , base >=4.7 && <5
     , bytestring
     , containers
+    , deepseq
     , fast-myers-diff
     , filepath
     , mtl

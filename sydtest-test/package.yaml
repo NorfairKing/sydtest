@@ -45,6 +45,7 @@ tests:
     - async
     - bytestring
     - containers
+    - deepseq
     - fast-myers-diff
     - mtl
     - opt-env-conf-test

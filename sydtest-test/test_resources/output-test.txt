@@ -322,6 +322,8 @@
   [32m✓ [m[32mshould be even[m                                                                  [32m      0.00 ms[m
   [31m✗ [m[31mshould be even[m                                                                  [32m      0.00 ms[m
     Retries: 3 (does not look flaky)
+[31m✗ [m[31mFailure whose rendering throws[m                                                    [32m      0.00 ms[m
+  Retries: 3 (does not look flaky)
 
 
 [34mFailures:[m
@@ -894,10 +896,15 @@
        Retries: 3 (does not look flaky)
        Prelude.undefined
   
+  [36m  output-test/Spec.hs:362[m
+  [31m✗ [m[31m82 [m[31mFailure whose rendering throws[m
+       Retries: 3 (does not look flaky)
+       This test failed, but its failure could not be rendered: user error (this displayException throws)
+  
 
-  Examples:                     [32m981[m
+  Examples:                     [32m984[m
   Passed:                       [32m31[m
-  Failed:                       [31m81[m
+  Failed:                       [31m82[m
   Flaky:                        [31m3[m
   Pending:                      [35m7[m
   Sum of test runtimes:[33m         0.00 seconds[m

@@ -1,4 +1,4 @@
-{ mkDerivation, async, base, bytestring, containers
+{ mkDerivation, async, base, bytestring, containers, deepseq
 , fast-myers-diff, filepath, lib, mtl, opt-env-conf-test, path
 , path-io, process, QuickCheck, random, safe-coloured-text, stm
 , sydtest, sydtest-discover, sydtest-mutation-runtime, text, time
@@ -13,8 +13,8 @@ mkDerivation {
   libraryHaskellDepends = [ base ];
   executableHaskellDepends = [ base sydtest ];
   testHaskellDepends = [
-    async base bytestring containers fast-myers-diff filepath mtl
-    opt-env-conf-test path path-io process QuickCheck random
+    async base bytestring containers deepseq fast-myers-diff filepath
+    mtl opt-env-conf-test path path-io process QuickCheck random
     safe-coloured-text stm sydtest sydtest-mutation-runtime text time
     vector
   ];

@@ -1,14 +1,21 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Test.Syd.Runner.Single (runSingleTestWithFlakinessMode) where
+module Test.Syd.Runner.Single (runSingleTestWithFlakinessMode, reportUnrenderableFailures) where
 
+import Control.DeepSeq (force)
+import Control.Exception
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
+import Data.Map (Map)
+import Data.Text (Text)
 import System.Timeout (timeout)
 import Test.Syd.HList
 import Test.Syd.OptParse
+import Test.Syd.Output
 import Test.Syd.Run
 import Test.Syd.SpecDef
+import Text.Colour (chunkText)
 
 -- | Run a single test.
 --
@@ -37,13 +44,73 @@ runSingleTestWithFlakinessMode ::
   -- | Test result
   IO TestRunReport
 runSingleTestWithFlakinessMode progressReporter l td mTimeout maxRetries fm em = do
-  results <- runSingleTestWithRetries progressReporter l td mTimeout maxRetries em
+  rawResults <- runSingleTestWithRetries progressReporter l td mTimeout maxRetries em
+  results <- traverse reportUnrenderableFailures rawResults
   pure
     TestRunReport
       { testRunReportExpectationMode = em,
         testRunReportRawResults = results,
         testRunReportFlakinessMode = fm
       }
+
+-- | Render what a result says about its test here, while it is still this
+-- test's result.
+--
+-- Rendering a failure runs user code: the 'displayException' of whatever the
+-- test threw, the 'Show' of a compared value, a message built lazily.  Left to
+-- the thread that collects results, the first rendering happens there, and
+-- anything that throws takes the suite down after every test has already run,
+-- along with the summary and all the other results.  Forced here, it is a
+-- failure of the test that produced it, which is whose fault it is.
+--
+-- Rendering is pure, so forcing it once is enough: the output will be
+-- rendering the same value again, and a value that rendered once renders
+-- again.
+reportUnrenderableFailures :: TestRunResult -> IO TestRunResult
+reportUnrenderableFailures result = do
+  errOrRendered <- try $ evaluate $ force $ renderingOf result
+  case errOrRendered of
+    Right _ -> pure result
+    Left e -> do
+      why <- describeUnrenderable e
+      -- Nothing of what could not be rendered is kept: a result that still
+      -- carries it carries something that throws when the output reaches it,
+      -- which is the whole problem.  What replaces it is an assertion holding
+      -- the message, because that is the failure both output formats render as
+      -- the text it is, with no exception context to drag a build-dependent
+      -- backtrace along.
+      pure
+        result
+          { testRunResultException = Just (toException (ExpectationFailed why)),
+            testRunResultFailingInputs = [],
+            testRunResultLabels = Nothing,
+            testRunResultClasses = Nothing,
+            testRunResultTables = Nothing
+          }
+  where
+    renderingOf :: TestRunResult -> ([Text], Maybe String, [String], Maybe (Map [String] Int), Maybe (Map String Int), Maybe (Map String (Map String Int)))
+    renderingOf TestRunResult {..} =
+      ( map chunkText (concat (maybe [] outputSomeException testRunResultException)),
+        testRunResultExtraInfo,
+        testRunResultFailingInputs,
+        testRunResultLabels,
+        testRunResultClasses,
+        testRunResultTables
+      )
+
+    -- Unwrapped, because 'displayException' of a 'SomeException' renders the
+    -- exception's context as well, and a backtrace through the rendering says
+    -- nothing that the exception itself does not.
+    describeUnrenderable :: SomeException -> IO String
+    describeUnrenderable (SomeException e) = do
+      errOrWhy <- try $ evaluate $ force $ displayException e
+      pure $
+        unwords
+          [ "This test failed, but its failure could not be rendered:",
+            case errOrWhy of
+              Right why -> why
+              Left (_ :: SomeException) -> "and neither could the exception from rendering it."
+          ]
 
 runSingleTestWithRetries ::
   forall externalResources t.

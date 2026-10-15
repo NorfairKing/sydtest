@@ -82,6 +82,7 @@ reportUnrenderableFailures result = do
       pure
         result
           { testRunResultException = Just (toException (ExpectationFailed why)),
+            testRunResultExtraInfo = Nothing,
             testRunResultFailingInputs = [],
             testRunResultLabels = Nothing,
             testRunResultClasses = Nothing,

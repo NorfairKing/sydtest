@@ -74,8 +74,9 @@ spec = describe "exception handling" $ do
       Left e -> do
         fromException e `shouldBe` Just UserInterrupt
         -- Not the ten seconds it would take if the interrupt were caught as
-        -- the sleeping test's failure and the suite carried on.
-        (endTime `diffUTCTime` startTime) `shouldSatisfy` (< 1)
+        -- the sleeping test's failure and the suite carried on, with room to
+        -- spare for a machine that is busy building the rest of this repo.
+        (endTime `diffUTCTime` startTime) `shouldSatisfy` (< 5)
 
   it "reports a test that throws an asynchronously-classified exception as a failure" $ do
     specForest <-

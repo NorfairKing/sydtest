@@ -144,6 +144,8 @@ collectReport settings = goF . timedValue
       DescribeNode description f -> M.singleton description (ReportBranch (goF f))
       SubForestNode f -> goF f
       PendingNode _ _ -> M.empty
+      -- A resource failure is not a test, so there is nothing to re-run.
+      ResourceFailureNode _ _ -> M.empty
       SpecifyNode testReportDescription TDef {..} ->
         let report = timedValue testDefVal
             passed = not $ testRunReportFailed settings report

@@ -20,6 +20,7 @@ import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Control.DeepSeq (force)
 import Control.Exception
+import Control.Monad (void)
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Data.IORef
@@ -109,9 +110,21 @@ applyWrapper2 wrapper func = do
   r <- tryInOwnThread $
     wrapper $ \outerArgs innerArg -> do
       res <- tryInOwnThread (func outerArgs innerArg >>= evaluate)
-      liftIO $ putMVar var res
+      -- 'tryPutMVar' because a wrapper may run the test more than once, and
+      -- blocking on an already-full var would leave the runner waiting
+      -- forever.  The first run is the one reported.
+      liftIO $ void $ tryPutMVar var res
   case r of
-    Right () -> liftIO $ readMVar var
+    Right () -> do
+      mRes <- liftIO $ tryReadMVar var
+      pure $ case mRes of
+        Just res -> res
+        -- The wrapper finished without ever running the test.  Waiting for a
+        -- result that is not coming is what this used to do.
+        Nothing ->
+          Left $
+            toException $
+              ExpectationFailed "This resource finished without ever running the test inside it."
     Left e -> pure (Left e :: Either SomeException r)
 
 -- | Run an action in a thread of its own, and catch every exception it throws.

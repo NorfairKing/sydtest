@@ -4,6 +4,7 @@
 
 module Test.Syd.SpecForest where
 
+import Control.Exception
 import Data.Text (Text)
 import Test.QuickCheck.IO ()
 
@@ -14,6 +15,16 @@ data SpecTree a
   | PendingNode Text (Maybe Text)
   | DescribeNode Text (SpecForest a) -- A description
   | SubForestNode (SpecForest a)
+  | -- | A resource around a group of tests that failed, named after the
+    -- combinator it came from.
+    --
+    -- This is not a test, and counts as neither a success nor a failure,
+    -- because there is no test whose fault it is: the resource failed either
+    -- before the tests it was around, which are reported as having failed for
+    -- that reason, or after they had all run and reported.  It still fails the
+    -- suite, because a resource that could not be set up or torn down is
+    -- something to go and look at.
+    ResourceFailureNode !Text !SomeException
   deriving (Functor)
 
 instance Foldable SpecTree where
@@ -22,6 +33,7 @@ instance Foldable SpecTree where
     PendingNode _ _ -> mempty
     DescribeNode _ sts -> foldMap (foldMap f) sts
     SubForestNode sts -> foldMap (foldMap f) sts
+    ResourceFailureNode _ _ -> mempty
 
 instance Traversable SpecTree where
   traverse func = \case
@@ -29,6 +41,7 @@ instance Traversable SpecTree where
     PendingNode t mr -> pure $ PendingNode t mr
     DescribeNode s sf -> DescribeNode s <$> traverse (traverse func) sf
     SubForestNode sf -> SubForestNode <$> traverse (traverse func) sf
+    ResourceFailureNode t e -> pure $ ResourceFailureNode t e
 
 flattenSpecForest :: SpecForest a -> [([Text], a)]
 flattenSpecForest = concatMap flattenSpecTree
@@ -41,3 +54,19 @@ flattenSpecTree = \case
     map (\(ts, a) -> (t : ts, a)) $
       flattenSpecForest sf
   SubForestNode sf -> flattenSpecForest sf
+  ResourceFailureNode _ _ -> []
+
+-- | Every resource failure in a forest, with the descriptions above it.
+--
+-- 'flattenSpecForest' leaves these out, because they are not tests and have no
+-- result.  Output that works from the flattened forest needs them separately.
+flattenResourceFailures :: SpecForest a -> [([Text], SomeException)]
+flattenResourceFailures = concatMap go
+  where
+    go :: SpecTree a -> [([Text], SomeException)]
+    go = \case
+      SpecifyNode _ _ -> []
+      PendingNode _ _ -> []
+      DescribeNode t sf -> map (\(ts, e) -> (t : ts, e)) $ flattenResourceFailures sf
+      SubForestNode sf -> flattenResourceFailures sf
+      ResourceFailureNode t e -> [([t], e)]

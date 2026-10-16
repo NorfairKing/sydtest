@@ -237,6 +237,7 @@ resultForestWidth = goF 0
       PendingNode t _ -> T.length t + level * paddingSize
       DescribeNode _ sdf -> goF (succ level) sdf
       SubForestNode sdf -> goF level sdf
+      ResourceFailureNode t _ -> T.length t + level * paddingSize
 
 specForestWidth :: SpecDefForest a b c -> Int
 specForestWidth = goF 0

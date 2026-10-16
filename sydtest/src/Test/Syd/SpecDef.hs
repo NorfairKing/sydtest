@@ -282,13 +282,15 @@ unrenderableDescriptionTest cs e =
       DefSpecifyNode
         "<description could not be rendered>"
         TDef
-          { testDefVal = \_progressReporter _wrapper -> pure (descriptionFailureResult e),
+          { testDefVal = \_progressReporter _wrapper -> pure (failedTestRunResult e),
             testDefCallStack = cs
           }
         ()
 
-descriptionFailureResult :: SomeException -> TestRunResult
-descriptionFailureResult e =
+-- | A test that failed with this exception, and has nothing else to say about
+-- itself.
+failedTestRunResult :: SomeException -> TestRunResult
+failedTestRunResult e =
   TestRunResult
     { testRunResultStatus = TestFailed,
       testRunResultException = Just e,
@@ -300,6 +302,64 @@ descriptionFailureResult e =
       testRunResultTables = Nothing,
       testRunResultGoldenCase = Nothing,
       testRunResultExtraInfo = Nothing
+    }
+
+-- | The report for a test that never ran, because a resource it needed failed.
+--
+-- 'ExpectPassing' whatever the tests around it asked for: a test that never
+-- ran did not fail in the way 'Test.Syd.expectFailing' means, so letting the
+-- surrounding expectation mode apply here would let a failed resource pass for
+-- an expected failure.
+--
+-- 'MayNotBeFlaky' for the same reason: there is one attempt and nothing to
+-- retry, since the resource is gone rather than the test flaky.
+resourceFailureReport :: SomeException -> TestRunReport
+resourceFailureReport e =
+  TestRunReport
+    { testRunReportExpectationMode = ExpectPassing,
+      testRunReportRawResults = failedTestRunResult e :| [],
+      testRunReportFlakinessMode = MayNotBeFlaky
+    }
+
+-- | Every test in a forest, reported as having failed because a resource it
+-- needed failed.
+--
+-- The tests never ran, so these results are made rather than measured, which
+-- is the honest alternative to leaving them out: a test whose resource failed
+-- is a test that did not pass, and a report that leaves it out says nothing
+-- about it at all.
+failedTestsForest :: SomeException -> SpecDefForest a b extra -> ResultForest
+failedTestsForest e = concatMap goTree
+  where
+    goTree :: SpecDefTree a b extra -> ResultForest
+    goTree = \case
+      DefSpecifyNode t (TDef _ cs) _ ->
+        [SpecifyNode t (TDef (zeroTimed (resourceFailureReport e)) cs)]
+      DefPendingNode t mr -> [PendingNode t mr]
+      DefDescribeNode t sdf -> [DescribeNode t (failedTestsForest e sdf)]
+      DefSetupNode _ sdf -> failedTestsForest e sdf
+      DefBeforeAllNode _ sdf -> failedTestsForest e sdf
+      DefBeforeAllWithNode _ sdf -> failedTestsForest e sdf
+      DefWrapNode _ sdf -> failedTestsForest e sdf
+      DefAroundAllNode _ sdf -> failedTestsForest e sdf
+      DefAroundAllWithNode _ sdf -> failedTestsForest e sdf
+      DefAfterAllNode _ sdf -> failedTestsForest e sdf
+      DefParallelismNode _ sdf -> failedTestsForest e sdf
+      DefRandomisationNode _ sdf -> failedTestsForest e sdf
+      DefTimeoutNode _ sdf -> failedTestsForest e sdf
+      DefRetriesNode _ sdf -> failedTestsForest e sdf
+      DefFlakinessNode _ sdf -> failedTestsForest e sdf
+      DefExpectationNode _ sdf -> failedTestsForest e sdf
+
+-- | A value with no time taken, for a result that was made rather than
+-- measured.
+zeroTimed :: a -> Timed a
+zeroTimed a =
+  Timed
+    { timedValue = a,
+      timedWorker = 0,
+      timedBegin = 0,
+      timedEnd = 0
     }
 
 filterTestForest :: [Text] -> SpecDefForest outers inner result -> SpecDefForest outers inner result
@@ -463,6 +523,10 @@ computeTestSuiteStats settings = goF []
           }
       DescribeNode t sf -> goF (t : ts) sf
       SubForestNode sf -> goF ts sf
+      -- Neither a success nor a failure: there is no test whose fault it is,
+      -- and counting it as one would mean a count that no longer matches the
+      -- tests that were written.  'shouldExitFail' is where it tells.
+      ResourceFailureNode _ _ -> mempty
 
 data TestSuiteStats = TestSuiteStats
   { testSuiteStatSuccesses :: !Word,
@@ -510,10 +574,63 @@ shouldExitFail settings resultForest =
   null resultForest
     -- ... or if any tests failed.
     || anyFailedTests settings resultForest
+    -- ... or if a resource around them did.  It is in no count, so this is
+    -- the only place a run that is otherwise green says so.
+    || anyResourceFailures resultForest
 
 anyFailedTests :: Settings -> ResultForest -> Bool
 anyFailedTests settings resultForest =
   any (any (testRunReportFailed settings . timedValue . testDefVal)) resultForest
+
+anyResourceFailures :: ResultForest -> Bool
+anyResourceFailures = not . null . flattenResourceFailures
+
+-- | Put a resource failure in the forest, under the descriptions it happened
+-- below.
+--
+-- The runner that catches one is not the one that builds the result forest, in
+-- the asynchronous case, so the path is how they agree on where it belongs.
+-- Two groups can share a path, in which case the first of them gets it: a
+-- misplaced resource failure beats a dropped one, and the exception says what
+-- happened either way.
+-- | Put every resource failure in the forest, each under the descriptions it
+-- happened below.
+insertResourceFailures :: [([Text], Text, SomeException)] -> ResultForest -> ResultForest
+insertResourceFailures failures rf =
+  foldl' (\sofar (path, kind, e) -> insertResourceFailure path kind e sofar) rf failures
+
+insertResourceFailure :: [Text] -> Text -> SomeException -> ResultForest -> ResultForest
+insertResourceFailure path kind e = go path
+  where
+    go :: [Text] -> ResultForest -> ResultForest
+    -- Nothing left of the path: this is the level it belongs on.
+    go [] rf = rf ++ [ResourceFailureNode kind e]
+    -- Nothing left of the forest: the group it names is not in here, so this
+    -- is as deep as it gets.
+    go _ [] = [ResourceFailureNode kind e]
+    go path'@(t : rest) (tree : trees) =
+      let keepLooking = tree : go path' trees
+       in case tree of
+            DescribeNode t' sf
+              | t' == t -> DescribeNode t' (go rest sf) : trees
+              | otherwise -> keepLooking
+            -- A subforest is structure rather than a name: it is what a
+            -- resource puts around a group, so the group named next in the
+            -- path can be inside one.
+            SubForestNode sf
+              | any (isNamed t) sf -> SubForestNode (go path' sf) : trees
+              | otherwise -> keepLooking
+            SpecifyNode _ _ -> keepLooking
+            PendingNode _ _ -> keepLooking
+            ResourceFailureNode _ _ -> keepLooking
+
+    isNamed :: Text -> ResultTree -> Bool
+    isNamed t = \case
+      DescribeNode t' _ -> t' == t
+      SubForestNode sf -> any (isNamed t) sf
+      SpecifyNode _ _ -> False
+      PendingNode _ _ -> False
+      ResourceFailureNode _ _ -> False
 
 data TestRunReport = TestRunReport
   { testRunReportExpectationMode :: !ExpectationMode,

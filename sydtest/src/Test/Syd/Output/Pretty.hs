@@ -6,6 +6,7 @@
 module Test.Syd.Output.Pretty where
 
 import Control.Arrow (second)
+import Control.Exception
 import Data.List (sortOn)
 import qualified Data.List as L
 import Data.Map (Map)
@@ -61,13 +62,26 @@ outputFailuresHeader = outputHeader "Failures:"
 
 outputFailuresWithHeading :: Settings -> ResultForest -> [[Chunk]]
 outputFailuresWithHeading settings rf =
-  if anyFailedTests settings rf
+  if anyFailedTests settings rf || anyResourceFailures rf
     then
       concat
         [ outputFailuresHeader,
-          outputFailures settings rf
+          outputFailures settings rf,
+          outputResourceFailures rf
         ]
     else []
+
+-- | The resource failures, after the test failures.
+--
+-- They are in the tree above as well, where they say which group they belong
+-- to, but a reader looking for what went wrong looks here, and a resource
+-- failure in no count would otherwise be easy to scroll past.
+outputResourceFailures :: ResultForest -> [[Chunk]]
+outputResourceFailures rf =
+  map (padding :) $
+    concatMap
+      (\(path, e) -> outputResourceFailureLines (T.intercalate "." path) e)
+      (flattenResourceFailures rf)
 
 outputStats :: Timed TestSuiteStats -> [[Chunk]]
 outputStats timed =
@@ -152,9 +166,25 @@ outputSpecTree settings level treeWidth = \case
   PendingNode t mr -> outputPendingLines t mr
   DescribeNode t sf -> outputDescribeLine t : map (padding :) (outputSpecForest settings (level + 1) treeWidth sf)
   SubForestNode sf -> outputSpecForest settings level treeWidth sf
+  ResourceFailureNode t e -> outputResourceFailureLines t e
 
 outputDescribeLine :: Text -> [Chunk]
 outputDescribeLine t = [fore yellow $ chunk t]
+
+-- | A resource failure, named by the kind of resource and marked failed.
+--
+-- No time and no retry count, because it is not a test: it is the resource the
+-- tests around it needed.
+outputResourceFailureLines :: Text -> SomeException -> [[Chunk]]
+outputResourceFailureLines kind e =
+  concatMap
+    (filter (not . null))
+    [ [ [ fore red $ chunk (statusCheckMark TestFailed),
+          fore red $ chunk kind
+        ]
+      ],
+      map (padding :) (outputSomeException e)
+    ]
 
 outputSpecifyLines :: Settings -> Int -> Int -> Text -> TDef (Timed TestRunReport) -> [[Chunk]]
 outputSpecifyLines settings level treeWidth specifyText (TDef timed _) =

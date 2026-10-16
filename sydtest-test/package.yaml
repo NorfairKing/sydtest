@@ -15,6 +15,22 @@ dependencies:
 library:
   source-dirs: src
 
+executables:
+  # The suite that Test.Syd.InterruptSpec interrupts.  It is not a
+  # build-tool-depends of the test suite: cabal2nix would read that as a
+  # dependency on a package of this name, and there is none.  Being a component
+  # of this package is what has it built, and the spec looks for it beside the
+  # test suite's own executable.
+  sydtest-ctrl-c-suite:
+    main: Main.hs
+    source-dirs: ctrl-c-suite
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest
+
 tests:
   sydtest-test:
     main: Spec.hs
@@ -34,6 +50,8 @@ tests:
     - opt-env-conf-test
     - path
     - path-io
+    - filepath
+    - process
     - random
     - safe-coloured-text
     - stm

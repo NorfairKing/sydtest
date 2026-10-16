@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.34.0.0] - 2026-10-14
+
+### Changed
+
+* A test that throws an exception classified as asynchronous now fails that
+  test, instead of being re-thrown out of the test suite.
+
+  Which exceptions a test may fail with is no longer decided by their type.
+  A test runs in a thread of its own, so whatever that thread throws is a
+  failure of that test, and only an exception delivered from outside it
+  (Ctrl-C, a `--timeout`, the cancellation that `race` sends) still stops the
+  suite.  Classifying by type could not make that distinction:
+  `SomeAsyncException` says nothing about which thread threw, and
+  `effectful`'s `Error` effect gives its exceptions that classification, so
+  since 0.17.0.2 a test failing through it took the whole suite down with it
+  and `expectFailing` could not accept it.
+
+* `exceptionHandlers` is gone.  Nothing classifies exceptions by type any
+  more, so there is no replacement for it; `tryInOwnThread` is what runs a
+  test and catches what it throws.
+
+### Fixed
+
+* The asynchronous runner no longer hangs when an exception escapes a test.
+* `--fail-fast` no longer hangs when two tests fail at the same moment.
+
+
 ## [0.33.0.0] - 2026-10-01
 
 ### Fixed

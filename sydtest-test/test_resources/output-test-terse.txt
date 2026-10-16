@@ -380,4 +380,7 @@ FAIL output-test/Spec.hs:351 combinators.should be even
 FAIL output-test/Spec.hs:351 combinators.should be even
   Prelude.undefined
 
-  Passed: [32m31[m, Failed: [31m81[m, Flaky: [31m3[m, Pending: [35m7[m[33m (0.00 s)[m
+FAIL output-test/Spec.hs:362 Failure whose rendering throws
+  This test failed, but its failure could not be rendered: user error (this displayException throws)
+
+  Passed: [32m31[m, Failed: [31m82[m, Flaky: [31m3[m, Pending: [35m7[m[33m (0.00 s)[m

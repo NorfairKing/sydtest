@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.35.0.0] - 2026-10-15
+
+### Changed
+
+* A description that cannot be rendered is reported as one failing test,
+  rather than taken as read.
+
+  `describe (nameFor x)` throws whatever `nameFor` throws, and nothing forced
+  it until the output did, in the thread that collects results, where it took
+  the suite down along with the results of every test that had already run.
+  The terse output never forced a description at all, so the same suite
+  passed piped into a file and died in a terminal.  Both now report one
+  failing test in its place, before any test runs.  A `describe` takes its
+  subtree with it: a group that cannot say what it is cannot sensibly report
+  what is under it.
+
+* A failure that cannot be rendered is reported as the failure it is, rather
+  than taken as read.
+
+  Rendering a failure runs user code: the `displayException` of whatever the
+  test threw, the `Show` of a compared value, a message built lazily.  That
+  first ran in the thread that collects results, so a failure like
+  `effectful`'s errors, whose rendering throws, took the suite down after
+  every test had already run, along with the summary and every other result.
+  It is now forced in the worker that produced it, and what cannot be
+  rendered is replaced by the message saying so.
+
+
 ## [0.34.0.0] - 2026-10-14
 
 ### Changed

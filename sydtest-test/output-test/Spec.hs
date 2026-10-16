@@ -352,3 +352,22 @@ spec = do
     someTestSuiteCombinator 1
     someTestSuiteCombinator 2
     someTestSuiteCombinator undefined
+
+  -- Last, because every failure is numbered: a test added anywhere else
+  -- renumbers all of the ones after it in the golden output.
+  --
+  -- Rendering a failure runs the exception's own 'displayException'.  Until
+  -- that was forced where the test ran, this one took the suite down while
+  -- printing, after every test had already run.
+  it "Failure whose rendering throws" (throwIO UnrenderableDisplay :: IO ())
+
+-- | An exception that cannot be rendered: a 'displayException' that throws a
+-- plain 'userError', so that what the golden output records stays stable.
+--
+-- Declared below 'spec' because the golden output records the source line of
+-- every test, so anything added above it renumbers all of them.
+data UnrenderableDisplay = UnrenderableDisplay
+  deriving (Show)
+
+instance Exception UnrenderableDisplay where
+  displayException _ = throw (userError "this displayException throws")

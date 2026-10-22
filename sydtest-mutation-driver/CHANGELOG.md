@@ -12,6 +12,12 @@
   the positions arrived in the log out of order and in jumps of hundreds,
   which told a reader nothing about how far along the run was.
 
+* A progress line is no longer cut in half by the end-of-run report.
+
+  The mutation phase block-buffered its progress output, so a line could be
+  flushed in two pieces, with the report that is written to stdout landing
+  between them.  It is line-buffered now, like the coverage phase.
+
 
 ## [0.4.2.0] - 2026-10-13
 

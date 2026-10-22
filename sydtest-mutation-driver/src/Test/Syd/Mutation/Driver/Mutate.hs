@@ -41,7 +41,7 @@ import GHC.Conc (getNumCapabilities)
 import Path
 import Path.IO (copyFile, ensureDir, ignoringAbsence, withSystemTempDir)
 import System.Exit (ExitCode (..))
-import System.IO (BufferMode (..), IOMode (..), hFlush, hSetBuffering, stderr, withFile)
+import System.IO (BufferMode (..), IOMode (..), hSetBuffering, stderr, withFile)
 import System.Process.Typed (proc, setStderr, setStdout, setWorkingDir, startProcess, stopProcess, useHandleOpen, waitExitCode)
 import Test.Syd.Mutation.AugmentedManifest
   ( AugmentedManifest (..),
@@ -230,7 +230,13 @@ runMutationMode ::
   Map.Map Text SuiteConfig ->
   IO MutationRunReport
 runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteConfigs = do
-  hSetBuffering stderr (BlockBuffering Nothing)
+  -- LineBuffering on stderr, as the coverage phase does, so each progress
+  -- line reaches the fd when it ends rather than when the buffer happens to
+  -- fill.  Under a block buffer a line is cut wherever the flush lands, and
+  -- the report this writes to stdout at the end arrives in the gap, which
+  -- leaves a run's log with a half-written progress line wrapped around the
+  -- summary.
+  hSetBuffering stderr LineBuffering
   ensureDir outDir
   AugmentedManifest groups <- readAugmentedManifestFile augDir
   -- Validate that every covering-suite name in the manifest is in
@@ -323,12 +329,6 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   let renderedChunks = renderMutationRunReport jsonReport
   writeReportTxt renderedChunks outDir
   putChunksUtf8With With8BitColours (unlinesChunks renderedChunks)
-  -- Force out any block-buffered progress events before we return.  This
-  -- matters even though we don.t .exitWith. here ourselves: callers (e.g.
-  -- .runDriver. under --fail-fast) may, and a buffered stderr line that
-  -- lands after the caller.s stdout summary block would look like trailing
-  -- garbage in the build log.
-  hFlush stderr
   case mWorkerException of
     Left e -> case Exception.fromException e of
       Just MutationFailFast -> pure ()

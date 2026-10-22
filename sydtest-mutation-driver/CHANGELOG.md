@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.3.0] - 2026-10-22
+
+### Fixed
+
+* The per-mutation `[X/Y]` counter counts the mutations that have started,
+  instead of naming each mutation's position in the manifest.
+
+  The manifest's order is not the order the mutations are tested in: the
+  groups of a run are started most expensive first and run concurrently, so
+  the positions arrived in the log out of order and in jumps of hundreds,
+  which told a reader nothing about how far along the run was.
+
+
 ## [0.4.2.0] - 2026-10-13
 
 ### Changed

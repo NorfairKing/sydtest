@@ -21,6 +21,7 @@ where
 
 import Control.Concurrent (newQSem, signalQSem, threadDelay, waitQSem)
 import Control.Concurrent.Async (mapConcurrently, race)
+import Control.Concurrent.MVar (MVar, modifyMVar_, newMVar)
 import Control.Concurrent.STM (atomically, modifyTVar', newTVarIO, readTVarIO)
 import Control.Exception (bracket, bracket_)
 import qualified Control.Exception as Exception
@@ -153,6 +154,35 @@ writeChildTask mBaselines record suiteName childAugDir = do
       childAugDir
       (TestBaselineMap (Map.restrictKeys allBaselines (Set.fromList coveringHere)))
 
+-- | Count a mutation that is about to be tested, and write its progress line.
+--
+-- The number a mutation is shown under is how many have started, itself
+-- included, so the counter climbs by one per line and a reader can see how far
+-- along a run is.  It is not an identifier: which mutation gets which number
+-- depends on the order the concurrent workers happen to reach here in, and
+-- every mutation the report has anything to say about is named there by id.
+--
+-- Taking the number and writing the line happen under the same lock, so the
+-- numbers reach the log in the order they were handed out, and a debug run's
+-- multi-line diffs arrive whole instead of interleaved.
+emitMutationProgress ::
+  -- | How many mutations have started.
+  MVar Int ->
+  -- | Debug mode: follow the line with the mutation's source diff.
+  Bool ->
+  -- | How many mutations the run tests in total.
+  Int ->
+  AugmentedMutationRecord ->
+  IO ()
+emitMutationProgress startedVar debug total record =
+  modifyMVar_ startedVar $ \started -> do
+    let index = started + 1
+    hPutChunksUtf8With
+      With8BitColours
+      stderr
+      (unlinesChunks (renderMutationProgressEvent debug index total (MutationProgressEvent record)))
+    pure index
+
 -- | Parent process: read @manifest-augmented.json@ and spawn one child
 -- subprocess per mutation per suite that covers it.
 --
@@ -228,16 +258,8 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
     Just j | j > 0 -> pure (fromIntegral j)
     _ -> getNumCapabilities
   sem <- newQSem n
-  -- Progress counter: assign every mutation a stable 1-based index in source
-  -- order up front, so the per-mutation progress line can show an [X/Y]
-  -- indication.  This is a pure, immutable map (no shared mutable counter):
-  -- each mutation's number is its position in the manifest, so the numbers are
-  -- deterministic and reproducible rather than dependent on the
-  -- non-deterministic order in which concurrent workers happen to start.
-  let orderedRecords = concat [recs | AugmentedMutationGroup recs <- groups]
-      totalMutations = length orderedRecords
-      indexByMutationId =
-        Map.fromList (zip (map augmentedMutationRecordId orderedRecords) [1 :: Int ..])
+  let totalMutations = sum [length recs | AugmentedMutationGroup recs <- groups]
+  startedVar <- newMVar (0 :: Int)
   -- Each group's per-mutation results, accumulated in source order so a
   -- partial report (after a global fail-fast abort) reflects the work
   -- done.
@@ -245,7 +267,7 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   let runGroup' (gix, AugmentedMutationGroup recs) =
         runOneGroup
           failFast
-          (runOne baselines indexByMutationId totalMutations sem)
+          (runOne baselines startedVar totalMutations sem)
           ( \r ->
               atomically $
                 modifyTVar' groupResultsVar (Map.insertWith (++) gix [r])
@@ -302,9 +324,9 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   writeReportTxt renderedChunks outDir
   putChunksUtf8With With8BitColours (unlinesChunks renderedChunks)
   -- Force out any block-buffered progress events before we return.  This
-  -- matters even though we don't 'exitWith' here ourselves: callers (e.g.
-  -- 'runDriver' under --fail-fast) may, and a buffered stderr line that
-  -- lands after the caller's stdout summary block would look like trailing
+  -- matters even though we don.t .exitWith. here ourselves: callers (e.g.
+  -- .runDriver. under --fail-fast) may, and a buffered stderr line that
+  -- lands after the caller.s stdout summary block would look like trailing
   -- garbage in the build log.
   hFlush stderr
   case mWorkerException of
@@ -321,12 +343,10 @@ runMutationMode failFast debug augDir outDir childMemLimit mutationJobs suiteCon
   -- when fail-fast trips.
   pure jsonReport
   where
-    runOne baselines indexByMutationId totalMutations sem record =
+    runOne baselines startedVar totalMutations sem record =
       bracket_ (waitQSem sem) (signalQSem sem) $ do
         let mid = augmentedMutationRecordId record
-            -- This mutation's stable 1-based position in the manifest.
-            index = Map.findWithDefault 0 mid indexByMutationId
-        hPutChunksUtf8With With8BitColours stderr (unlinesChunks (renderMutationProgressEvent debug index totalMutations (MutationProgressEvent record)))
+        emitMutationProgress startedVar debug totalMutations record
         -- Only run suites that have at least one covering test for this
         -- mutation.
         let coveringBySuite =

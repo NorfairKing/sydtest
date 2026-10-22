@@ -459,14 +459,14 @@ renderMutationRunReport MutationRunReport {..} =
       ]
 
 -- | Render the per-mutation progress line emitted as each mutation is
--- tested.  @index@\/@total@ are this mutation's 1-based position in the run
--- and the total mutation count, shown as a coloured @[X\/Y]@ counter.  The
--- @verbose@ flag controls detail: in concise mode (the default) this is the
--- single locating line @[X\/Y] Testing mutation \<operator\> at
--- \<file\>:\<line\>:\<cols\>@, so a long run shows steady progress — including
--- how far along it is — without flooding the log; in verbose\/debug mode the
--- full source diff of the mutation follows — the same block the report prints
--- for a survivor.
+-- tested.  @index@\/@total@ are how many mutations have started, this one
+-- included, and how many the run tests in total, shown as a coloured
+-- @[X\/Y]@ counter.  The @verbose@ flag controls detail: in concise mode
+-- (the default) this is the single locating line @[X\/Y] Testing mutation
+-- \<operator\> at \<file\>:\<line\>:\<cols\>@, so a long run shows steady
+-- progress — including how far along it is — without flooding the log; in
+-- verbose\/debug mode the full source diff of the mutation follows — the
+-- same block the report prints for a survivor.
 renderMutationProgressEvent :: Bool -> Int -> Int -> MutationProgressEvent -> [[Chunk]]
 renderMutationProgressEvent verbose index total (MutationProgressEvent rec) =
   let logLines = formatMutationLog (augmentedMutationRecordId rec) rec

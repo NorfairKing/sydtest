@@ -106,14 +106,32 @@ applyWrapper2 ::
   IO (Either SomeException r)
 applyWrapper2 wrapper func = do
   var <- liftIO newEmptyMVar
-  r <- (`catches` exceptionHandlers) $
-    fmap Right $
-      wrapper $ \outerArgs innerArg -> do
-        res <- (Right <$> (func outerArgs innerArg >>= evaluate)) `catches` exceptionHandlers
-        liftIO $ putMVar var res
+  r <- tryInOwnThread $
+    wrapper $ \outerArgs innerArg -> do
+      res <- tryInOwnThread (func outerArgs innerArg >>= evaluate)
+      liftIO $ putMVar var res
   case r of
     Right () -> liftIO $ readMVar var
     Left e -> pure (Left e :: Either SomeException r)
+
+-- | Run an action in a thread of its own, and catch every exception it throws.
+--
+-- What decides whether an exception becomes a 'Left' is where it came from,
+-- not what it is: the action threw whatever shows up in a 'Left', whereas an
+-- exception delivered to the calling thread (Ctrl-C, a
+-- 'System.Timeout.timeout', the cancellation that
+-- 'Control.Concurrent.Async.race' sends) interrupts the wait instead, cancels
+-- the action, and propagates.
+--
+-- The exception's type cannot make that distinction, because
+-- 'SomeAsyncException' says nothing about which thread threw: libraries do
+-- give their own synchronous exceptions that classification, @effectful@'s
+-- @Error@ effect among them, and a test failing that way used to take the
+-- whole suite down with it instead of being reported as a failure.
+-- See https://github.com/NorfairKing/sydtest/issues/110
+-- and https://github.com/NorfairKing/sydtest/issues/80
+tryInOwnThread :: IO a -> IO (Either SomeException a)
+tryInOwnThread action = withAsync action waitCatch
 
 instance IsTest (IO ()) where
   type Arg1 (IO ()) = ()
@@ -471,19 +489,6 @@ runStagedGoldenWithArg createStagedGolden TestRunSettings {..} progressReporter 
   let testRunResultClasses = Nothing
   let testRunResultTables = Nothing
   pure TestRunResult {..}
-
-exceptionHandlers :: [Handler (Either SomeException a)]
-exceptionHandlers =
-  [ -- Re-throw SomeAsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
-    -- This is also critical for correctness, because library such as async
-    -- uses this signal for `concurrently`, and `race`, ..., and if we ignore
-    -- this exception, we can end in a context where half of the logic has
-    -- stopped and yet we continue.
-    -- See https://github.com/NorfairKing/sydtest/issues/80
-    Handler (\e -> throwIO (e :: SomeAsyncException)),
-    -- Catch all the rest
-    Handler (\e -> return $ Left (e :: SomeException))
-  ]
 
 type Test = IO ()
 

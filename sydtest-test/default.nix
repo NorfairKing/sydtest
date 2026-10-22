@@ -1,20 +1,26 @@
 { mkDerivation, async, base, bytestring, containers
-, fast-myers-diff, lib, mtl, opt-env-conf-test, path, path-io
-, QuickCheck, random, safe-coloured-text, stm, sydtest
-, sydtest-discover, sydtest-mutation-runtime, text, time, vector
+, fast-myers-diff, filepath, lib, mtl, opt-env-conf-test, path
+, path-io, process, QuickCheck, random, safe-coloured-text, stm
+, sydtest, sydtest-discover, sydtest-mutation-runtime, text, time
+, vector
 }:
 mkDerivation {
   pname = "sydtest-test";
   version = "0.0.0.0";
   src = ./.;
+  isLibrary = true;
+  isExecutable = true;
   libraryHaskellDepends = [ base ];
+  executableHaskellDepends = [ base sydtest ];
   testHaskellDepends = [
-    async base bytestring containers fast-myers-diff mtl
-    opt-env-conf-test path path-io QuickCheck random safe-coloured-text
-    stm sydtest sydtest-mutation-runtime text time vector
+    async base bytestring containers fast-myers-diff filepath mtl
+    opt-env-conf-test path path-io process QuickCheck random
+    safe-coloured-text stm sydtest sydtest-mutation-runtime text time
+    vector
   ];
   testToolDepends = [ sydtest-discover ];
   doHaddock = false;
   homepage = "https://github.com/NorfairKing/sydtest#readme";
   license = "unknown";
+  mainProgram = "sydtest-ctrl-c-suite";
 }

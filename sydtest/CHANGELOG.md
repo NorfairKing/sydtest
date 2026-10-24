@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.33.2.0] - 2026-10-24
+
+### Fixed
+
+* The warning to compile with `-threaded -rtsopts -with-rtsopts=-N` fires
+  wherever a suite that would run tests at the same time cannot.
+
+  It used to fire whenever the thread count was left to the capabilities and
+  there was one of them, which missed cases the advice applies to.  It now
+  asks both of the questions the advice depends on:
+
+  - Does the RTS have a single capability?  That is what `-N` raises.
+  - Would the suite run more than one test at a time if it could?  A suite
+    run with `--jobs 4` on one capability runs them one at a time just the
+    same, and never exercises the thread safety that tests running at the
+    same time are there to find, so it is now warned.  `--synchronous`, and
+    a bound of a single thread, are not.
+
+  The warning also names capabilities rather than CPU cores, which is what it
+  has always counted: a suite told to use four threads on a 64-core machine,
+  without `-N`, has one capability and 64 cores.
+
 ## [0.33.1.0] - 2026-10-24
 
 ### Added

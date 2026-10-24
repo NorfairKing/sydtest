@@ -12,7 +12,6 @@ module Test.Syd.OptParse where
 import Autodocodec
 import Control.Applicative
 import Control.Concurrent (getNumCapabilities)
-import Control.Monad
 import Control.Monad.IO.Class
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Maybe
@@ -178,27 +177,26 @@ instance HasParser Settings where
                 )
                 flagThreads
         numCapabilities <- getNumCapabilities
-        case configuredThreads of
-          ByCapabilities ->
-            when (numCapabilities == 1) $ do
-              let outputLine :: [Chunk] -> IO ()
-                  outputLine lineChunks =
-                    liftIO $
-                      -- Emit UTF-8 bytes directly so output never depends on the
-                      -- handle's locale encoding; the trailing newline is folded
-                      -- into the chunks to keep this one byte-level write.
-                      putChunksUtf8With terminalCapabilities (lineChunks <> [chunk "\n"])
-              mapM_
-                ( outputLine
-                    . (: [])
-                    . fore red
-                )
-                [ chunk "WARNING: Only one CPU core detected, make sure to compile your test suite with these ghc options:",
-                  chunk "         -threaded -rtsopts -with-rtsopts=-N",
-                  chunk "         (This is important for correctness as well as speed, as a parallel test suite can find thread safety problems.)"
-                ]
-          _ -> pure ()
         let threads = threadsWithNixBuildCores numCapabilities flagNixBuildCores configuredThreads
+        case oneCapabilityWarning numCapabilities threads of
+          WarnAboutOneCapability -> do
+            let outputLine :: [Chunk] -> IO ()
+                outputLine lineChunks =
+                  liftIO $
+                    -- Emit UTF-8 bytes directly so output never depends on the
+                    -- handle's locale encoding; the trailing newline is folded
+                    -- into the chunks to keep this one byte-level write.
+                    putChunksUtf8With terminalCapabilities (lineChunks <> [chunk "\n"])
+            mapM_
+              ( outputLine
+                  . (: [])
+                  . fore red
+              )
+              [ chunk "WARNING: This test suite can only use one capability, make sure to compile it with these ghc options:",
+                chunk "         -threaded -rtsopts -with-rtsopts=-N",
+                chunk "         (This is important for correctness as well as speed, as a parallel test suite can find thread safety problems.)"
+              ]
+          NoOneCapabilityWarning -> pure ()
         errOrProgress <- case flagReportProgress of
           Nothing ->
             pure $
@@ -704,6 +702,39 @@ data Threads
     Asynchronous !Word
   deriving (Show, Read, Eq, Generic)
 
+-- | Whether to tell a test suite's author that it can only use one
+-- capability.
+data OneCapabilityWarning
+  = WarnAboutOneCapability
+  | NoOneCapabilityWarning
+  deriving (Show, Eq)
+
+-- | Whether a test suite that would run tests at the same time can do so.
+--
+-- A suite with one capability runs its tests one at a time, so it gets
+-- neither the speed of running them at the same time nor the thread safety
+-- problems that only tests running at the same time find.  Compiling with
+-- @-threaded@ and @-N@ is what raises the capability count, which is why
+-- that is the advice, and it is advice about the suite rather than about the
+-- machine it is on: a suite built without @-N@ has one capability on every
+-- machine, so a single-processor machine is worth warning on too, even
+-- though nothing would run at the same time there anyway.
+--
+-- Only a suite that would use more capabilities has anything to gain.
+-- 'Synchronous' would not, and neither would an 'Asynchronous' bound of a
+-- single test.
+oneCapabilityWarning :: Int -> Threads -> OneCapabilityWarning
+oneCapabilityWarning numCapabilities threads =
+  if numCapabilities <= 1
+    then case threads of
+      Synchronous -> NoOneCapabilityWarning
+      ByCapabilities -> WarnAboutOneCapability
+      Asynchronous bound ->
+        if bound > 1
+          then WarnAboutOneCapability
+          else NoOneCapabilityWarning
+    else NoOneCapabilityWarning
+
 -- | How parallel to run the test suite, from a number of threads.
 --
 -- 0 means every capability, both because zero threads would run no tests at
@@ -772,9 +803,7 @@ nixBuildCoresParser =
 -- gave the build.
 --
 -- Only that case is narrowed, so that anything configured explicitly still
--- decides, and so that a suite which has to be told to run in parallel is
--- still told so: the warning about compiling with @-N@ is decided before
--- this.
+-- decides.
 --
 -- Narrowed, never widened: more cores than the RTS has capabilities would
 -- run more tests at once than it can overlap, which is contention without

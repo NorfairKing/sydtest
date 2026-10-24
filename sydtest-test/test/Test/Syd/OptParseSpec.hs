@@ -15,6 +15,22 @@ spec = do
       threadsFromWord 1 `shouldBe` Synchronous
     it "uses as many threads as it is given" $
       threadsFromWord 4 `shouldBe` Asynchronous 4
+  describe "oneCapabilityWarning" $ do
+    it "warns about leaving the thread count to a single capability" $
+      oneCapabilityWarning 1 ByCapabilities
+        `shouldBe` WarnAboutOneCapability
+    it "warns about more threads than the single capability it has" $
+      oneCapabilityWarning 1 (Asynchronous 4)
+        `shouldBe` WarnAboutOneCapability
+    it "stays quiet about a synchronous run" $
+      oneCapabilityWarning 1 Synchronous
+        `shouldBe` NoOneCapabilityWarning
+    it "stays quiet about one thread at a time" $
+      oneCapabilityWarning 1 (Asynchronous 1)
+        `shouldBe` NoOneCapabilityWarning
+    it "stays quiet with capabilities to spare" $
+      oneCapabilityWarning 8 ByCapabilities
+        `shouldBe` NoOneCapabilityWarning
   describe "threadsWithNixBuildCores" $ do
     it "narrows every capability down to the cores nix gave the build" $
       threadsWithNixBuildCores 8 (Just 3) ByCapabilities `shouldBe` Asynchronous 3

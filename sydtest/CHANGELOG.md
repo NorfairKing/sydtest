@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.2.0] - 2026-10-24
+
+### Fixed
+
+* The warning to compile with `-threaded -rtsopts -with-rtsopts=-N` also fires
+  when the thread count was asked for, such as `--jobs 4` on one capability.
+
 ## [0.33.1.0] - 2026-10-24
 
 ### Added

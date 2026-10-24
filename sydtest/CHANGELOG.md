@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.33.1.0] - 2026-10-24
+
+### Added
+
+* `NIX_BUILD_CORES` narrows the thread count to the cores nix gave the build,
+  when nothing else says how parallel to run.
+
+### Fixed
+
+* Zero threads means every capability, rather than an asynchronous runner with
+  no workers to take tests off the queue.
+
 ## [0.33.0.0] - 2026-10-01
 
 ### Fixed

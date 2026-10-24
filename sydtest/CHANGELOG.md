@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.33.1.0] - 2026-10-24
+
+### Added
+
+* `NIX_BUILD_CORES` decides how many threads to use when nothing else says.
+
+  Nix's `cores` build setting reaches a build only through this variable, and
+  a suite compiled with `-N` otherwise uses every core of the build machine
+  instead of the ones the build was given.  Nix's `--max-jobs` is not visible
+  to a build at all, so there is nothing to respect there.
+
+  It only ever narrows: more cores than the RTS has capabilities leaves the
+  thread count alone, since running more tests at once than the RTS can
+  overlap is contention with nothing to show for it.
+
+### Fixed
+
+* Zero threads means every capability, rather than no threads at all.
+
+  `--jobs 0`, `SYDTEST_JOBS=0` and `threads: 0` used to ask for an
+  asynchronous runner with no workers, so no test was ever taken off the
+  queue and the suite died with "thread blocked indefinitely in an STM
+  transaction".  Nix documents 0 the same way, as "use every core".
+
 ## [0.33.0.0] - 2026-10-01
 
 ### Fixed

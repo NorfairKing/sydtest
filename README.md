@@ -287,7 +287,8 @@ This test will fail, but the test suite will continue to be executed.
 ### Parallel test execution
 
 Tests are executed with as many threads as you have capabilities by default.
-You can use `-j` or `--jobs` to set the number of threads to use or `--synchronous` to run synchronously.
+You can use `-j` or `--jobs` to set the number of threads to use, 0 for as many as you have capabilities, or `--synchronous` to run synchronously.
+In a nix build or nix shell, `$NIX_BUILD_CORES` is used in place of the capability count, so the suite stays within the cores that nix gave it.
 
 ### Parallel or sequential test-group execution
 

@@ -170,18 +170,17 @@ instance HasParser Settings where
             Just True -> pure WithoutColours
             _ -> detectTerminalCapabilities
 
-        let threads =
+        let configuredThreads =
               fromMaybe
                 ( if flagDebug
                     then Synchronous
                     else d settingThreads
                 )
                 flagThreads
-        case threads of
-          ByCapabilities -> do
-            i <- getNumCapabilities
-
-            when (i == 1) $ do
+        numCapabilities <- getNumCapabilities
+        case configuredThreads of
+          ByCapabilities ->
+            when (numCapabilities == 1) $ do
               let outputLine :: [Chunk] -> IO ()
                   outputLine lineChunks =
                     liftIO $
@@ -199,6 +198,7 @@ instance HasParser Settings where
                   chunk "         (This is important for correctness as well as speed, as a parallel test suite can find thread safety problems.)"
                 ]
           _ -> pure ()
+        let threads = threadsWithNixBuildCores numCapabilities flagNixBuildCores configuredThreads
         errOrProgress <- case flagReportProgress of
           Nothing ->
             pure $
@@ -377,6 +377,7 @@ data Flags = Flags
   { flagSeed :: !SeedSetting,
     flagRandomiseExecutionOrder :: !(Maybe Bool),
     flagThreads :: !(Maybe Threads),
+    flagNixBuildCores :: !(Maybe Word),
     flagMaxSize :: !Int,
     flagMaxSuccess :: !Int,
     flagMaxDiscard :: !Int,
@@ -420,6 +421,7 @@ instance HasParser Flags where
             name "randomize-execution-order"
           ]
     flagThreads <- optional settingsParser
+    flagNixBuildCores <- nixBuildCoresParser
     flagMaxSize <-
       setting
         [ help "Maximum size parameter to pass to generators",
@@ -702,13 +704,20 @@ data Threads
     Asynchronous !Word
   deriving (Show, Read, Eq, Generic)
 
+-- | How parallel to run the test suite, from a number of threads.
+--
+-- 0 means every capability, both because zero threads would run no tests at
+-- all, and because that is what nix means by 0 cores.
+threadsFromWord :: Word -> Threads
+threadsFromWord = \case
+  0 -> ByCapabilities
+  1 -> Synchronous
+  w -> Asynchronous w
+
 instance HasCodec Threads where
   codec = dimapCodec f g codec
     where
-      f = \case
-        Nothing -> ByCapabilities
-        Just 1 -> Synchronous
-        Just n -> Asynchronous n
+      f = maybe ByCapabilities threadsFromWord
       g = \case
         ByCapabilities -> Nothing
         Synchronous -> Just 1
@@ -717,12 +726,9 @@ instance HasCodec Threads where
 instance HasParser Threads where
   settingsParser =
     choice
-      [ ( \case
-            1 -> Synchronous
-            w -> Asynchronous w
-        )
+      [ threadsFromWord
           <$> setting
-            [ help "How many threads to use to execute tests in asynchronously",
+            [ help "How many threads to use to execute tests in asynchronously, 0 means as many as you have capabilities",
               reader auto,
               option,
               long "jobs",
@@ -745,14 +751,45 @@ instance HasParser Threads where
             ],
         setting
           [ help "How parallel to run the test suite",
-            confWith' "threads" $
-              let f = \case
-                    Nothing -> Just ByCapabilities
-                    Just 1 -> Just Synchronous
-                    Just n -> Just $ Asynchronous n
-               in f <$> codec
+            confWith' "threads" $ Just <$> codec
           ]
       ]
+
+-- | Nix tells a build how many cores it may use with its @cores@ setting,
+-- which reaches the build only as the @NIX_BUILD_CORES@ environment
+-- variable.
+nixBuildCoresParser :: Parser (Maybe Word)
+nixBuildCoresParser =
+  optional $
+    setting
+      [ help "How many threads to use to execute tests in asynchronously, if nothing else says",
+        reader auto,
+        unprefixedEnv "NIX_BUILD_CORES",
+        metavar "INT"
+      ]
+
+-- | Narrow "as many threads as you have capabilities" down to the cores nix
+-- gave the build.
+--
+-- Only that case is narrowed, so that anything configured explicitly still
+-- decides, and so that a suite which has to be told to run in parallel is
+-- still told so: the warning about compiling with @-N@ is decided before
+-- this.
+--
+-- Narrowed, never widened: more cores than the RTS has capabilities would
+-- run more tests at once than it can overlap, which is contention without
+-- any parallelism to show for it.  A suite not compiled with @-N@ has a
+-- single capability, and running it 64 ways because the builder has 64 cores
+-- would be a change for the worse.
+threadsWithNixBuildCores :: Int -> Maybe Word -> Threads -> Threads
+threadsWithNixBuildCores numCapabilities mCores = \case
+  ByCapabilities -> case mCores of
+    Nothing -> ByCapabilities
+    Just cores
+      | cores >= fromIntegral numCapabilities -> ByCapabilities
+      | otherwise -> threadsFromWord cores
+  Synchronous -> Synchronous
+  Asynchronous w -> Asynchronous w
 
 data Iterations
   = -- | Run the test suite once, the default

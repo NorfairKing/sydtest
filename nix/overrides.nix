@@ -116,12 +116,7 @@ let
     });
     "sydtest-webdriver-screenshot" = enableWebdriver (sydtestPkg "sydtest-webdriver-screenshot");
     "sydtest-webdriver-yesod" = enableWebdriver (sydtestPkg "sydtest-webdriver-yesod");
-    "sydtest-test" = overrideCabal (sydtestPkg "sydtest-test") (old: {
-      # We turn off tests on other versions because they generate different
-      # random data and/or add different data to the callstack.
-      # This makes the output tests fail.
-      doCheck = self.ghc.version == "9.10.3";
-    });
+    "sydtest-test" = sydtestPkg "sydtest-test";
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
   };
 in

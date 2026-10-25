@@ -6,7 +6,6 @@
   };
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-26.05";
-    horizon-advance.url = "git+https://gitlab.horizon-haskell.net/package-sets/horizon-advance";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     autodocodec.url = "github:NorfairKing/autodocodec";
     autodocodec.flake = false;
@@ -24,7 +23,6 @@
   outputs =
     { self
     , nixpkgs
-    , horizon-advance
     , pre-commit-hooks
     , autodocodec
     , validity
@@ -44,7 +42,6 @@
         (pkgs.callPackage (opt-env-conf + "/nix/overrides.nix") { })
         self.overrides.${system}
       ];
-      horizonPkgs = horizon-advance.legacyPackages.${system}.extend allOverrides;
       haskellPackages = pkgs.haskellPackages.extend allOverrides;
     in
     {
@@ -69,7 +66,6 @@
         };
       };
       checks.${system} = {
-        forwardCompatibility = horizonPkgs.sydtestReleaseWithoutMutation;
         release = haskellPackages.sydtestRelease;
         mutation-manifest-example = pkgs.callPackage ./nix/mutationManifestCheck.nix { inherit haskellPackages; };
         mutation-dead-disable = pkgs.callPackage ./nix/deadDisableCheck.nix { inherit haskellPackages; };

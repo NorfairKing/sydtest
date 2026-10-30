@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.33.3.0] - 2026-10-30
+
+### Added
+
+* `mutationChildSettings` and `mutationChildSpecForest`, the settings a
+  mutation child runs its tests with and the forest it defines with them.
+
+### Fixed
+
+* A mutation child no longer shrinks a failing property or retries a failed
+  test.
+  It only reports whether a covering test failed, and neither changes that.
+  Shrinking a large generated value took up to minutes per killed mutation.
+  A test marked `flaky` still sets its own retries.
+* A mutation child runs on one capability.
+  The parent runs one child per capability, so with more every child ran the
+  parallel garbage collector on every core and slowed the others down.
+
 ## [0.33.2.0] - 2026-10-24
 
 ### Fixed

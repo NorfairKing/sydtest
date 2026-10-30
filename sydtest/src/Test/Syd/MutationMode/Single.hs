@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | The child-process entry point invoked once per mutation when the parent
@@ -6,11 +7,14 @@
 -- under fail-fast.
 module Test.Syd.MutationMode.Single
   ( runSingleMutationMode,
+    mutationChildSpecForest,
+    mutationChildSettings,
   )
 where
 
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
+import GHC.Conc (setNumCapabilities)
 import System.Exit (ExitCode (..), exitSuccess, exitWith)
 import Test.Syd.Def
 import Test.Syd.Mutation.AugmentedManifest
@@ -26,7 +30,7 @@ import Test.Syd.OptParse
 import Test.Syd.Output (printOutputSpecForest)
 import Test.Syd.Run (Timed (..))
 import Test.Syd.Runner.Synchronous (runSpecForestSynchronously)
-import Test.Syd.SpecDef (shouldExitFail)
+import Test.Syd.SpecDef (TestForest, shouldExitFail)
 
 -- | Child process: run only the tests covering a single mutation and exit
 -- with the appropriate exit code.
@@ -36,11 +40,17 @@ import Test.Syd.SpecDef (shouldExitFail)
 -- (single-suite / backward-compatible behaviour).
 runSingleMutationMode :: Settings -> MutationChildSettings -> Spec -> IO ()
 runSingleMutationMode settings mutChild spec = do
+  -- The tests run one at a time, and the parent runs one child per
+  -- capability.
+  -- More capabilities would only make every child run the parallel garbage
+  -- collector on every core, and slow the others down.
+  -- This is a no-op in a program built without -threaded.
+  setNumCapabilities 1
   mid <- case parseMutationId (mutationChildId mutChild) of
     Nothing -> fail "runSingleMutationMode: no valid mutation-child id"
     Just m -> pure m
   augmented <- readAugmentedManifestFile (mutationChildAugmentedManifestDir mutChild)
-  specForest <- execTestDefM settings spec
+  specForest <- mutationChildSpecForest settings spec
   let coveringTestsMap =
         maybe
           Map.empty
@@ -70,9 +80,32 @@ runSingleMutationMode settings mutChild spec = do
           (fmap (\(TestBaselineMap costs) -> costs) mBaseline)
           forest
   setActiveMutation (Just mid)
-  timedResult <- runSpecForestSynchronously (settings {settingThreads = Synchronous, settingFailFast = True}) orderedForest
+  timedResult <- runSpecForestSynchronously (mutationChildSettings settings) orderedForest
   setActiveMutation Nothing
   printOutputSpecForest settings timedResult
   if shouldExitFail settings (timedValue timedResult)
     then exitWith (ExitFailure 1)
     else exitSuccess
+
+-- | The forest a child runs.
+--
+-- A test takes its settings, such as how far to shrink, when it is defined, so
+-- the forest is defined with the child's settings rather than only run with
+-- them.
+mutationChildSpecForest :: Settings -> Spec -> IO (TestForest '[] ())
+mutationChildSpecForest settings = execTestDefM (mutationChildSettings settings)
+
+-- | A child only reports whether any covering test failed, so it stops at the
+-- first failure, does not shrink it, and does not run it again.
+-- Shrinking a large generated value can take minutes, once per killed
+-- mutation.
+-- Running a failure again cannot make it count as a pass, except for a test
+-- marked flaky, which sets its own retries.
+mutationChildSettings :: Settings -> Settings
+mutationChildSettings settings =
+  settings
+    { settingThreads = Synchronous,
+      settingFailFast = True,
+      settingMaxShrinks = 0,
+      settingRetries = 0
+    }

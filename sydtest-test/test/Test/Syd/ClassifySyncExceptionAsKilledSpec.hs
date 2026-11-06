@@ -18,12 +18,25 @@ import Control.Exception
     AsyncException (UserInterrupt),
     BlockedIndefinitelyOnMVar (..),
     ErrorCall (..),
+    Exception (..),
     SomeException,
+    asyncExceptionFromException,
+    asyncExceptionToException,
     throwIO,
     try,
   )
 import Test.Syd
 import Test.Syd.MutationMode (SuiteOutcome (..), classifySyncExceptionAsKilled)
+
+-- | An exception that code throws itself, but that is classified as
+-- asynchronous, as @effectful@'s @Error@ effect does.
+-- See https://github.com/NorfairKing/sydtest/issues/110
+data SynchronousButClassifiedAsynchronous = SynchronousButClassifiedAsynchronous
+  deriving (Show, Eq)
+
+instance Exception SynchronousButClassifiedAsynchronous where
+  toException = asyncExceptionToException
+  fromException = asyncExceptionFromException
 
 spec :: Spec
 spec = describe "classifySyncExceptionAsKilled (bug #2)" $ do
@@ -51,10 +64,13 @@ spec = describe "classifySyncExceptionAsKilled (bug #2)" $ do
     outcome <- classifySyncExceptionAsKilled (throwIO DivideByZero)
     outcome `shouldBe` SuiteKilled Nothing
 
-  it "re-throws SomeAsyncException (so Ctrl-C still cancels the runner)" $ do
-    -- 'UserInterrupt' is an 'AsyncException', which is a child of
-    -- 'SomeAsyncException'.  The classifier must re-throw it so the user's
-    -- Ctrl-C still terminates the parent process.
+  it "treats an exception that is only classified as asynchronous as SuiteKilled" $ do
+    outcome <- classifySyncExceptionAsKilled (throwIO SynchronousButClassifiedAsynchronous)
+    outcome `shouldBe` SuiteKilled Nothing
+
+  it "re-throws UserInterrupt (so Ctrl-C still cancels the runner)" $ do
+    -- The classifier must re-throw it so the user's Ctrl-C still terminates
+    -- the parent process.
     result <-
       try $
         classifySyncExceptionAsKilled $ do
@@ -63,4 +79,4 @@ spec = describe "classifySyncExceptionAsKilled (bug #2)" $ do
           pure (SuiteKilled Nothing)
     case result :: Either SomeException SuiteOutcome of
       Right _ -> expectationFailure "expected the async exception to be re-thrown"
-      Left _ -> pure ()
+      Left e -> fromException e `shouldBe` Just UserInterrupt

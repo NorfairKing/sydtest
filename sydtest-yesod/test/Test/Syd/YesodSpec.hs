@@ -3,21 +3,61 @@
 
 module Test.Syd.YesodSpec (spec) where
 
+import Control.Exception
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import Network.HTTP.Client as HTTP
 import Path
 import Path.IO
 import Test.Syd
+import Test.Syd.OptParse
 import Test.Syd.Path
 import Test.Syd.Wai (managerSpec)
 import Test.Syd.Yesod
 import Test.Syd.Yesod.App
 import Yesod.Core
 
+-- | An exception that a test throws itself, but that is classified as
+-- asynchronous, as @effectful@'s @Error@ effect does.
+-- See https://github.com/NorfairKing/sydtest/issues/110
+data SynchronousButClassifiedAsynchronous = SynchronousButClassifiedAsynchronous
+  deriving (Show, Eq)
+
+instance Exception SynchronousButClassifiedAsynchronous where
+  toException = asyncExceptionToException
+  fromException = asyncExceptionFromException
+
 spec :: Spec
-spec = managerSpec . modifyMaxSuccess (`div` 20) . yesodSpecWithSiteSetupFunc appSetupFunc $ do
-  describe "Local" blogSpec
-  describe "E2E" $ localToE2ESpec blogSpec
+spec = do
+  describe "a test that throws an asynchronously-classified exception fails with that exception" $ do
+    let settings = defaultSettings {settingRetries = 1}
+
+    it "YesodClientM site ()" $ do
+      specForest <-
+        execTestDefM settings $
+          managerSpec . yesodSpecWithSiteSetupFunc appSetupFunc $
+            it "throws" (liftIO (throwIO SynchronousButClassifiedAsynchronous) :: YesodClientM App ())
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
+    it "outerArgs -> YesodClientM site ()" $ do
+      specForest <-
+        execTestDefM settings $
+          managerSpec . yesodSpecWithSiteSetupFunc appSetupFunc $
+            itWithBoth "throws" (const (liftIO (throwIO SynchronousButClassifiedAsynchronous)) :: HTTP.Manager -> YesodClientM App ())
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
+  managerSpec . modifyMaxSuccess (`div` 20) . yesodSpecWithSiteSetupFunc appSetupFunc $ do
+    describe "Local" blogSpec
+    describe "E2E" $ localToE2ESpec blogSpec
 
 appSetupFunc :: HTTP.Manager -> SetupFunc App
 appSetupFunc _ = do

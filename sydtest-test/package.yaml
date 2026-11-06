@@ -15,11 +15,25 @@ dependencies:
 library:
   source-dirs: src
 
+executables:
+  # A real test suite for the Ctrl-C test to interrupt.
+  sydtest-ctrl-c-suite:
+    main: Main.hs
+    source-dirs: ctrl-c-suite
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sydtest
+
 tests:
   sydtest-test:
     main: Spec.hs
     source-dirs: test
-    build-tools: sydtest-discover
+    build-tools:
+    - sydtest-discover
+    - sydtest-test:sydtest-ctrl-c-suite
     ghc-options:
     - -threaded
     - -rtsopts
@@ -29,11 +43,13 @@ tests:
     - async
     - bytestring
     - containers
+    - directory
     - fast-myers-diff
     - mtl
     - opt-env-conf-test
     - path
     - path-io
+    - process
     - random
     - safe-coloured-text
     - stm

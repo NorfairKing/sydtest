@@ -2,13 +2,98 @@
 
 module Test.Syd.WaiSpec (spec) where
 
+import Control.Exception
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
 import Network.HTTP.Client as HTTP
 import Test.Syd
+import Test.Syd.OptParse
 import Test.Syd.Wai
 import Test.Syd.Wai.Example
 
+-- | An exception that a test throws itself, but that is classified as
+-- asynchronous, as @effectful@'s @Error@ effect does.
+-- See https://github.com/NorfairKing/sydtest/issues/110
+data SynchronousButClassifiedAsynchronous = SynchronousButClassifiedAsynchronous
+  deriving (Show, Eq)
+
+instance Exception SynchronousButClassifiedAsynchronous where
+  toException = asyncExceptionToException
+  fromException = asyncExceptionFromException
+
 spec :: Spec
 spec = do
+  describe "a test that throws an asynchronously-classified exception fails with that exception" $ do
+    let settings = defaultSettings {settingRetries = 1}
+
+    it "WaiClientM env ()" $ do
+      specForest <-
+        execTestDefM settings $
+          waiClientSpec exampleApplication $
+            it "throws" (liftIO (throwIO SynchronousButClassifiedAsynchronous) :: WaiClientM () ())
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
+    it "outerArgs -> WaiClientM env ()" $ do
+      specForest <-
+        execTestDefM settings $
+          waiClientSpec exampleApplication $
+            itWithBoth "throws" (const (liftIO (throwIO SynchronousButClassifiedAsynchronous)) :: HTTP.Manager -> WaiClientM () ())
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
+    it "WaiClientM env (GoldenTest a)" $ do
+      specForest <-
+        execTestDefM settings $
+          waiClientSpec exampleApplication $
+            it
+              "throws"
+              ( pure
+                  ( GoldenTest
+                      { goldenTestRead = pure (Just ()),
+                        goldenTestProduce = throwIO SynchronousButClassifiedAsynchronous,
+                        goldenTestWrite = \() -> pure (),
+                        goldenTestCompare = \() () -> pure Nothing
+                      }
+                  ) ::
+                  WaiClientM () (GoldenTest ())
+              )
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
+    it "outerArgs -> WaiClientM env (GoldenTest a)" $ do
+      specForest <-
+        execTestDefM settings $
+          waiClientSpec exampleApplication $
+            itWithBoth
+              "throws"
+              ( const
+                  ( pure
+                      ( GoldenTest
+                          { goldenTestRead = pure (Just ()),
+                            goldenTestProduce = throwIO SynchronousButClassifiedAsynchronous,
+                            goldenTestWrite = \() -> pure (),
+                            goldenTestCompare = \() () -> pure Nothing
+                          }
+                      )
+                  ) ::
+                  HTTP.Manager -> WaiClientM () (GoldenTest ())
+              )
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
   managerSpec $
     waiSpec exampleApplication $ do
       itWithBoth "echos this example" $ \man p -> do

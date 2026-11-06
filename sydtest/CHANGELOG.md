@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.33.4.0] - 2026-11-06
+
+### Added
+
+* `tryTestFailure`, to catch what a test throws in an `IsTest` instance.
+
+### Changed
+
+* A test that throws an exception classified as asynchronous, as `effectful`'s
+  `Error` effect does, now fails with that exception instead of stopping the
+  test suite.
+  `exceptionHandlers` now re-throws only `AsyncException` (which includes
+  Ctrl-C's `UserInterrupt`), `async`'s `AsyncCancelled` and
+  `System.Timeout.Timeout`.
+* An exception that escapes an `IsTest` instance now fails that test instead
+  of stopping the suite.
+* Mutation mode decides which exceptions stop the run the same way, so one
+  that is only classified as asynchronous counts as killing the mutation.
+
+### Fixed
+
+* The asynchronous runner no longer hangs when an exception escapes a test.
+* `--fail-fast` no longer hangs when two tests fail at the same moment.
+* A staged golden test that throws now fails instead of hanging.
+
 ## [0.33.3.0] - 2026-10-30
 
 ### Added

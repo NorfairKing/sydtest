@@ -34,7 +34,7 @@ import GHC.Generics (Generic)
 import Myers.Diff (Diff, getTextDiff)
 import OptEnvConf
 import System.Random (mkStdGen, setStdGen)
-import System.Timeout (timeout)
+import System.Timeout (Timeout, timeout)
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.IO ()
@@ -106,11 +106,10 @@ applyWrapper2 ::
   IO (Either SomeException r)
 applyWrapper2 wrapper func = do
   var <- liftIO newEmptyMVar
-  r <- (`catches` exceptionHandlers) $
-    fmap Right $
-      wrapper $ \outerArgs innerArg -> do
-        res <- (Right <$> (func outerArgs innerArg >>= evaluate)) `catches` exceptionHandlers
-        liftIO $ putMVar var res
+  r <- tryTestFailure $
+    wrapper $ \outerArgs innerArg -> do
+      res <- tryTestFailure (func outerArgs innerArg >>= evaluate)
+      liftIO $ putMVar var res
   case r of
     Right () -> liftIO $ readMVar var
     Left e -> pure (Left e :: Either SomeException r)
@@ -222,54 +221,69 @@ runPropertyTestWithArg p trs progressReporter wrapper = do
         pure result
 
   report ProgressTestStarting
-  qcr <- quickCheckWithResult qcargs (aroundProperty wrapperWithProgress p)
+  -- QuickCheck catches what a property throws, except what is classified as
+  -- asynchronous: that it re-throws, losing the counterexample.
+  errOrQcr <- tryTestFailure $ quickCheckWithResult qcargs (aroundProperty wrapperWithProgress p)
   report ProgressTestDone
 
   let testRunResultGoldenCase = Nothing
-  let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
-  case qcr of
-    Success {} -> do
-      let testRunResultStatus = TestPassed
-      let testRunResultException = Nothing
+  case errOrQcr of
+    Left e -> do
+      let testRunResultNumTests = Nothing
+      let testRunResultStatus = TestFailed
+      let testRunResultException = Just e
       let testRunResultNumShrinks = Nothing
       let testRunResultFailingInputs = []
       let testRunResultExtraInfo = Nothing
-      let testRunResultLabels = Just $ labels qcr
-      let testRunResultClasses = Just $ classes qcr
-      let testRunResultTables = Just $ tables qcr
-      pure TestRunResult {..}
-    GaveUp {} -> do
-      let testRunResultStatus = TestFailed
-      let testRunResultException = Nothing
-      let testRunResultNumShrinks = Nothing
-      let testRunResultFailingInputs = []
-      let testRunResultExtraInfo = Just $ printf "Gave up, %d discarded tests" (numDiscarded qcr)
-      let testRunResultLabels = Just $ labels qcr
-      let testRunResultClasses = Just $ classes qcr
-      let testRunResultTables = Just $ tables qcr
-      pure TestRunResult {..}
-    Failure {} -> do
-      let testRunResultStatus = TestFailed
-      let testRunResultException = do
-            se <- theException qcr
-            pure (se :: SomeException)
-      let testRunResultNumShrinks = Just $ fromIntegral $ numShrinks qcr
-      let testRunResultFailingInputs = failingTestCase qcr
-      let testRunResultExtraInfo = Nothing
-      let testRunResultLabels = Just $ M.singleton (failingLabels qcr) 1
-      let testRunResultClasses = Just $ M.fromSet (const 1) (failingClasses qcr)
+      let testRunResultLabels = Nothing
+      let testRunResultClasses = Nothing
       let testRunResultTables = Nothing
       pure TestRunResult {..}
-    NoExpectedFailure {} -> do
-      let testRunResultStatus = TestFailed
-      let testRunResultException = Nothing
-      let testRunResultNumShrinks = Nothing
-      let testRunResultFailingInputs = []
-      let testRunResultLabels = Just $ labels qcr
-      let testRunResultClasses = Just $ classes qcr
-      let testRunResultTables = Just $ tables qcr
-      let testRunResultExtraInfo = Just $ printf "Expected the property to fail but it didn't."
-      pure TestRunResult {..}
+    Right qcr -> do
+      let testRunResultNumTests = Just $ fromIntegral $ numTests qcr
+      case qcr of
+        Success {} -> do
+          let testRunResultStatus = TestPassed
+          let testRunResultException = Nothing
+          let testRunResultNumShrinks = Nothing
+          let testRunResultFailingInputs = []
+          let testRunResultExtraInfo = Nothing
+          let testRunResultLabels = Just $ labels qcr
+          let testRunResultClasses = Just $ classes qcr
+          let testRunResultTables = Just $ tables qcr
+          pure TestRunResult {..}
+        GaveUp {} -> do
+          let testRunResultStatus = TestFailed
+          let testRunResultException = Nothing
+          let testRunResultNumShrinks = Nothing
+          let testRunResultFailingInputs = []
+          let testRunResultExtraInfo = Just $ printf "Gave up, %d discarded tests" (numDiscarded qcr)
+          let testRunResultLabels = Just $ labels qcr
+          let testRunResultClasses = Just $ classes qcr
+          let testRunResultTables = Just $ tables qcr
+          pure TestRunResult {..}
+        Failure {} -> do
+          let testRunResultStatus = TestFailed
+          let testRunResultException = do
+                se <- theException qcr
+                pure (se :: SomeException)
+          let testRunResultNumShrinks = Just $ fromIntegral $ numShrinks qcr
+          let testRunResultFailingInputs = failingTestCase qcr
+          let testRunResultExtraInfo = Nothing
+          let testRunResultLabels = Just $ M.singleton (failingLabels qcr) 1
+          let testRunResultClasses = Just $ M.fromSet (const 1) (failingClasses qcr)
+          let testRunResultTables = Nothing
+          pure TestRunResult {..}
+        NoExpectedFailure {} -> do
+          let testRunResultStatus = TestFailed
+          let testRunResultException = Nothing
+          let testRunResultNumShrinks = Nothing
+          let testRunResultFailingInputs = []
+          let testRunResultLabels = Just $ labels qcr
+          let testRunResultClasses = Just $ classes qcr
+          let testRunResultTables = Just $ tables qcr
+          let testRunResultExtraInfo = Just $ printf "Expected the property to fail but it didn't."
+          pure TestRunResult {..}
 
 aroundProperty :: ((a -> b -> IO ()) -> IO ()) -> (a -> b -> Property) -> Property
 aroundProperty action p = MkProperty . MkGen $ \r n -> aroundProp action $ \a b -> (unGen . unProperty $ p a b) r n
@@ -417,20 +431,26 @@ runStagedGoldenWithArg createStagedGolden TestRunSettings {..} progressReporter 
     goldenChan <- newChan
     let StagedGolden runStagedGolden = createStagedGolden outerArgs innerArgs
     let testThread = do
-          report ProgressTestStarting
-          runStagedGolden $ \golden -> liftIO $ do
-            writeChan goldenChan $ Just golden
-            -- Wait until the golden test has been processed and we can
-            -- continue.
-            takeMVar continueVar
-          writeChan goldenChan Nothing
+          -- Catch everything, so that the reader always hears how the test ended.
+          done <- try $ do
+            report ProgressTestStarting
+            runStagedGolden $ \golden -> liftIO $ do
+              writeChan goldenChan (Right golden)
+              -- Wait until the golden test has been processed and we can
+              -- continue.
+              takeMVar continueVar
+          writeChan goldenChan (Left done)
     -- withAsync means we can cancel the test thread when a golden test fails.
     result <- withAsync testThread $ \_ -> do
       let go mCase = do
-            mNextGolden <- readChan goldenChan
-            case mNextGolden of
-              Nothing -> pure (TestPassed, mCase, Nothing)
-              Just GoldenTest {..} -> do
+            doneOrNextGolden <- readChan goldenChan
+            case doneOrNextGolden of
+              Left (Left e) -> do
+                -- Re-throw what stops the suite, as if the test had thrown it here.
+                errOrNothing <- tryTestFailure (throwIO e)
+                pure (TestFailed, mCase, Just (either id (\() -> e) errOrNothing))
+              Left (Right ()) -> pure (TestPassed, mCase, Nothing)
+              Right GoldenTest {..} -> do
                 mGolden <- goldenTestRead
                 case mGolden of
                   Nothing ->
@@ -472,17 +492,37 @@ runStagedGoldenWithArg createStagedGolden TestRunSettings {..} progressReporter 
   let testRunResultTables = Nothing
   pure TestRunResult {..}
 
+-- | Catch every exception an action throws, except the ones that stop the
+-- test suite.
+--
+-- In an 'IsTest' instance, use this around whatever runs the test.
+-- A library's own exception handling is not enough.
+-- It often re-throws any exception classified as asynchronous, which is how
+-- @effectful@ classifies its errors, so the test would crash the suite
+-- instead of failing.
+-- The runner catches whatever an instance lets escape in the same way, but it
+-- cannot report the details the instance knows, like a counterexample.
+-- See https://github.com/NorfairKing/sydtest/issues/110
+tryTestFailure :: IO a -> IO (Either SomeException a)
+tryTestFailure action = (Right <$> action) `catches` exceptionHandlers
+
+-- | Re-throw the exceptions that stop the test suite, and catch the rest.
+--
+-- Exceptions are told apart by type, because GHC does not record whether an
+-- exception was thrown by the test itself or delivered to it from outside.
+-- Ctrl-C delivers 'UserInterrupt', a timeout delivers 'Timeout', and @async@
+-- cancels a thread with 'AsyncCancelled'.
+-- Re-throwing every 'AsyncException' also lets 'ThreadKilled',
+-- 'StackOverflow' and 'HeapOverflow' through.
+-- Letting these through is what makes Ctrl-C stop the suite, and what keeps
+-- @race@ and @concurrently@ from carrying on with half their threads gone.
+-- See https://github.com/NorfairKing/sydtest/issues/80
 exceptionHandlers :: [Handler (Either SomeException a)]
 exceptionHandlers =
-  [ -- Re-throw SomeAsyncException, otherwise execution will not terminate on SIGINT (ctrl-c).
-    -- This is also critical for correctness, because library such as async
-    -- uses this signal for `concurrently`, and `race`, ..., and if we ignore
-    -- this exception, we can end in a context where half of the logic has
-    -- stopped and yet we continue.
-    -- See https://github.com/NorfairKing/sydtest/issues/80
-    Handler (\e -> throwIO (e :: SomeAsyncException)),
-    -- Catch all the rest
-    Handler (\e -> return $ Left (e :: SomeException))
+  [ Handler (\e -> throwIO (e :: AsyncException)),
+    Handler (\e -> throwIO (e :: AsyncCancelled)),
+    Handler (\e -> throwIO (e :: Timeout)),
+    Handler (pure . Left)
   ]
 
 type Test = IO ()

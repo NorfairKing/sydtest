@@ -18,10 +18,11 @@ with lib;
 with haskell.lib;
 
 let
-  sydtestPkg =
-    name:
+  sydtestPkg = name: sydtestPkgWith name { };
+  sydtestPkgWith =
+    name: args:
     buildFromSdist (
-      overrideCabal (self.callPackage (../${name}) { })
+      overrideCabal (self.callPackage (../${name}) args)
         (old: {
           doBenchmark = true;
           configureFlags = (old.configureFlags or [ ]) ++ [
@@ -116,7 +117,15 @@ let
     });
     "sydtest-webdriver-screenshot" = enableWebdriver (sydtestPkg "sydtest-webdriver-screenshot");
     "sydtest-webdriver-yesod" = enableWebdriver (sydtestPkg "sydtest-webdriver-yesod");
-    "sydtest-test" = sydtestPkg "sydtest-test";
+    # sydtest-ctrl-c-suite is an executable of sydtest-test itself, which
+    # cabal2nix mistakes for a package.
+    # Setup does not put it on the PATH for the test suite, unlike stack and
+    # cabal-install, so do that here.
+    "sydtest-test" = overrideCabal (sydtestPkgWith "sydtest-test" { sydtest-ctrl-c-suite = null; }) (old: {
+      preCheck = (old.preCheck or "") + ''
+        export PATH="$PWD/dist/build/sydtest-ctrl-c-suite:$PATH"
+      '';
+    });
     "sydtest-misbehaved-test-suite" = sydtestPkg "sydtest-misbehaved-test-suite";
   };
 in

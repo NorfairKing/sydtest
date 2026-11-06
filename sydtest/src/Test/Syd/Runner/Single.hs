@@ -2,6 +2,7 @@
 
 module Test.Syd.Runner.Single (runSingleTestWithFlakinessMode) where
 
+import Control.Exception (SomeException)
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import System.Timeout (timeout)
@@ -92,7 +93,22 @@ runSingleTestWithRetries progressReporter l td mTimeout maxRetries em = go maxRe
               Just result -> Right result
 
         runFunc :: IO TestRunResult
-        runFunc = testDefVal td progressReporter (\f -> f l ())
+        runFunc = either exceptionResult id <$> tryTestFailure (testDefVal td progressReporter (\f -> f l ()))
+
+        exceptionResult :: SomeException -> TestRunResult
+        exceptionResult e =
+          TestRunResult
+            { testRunResultStatus = TestFailed,
+              testRunResultException = Just e,
+              testRunResultNumTests = Nothing,
+              testRunResultNumShrinks = Nothing,
+              testRunResultFailingInputs = [],
+              testRunResultLabels = Nothing,
+              testRunResultClasses = Nothing,
+              testRunResultTables = Nothing,
+              testRunResultGoldenCase = Nothing,
+              testRunResultExtraInfo = Nothing
+            }
 
         timeoutResult :: TestRunResult
         timeoutResult =

@@ -8,14 +8,17 @@ import qualified Data.Text.Lazy.Builder as TLB
 import Test.Hspec
 import qualified Test.Syd as Syd
 import Test.Syd.Hspec (fromHspec)
-import Test.Syd.OptParse (getSettings)
+import Test.Syd.OptParse (Settings (..), defaultSettings)
+import Text.Colour.Capabilities (TerminalCapabilities (..))
 
 spec :: Syd.Spec
 spec =
   Syd.describe "Golden Output" $
     Syd.it "renders output in the same way as before" $
       Syd.goldenTextFile "test_resources/output-test.txt" $ do
-        settings <- getSettings
+        -- Fixed settings, so that neither the terminal nor the arguments to this
+        -- test suite change the output.
+        let settings = defaultSettings {settingTerminalCapabilities = With8Colours}
         testForest <- Syd.execTestDefM settings (fromHspec hspecSpec)
         res <- Syd.runSpecForestSynchronously settings testForest
 

@@ -19,7 +19,11 @@ spec = do
     replicateM_ runs $ do
       void $ runSpecForestAsynchronously settings 1 specForest
 
-  it "seeds the global pseudorandom generator so a FixedSeed run is reproducible" $ do
+  -- Sequential because the generator this is about is a global one, and every
+  -- test in this suite that runs a nested forest re-seeds it.  One of those
+  -- landing between the two runs below is a draw that does not match, and
+  -- there are several such tests.
+  sequential $ it "seeds the global pseudorandom generator so a FixedSeed run is reproducible" $ do
     -- Regression test: the spec-forest runners must seed the global
     -- System.Random generator from the SeedSetting, not only QuickCheck's
     -- replay seed.  A test that draws from the global generator directly

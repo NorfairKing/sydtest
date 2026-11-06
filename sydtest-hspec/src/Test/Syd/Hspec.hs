@@ -7,7 +7,6 @@
 
 module Test.Syd.Hspec (fromHspec) where
 
-import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad.Writer
@@ -74,18 +73,6 @@ instance IsTest (ImportedItem a) where
   type Arg2 (ImportedItem a) = a
   runTest = runImportedItem
 
-applyWrapper2' ::
-  forall r outerArgs innerArg.
-  ((outerArgs -> innerArg -> IO ()) -> IO ()) ->
-  (outerArgs -> innerArg -> IO r) ->
-  IO r
-applyWrapper2' wrapper func = do
-  var <- newEmptyMVar
-  wrapper $ \outerArgs innerArg -> do
-    res <- func outerArgs innerArg >>= evaluate
-    putMVar var res
-  readMVar var
-
 runImportedItem ::
   ImportedItem inner ->
   TestRunSettings ->
@@ -117,13 +104,19 @@ runImportedItem (ImportedItem Hspec.Item {..}) trs progressReporter wrapper = do
   result <-
     itemExample
       params
-      ( \takeInner -> applyWrapper2' wrapper $ \() inner -> do
-          exampleNr <- readTVarIO exampleCounter
-          report $ ProgressExampleStarting totalExamples exampleNr
-          (result, duration) <- timeItDuration $ takeInner inner
-          report $ ProgressExampleDone totalExamples exampleNr duration
-          atomically $ modifyTVar' exampleCounter succ
-          pure result
+      -- Re-throw what the example throws, so that hspec reports it as it would.
+      ( \takeInner ->
+          applyWrapper2
+            wrapper
+            ( \() inner -> do
+                exampleNr <- readTVarIO exampleCounter
+                report $ ProgressExampleStarting totalExamples exampleNr
+                (result, duration) <- timeItDuration $ takeInner inner
+                report $ ProgressExampleDone totalExamples exampleNr duration
+                atomically $ modifyTVar' exampleCounter succ
+                pure result
+            )
+            >>= either throwIO pure
       )
       callback
   report ProgressTestDone

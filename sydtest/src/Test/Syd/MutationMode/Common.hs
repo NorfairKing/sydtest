@@ -50,6 +50,7 @@ where
 
 import Control.Exception (Exception)
 import qualified Control.Exception as Exception
+import Data.Either (fromRight)
 import Data.List (intercalate)
 import qualified Data.Text as T
 import Data.Word (Word64)
@@ -74,6 +75,7 @@ import Test.Syd.Mutation.Manifest.Render (renderUnifiedDiff)
 import Test.Syd.Mutation.Runtime (MutationId (..), renderMutationId)
 import Test.Syd.Mutation.TestId (TestId, renderTestId)
 import Test.Syd.OptParse (Settings, settingTerminalCapabilities)
+import Test.Syd.Run (tryTestFailure)
 import Text.Colour (Chunk, chunk, cyan, fore, green, hPutChunksUtf8With, red, unlinesChunks, yellow)
 
 -- | Difference of two 'getMonotonicTimeNSec' readings expressed in
@@ -133,23 +135,19 @@ data SuiteOutcome
     SuiteTimedOut Word (Maybe (Path Rel File))
   deriving (Eq, Show)
 
--- | Wrap a per-suite runner so that any synchronous exception escaping it is
--- treated as 'SuiteKilled'.  A mutation that makes the child process
--- unrunnable (e.g. 'BlockedIndefinitelyOnMVar' / @<<loop>>@ propagating from
--- 'waitExitCode', an 'IOException' from log-file IO, a parse failure on the
--- child's output) is conceptually indistinguishable from a mutation that
--- makes the child crash — both mean the test detected the mutation.
+-- | Wrap a per-suite runner so that any exception escaping it is treated as
+-- 'SuiteKilled', except the ones that stop the run.
+-- A mutation that makes the child process unrunnable (e.g.
+-- 'BlockedIndefinitelyOnMVar' / @<<loop>>@ propagating from 'waitExitCode', an
+-- 'IOException' from log-file IO, a parse failure on the child's output) is
+-- conceptually indistinguishable from a mutation that makes the child crash:
+-- both mean the test detected the mutation.
 --
--- 'SomeAsyncException' is re-thrown so Ctrl-C and other cancellations still
--- propagate out of the runner.
+-- 'tryTestFailure' decides, so Ctrl-C and other cancellations still propagate
+-- out of the runner, exactly as they do out of a test.
 classifySyncExceptionAsKilled :: IO SuiteOutcome -> IO SuiteOutcome
 classifySyncExceptionAsKilled action =
-  Exception.handle
-    ( \(e :: Exception.SomeException) -> case Exception.fromException e of
-        Just (_ :: Exception.SomeAsyncException) -> Exception.throwIO e
-        Nothing -> pure (SuiteKilled Nothing)
-    )
-    action
+  fromRight (SuiteKilled Nothing) <$> tryTestFailure action
 
 -- | Retry an 'IO' action that produces a tagged failure reason.
 --

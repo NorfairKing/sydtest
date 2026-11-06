@@ -2,15 +2,66 @@
 
 module Test.Syd.HedgehogSpec (spec) where
 
+import Control.Exception
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
 import Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import Test.Syd as Syd
 import qualified Test.Syd.Hedgehog as Syd
+import Test.Syd.OptParse
+
+-- | An exception that a test throws itself, but that is classified as
+-- asynchronous, as @effectful@'s @Error@ effect does.
+-- See https://github.com/NorfairKing/sydtest/issues/110
+data SynchronousButClassifiedAsynchronous = SynchronousButClassifiedAsynchronous
+  deriving (Show, Eq)
+
+instance Exception SynchronousButClassifiedAsynchronous where
+  toException = asyncExceptionToException
+  fromException = asyncExceptionFromException
 
 spec :: Syd.Spec
 spec = do
-  describe "Adapter" $ Syd.fromHedgehogGroup exampleHedgehogGroup
+  describe "a property that throws an asynchronously-classified exception fails with that exception" $ do
+    let settings = defaultSettings {settingRetries = 1}
+
+    it "Hedgehog.Property" $ do
+      specForest <-
+        execTestDefM settings $
+          it "throws" (property (liftIO (throwIO SynchronousButClassifiedAsynchronous)))
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
+    it "arg -> Hedgehog.Property" $ do
+      specForest <-
+        execTestDefM settings $
+          before (pure ()) $
+            it "throws" (\() -> property (liftIO (throwIO SynchronousButClassifiedAsynchronous)))
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+
+    it "outerArgs -> innerArg -> Hedgehog.Property" $ do
+      specForest <-
+        execTestDefM settings $
+          beforeAll (pure ()) $
+            before (pure ()) $
+              itWithBoth "throws" (\() () -> property (liftIO (throwIO SynchronousButClassifiedAsynchronous)))
+      resultForest <- runSpecForestSynchronously settings specForest
+      map
+        (NE.map (\r -> (testRunResultStatus r, testRunResultException r >>= fromException)) . testRunReportRawResults . timedValue . testDefVal . snd)
+        (flattenSpecForest (timedValue resultForest))
+        `shouldBe` [(TestFailed, Just SynchronousButClassifiedAsynchronous) :| []]
+  describe "Adapter" $ do
+    Syd.fromHedgehogGroup exampleHedgehogGroup
+    expectFailing $ Syd.fromHedgehogGroup failingHedgehogGroup
   describe "reverse" $
     specify "reversing twice is the same as not reversing" $
       property $ do
@@ -59,8 +110,14 @@ exampleHedgehogGroup =
           b <- forAll genDouble
           c <- forAll genDouble
           a * (b + c) === (a * b) + (a * c)
-      ),
-      ( "prop_undefined",
+      )
+    ]
+
+failingHedgehogGroup :: Hedgehog.Group
+failingHedgehogGroup =
+  Hedgehog.Group
+    "failing test group name"
+    [ ( "prop_undefined",
         property $ do
           _ <- forAll $ Gen.int Range.linearBounded
           undefined

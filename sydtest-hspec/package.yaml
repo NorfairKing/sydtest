@@ -37,6 +37,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - hspec
+    - safe-coloured-text
     - stm
     - sydtest
     - sydtest-hspec

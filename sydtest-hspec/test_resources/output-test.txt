@@ -11,23 +11,23 @@
 
 [34mFailures:[m
 
-  [36m  src/Test/Syd/Hspec.hs:68[m
+  [36m  src/Test/Syd/Hspec.hs:67[m
   [31m✗ [m[31m1 [m[31mfailure with no reason[m
       Retries: 3 (does not look flaky)
       Hspec had no more information about this failure.
   
-  [36m  src/Test/Syd/Hspec.hs:68[m
+  [36m  src/Test/Syd/Hspec.hs:67[m
   [31m✗ [m[31m2 [m[31mfailure with reason[m
       Retries: 3 (does not look flaky)
       failure reason
-      test/Test/Syd/OutputSpec.hs:32:30
+      test/Test/Syd/OutputSpec.hs:35:30
   
-  [36m  src/Test/Syd/Hspec.hs:68[m
+  [36m  src/Test/Syd/Hspec.hs:67[m
   [31m✗ [m[31m3 [m[31mfailure with "expected x but got y"[m
       Retries: 3 (does not look flaky)
       Expected these values to be equal:
-      [34mActual:   [m[31m8[m
-      [34mExpected: [m[32m6[m
+      [34mActual:   [m[1;91m8[m
+      [34mExpected: [m[1;92m6[m
   
 
   Examples:                     [32m10[m

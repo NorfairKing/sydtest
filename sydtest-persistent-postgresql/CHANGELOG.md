@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.3.0] - 2026-11-13
+
+### Added
+
+* `Test.Syd.Persistent.Postgresql.RedundantIndices.shouldHaveNoRedundantIndices`,
+  to assert that a schema has no index that another index covers: a second
+  index on the same columns, or an index on the leading columns of a longer
+  one such as a unique constraint. Every write maintains such an index while
+  the planner gains nothing from it, and `CREATE INDEX IF NOT EXISTS` cannot
+  notice one because it matches on the name. The failure lists the definition
+  of every redundant index and of the indices that cover it.
+
 ## [0.5.2.0] - 2026-09-26
 
 ### Fixed

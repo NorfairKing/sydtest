@@ -782,7 +782,7 @@ instance HasParser Threads where
             ],
         setting
           [ help "How parallel to run the test suite",
-            confWith' "threads" $ Just <$> codec
+            confWith' "threads" $ dimapCodec Just (fromMaybe ByCapabilities) codec
           ]
       ]
 

@@ -3,11 +3,11 @@
     "autodocodec": {
       "flake": false,
       "locked": {
-        "lastModified": 1777147676,
-        "narHash": "sha256-E4P8+WTEq/dW/Z4MVfHtjS4baN+SvFnhXXdk4EGJ/Ew=",
+        "lastModified": 1794919842,
+        "narHash": "sha256-Q8euyaBL9rqpJiA/phIiAPRd2MrrnEZvOmvt9tj+wxw=",
         "owner": "NorfairKing",
         "repo": "autodocodec",
-        "rev": "674ad5cb2b7c7cb9bd3803ccb8431e6aaff937cf",
+        "rev": "4abd5bdb102a5bb72c8e9f1bf0dd42db5e689fc3",
         "type": "github"
       },
       "original": {
@@ -19,11 +19,11 @@
     "fast-myers-diff": {
       "flake": false,
       "locked": {
-        "lastModified": 1764754983,
-        "narHash": "sha256-kHKm3pU3KQ2dkFlDnUs2jO34SnBDRau6M3khUZtMx5E=",
+        "lastModified": 1793197401,
+        "narHash": "sha256-YeEUdgS1uWwivD+jErKazH5qFG/sjaul6ByiIpKmQ0E=",
         "owner": "NorfairKing",
         "repo": "fast-myers-diff",
-        "rev": "258b03d62c679d693e13730606877bf248079b0e",
+        "rev": "04f044d7083ab9b2d4a3ebb6cf0f7f3750f61d0b",
         "type": "github"
       },
       "original": {
@@ -64,34 +64,13 @@
         "type": "github"
       }
     },
-    "gitignore": {
-      "inputs": {
-        "nixpkgs": [
-          "pre-commit-hooks",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1709087332,
-        "narHash": "sha256-HG2cCnktfHsKV0s4XW83gU3F57gaTljL9KNSuG6bnQs=",
-        "owner": "hercules-ci",
-        "repo": "gitignore.nix",
-        "rev": "637db329424fd7e46cf4185293b9cc8c88c95394",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hercules-ci",
-        "repo": "gitignore.nix",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1780203844,
-        "narHash": "sha256-K5sT4jTpGs15ADhviMKNBH38REpPf5Q6mM1+N6cArVE=",
+        "lastModified": 1794872590,
+        "narHash": "sha256-E+XLAfnC7+bdr4qlEgRv6cdGmiqTU5oeFNKCha7epqQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b51242d7d43689db2f3be91bd05d5b24fbb469c4",
+        "rev": "f68407657ad294471eb4b2e65d193df26edf729f",
         "type": "github"
       },
       "original": {
@@ -103,11 +82,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1770073757,
-        "narHash": "sha256-Vy+G+F+3E/Tl+GMNgiHl9Pah2DgShmIUBJXmbiQPHbI=",
+        "lastModified": 1787631388,
+        "narHash": "sha256-vMiXptXarfSdJb1Gkc+FYVOAibuBRj7qxGa8z68q1Uw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "47472570b1e607482890801aeaf29bfb749884f6",
+        "rev": "ac6b2166e7a9375683b8e98f860f273222337b16",
         "type": "github"
       },
       "original": {
@@ -152,11 +131,11 @@
     "opt-env-conf": {
       "flake": false,
       "locked": {
-        "lastModified": 1778844309,
-        "narHash": "sha256-bVqammSrjDQ3XtWyw60j6lrmviSFDf6+ZGtkArs02/w=",
+        "lastModified": 1794919976,
+        "narHash": "sha256-7/CRHGfPPEUms9CnMaIXMbJeYDJGNzwx7Ha+xqWRAbw=",
         "owner": "NorfairKing",
         "repo": "opt-env-conf",
-        "rev": "5f115023d0f17de7241984bfc870e92a9a92960a",
+        "rev": "02eeca407ce98512f9c0ac7093e2fd83009e384c",
         "type": "github"
       },
       "original": {
@@ -168,15 +147,14 @@
     "pre-commit-hooks": {
       "inputs": {
         "flake-compat": "flake-compat",
-        "gitignore": "gitignore",
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1778507602,
-        "narHash": "sha256-kTwur1wV+01SdqskVMSo6JMEpg71ps3HpbFY2GsflKs=",
+        "lastModified": 1793686154,
+        "narHash": "sha256-Zb/0L3soxrkfcrywpfp0J++0WFLB3tzh0Xtx9up+VNc=",
         "owner": "cachix",
         "repo": "pre-commit-hooks.nix",
-        "rev": "61ab0e80d9c7ab14c256b5b453d8b3fb0189ba0a",
+        "rev": "204b6977e00caac19e2313015a598543ca7be150",
         "type": "github"
       },
       "original": {
@@ -238,11 +216,11 @@
     "safe-coloured-text": {
       "flake": false,
       "locked": {
-        "lastModified": 1775994268,
-        "narHash": "sha256-HpGOSXv0P0HLPPcDtNoEEK6gA3GY18yanHti5RO7W9E=",
+        "lastModified": 1793197421,
+        "narHash": "sha256-EbcGf32JuWi4RbfmpLafPSRvmZ0t/YgWlESadMIClTc=",
         "owner": "NorfairKing",
         "repo": "safe-coloured-text",
-        "rev": "99a67d9f6f69b916953e69656eef63b187264ad1",
+        "rev": "8a0f78e40f415ec88936a2a58c69e08efaf07c78",
         "type": "github"
       },
       "original": {
@@ -254,11 +232,11 @@
     "validity": {
       "flake": false,
       "locked": {
-        "lastModified": 1775934609,
-        "narHash": "sha256-8vkfUL86gGHzRLzvk79cs+jUzKGs/071Bik+CMrFLVk=",
+        "lastModified": 1793197425,
+        "narHash": "sha256-E68fcnJqwQ9yGBnNBWoWn6xtv8CpzNru/xzuoDp/RUc=",
         "owner": "NorfairKing",
         "repo": "validity",
-        "rev": "bd6bca65e4e1e8ce94ebbd0f4923f8888be55839",
+        "rev": "57de233baeb117c85681e503b01645e7292683fb",
         "type": "github"
       },
       "original": {

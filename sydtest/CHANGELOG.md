@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.33.4.1] - 2026-11-18
+
+### Changed
+
+* When the diff of an equality assertion takes too long and is canceled, the
+  failure shows only the first thousand characters of each value.
+  Printing large values in full could take minutes.
+
+### Fixed
+
+* Compatibility with newer `opt-env-conf`, whose `confWith'` requires a codec
+  that can also encode.
+
 ## [0.33.4.0] - 2026-11-06
 
 ### Added

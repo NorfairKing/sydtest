@@ -13,6 +13,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Myers.Diff
 import Test.Syd
+import Text.Colour
 
 -- Just for this test
 instance IsString (Vector Char) where
@@ -290,3 +291,13 @@ spec = do
       let a = replicate 10000 'a'
           b = "b"
        in length (outputEqualityAssertionFailed a b (Just $ computeDiff a b)) `shouldBe` 3
+    it "elides most of a long value when the diff was canceled" $
+      outputEqualityAssertionFailed (replicate 100000 'a') "b" Nothing
+        `shouldBe` [ ["Expected these values to be equal:"],
+                     ["Diff computation took too long and was canceled"],
+                     [fore blue "Actual:"],
+                     [chunk (T.pack (replicate 1000 'a'))],
+                     ["... 99000 more characters elided"],
+                     [fore blue "Expected:"],
+                     ["b"]
+                   ]

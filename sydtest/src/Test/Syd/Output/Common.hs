@@ -12,7 +12,6 @@ import Control.Exception
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
-import Data.String (IsString (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Typeable (cast)
@@ -148,9 +147,28 @@ outputEqualityAssertionFailed actual expected diffM =
       concat
         [ [[chunk "Expected these values to be equal:"]],
           [[chunk "Diff computation took too long and was canceled"]],
-          [[fromString actual]],
-          [[fromString expected]]
+          canceledDiffValueChunks "Actual:" actual,
+          canceledDiffValueChunks "Expected:" expected
         ]
+
+-- | Render only a prefix of a value whose diff was canceled.
+--
+-- Diffs are canceled when they take too long, which happens for large values,
+-- and printing a large value in full can take longer than the diff did.
+canceledDiffValueChunks :: Text -> String -> [[Chunk]]
+canceledDiffValueChunks header value =
+  let (shown, elided) = splitAt canceledDiffValueDisplayLimit value
+   in concat
+        [ [[fore blue (chunk header)]],
+          stringChunks shown,
+          [ [chunk (T.pack (unwords ["...", show (length elided), "more characters elided"]))]
+          | not (null elided)
+          ]
+        ]
+
+-- | How many characters of a value to show when its diff was canceled.
+canceledDiffValueDisplayLimit :: Int
+canceledDiffValueDisplayLimit = 1_000
 
 -- The diff-colour helpers ('delColour', 'addColour', 'emphasiseIntraLine',
 -- 'renderDelSide', 'renderAddSide') used to live here.  They were moved to
